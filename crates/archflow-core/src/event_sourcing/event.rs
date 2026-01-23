@@ -202,6 +202,21 @@ impl DomainEvent {
         }
     }
 
+    /// Get the primary entity ID for this event
+    pub fn entity_id(&self) -> EntityId {
+        match self {
+            DomainEvent::PrimitiveCreated { primitive_id, .. } => *primitive_id,
+            DomainEvent::PrimitiveDeleted { primitive_id, .. } => *primitive_id,
+            DomainEvent::PrimitiveMoved { primitive_id, .. } => *primitive_id,
+            DomainEvent::PrimitiveResized { primitive_id, .. } => *primitive_id,
+            DomainEvent::ConnectionCreated { connection_id, .. } => *connection_id,
+            DomainEvent::ConnectionDeleted { connection_id, .. } => *connection_id,
+            DomainEvent::PrimitivesGrouped { group_id, .. } => *group_id,
+            DomainEvent::PrimitivesUngrouped { group_id, .. } => *group_id,
+            DomainEvent::PropertyChanged { entity_id, .. } => *entity_id,
+        }
+    }
+
     /// Get the event type name
     pub fn event_type(&self) -> String {
         self.metadata().event_type.clone()

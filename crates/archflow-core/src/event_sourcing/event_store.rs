@@ -529,4 +529,65 @@ mod tests {
             _ => panic!("Wrong event type"),
         }
     }
+
+    #[test]
+    fn test_event_entity_id() {
+        let aggregate_id = EntityId::from_u128(1);
+        let primitive_id = EntityId::from_u128(100);
+        let connection_id = EntityId::from_u128(200);
+        let group_id = EntityId::from_u128(300);
+        let entity_id = EntityId::from_u128(400);
+
+        // Test PrimitiveCreated
+        let event = DomainEvent::PrimitiveCreated {
+            metadata: EventMetadata::for_new_aggregate(aggregate_id, aggregate_id),
+            primitive_id,
+            primitive_type: "rectangle".to_string(),
+            position: (0.0, 0.0),
+            size: (100.0, 50.0),
+        };
+        assert_eq!(event.entity_id(), primitive_id);
+
+        // Test ConnectionCreated
+        let event = DomainEvent::ConnectionCreated {
+            metadata: EventMetadata::new(
+                aggregate_id,
+                2,
+                aggregate_id,
+                "ConnectionCreated".to_string(),
+            ),
+            connection_id,
+            source_port: EntityId::from_u128(1),
+            target_port: EntityId::from_u128(2),
+        };
+        assert_eq!(event.entity_id(), connection_id);
+
+        // Test PrimitivesGrouped
+        let event = DomainEvent::PrimitivesGrouped {
+            metadata: EventMetadata::new(
+                aggregate_id,
+                3,
+                aggregate_id,
+                "PrimitivesGrouped".to_string(),
+            ),
+            group_id,
+            primitive_ids: vec![primitive_id],
+        };
+        assert_eq!(event.entity_id(), group_id);
+
+        // Test PropertyChanged
+        let event = DomainEvent::PropertyChanged {
+            metadata: EventMetadata::new(
+                aggregate_id,
+                4,
+                aggregate_id,
+                "PropertyChanged".to_string(),
+            ),
+            entity_id,
+            property_name: "color".to_string(),
+            from: "red".to_string(),
+            to: "blue".to_string(),
+        };
+        assert_eq!(event.entity_id(), entity_id);
+    }
 }
