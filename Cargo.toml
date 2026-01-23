@@ -36,15 +36,7 @@ web-sys = { version = "0.3", features = [
     "CanvasRenderingContext2d",
     "HtmlCanvasElement",
     "HtmlImageElement",
-    "HtmlVideoElement",
-    "HtmlIFrameElement",
     "Window",
-    "Element",
-    "EventTarget",
-    "MouseEvent",
-    "KeyboardEvent",
-    "DomRect",
-    "Performance",
 ] }
 
 # WebSys features para rendering
