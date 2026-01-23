@@ -77,3 +77,5 @@ Cargo.lock
 
 # Analysis data (keep in repo if needed)
 repo-analysis/
+docs/current
+docs/old

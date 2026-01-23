@@ -67,23 +67,27 @@ impl fmt::Display for EntityId {
 }
 
 /// Generador de EntityIds predecibles (para testing)
+#[derive(Debug, Clone)]
 pub struct EntityIdGenerator {
     counter: u32,
-    namespace: Uuid,
 }
 
 impl EntityIdGenerator {
+    /// Crear nuevo generador
     pub fn new() -> Self {
-        Self {
-            counter: 0,
-            namespace: Uuid::nil(),
-        }
+        Self { counter: 0 }
     }
 
-    pub fn next(&mut self) -> EntityId {
-        // Usar new_v4 para generar IDs únicos basados en counter
+    /// Generar el siguiente EntityId
+    pub fn generate(&mut self) -> EntityId {
         let id = Uuid::new_v4();
         self.counter += 1;
         EntityId(id)
+    }
+}
+
+impl Default for EntityIdGenerator {
+    fn default() -> Self {
+        Self::new()
     }
 }

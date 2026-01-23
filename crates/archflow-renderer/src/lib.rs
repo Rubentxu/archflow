@@ -6,11 +6,19 @@
 pub mod render_context;
 pub mod selection_renderer;
 
+pub mod image;
+pub mod path;
+pub mod stroke;
+
 pub use render_context::{
     DirtyRegion, RenderConfig, RenderContext, RenderOp, RenderOpData, RenderOpType, RenderStats,
 };
 
 pub use selection_renderer::SelectionRenderer;
+
+pub use crate::image::ImageData;
+pub use crate::path::SvgPath;
+pub use crate::stroke::StrokeStyle;
 
 use archflow_core::Color;
 
@@ -161,36 +169,6 @@ pub enum FontStyleType {
     Normal,
     Italic,
     Oblique,
-}
-
-/// Estilo de stroke para paths
-#[derive(Debug, Clone)]
-pub struct StrokeStyle {
-    /// Color de la línea
-    pub color: Color,
-    /// Ancho de línea en pixels
-    pub width: f32,
-    /// Estilo de terminación de línea
-    pub line_cap: LineCap,
-    /// Estilo de unión entre segmentos
-    pub line_join: LineJoin,
-    /// Patrón de dash (vacío = línea continua)
-    pub dash_pattern: Option<Vec<f32>>,
-    /// Límite de miter (para LineJoin::Miter)
-    pub miter_limit: f32,
-}
-
-impl Default for StrokeStyle {
-    fn default() -> Self {
-        Self {
-            color: Color::BLACK,
-            width: 1.0,
-            line_cap: LineCap::Butt,
-            line_join: LineJoin::Miter,
-            dash_pattern: None,
-            miter_limit: 4.0,
-        }
-    }
 }
 
 /// Estilo de terminación de línea

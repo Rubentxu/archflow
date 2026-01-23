@@ -6,7 +6,9 @@
 //! - Batch rendering por tipo de primitiva
 //! - FPS counter para debugging
 
-use crate::{FontStyle, Renderer as RendererTrait};
+use crate::{
+    image::ImageData, path::SvgPath, stroke::StrokeStyle, FontStyle, Renderer as RendererTrait,
+};
 use archflow_core::{Color, Rect, Vec2};
 
 use std::collections::HashMap;
@@ -350,11 +352,10 @@ impl<R: RendererTrait> RenderContext<R> {
                     self.renderer.clear(*color);
                     self.renderer.draw_ellipse(*cx, *cy, *rx, *ry);
                 }
-                RenderOpData::Path {
-                    svg_path: _,
-                    color: _,
-                } => {
-                    // TODO: implementar con Path trait
+                RenderOpData::Path { svg_path, color } => {
+                    let path = SvgPath::new(svg_path);
+                    self.renderer.fill_path(&path, *color);
+                    self.renderer.stroke_path(&path, &StrokeStyle::default());
                 }
                 RenderOpData::Text {
                     text,
@@ -365,8 +366,14 @@ impl<R: RendererTrait> RenderContext<R> {
                 } => {
                     self.renderer.draw_text(text, *x, *y, &FontStyle::default());
                 }
-                RenderOpData::Image { .. } => {
-                    // TODO: implementar
+                RenderOpData::Image {
+                    width,
+                    height,
+                    data,
+                } => {
+                    let image = ImageData::new_rgba(*width, *height, data.clone());
+                    self.renderer
+                        .draw_image(&image, 0.0, 0.0, *width as f32, *height as f32);
                 }
             }
         }

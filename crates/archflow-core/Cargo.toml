@@ -12,5 +12,6 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 kurbo = { workspace = true }
 
-[lib]
-path = "src/lib.rs"
+# Event Sourcing dependencies
+chrono = { version = "0.4", features = ["serde"] }
+serde_json = "1.0"
