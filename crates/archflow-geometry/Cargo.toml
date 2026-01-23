@@ -1,0 +1,14 @@
+[package]
+name = "archflow-geometry"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+# Workspace dependencies
+kurbo = "0.13"
+archflow-core = { path = "../archflow-core" }
+serde = { version = "1.0", features = ["derive"] }
+
+[lib]
+path = "src/lib.rs"

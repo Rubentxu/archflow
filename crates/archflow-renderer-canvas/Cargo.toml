@@ -1,0 +1,13 @@
+[package]
+name = "archflow-renderer-canvas"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+archflow-core = { path = "../archflow-core" }
+archflow-renderer = { path = "../archflow-renderer" }
+web-sys.workspace = true
+
+[lib]
+path = "src/lib.rs"

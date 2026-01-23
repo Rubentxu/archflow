@@ -1,0 +1,50 @@
+[workspace]
+members = [
+    "crates/archflow-core",
+    "crates/archflow-ecs",
+    "crates/archflow-geometry",
+    "crates/archflow-primitives",
+    "crates/archflow-renderer",
+    "crates/archflow-renderer-canvas",
+    "crates/archflow-renderer-rough",
+    "crates/archflow-workspace",
+    "crates/archflow-wasm",
+]
+resolver = "2"
+
+# Configuración del workspace
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.80"
+
+[workspace.dependencies]
+# Versiones centralizadas
+bevy_ecs = "0.18"
+glam = "0.31"
+euclid = "0.22.13"
+kurbo = "0.13"
+rstar = "0.12"
+serde = { version = "1.0", features = ["derive"] }
+bincode = { version = "2.0", features = ["serde"] }
+zstd = "0.13"
+uuid = { version = "1.11", features = ["v4", "serde"] }
+thiserror = "2.0"
+anyhow = "1.0"
+wasm-bindgen = "0.2.108"
+web-sys = { version = "0.3", features = [
+    "CanvasRenderingContext2d",
+    "HtmlCanvasElement",
+    "HtmlImageElement",
+    "HtmlVideoElement",
+    "HtmlIFrameElement",
+    "Window",
+    "Element",
+    "EventTarget",
+    "MouseEvent",
+    "KeyboardEvent",
+    "DomRect",
+    "Performance",
+] }
+
+# WebSys features para rendering

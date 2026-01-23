@@ -1,0 +1,19 @@
+[package]
+name = "archflow-workspace"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+# Workspace dependencies
+serde = { workspace = true, features = ["derive"] }
+uuid.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+
+archflow-core = { path = "../archflow-core" }
+archflow-geometry = { path = "../archflow-geometry" }
+archflow-renderer = { path = "../archflow-renderer" }
+
+[lib]
+path = "src/lib.rs"

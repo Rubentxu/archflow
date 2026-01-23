@@ -1,0 +1,20 @@
+[package]
+name = "archflow-wasm"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Workspace dependencies
+wasm-bindgen.workspace = true
+js-sys = "0.3"
+web-sys.workspace = true
+
+archflow-core = { path = "../archflow-core" }
+archflow-ecs = { path = "../archflow-ecs" }
+archflow-geometry = { path = "../archflow-geometry" }
+archflow-renderer = { path = "../archflow-renderer" }
+archflow-workspace = { path = "../archflow-workspace" }

@@ -1,0 +1,9 @@
+[package]
+name = "archflow-demo"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+archflow-core = { path = "../core" }
+archflow-ecs = { path = "../ecs" }
+archflow-renderer = { path = "../renderer" }
