@@ -3,6 +3,15 @@
 //! Este crate define los traits abstractos para el sistema de rendering.
 //! Los paths usan un trait Path abstracto para permitir diferentes implementaciones.
 
+pub mod render_context;
+pub mod selection_renderer;
+
+pub use render_context::{
+    DirtyRegion, RenderConfig, RenderContext, RenderOp, RenderOpData, RenderOpType, RenderStats,
+};
+
+pub use selection_renderer::SelectionRenderer;
+
 use archflow_core::Color;
 
 /// Trait principal para renderers

@@ -1,8 +1,12 @@
 //! ArchFlow Primitives - Primitivas geométricas del engine
 
 mod connectivity;
+mod selection;
 mod shapes;
 mod styles;
+
+#[cfg(test)]
+mod selection_integration_tests;
 
 pub use shapes::{
     Ellipse, Line, Polyline, Primitive, PrimitiveProperties, PrimitiveType, Rectangle,
@@ -18,7 +22,12 @@ pub use connectivity::{
     PortDirection, PortType, RoutingType,
 };
 
-use archflow_core::{EntityId, Rect, Transform, Vec2};
+pub use selection::{
+    DragSelectionBox, DragSelectionConfig, HandleType, HitTestResult, SelectionConfig,
+    SelectionEntry, SelectionManager, SelectionManagerBuilder, SelectionMode,
+};
+
+use archflow_core::{EntityId, Rect, Vec2};
 
 /// Contenedor de primitivas
 pub struct PrimitiveContainer {

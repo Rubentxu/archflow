@@ -8,6 +8,7 @@ rust-version.workspace = true
 # Workspace dependencies
 archflow-core = { path = "../archflow-core" }
 archflow-geometry = { path = "../archflow-geometry" }
+archflow-primitives = { path = "../archflow-primitives" }
 web-sys.workspace = true
 
 [lib]

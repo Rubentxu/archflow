@@ -1,6 +1,7 @@
 //! Rect - Rectángulo 2D
 
 use crate::Vec2;
+use kurbo::Rect as KurboRect;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -118,6 +119,28 @@ impl Rect {
 impl Default for Rect {
     fn default() -> Self {
         Self::from_pos_size(Vec2::ZERO, Vec2::ZERO)
+    }
+}
+
+/// Conversión de Rect a KurboRect
+impl From<Rect> for KurboRect {
+    fn from(rect: Rect) -> Self {
+        KurboRect::new(
+            rect.min.x as f64,
+            rect.min.y as f64,
+            rect.max.x as f64,
+            rect.max.y as f64,
+        )
+    }
+}
+
+/// Conversión de KurboRect a Rect
+impl From<KurboRect> for Rect {
+    fn from(kurbo: KurboRect) -> Self {
+        Self::from_min_max(
+            Vec2::new(kurbo.x0 as f32, kurbo.y0 as f32),
+            Vec2::new(kurbo.x1 as f32, kurbo.y1 as f32),
+        )
     }
 }
 

@@ -19,6 +19,18 @@ impl EntityId {
         Self(Uuid::from_bytes(*bytes))
     }
 
+    /// Crear EntityId desde u128 (para testing)
+    pub fn from_u128(v: u128) -> Self {
+        let bytes = v.to_be_bytes();
+        Self(Uuid::from_bytes(bytes))
+    }
+
+    /// Obtener como u128 (para testing)
+    pub fn as_u128(&self) -> u128 {
+        let bytes = self.0.as_bytes();
+        u128::from_be_bytes(*bytes)
+    }
+
     /// Obtener como bytes
     pub fn as_bytes(&self) -> [u8; 16] {
         *self.0.as_bytes()
@@ -33,6 +45,18 @@ impl EntityId {
 impl Default for EntityId {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl From<Uuid> for EntityId {
+    fn from(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
+}
+
+impl From<EntityId> for Uuid {
+    fn from(entity_id: EntityId) -> Self {
+        entity_id.0
     }
 }
 
