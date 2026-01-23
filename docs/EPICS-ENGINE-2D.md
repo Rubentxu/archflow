@@ -40,15 +40,15 @@ EPIC-011: Developer APIs           ░░░░░░░░░░░░░░░
 
 | Crate | Versión | Estado |
 |-------|---------|--------|
-| **archflow-core** | 0.1.0 | ✅ Completo |
-| **archflow-ecs** | 0.1.0 | ✅ Completo |
-| **archflow-geometry** | 0.1.0 | ✅ Completo |
-| **archflow-primitives** | 0.1.0 | ✅ Completo |
-| **archflow-renderer** | 0.1.0 | ✅ Completo |
-| **archflow-renderer-canvas** | 0.1.0 | ✅ Completo |
-| **archflow-renderer-rough** | 0.1.0 | ✅ Completo |
-| **archflow-workspace** | 0.1.0 | ✅ Completo |
-| **archflow-wasm** | 0.1.0 | ✅ Completo |
+| **archflow-core** | 0.3.0 | ✅ Completo |
+| **archflow-ecs** | 0.3.0 | ✅ Completo |
+| **archflow-geometry** | 0.3.0 | ✅ Completo |
+| **archflow-primitives** | 0.3.0 | ✅ Completo |
+| **archflow-renderer** | 0.3.0 | ✅ Completo |
+| **archflow-renderer-canvas** | 0.3.0 | ✅ Completo |
+| **archflow-renderer-rough** | 0.3.0 | ✅ Completo |
+| **archflow-workspace** | 0.3.0 | ✅ Completo |
+| **archflow-wasm** | 0.3.0 | ✅ Completo |
 | **kurbo** | 0.13.0 | Dependencia |
 | **glam** | 0.31.0 | Dependencia |
 
