@@ -293,3 +293,158 @@ mod tests {
         assert!(!manager.has_snapshot(&aggregate_id));
     }
 }
+
+#[cfg(test)]
+mod journal_tests {
+    use super::*;
+    use crate::event_sourcing::event::DomainEvent;
+    use crate::event_sourcing::event::EventMetadata;
+    use crate::event_sourcing::event_journal::{
+        EventJournal, JournalEntry, JournalError, UndoRedoStack,
+    };
+
+    #[test]
+    fn test_undo_redo_stack() {
+        let mut stack = UndoRedoStack::new(10);
+        let doc_id = EntityId::from_u128(1);
+
+        let entry = JournalEntry::new(
+            vec![DomainEvent::PrimitiveCreated {
+                metadata: EventMetadata::for_new_aggregate(doc_id, doc_id),
+                primitive_id: EntityId::from_u128(100),
+                primitive_type: "rectangle".to_string(),
+                position: (0.0, 0.0),
+                size: (100.0, 50.0),
+            }],
+            "Created rectangle".to_string(),
+        );
+
+        // Push entry
+        stack.push(entry.clone());
+        assert!(stack.can_undo());
+        assert!(!stack.can_redo());
+
+        // Undo
+        let undone = stack.undo().unwrap();
+        assert!(!stack.can_undo());
+        assert!(stack.can_redo());
+        assert_eq!(undone.inverse_events.len(), 1);
+
+        // Redo
+        let redone = stack.redo().unwrap();
+        assert!(stack.can_undo());
+        assert!(!stack.can_redo());
+        assert_eq!(redone.events.len(), 1);
+    }
+
+    #[test]
+    fn test_undo_redo_stack_limits() {
+        let mut stack = UndoRedoStack::new(3);
+        let doc_id = EntityId::from_u128(1);
+
+        for i in 0..5 {
+            let entry = JournalEntry::new(
+                vec![DomainEvent::PrimitiveCreated {
+                    metadata: EventMetadata::new(
+                        doc_id,
+                        (i + 1) as u64,
+                        doc_id,
+                        "Created".to_string(),
+                    ),
+                    primitive_id: EntityId::from_u128(i),
+                    primitive_type: "rectangle".to_string(),
+                    position: (0.0, 0.0),
+                    size: (100.0, 50.0),
+                }],
+                format!("Created {}", i),
+            );
+            stack.push(entry);
+        }
+
+        // Should only have 3 entries due to limit
+        assert!(stack.can_undo());
+        assert_eq!(stack.undo().unwrap().events.len(), 1);
+    }
+
+    #[test]
+    fn test_event_journal() {
+        let doc_id = EntityId::from_u128(1);
+        let mut journal = EventJournal::new(doc_id, 0);
+
+        // Record an event
+        let event = DomainEvent::PrimitiveCreated {
+            metadata: EventMetadata::for_new_aggregate(doc_id, doc_id),
+            primitive_id: EntityId::from_u128(100),
+            primitive_type: "rectangle".to_string(),
+            position: (0.0, 0.0),
+            size: (100.0, 50.0),
+        };
+
+        journal
+            .record(vec![event], "Created rectangle".to_string())
+            .unwrap();
+        assert_eq!(journal.current_version(), 1);
+        assert!(journal.can_undo());
+        assert!(!journal.can_redo());
+
+        // Undo
+        let entry = journal.undo().unwrap();
+        assert_eq!(journal.current_version(), 0);
+        assert!(!journal.can_undo());
+        assert!(journal.can_redo());
+        assert_eq!(entry.description, "Created rectangle");
+
+        // Redo
+        let entry = journal.redo().unwrap();
+        assert_eq!(journal.current_version(), 1);
+        assert!(journal.can_undo());
+        assert!(!journal.can_redo());
+    }
+
+    #[test]
+    fn test_event_journal_snapshot() {
+        let doc_id = EntityId::from_u128(1);
+        let mut journal = EventJournal::new(doc_id, 5);
+
+        // Record some events
+        for i in 1..=3 {
+            let event = DomainEvent::PrimitiveMoved {
+                metadata: EventMetadata::new(doc_id, 5 + i, doc_id, "Moved".to_string()),
+                primitive_id: EntityId::from_u128(100),
+                from: (0.0, 0.0),
+                to: (i as f32 * 10.0, 0.0),
+            };
+            journal.record(vec![event], format!("Move {}", i)).unwrap();
+        }
+
+        assert_eq!(journal.current_version(), 8);
+        assert_eq!(journal.changes_since_snapshot(), 3);
+
+        // Mark snapshot
+        journal.mark_snapshot();
+        assert_eq!(journal.snapshot_version(), 8);
+        assert_eq!(journal.changes_since_snapshot(), 0);
+        assert!(!journal.can_undo()); // Stack cleared
+    }
+
+    #[test]
+    fn test_journal_empty_operations() {
+        let doc_id = EntityId::from_u128(1);
+        let mut stack = UndoRedoStack::new(10);
+
+        // Cannot undo empty stack
+        assert!(matches!(stack.undo(), Err(JournalError::NoEventsToUndo)));
+        // Cannot redo empty stack
+        assert!(matches!(stack.redo(), Err(JournalError::NoEventsToRedo)));
+    }
+
+    #[test]
+    fn test_journal_record_empty() {
+        let doc_id = EntityId::from_u128(1);
+        let mut journal = EventJournal::new(doc_id, 0);
+
+        // Recording empty events should succeed but not change version
+        journal.record(vec![], "Empty".to_string()).unwrap();
+        assert_eq!(journal.current_version(), 0);
+    }
+}
