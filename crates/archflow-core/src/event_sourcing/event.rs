@@ -279,9 +279,9 @@ impl DomainEvent {
             DomainEvent::PrimitiveCreated {
                 metadata,
                 primitive_id,
-                primitive_type,
-                position,
-                size,
+                primitive_type: _,
+                position: _,
+                size: _,
             } => DomainEvent::PrimitiveDeleted {
                 metadata: EventMetadata::new(
                     metadata.aggregate_id,
