@@ -253,11 +253,10 @@ impl FileEventStore {
                 .map_err(|e| EventStoreError::DeserializationError(e.to_string()))?;
 
             // Add to in-memory store
-            let mut inner = self.inner.clone();
-            inner.save_events(
+            self.inner.save_events(
                 stored.aggregate_id,
                 &[stored.event],
-                inner.get_version(stored.aggregate_id).unwrap_or(0),
+                self.inner.get_version(stored.aggregate_id)?,
             )?;
         }
 
@@ -268,6 +267,30 @@ impl FileEventStore {
     fn get_current_file(&self) -> PathBuf {
         let base_name = chrono::Utc::now().format("%Y%m%d_%H%M%S.events");
         self.base_dir.join(base_name.to_string())
+    }
+
+    /// Persist events to file
+    fn persist_events(&self, events: &[StoredEvent]) -> Result<(), EventStoreError> {
+        if events.is_empty() {
+            return Ok(());
+        }
+
+        let file_path = self.get_current_file();
+        let mut file = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&file_path)
+            .map_err(|e| EventStoreError::IoError(e.to_string()))?;
+
+        for event in events {
+            let mut json = serde_json::to_string(event)
+                .map_err(|e| EventStoreError::SerializationError(e.to_string()))?;
+            json.push('\n');
+            std::io::Write::write_all(&mut file, json.as_bytes())
+                .map_err(|e| EventStoreError::IoError(e.to_string()))?;
+        }
+
+        Ok(())
     }
 }
 
@@ -312,6 +335,33 @@ impl EventStore for InMemoryEventStore {
 
     fn get_version(&self, aggregate_id: EntityId) -> Result<u64, EventStoreError> {
         self.get_version(aggregate_id)
+    }
+}
+
+impl EventStore for FileEventStore {
+    fn save_events(
+        &mut self,
+        aggregate_id: EntityId,
+        events: &[DomainEvent],
+        expected_version: u64,
+    ) -> Result<Vec<StoredEvent>, EventStoreError> {
+        let stored = self
+            .inner
+            .save_events(aggregate_id, events, expected_version)?;
+        self.persist_events(&stored)?;
+        Ok(stored)
+    }
+
+    fn get_events(
+        &self,
+        aggregate_id: EntityId,
+        from_version: u64,
+    ) -> Result<Vec<StoredEvent>, EventStoreError> {
+        self.inner.get_events(aggregate_id, from_version)
+    }
+
+    fn get_version(&self, aggregate_id: EntityId) -> Result<u64, EventStoreError> {
+        self.inner.get_version(aggregate_id)
     }
 }
 
