@@ -16,7 +16,13 @@ pub use kurbo::{BezPath, Point as KurboPoint, Rect as KurboRect, Shape};
 mod geometry;
 mod intersection;
 mod path;
+mod spatial;
 
 pub use geometry::{DiscretizeConfig, GeometryEngine, IntersectionResult};
 pub use intersection::{HitTestConfig, IntersectionEngine, IntersectionType};
 pub use path::{ArcElement, ArcType, PathElement, PathEngine, SimplifyConfig};
+pub use spatial::{
+    DirtyChangeType, DirtyRecord, DirtyState, SpatialData, SpatialIndex, SpatialIndexConfig,
+    SpatialItem, SpatialMetrics, SpatialQueryConfig, SpatialQueryOrder, SpatialQueryResult,
+    SpatialQueryType,
+};

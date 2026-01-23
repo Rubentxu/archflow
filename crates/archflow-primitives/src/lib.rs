@@ -1,6 +1,9 @@
 //! ArchFlow Primitives - Primitivas geométricas del engine
 
 mod connectivity;
+mod drag_drop;
+mod resize;
+mod routing;
 mod selection;
 mod shapes;
 mod styles;
@@ -19,12 +22,27 @@ pub use styles::{
 
 pub use connectivity::{
     Connection, ConnectionManager, ConnectionState, ConnectionType, Port, PortCollection,
-    PortDirection, PortType, RoutingType,
+    PortDirection, PortType,
+};
+
+pub use routing::{
+    ConnectionRouter, ControlPointMode, CornerStyle, MarkerConfig, MarkerType, Obstacle,
+    RouterConfig, RoutingPriority, RoutingResult, RoutingType,
 };
 
 pub use selection::{
     DragSelectionBox, DragSelectionConfig, HandleType, HitTestResult, SelectionConfig,
     SelectionEntry, SelectionManager, SelectionManagerBuilder, SelectionMode,
+};
+
+pub use drag_drop::{
+    DragEvent, DragFeedbackConfig, DragManager, DragManagerBuilder, DragState, Draggable,
+    SnapConfig, SnapGuideLine, SnapGuides,
+};
+
+pub use resize::{
+    AspectRatioMode, Resizable, ResizeCenterMode, ResizeEvent, ResizeFeedbackConfig, ResizeManager,
+    ResizeManagerBuilder, ResizeState, SizeConstraints,
 };
 
 use archflow_core::{EntityId, Rect, Vec2};

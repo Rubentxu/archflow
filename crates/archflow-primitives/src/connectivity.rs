@@ -1,6 +1,6 @@
 //! Ports & Connections - Sistema de conectividad entre nodos
 
-use crate::{EntityId, Vec2};
+use crate::{EntityId, RoutingType, Vec2};
 use serde::{Deserialize, Serialize};
 
 /// Tipo de dato que fluye por un puerto
@@ -113,7 +113,6 @@ pub struct Connection {
     pub connection_type: ConnectionType,
     pub state: ConnectionState,
     pub points: Vec<Vec2>,
-    pub routing_type: RoutingType,
     pub stroke_color: String,
     pub stroke_width: f32,
     pub show_arrow: bool,
@@ -128,7 +127,6 @@ impl Connection {
             connection_type: ConnectionType::Flow,
             state: ConnectionState::Inactive,
             points: Vec::new(),
-            routing_type: RoutingType::default(),
             stroke_color: "#666666".to_string(),
             stroke_width: 2.0,
             show_arrow: true,
@@ -143,53 +141,6 @@ impl Connection {
     }
     pub fn is_active(&self) -> bool {
         self.state == ConnectionState::Active
-    }
-}
-
-/// Tipo de routing visual
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum RoutingType {
-    Straight,
-    Orthogonal { corner_radius: f32 },
-    Curved { curvature: f32 },
-    Spline,
-    Smart,
-}
-
-impl Default for RoutingType {
-    fn default() -> Self {
-        RoutingType::Orthogonal {
-            corner_radius: 10.0,
-        }
-    }
-}
-
-impl RoutingType {
-    pub fn orthogonal_path(start: Vec2, end: Vec2, corner_radius: f32) -> Vec<Vec2> {
-        let dx = end.x - start.x;
-        let dy = end.y - start.y;
-        let horizontal = dx.abs() > dy.abs();
-        let mid1 = if horizontal {
-            Vec2::new(start.x + dx / 2.0, start.y)
-        } else {
-            Vec2::new(start.x, start.y + dy / 2.0)
-        };
-        let mid2 = if horizontal {
-            Vec2::new(start.x + dx / 2.0, end.y)
-        } else {
-            Vec2::new(end.x, start.y + dy / 2.0)
-        };
-        vec![start, mid1, mid2, end]
-    }
-    pub fn curved_path(start: Vec2, end: Vec2, curvature: f32) -> Vec<Vec2> {
-        let dx = end.x - start.x;
-        let control_offset = dx.abs() * curvature;
-        vec![
-            start,
-            Vec2::new(start.x + control_offset, start.y),
-            Vec2::new(end.x - control_offset, end.y),
-            end,
-        ]
     }
 }
 
@@ -289,7 +240,6 @@ impl ConnectionManager {
             connection_type: ConnectionType::Flow,
             state: ConnectionState::Inactive,
             points: Vec::new(),
-            routing_type: RoutingType::default(),
             stroke_color: "#666666".to_string(),
             stroke_width: 2.0,
             show_arrow: true,

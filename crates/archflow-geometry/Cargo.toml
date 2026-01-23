@@ -9,6 +9,7 @@ rust-version.workspace = true
 kurbo = "0.13"
 archflow-core = { path = "../archflow-core" }
 serde = { version = "1.0", features = ["derive"] }
+rstar = "0.12"
 
 [lib]
 path = "src/lib.rs"

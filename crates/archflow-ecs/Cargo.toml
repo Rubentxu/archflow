@@ -8,6 +8,8 @@ rust-version.workspace = true
 # Workspace dependencies
 bevy_ecs.workspace = true
 archflow-core = { path = "../archflow-core" }
+archflow-geometry = { path = "../archflow-geometry" }
+archflow-primitives = { path = "../archflow-primitives" }
 
 [lib]
 path = "src/lib.rs"

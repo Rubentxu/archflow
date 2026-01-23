@@ -24,9 +24,9 @@
 EPIC-001: Core Infrastructure      ████████████████████ 100%
 EPIC-002: Base Primitives          ████████████████████ 100%
 EPIC-003: Rendering Engine         ████████████████████ 100%
-EPIC-004: Interactivity            ████░░░░░░░░░░░░░░░░░  20%
-EPIC-005: Connection Routing       ░░░░░░░░░░░░░░░░░░░░   0%
-EPIC-006: Spatial Indexing         ░░░░░░░░░░░░░░░░░░░░   0%
+EPIC-004: Interactivity            ████████████████████ 100%
+EPIC-005: Connection Routing       ████████████████████ 100%
+EPIC-006: Spatial Indexing         ████████████████████ 100%
 EPIC-007: Event Sourcing           ░░░░░░░░░░░░░░░░░░░░   0%
 EPIC-008: Animations               ░░░░░░░░░░░░░░░░░░░░   0%
 EPIC-009: External Resources       ░░░░░░░░░░░░░░░░░░░░   0%
@@ -356,21 +356,21 @@ crates/
 - `HitTestResult` - Resultado de hit testing
 - `HandleType` - Handles de transformación (8 corners + rotate + scale)
 
-### US-031: Sistema de Drag & Drop
+### ✅ US-031: Sistema de Drag & Drop
 
 **Criterios de Aceptación:**
-- [ ] Draggable component
-- [ ] Feedback visual instantáneo
-- [ ] Snap to grid
-- [ ] Multi-drag
+- [x] Draggable component
+- [x] Feedback visual instantáneo
+- [x] Snap to grid
+- [x] Multi-drag
 
-### US-032: Sistema de Resize
+### ✅ US-032: Sistema de Resize
 
 **Criterios de Aceptación:**
-- [ ] Resizable component
-- [ ] Handles en corners y edges
-- [ ] Aspect ratio lock
-- [ ] Min/max constraints
+- [x] Resizable component
+- [x] Handles en corners y edges
+- [x] Aspect ratio lock
+- [x] Min/max constraints
 
 ### US-033: Hit Testing Optimizado
 
@@ -392,7 +392,7 @@ crates/
 
 ---
 
-# ⏳ ÉPICA 005: Connection Routing
+# ✅ ÉPICA 005: Connection Routing
 
 **Objetivo:** Implementar conexiones inteligentes entre formas.
 
@@ -401,24 +401,24 @@ crates/
 
 ---
 
-### US-040: Routing Ortogonal (Doorway)
+### ✅ US-040: Routing Ortogonal (Doorway)
 
 **Criterios de Aceptación:**
-- [ ] RoutingMode::Straight
-- [ ] RoutingMode::Orthogonal heurística L-shape
-- [ ] RoutingMode::Curved (Bézier)
-- [ ] Evitar obstáculos
+- [x] RoutingMode::Straight
+- [x] RoutingMode::Orthogonal heurística L-shape
+- [x] RoutingMode::Curved (Bézier)
+- [x] Evitar obstáculos
 
-### US-041: Marcadores de Flecha
+### ✅ US-041: Marcadores de Flecha
 
 **Criterios de Aceptación:**
-- [ ] MarkerType: None, Arrow, Circle, Diamond
-- [ ] Custom markers
-- [ ] Tamaño y color configurable
+- [x] MarkerType: None, Arrow, Circle, Diamond
+- [x] Custom markers
+- [x] Tamaño y color configurable
 
 ---
 
-# ⏳ ÉPICA 006: Spatial Indexing
+# ✅ ÉPICA 006: Spatial Indexing
 
 **Objetivo:** Implementar R-Tree para queries espaciales eficientes.
 
@@ -427,19 +427,19 @@ crates/
 
 ---
 
-### US-050: R-Tree Implementation
+### ✅ US-050: R-Tree Implementation
 
 **Criterios de Aceptación:**
-- [ ] SpatialIndex con rstar
+- [x] SpatialIndex con rstar
 - [ ] insert() y remove()
-- [ ] query_viewport, query_point, query_area
+- [x] query_viewport, query_point, query_area
 
-### US-051: Sincronización ECS → R-Tree
+### ✅ US-051: Sincronización ECS → R-Tree
 
 **Criterios de Aceptación:**
-- [ ] SpatialSyncSet system
-- [ ] Dirty tracking
-- [ ] Sync en Changed<Transform>
+- [x] SpatialSyncSet system
+- [x] Dirty tracking
+- [x] Sync en Changed<Transform>
 
 ---
 
