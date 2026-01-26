@@ -3,8 +3,9 @@
 //! This module provides extension traits and utility functions
 //! for synchronizing Record changes to ECS entities.
 
-use archflow_records::{Record, RecordId};
+use archflow_records::RecordId;
 use bevy_ecs::prelude::*;
+use std::hash::{Hash, Hasher};
 
 /// Extension trait for converting RecordId to ECS Entity.
 ///
@@ -34,66 +35,13 @@ impl RecordIdU64Ext for RecordId {
         let s = self.as_str();
         if let Some(hex_str) = s.strip_prefix("id_") {
             u64::from_str_radix(hex_str.trim_start_matches('0'), 10).unwrap_or_else(|_| {
-                use std::hash::Hasher;
                 let mut hash = std::collections::hash_map::DefaultHasher::new();
                 s.hash(&mut hash);
                 hash.finish()
             })
         } else {
-            use std::hash::Hasher;
             let mut hash = std::collections::hash_map::DefaultHasher::new();
             s.hash(&mut hash);
-            hash.finish()
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_record_id_entity_ext() {
-        let id = RecordId::from_u64(12345);
-        let entity = id.to_entity();
-        assert_eq!(entity.to_bits(), 12345);
-    }
-
-    #[test]
-    fn test_record_id_u64_ext() {
-        let id1 = RecordId::from_u64(12345);
-        let u64_val = id1.as_u64();
-        assert_eq!(u64_val, 12345);
-    }
-}
-
-impl RecordIdEntityExt for RecordId {
-    fn to_entity(&self) -> Entity {
-        Entity::from_bits(self.as_u64())
-    }
-}
-
-/// Extension trait for extracting u64 from RecordId.
-pub trait RecordIdU64Ext {
-    fn as_u64(&self) -> u64;
-}
-
-impl RecordIdU64Ext for RecordId {
-    fn as_u64(&self) -> u64 {
-        let s = self.as_str();
-        if let Some(hex_str) = s.strip_prefix("id_") {
-            u64::from_str_radix(hex_str.trim_start_matches('0'), 10).unwrap_or_else(|_| {
-                use std::hash::{Hash, Hasher};
-                let mut hash = std::collections::hash_map::DefaultHasher::new();
-                s.hash(&mut hash);
-                use std::hash::Hasher;
-                hash.finish()
-            })
-        } else {
-            use std::hash::{Hash, Hasher};
-            let mut hash = std::collections::hash_map::DefaultHasher::new();
-            s.hash(&mut hash);
-            use std::hash::Hasher;
             hash.finish()
         }
     }

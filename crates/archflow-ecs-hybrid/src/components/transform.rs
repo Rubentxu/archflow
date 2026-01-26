@@ -115,8 +115,8 @@ impl Transform {
     /// let transform = Transform::from_translation(100.0, 200.0);
     /// let matrix = transform.to_mat4();
     ///
-    /// // Check translation is applied (via w_axis())
-    /// let translation = matrix.w_axis();
+    /// // Check translation is applied (via column 3)
+    /// let translation = matrix.col(3);
     /// assert_eq!(translation.x, 100.0);
     /// assert_eq!(translation.y, 200.0);
     /// ```
