@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "crates/archflow-core",
-    "crates/archflow-ecs",
+    "crates/archflow-ecs-hybrid",
     "crates/archflow-geometry",
     "crates/archflow-primitives",
     "crates/archflow-renderer",

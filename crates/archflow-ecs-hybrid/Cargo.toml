@@ -1,5 +1,5 @@
 [package]
-name = "archflow-ecs"
+name = "archflow-ecs-hybrid"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -7,10 +7,15 @@ rust-version.workspace = true
 [dependencies]
 # Workspace dependencies
 bevy_ecs.workspace = true
-archflow-core = { path = "../archflow-core" }
+glam.workspace = true
+thiserror.workspace = true
 archflow-records = { path = "../archflow-records" }
 archflow-spatial = { path = "../archflow-spatial" }
-archflow-primitives = { path = "../archflow-primitives" }
+archflow-geometry = { path = "../archflow-geometry" }
+fixedbitset = "0.5"
+
+[dev-dependencies]
+archflow-core = { path = "../archflow-core" }
 
 [lib]
 path = "src/lib.rs"

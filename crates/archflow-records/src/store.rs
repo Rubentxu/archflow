@@ -332,6 +332,7 @@ impl Default for IndexMapper {
 /// assert_eq!(store.get(&id).unwrap().name, "test");
 /// ```
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "bevy", derive(bevy_ecs::component::Resource))]
 pub struct RecordStore<R: Record> {
     /// Main record storage by ID
     records: BTreeMap<RecordId, R>,
