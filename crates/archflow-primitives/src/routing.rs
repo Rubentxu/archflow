@@ -483,11 +483,12 @@ impl ConnectionRouter {
             points.push(end);
 
             let length = Self::calculate_path_length(&points);
+            let corner_count = (points.len() as u32).saturating_sub(2);
 
             RoutingResult {
-                points: points.clone(),
+                points,
                 length,
-                corner_count: (points.len() as u32).saturating_sub(2),
+                corner_count,
                 compute_time_us: 0,
             }
         }

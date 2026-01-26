@@ -192,13 +192,11 @@ pub struct ResolvedChange {
 
 /// Last Writer Wins Strategy
 #[derive(Debug, Clone)]
-pub struct LastWriterWinsStrategy {
-    site_id: SiteId,
-}
+pub struct LastWriterWinsStrategy;
 
 impl LastWriterWinsStrategy {
-    pub fn new(site_id: SiteId) -> Self {
-        Self { site_id }
+    pub fn new(_site_id: SiteId) -> Self {
+        Self
     }
 }
 

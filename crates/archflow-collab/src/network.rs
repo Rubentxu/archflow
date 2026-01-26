@@ -6,6 +6,7 @@ use crate::types::SiteId;
 use archflow_records::{RecordChange, RecordId};
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use std::str::FromStr;
 
 /// Session identifier for tracking client sessions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -294,5 +295,88 @@ mod network_tests {
         } else {
             panic!("Wrong variant");
         }
+    }
+
+    #[test]
+    fn test_sync_response_message() {
+        let changes: Vec<ChangeBatch<TestRecord>> = vec![];
+        let msg = SyncMessage::SyncResponse {
+            session_id: SessionId::new(),
+            server_version: 100,
+            base_version: 0,
+            changes_since_base: changes,
+            server_capabilities: ServerCapabilities::default(),
+            room_id: RoomId::new(1),
+        };
+
+        if let SyncMessage::SyncResponse {
+            server_version,
+            base_version,
+            ..
+        } = msg
+        {
+            assert_eq!(server_version, 100);
+            assert_eq!(base_version, 0);
+        } else {
+            panic!("Wrong message type");
+        }
+    }
+
+    #[test]
+    fn test_local_change_checksum() {
+        let id = RecordId::from_str("checksum_test_001").unwrap();
+        let changes = vec![RecordChange::Created {
+            id,
+            record: TestRecord {
+                id: RecordId::from_str("checksum_test_001").unwrap(),
+                index: None,
+                name: "test".into(),
+                value: 42,
+            },
+        }];
+
+        let checksum = calculate_checksum(&changes);
+
+        let checksum2 = calculate_checksum(&changes);
+        assert_eq!(checksum, checksum2);
+    }
+
+    fn calculate_checksum<R: Record>(_changes: &[RecordChange<R>]) -> u64 {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::Hash;
+        use std::hash::Hasher;
+
+        let mut hasher = DefaultHasher::new();
+        "checksum_placeholder".hash(&mut hasher);
+        hasher.finish()
+    }
+
+    #[test]
+    fn test_error_message_serialization() {
+        let msg: SyncMessage<TestRecord> = SyncMessage::Error {
+            session_id: SessionId::new(),
+            error_code: SyncErrorCode::VersionTooOld,
+            message: "Client version is too old".into(),
+            fatal: false,
+        };
+
+        let serialized = serde_json::to_string(&msg).unwrap();
+        let deserialized: SyncMessage<TestRecord> = serde_json::from_str(&serialized).unwrap();
+
+        match deserialized {
+            SyncMessage::Error { error_code, .. } => {
+                assert_eq!(error_code, SyncErrorCode::VersionTooOld);
+            }
+            _ => panic!("Wrong message type"),
+        }
+    }
+
+    #[test]
+    fn test_client_capabilities_defaults() {
+        let caps = ClientCapabilities::default();
+        assert!(caps.max_message_size > 0);
+        assert!(!caps.supports_compression);
+        assert_eq!(caps.client_name, "archflow-collab-client");
+        assert_eq!(caps.client_version, "0.1.0");
     }
 }

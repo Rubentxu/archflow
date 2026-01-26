@@ -11,8 +11,6 @@ members = [
     "crates/archflow-wasm",
     "crates/archflow-records",
     "crates/archflow-collab",
-    "crates/demo",
-    "crates/demo-server",
 ]
 resolver = "2"
 

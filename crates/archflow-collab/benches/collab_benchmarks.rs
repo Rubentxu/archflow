@@ -1,6 +1,6 @@
 use archflow_collab::crdt::CRDT;
 use archflow_collab::merge::LwwStrategy;
-use archflow_collab::types::SiteId;
+use archflow_collab::types::{SiteId, VectorClock};
 use archflow_records::{FractionalIndex, Record, RecordId};
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use serde::{Deserialize, Serialize};
@@ -102,10 +102,93 @@ pub fn bench_lww_strategy(c: &mut Criterion) {
     });
 }
 
+pub fn bench_crdt_merge_concurrent(c: &mut Criterion) {
+    let site_a = SiteId::new();
+    let site_b = SiteId::new();
+
+    let mut crdt_a = CRDT::<BenchmarkRecord>::new(site_a);
+    let mut crdt_b = CRDT::<BenchmarkRecord>::new(site_b);
+
+    let records_a: Vec<_> = (0..1000)
+        .map(|i| {
+            let id = RecordId::from_str(&format!("merge_a_{:06}", i)).unwrap();
+            BenchmarkRecord {
+                id: id.clone(),
+                index: None,
+                name: format!("a_{}", i),
+                value: i,
+            }
+        })
+        .collect();
+
+    let records_b: Vec<_> = (0..1000)
+        .map(|i| {
+            let id = RecordId::from_str(&format!("merge_b_{:06}", i)).unwrap();
+            BenchmarkRecord {
+                id: id.clone(),
+                index: None,
+                name: format!("b_{}", i),
+                value: i,
+            }
+        })
+        .collect();
+
+    for record in &records_a {
+        let _ = crdt_a.apply_local(record.clone());
+    }
+
+    for record in &records_b {
+        let _ = crdt_b.apply_local(record.clone());
+    }
+
+    let clock_b = crdt_b.vector_clock().clone();
+    let mut crdt_a_clone = CRDT::<BenchmarkRecord>::new(site_a);
+
+    for record in &records_a {
+        let _ = crdt_a_clone.apply_local(record.clone());
+    }
+
+    c.bench_function("crdt_merge_1000_concurrent", |b| {
+        b.iter(|| {
+            let mut test_crdt = CRDT::<BenchmarkRecord>::new(site_a);
+            for record in &records_a {
+                let _ = test_crdt.apply_local(record.clone());
+            }
+
+            let _ = test_crdt
+                .merge(black_box(&clock_b), black_box(records_b.clone()))
+                .unwrap();
+        })
+    });
+}
+
+pub fn bench_vector_clock_relation(c: &mut Criterion) {
+    let mut clock_a = VectorClock::new();
+    let mut clock_b = VectorClock::new();
+
+    let sites: Vec<SiteId> = (0..100).map(|_| SiteId::new()).collect();
+
+    for i in 0..50 {
+        clock_a.increment(sites[i]);
+    }
+
+    for i in 50..100 {
+        clock_b.increment(sites[i]);
+    }
+
+    c.bench_function("vector_clock_relation_10k", |b| {
+        b.iter(|| {
+            let _ = black_box(clock_a.relation(black_box(&clock_b)));
+        })
+    });
+}
+
 criterion_group!(
     benches,
     bench_crdt_apply_local,
     bench_crdt_merge,
-    bench_lww_strategy
+    bench_lww_strategy,
+    bench_crdt_merge_concurrent,
+    bench_vector_clock_relation
 );
 criterion_main!(benches);
