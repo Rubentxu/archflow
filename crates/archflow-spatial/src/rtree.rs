@@ -5,6 +5,7 @@
 use crate::trait_spatial_index::Frustum;
 use archflow_records::{Bounds, RecordId};
 use rstar::{PointDistance, RTree, RTreeObject, AABB};
+use std::collections::HashMap;
 
 /// Converts archflow_records::Bounds to rstar::AABB<[f64; 2]>
 fn bounds_to_aabb(bounds: &Bounds) -> AABB<[f64; 2]> {
@@ -14,6 +15,8 @@ fn bounds_to_aabb(bounds: &Bounds) -> AABB<[f64; 2]> {
 /// Wrapper for R-Tree indexing.
 pub struct RTreeIndex {
     tree: RTree<SpatialObject>,
+    id_to_bounds: HashMap<RecordId, Bounds>,
+    capacity: usize,
 }
 
 /// Spatial object for R-Tree indexing.
@@ -47,12 +50,19 @@ impl PointDistance for SpatialObject {
 }
 
 impl RTreeIndex {
-    pub fn new(_capacity: usize) -> Self {
-        Self { tree: RTree::new() }
+    pub fn new(capacity: usize) -> Self {
+        Self {
+            tree: RTree::new(),
+            id_to_bounds: HashMap::new(),
+            capacity,
+        }
     }
 
     pub fn insert(&mut self, id: RecordId, bounds: Bounds) {
-        self.tree.insert(SpatialObject::new(id, bounds));
+        let id_clone = id.clone();
+        self.tree
+            .insert(SpatialObject::new(id_clone.clone(), bounds.clone()));
+        self.id_to_bounds.insert(id_clone, bounds);
     }
 
     pub fn remove(&mut self, id: &RecordId) {
@@ -60,6 +70,7 @@ impl RTreeIndex {
         let to_remove: Option<SpatialObject> = self.tree.iter().find(|obj| obj.id == *id).cloned();
         if let Some(obj) = to_remove {
             self.tree.remove(&obj);
+            self.id_to_bounds.remove(id);
         }
     }
 
@@ -110,10 +121,12 @@ impl RTreeIndex {
     }
 
     pub fn get_bounds(&self, id: &RecordId) -> Option<Bounds> {
-        self.tree
-            .iter()
-            .find(|obj| obj.id == *id)
-            .map(|obj| obj.bounds.clone())
+        self.id_to_bounds.get(id).cloned().or_else(|| {
+            self.tree
+                .iter()
+                .find(|obj| obj.id == *id)
+                .map(|obj| obj.bounds.clone())
+        })
     }
 
     pub fn len(&self) -> usize {
@@ -122,6 +135,10 @@ impl RTreeIndex {
 
     pub fn is_empty(&self) -> bool {
         self.tree.size() == 0
+    }
+
+    pub fn capacity(&self) -> usize {
+        self.capacity
     }
 }
 

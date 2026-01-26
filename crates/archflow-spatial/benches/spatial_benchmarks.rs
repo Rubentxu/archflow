@@ -5,7 +5,6 @@
 use archflow_records::{Bounds, Record, RecordId};
 use archflow_spatial::queries::SpatialQueries;
 use archflow_spatial::rtree::RTreeIndex;
-use archflow_spatial::viewport_manager::ViewportManager;
 use std::str::FromStr;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -80,7 +79,7 @@ mod benchmarks {
 
         let start = std::time::Instant::now();
         for _ in 0..1000 {
-            let _ = index.rect_query(query);
+            let _ = index.rect_query(query.clone());
         }
         let elapsed = start.elapsed();
 
@@ -106,7 +105,7 @@ mod benchmarks {
 
         let start = std::time::Instant::now();
         for _ in 0..100 {
-            let _ = queries.selection_expanded(viewport, 0.0);
+            let _ = queries.selection_expanded(viewport.clone(), 0.0);
         }
         let elapsed = start.elapsed();
 

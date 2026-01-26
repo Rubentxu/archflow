@@ -26,6 +26,35 @@ impl<R> ViewportManager<R> {
         }
     }
 
+    /// F.8: Update index with incremental changes from ChangeSet
+    pub fn update_index(&mut self, changeset: &ChangeSet) {
+        // Remove deleted elements
+        for id in &changeset.deleted {
+            self.tree.remove(id);
+        }
+
+        // Remove updated elements (will be re-inserted)
+        for id in &changeset.updated {
+            self.tree.remove(id);
+        }
+
+        // Insert new elements
+        for id in &changeset.created {
+            // Note: In a real implementation, we would fetch bounds from a RecordStore
+            // For now, this is a placeholder that shows the structure
+        }
+
+        // Insert updated elements
+        for id in &changeset.updated {
+            // Note: In a real implementation, we would fetch bounds from a RecordStore
+            // For now, this is a placeholder that shows the structure
+        }
+
+        // Clear viewport cache on index changes
+        self.last_viewport = None;
+        self.visible_cache.clear();
+    }
+
     pub fn get_visible_elements(&mut self, viewport: &Bounds) -> &[RecordId] {
         let frustum = Frustum::new(viewport.clone());
 

@@ -10,11 +10,12 @@
 
 pub use bevy_ecs::prelude::*;
 
-// Re-export de tipos de geometry para conveniencia
-pub use archflow_geometry::SpatialIndex;
+// Re-export de tipos de spatial para conveniencia
+pub use archflow_spatial::RTreeIndex;
 
-// Re-export de tipos de core
+// Re-export de tipos de core y records
 pub use archflow_core::{EntityId, Rect, Vec2};
+pub use archflow_records::{Bounds, RecordId};
 
 /// Componente que almacena los bounds locales (AABB) de una entidad.
 ///
@@ -87,7 +88,7 @@ impl Default for GlobalBounds {
 #[derive(Resource)]
 pub struct SpatialResource {
     /// El índice espacial
-    pub index: SpatialIndex,
+    pub index: RTreeIndex,
     /// Versión para detectar cambios externos
     version: u64,
 }
@@ -102,7 +103,7 @@ impl SpatialResource {
     /// Crear nuevo recurso espacial
     pub fn new() -> Self {
         Self {
-            index: SpatialIndex::new(),
+            index: RTreeIndex::new(16),
             version: 0,
         }
     }
@@ -118,12 +119,12 @@ impl SpatialResource {
     }
 
     /// Obtener referencia al índice
-    pub fn index(&self) -> &SpatialIndex {
+    pub fn index(&self) -> &RTreeIndex {
         &self.index
     }
 
     /// Obtener referencia mutable al índice
-    pub fn index_mut(&mut self) -> &mut SpatialIndex {
+    pub fn index_mut(&mut self) -> &mut RTreeIndex {
         self.increment_version();
         &mut self.index
     }
@@ -275,9 +276,17 @@ pub fn spatial_sync_system(
         // EntityIndex contiene un u32 internamente, lo convertimos directamente
         let idx = entity.index();
         let idx_u32: u32 = unsafe { std::mem::transmute(idx) };
-        let item =
-            archflow_geometry::SpatialItem::new(EntityId::from_u128(idx_u32 as u128), global_aabb);
-        index.insert(item);
+        let record_id = RecordId::from_u64(idx_u32 as u64);
+
+        // Convertir Rect a Bounds (f32 a f64)
+        let bounds = Bounds::new(
+            global_aabb.min.x as f64,
+            global_aabb.min.y as f64,
+            global_aabb.max.x as f64,
+            global_aabb.max.y as f64,
+        );
+
+        index.insert(record_id, bounds);
 
         // Actualizar GlobalBounds si existe el componente
         if let Some(mut gb) = global_bounds {
