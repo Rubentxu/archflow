@@ -154,9 +154,23 @@ impl<R: Record> DeltaManager<R> {
     /// # Examples
     ///
     /// ```
-    /// use archflow_records::DeltaManager;
+    /// use archflow_records::{DeltaManager, Record, RecordId, RecordError, FractionalIndex};
     ///
-    /// let manager = DeltaManager::with_limit(100);
+    /// #[derive(Debug, Clone)]
+    /// struct DummyRecord {
+    ///     id: RecordId,
+    /// }
+    ///
+    /// impl Record for DummyRecord {
+    ///     fn id(&self) -> &RecordId { &self.id }
+    ///     fn type_name(&self) -> &'static str { "DummyRecord" }
+    ///     fn index(&self) -> Option<&FractionalIndex> { None }
+    ///     fn with_index(self, _index: FractionalIndex) -> Self { self }
+    ///     fn eq_ignoring_metadata(&self, other: &Self) -> bool { self.id == other.id }
+    ///     fn validate(&self) -> Result<(), RecordError> { Ok(()) }
+    /// }
+    ///
+    /// let manager: DeltaManager<DummyRecord> = DeltaManager::with_limit(100);
     /// ```
     pub fn with_limit(max_history: usize) -> Self {
         DeltaManager {

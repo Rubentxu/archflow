@@ -14,7 +14,8 @@
 //! ## Quick Start
 //!
 //! ```rust
-//! use archflow_records::{RecordId, Record, RecordStore};
+//! use std::str::FromStr;
+//! use archflow_records::{RecordId, Record, RecordStore, FractionalIndex, RecordError};
 //!
 //! #[derive(Debug, Clone)]
 //! struct MyRecord {
@@ -34,8 +35,8 @@
 //! }
 //!
 //! fn main() {
-//!     let mut store = RecordStore::new();
-//!     let id = RecordId::from_str("record_123").unwrap();
+//!     let mut store: RecordStore<MyRecord> = RecordStore::new();
+//!     let id = RecordId::from_str("record_1234567890").unwrap();
 //!     let record = MyRecord { id, name: "test".into() };
 //!     store.put(record);
 //! }

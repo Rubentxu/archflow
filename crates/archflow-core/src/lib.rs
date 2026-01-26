@@ -29,18 +29,12 @@ pub use api::*;
 pub use color::{Color, Hsla, Rgba};
 pub use entity_id::{EntityId, EntityIdGenerator};
 pub use error::{CoreError, CoreResult};
+pub use event_sourcing::{Command, DocumentAggregate, DomainEvent, EventMetadata, UndoRedoStack};
 pub use rect::{Rect, Rect2D};
 pub use resources::*;
 pub use transform::{Transform, Transform2D};
 pub use types::{Mat3, Vec2};
 pub use zoom::*;
-
-// Event Sourcing exports
-pub use event_sourcing::{
-    Command, CommandResult, DocumentAggregate, DomainEvent, EventJournal, EventMetadata,
-    EventStore, EventStoreError, JournalEntry, JournalError, Snapshot, SnapshotError,
-    SnapshotManager, StoredEvent, UndoRedoStack,
-};
 
 // Re-export de uuid
 pub use uuid::Uuid;

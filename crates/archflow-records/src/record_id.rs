@@ -20,6 +20,7 @@ use std::str::FromStr;
 /// # Examples
 ///
 /// ```
+/// use std::str::FromStr;
 /// use archflow_records::RecordId;
 ///
 /// let id = RecordId::from_str("record_1234567890").unwrap();

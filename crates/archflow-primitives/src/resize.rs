@@ -7,10 +7,55 @@
 //! - Min/max constraints
 //! - Centrado automático durante resize
 
-use crate::{EntityId, HandleType, Primitive, SelectionManager, Vec2};
+use crate::{EntityId, Primitive, Vec2};
 use archflow_core::{Rect, Transform};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+/// Tipo de handle de redimensionado
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum HandleType {
+    TopLeft,
+    TopCenter,
+    TopRight,
+    CenterLeft,
+    CenterRight,
+    BottomLeft,
+    BottomCenter,
+    BottomRight,
+    Rotate,
+}
+
+impl HandleType {
+    /// Obtener todos los handles de un bounding box
+    pub fn bounding_box_handles() -> &'static [HandleType] {
+        &[
+            HandleType::TopLeft,
+            HandleType::TopCenter,
+            HandleType::TopRight,
+            HandleType::CenterLeft,
+            HandleType::CenterRight,
+            HandleType::BottomLeft,
+            HandleType::BottomCenter,
+            HandleType::BottomRight,
+        ]
+    }
+
+    /// Obtener posición del handle para un rectángulo
+    pub fn position(&self, bounds: Rect) -> Vec2 {
+        match self {
+            HandleType::TopLeft => bounds.min,
+            HandleType::TopCenter => Vec2::new(bounds.center().x, bounds.min.y),
+            HandleType::TopRight => Vec2::new(bounds.max.x, bounds.min.y),
+            HandleType::CenterLeft => Vec2::new(bounds.min.x, bounds.center().y),
+            HandleType::CenterRight => Vec2::new(bounds.max.x, bounds.center().y),
+            HandleType::BottomLeft => Vec2::new(bounds.min.x, bounds.max.y),
+            HandleType::BottomCenter => Vec2::new(bounds.center().x, bounds.max.y),
+            HandleType::BottomRight => bounds.max,
+            HandleType::Rotate => Vec2::new(bounds.center().x, bounds.min.y - 20.0),
+        }
+    }
+}
 
 /// Estado del resize
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -679,7 +724,7 @@ impl ResizeManager {
                 Rect::from_pos_size(pos - Vec2::splat(half_size), Vec2::splat(handle_size));
 
             if handle_rect.contains(point) {
-                return Some(handle);
+                return Some(*handle);
             }
         }
 
@@ -1086,9 +1131,11 @@ mod tests {
 
     #[test]
     fn test_aspect_ratio_mode() {
-        assert!(AspectRatioMode::Free
-            .forced_aspect(Rect::default())
-            .is_none());
+        assert!(
+            AspectRatioMode::Free
+                .forced_aspect(Rect::default())
+                .is_none()
+        );
         assert!(
             AspectRatioMode::Keep
                 .forced_aspect(Rect::from_pos_size(Vec2::ZERO, Vec2::new(100.0, 50.0)))

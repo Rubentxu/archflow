@@ -6,7 +6,7 @@
 //! - Snap to grid configurable
 //! - Multi-drag para múltiples objetos
 
-use crate::{EntityId, Primitive, SelectionManager, SelectionMode, Vec2};
+use crate::{EntityId, Primitive, Vec2};
 use archflow_core::Rect;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -438,9 +438,9 @@ impl DragManager {
         }
     }
 
-    /// Configurar multi-drag con selección
-    pub fn set_multi_drag(&mut self, selection_manager: &SelectionManager) {
-        self.multi_drag_ids = selection_manager.selected_ids().cloned().collect();
+    /// Configurar multi-drag
+    pub fn set_multi_drag(&mut self, ids: Vec<EntityId>) {
+        self.multi_drag_ids = ids;
     }
 
     /// Obtener IDs para multi-drag
@@ -476,19 +476,8 @@ impl DragManager {
     }
 
     /// Hit test para iniciar drag
-    pub fn hit_test<T: Draggable>(
-        &self,
-        point: Vec2,
-        draggable: &T,
-        selection_manager: &SelectionManager,
-    ) -> bool {
-        // Si ya está seleccionada, permitir drag desde cualquier lugar del bounding box
-        if selection_manager.is_selected(draggable.id()) {
-            draggable.contains_point(point)
-        } else {
-            // Si no está seleccionada, solo permitir desde el área de arrastre
-            draggable.contains_point(point)
-        }
+    pub fn hit_test<T: Draggable>(&self, point: Vec2, draggable: &T) -> bool {
+        draggable.contains_point(point)
     }
 }
 
@@ -797,21 +786,10 @@ mod tests {
     #[test]
     fn test_multi_drag() {
         let mut manager = DragManager::new();
-        let mut selection = SelectionManager::new();
-        selection.set_mode(SelectionMode::Multiple);
-
-        let id1 = EntityId::from_u128(1);
-        let id2 = EntityId::from_u128(2);
-        let id3 = EntityId::from_u128(3);
-
-        selection.add_to_selection(id1);
-        selection.add_to_selection(id2);
-        selection.add_to_selection(id3);
-
-        manager.set_multi_drag(&selection);
-
+        let ids = vec![EntityId::from_u128(1), EntityId::from_u128(2)];
+        manager.set_multi_drag(ids.clone());
         assert!(manager.is_multi_drag());
-        assert_eq!(manager.multi_drag_ids().len(), 3);
+        assert_eq!(manager.multi_drag_ids(), &ids);
     }
 
     #[test]
@@ -860,17 +838,10 @@ mod tests {
     }
 
     #[test]
-    fn test_hit_test_selected() {
+    fn test_hit_test() {
         let manager = DragManager::new();
-        let mut selection = SelectionManager::new();
         let draggable = TestDraggable::new(1, 100.0, 100.0, 50.0, 30.0);
-
-        selection.add_to_selection(draggable.id());
-
-        // Dentro del bounds
-        assert!(manager.hit_test(Vec2::new(120.0, 110.0), &draggable, &selection));
-
-        // Fuera del bounds
-        assert!(!manager.hit_test(Vec2::new(200.0, 200.0), &draggable, &selection));
+        assert!(manager.hit_test(Vec2::new(125.0, 115.0), &draggable));
+        assert!(!manager.hit_test(Vec2::new(200.0, 200.0), &draggable));
     }
 }

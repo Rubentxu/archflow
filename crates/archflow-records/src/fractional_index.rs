@@ -15,10 +15,11 @@
 //! # Example
 //!
 //! ```
+//! use std::str::FromStr;
 //! use archflow_records::FractionalIndex;
 //!
 //! let first = FractionalIndex::first();
-//! let second = FractionalIndex::from_str("a2").unwrap();
+//! let second = FractionalIndex::from_str("a3").unwrap();
 //!
 //! let between = FractionalIndex::between(&first, &second);
 //! assert!(first < between);
@@ -81,14 +82,15 @@ impl FractionalIndex {
     /// # Examples
     ///
     /// ```
+    /// use std::str::FromStr;
     /// use archflow_records::FractionalIndex;
     ///
     /// let first = FractionalIndex::first();
-    /// let second = FractionalIndex::first();
+    /// let third = FractionalIndex::from_str("a3").unwrap();
     ///
-    /// let between = FractionalIndex::between(&first, &second);
+    /// let between = FractionalIndex::between(&first, &third);
     /// assert!(first < between);
-    /// assert!(between < second);
+    /// assert!(between < third);
     /// ```
     pub fn between(left: &Self, right: &Self) -> Self {
         let left_str = left.as_str();

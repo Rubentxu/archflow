@@ -7,7 +7,7 @@
 //! - Routing inteligente que evita obstáculos
 //! - Marcadores de flecha configurables
 
-use crate::{Connection, ConnectionType, EntityId, Port, PortDirection, Vec2};
+use crate::{EntityId, Vec2};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 

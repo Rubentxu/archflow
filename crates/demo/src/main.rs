@@ -305,49 +305,46 @@ fn demo_event_sourcing() {
     let doc_id = EntityId::new();
     let mut aggregate = DocumentAggregate::new(doc_id, "demo-document".to_string());
 
-    // Apply some events
+    // Apply some events using DomainEvent struct
     let primitive_id = EntityId::new();
-    let created_event = DomainEvent::PrimitiveCreated {
-        primitive_id,
-        primitive_type: "rectangle".to_string(),
-        position: (100.0, 100.0),
-        size: (200.0, 150.0),
+    let created_event = DomainEvent {
+        event_type: "PrimitiveCreated".to_string(),
         metadata: EventMetadata::new(EntityId::new(), 1, EntityId::new(), "test".to_string()),
+        data: Vec::new(),
     };
-    aggregate.apply(&created_event);
+    aggregate.apply(created_event.clone());
 
-    let move_event = DomainEvent::PrimitiveMoved {
-        primitive_id,
-        from: (100.0, 100.0),
-        to: (150.0, 200.0),
+    let move_event = DomainEvent {
+        event_type: "PrimitiveMoved".to_string(),
         metadata: EventMetadata::new(EntityId::new(), 2, EntityId::new(), "test".to_string()),
+        data: Vec::new(),
     };
-    aggregate.apply(&move_event);
+    aggregate.apply(move_event.clone());
 
     println!(
         "  ✓ DocumentAggregate: applied {} events",
-        aggregate.version
+        aggregate.get_events().len()
     );
 
-    // Test commands
-    let create_cmd = Command::CreatePrimitive {
-        primitive_id: EntityId::new(),
-        primitive_type: "circle".to_string(),
-        position: (300.0, 300.0),
-        size: (50.0, 50.0),
+    // Test commands using Command struct
+    let create_cmd = Command {
+        id: EntityId::new(),
+        command_type: "CreatePrimitive".to_string(),
+        payload: Vec::new(),
     };
-    println!("  ✓ Command: CreatePrimitive for circle");
+    println!("  ✓ Command: {} created", create_cmd.command_type);
 
     // Event metadata
     let _metadata = EventMetadata::new(EntityId::new(), 1, EntityId::new(), "demo".to_string());
     println!("  ✓ EventMetadata: created");
 
     // Undo/Redo stack
-    let mut stack = UndoRedoStack::new(100);
-    println!("  ✓ UndoRedoStack: created (capacity: 100)");
+    let mut stack = UndoRedoStack::new();
+    stack.push(create_cmd);
+    println!("  ✓ UndoRedoStack: created");
 
     println!(
         "  ✓ Event Sourcing: {} events in history",
-        aggregate.version
+        aggregate.get_events().len()
     );
 }

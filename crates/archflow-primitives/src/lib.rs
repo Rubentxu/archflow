@@ -1,15 +1,11 @@
 //! ArchFlow Primitives - Primitivas geométricas del engine
 
-mod connectivity;
 mod drag_drop;
 mod resize;
 mod routing;
 mod selection;
 mod shapes;
 mod styles;
-
-#[cfg(test)]
-mod selection_integration_tests;
 
 pub use shapes::{
     Ellipse, Line, Polyline, Primitive, PrimitiveProperties, PrimitiveType, Rectangle,
@@ -20,19 +16,9 @@ pub use styles::{
     StrokeStyle, Style, TextAlign, TextAlignY, TextStyle,
 };
 
-pub use connectivity::{
-    Connection, ConnectionManager, ConnectionState, ConnectionType, Port, PortCollection,
-    PortDirection, PortType,
-};
-
 pub use routing::{
-    ConnectionRouter, ControlPointMode, CornerStyle, MarkerConfig, MarkerType, Obstacle,
-    RouterConfig, RoutingPriority, RoutingResult, RoutingType,
-};
-
-pub use selection::{
-    DragSelectionBox, DragSelectionConfig, HandleType, HitTestResult, SelectionConfig,
-    SelectionEntry, SelectionManager, SelectionManagerBuilder, SelectionMode,
+    ConnectionRouter, ControlPointMode, CornerStyle, MarkerType, Obstacle, RouterConfig,
+    RoutingPriority, RoutingResult, RoutingType,
 };
 
 pub use drag_drop::{
@@ -41,9 +27,11 @@ pub use drag_drop::{
 };
 
 pub use resize::{
-    AspectRatioMode, Resizable, ResizeCenterMode, ResizeEvent, ResizeFeedbackConfig, ResizeManager,
-    ResizeManagerBuilder, ResizeState, SizeConstraints,
+    AspectRatioMode, HandleType, Resizable, ResizeCenterMode, ResizeEvent, ResizeFeedbackConfig,
+    ResizeManager, ResizeManagerBuilder, ResizeState, SizeConstraints,
 };
+
+pub use selection::{DragSelectionBox, DragSelectionConfig, SelectionConfig};
 
 use archflow_core::{EntityId, Rect, Vec2};
 

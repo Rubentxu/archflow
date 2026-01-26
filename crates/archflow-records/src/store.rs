@@ -300,7 +300,8 @@ impl Default for IndexMapper {
 /// # Examples
 ///
 /// ```
-/// use archflow_records::{RecordStore, RecordId, Record, FractionalIndex};
+/// use std::str::FromStr;
+/// use archflow_records::{RecordStore, RecordId, Record, FractionalIndex, RecordError};
 ///
 /// #[derive(Debug, Clone, PartialEq, Eq)]
 /// struct MyRecord {
@@ -320,10 +321,10 @@ impl Default for IndexMapper {
 ///     fn eq_ignoring_metadata(&self, other: &Self) -> bool {
 ///         self.id == other.id && self.name == other.name
 ///     }
-///     fn validate(&self) -> Result<(), archflow_records::RecordError> { Ok(()) }
+///     fn validate(&self) -> Result<(), RecordError> { Ok(()) }
 /// }
 ///
-/// let mut store = RecordStore::new();
+/// let mut store: RecordStore<MyRecord> = RecordStore::new();
 /// let id = RecordId::from_str("store_test_001").unwrap();
 /// let record = MyRecord { id: id.clone(), index: None, name: "test".into() };
 ///

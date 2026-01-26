@@ -10,6 +10,7 @@ members = [
     "crates/archflow-workspace",
     "crates/archflow-wasm",
     "crates/archflow-records",
+    "crates/archflow-collab",
     "crates/demo",
     "crates/demo-server",
 ]
