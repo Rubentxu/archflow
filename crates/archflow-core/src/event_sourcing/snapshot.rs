@@ -395,7 +395,8 @@ mod journal_tests {
         assert_eq!(entry.description, "Created rectangle");
 
         // Redo
-        let entry = journal.redo().unwrap();
+        // Redo
+        let _entry = journal.redo().unwrap();
         assert_eq!(journal.current_version(), 1);
         assert!(journal.can_undo());
         assert!(!journal.can_redo());
@@ -429,7 +430,7 @@ mod journal_tests {
 
     #[test]
     fn test_journal_empty_operations() {
-        let doc_id = EntityId::from_u128(1);
+        let _doc_id = EntityId::from_u128(1);
         let mut stack = UndoRedoStack::new(10);
 
         // Cannot undo empty stack

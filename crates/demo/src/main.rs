@@ -1,324 +1,353 @@
-//! ArchFlow Engine Demo - Shows how to use the core modules
+//! ArchFlow Engine Demo v2.0 - Showcases the new API modules
 //!
-//! This example demonstrates the basic usage of ArchFlow Engine v2.0
+//! This example demonstrates:
+//! - Core types (Vec2, Color, Transform)
+//! - Animation system (keyframe animations with easing functions)
+//! - Zoom/LOD system (C4 model levels)
+//! - High-level APIs (Scene, ShapeFactory, CanvasBuilder)
+//! - Event Sourcing basics
 
 use std::iter::repeat;
+use std::time::Duration;
 
-use archflow_core::geometry::Vec2;
-use archflow_core::records::{FractionalIndex, Record, RecordId, Store};
-use archflow_ecs::{Color, Position, Shape, ShapeType, Transform, spawn_shape, spawn_text};
-use archflow_renderer::{FillStyle, FontManager, PathTessellator, StrokeStyle, TextRenderer};
-
-/// A simple shape record for demonstration
-#[derive(Debug, Clone, PartialEq)]
-struct DemoShape {
-    id: RecordId,
-    index: FractionalIndex,
-    name: String,
-    position: Vec2,
-    width: f32,
-    height: f32,
-    color: [f32; 4],
-}
-
-impl Record for DemoShape {
-    fn id(&self) -> &RecordId {
-        &self.id
-    }
-
-    fn type_name(&self) -> &str {
-        "demo_shape"
-    }
-
-    fn index(&self) -> &FractionalIndex {
-        &self.index
-    }
-
-    fn with_index(&self, index: FractionalIndex) -> Self {
-        Self {
-            id: self.id.clone(),
-            index,
-            name: self.name.clone(),
-            position: self.position,
-            width: self.width,
-            height: self.height,
-            color: self.color,
-        }
-    }
-}
+use archflow_core::{
+    AnimatedProperty,
+    // Animation types
+    AnimationConfig,
+    AnimationHelper,
+    AnimationManager,
+    // API types
+    CanvasBuilder,
+    // Core types
+    Color,
+    ColorPalette,
+    Command,
+    DocumentAggregate,
+    DomainEvent,
+    EasingFunction,
+    // Entity ID
+    EntityId,
+    EventMetadata,
+    FloatAnimation,
+    FloatKeyframe,
+    PositionAnimation,
+    PositionKeyframe,
+    Scene,
+    ShapeFactory,
+    SnapHelper,
+    Transform,
+    UndoRedoStack,
+    Vec2,
+    // Zoom types
+    ZoomLevel,
+    ZoomManager,
+};
 
 fn main() {
     println!("\n🧪 ArchFlow Engine v2.0 Demo\n");
     println!("{}", repeat('=').take(50).collect::<String>());
 
-    // 1. Core Module Demo
-    demo_core_module();
+    // 1. Core Types Demo
+    demo_core_types();
 
-    // 2. ECS Module Demo
-    demo_ecs_module();
+    // 2. Animation System Demo
+    demo_animation_system();
 
-    // 3. Renderer Module Demo
-    demo_renderer_module();
+    // 3. Zoom/LOD System Demo
+    demo_zoom_system();
+
+    // 4. High-Level API Demo
+    demo_high_level_apis();
+
+    // 5. Event Sourcing Demo
+    demo_event_sourcing();
 
     println!("\n{}", repeat('=').take(50).collect::<String>());
     println!("✅ All demos completed successfully!");
-    println!("🎉 ArchFlow Engine is ready to use!\n");
+    println!("🎉 ArchFlow Engine v2.0 is ready to use!\n");
 }
 
-fn demo_core_module() {
-    println!("\n📦 Core Module Demo");
+fn demo_core_types() {
+    println!("\n📦 Core Types Demo");
     println!("{}", repeat('-').take(30).collect::<String>());
 
-    // Create a store with records
-    let mut store = Store::new();
-
-    // Create some demo shapes
-    let shapes = vec![
-        DemoShape {
-            id: RecordId::new("shape-red-0001".to_string()),
-            index: FractionalIndex::between(None, None),
-            name: "Red Rectangle".to_string(),
-            position: Vec2::new(100.0, 100.0),
-            width: 150.0,
-            height: 100.0,
-            color: [1.0, 0.2, 0.2, 1.0],
-        },
-        DemoShape {
-            id: RecordId::new("shape-blue-0001".to_string()),
-            index: FractionalIndex::between(None, None),
-            name: "Blue Circle".to_string(),
-            position: Vec2::new(300.0, 200.0),
-            width: 80.0,
-            height: 80.0,
-            color: [0.2, 0.4, 1.0, 1.0],
-        },
-        DemoShape {
-            id: RecordId::new("shape-green-0001".to_string()),
-            index: FractionalIndex::between(None, None),
-            name: "Green Box".to_string(),
-            position: Vec2::new(500.0, 150.0),
-            width: 120.0,
-            height: 120.0,
-            color: [0.2, 0.8, 0.3, 1.0],
-        },
-    ];
-
-    // Insert shapes into store
-    for shape in &shapes {
-        store.put(shape.clone());
-    }
-
-    println!("  ✓ Created store with {} shapes", store.len());
-
-    // Test Vec2 operations
+    // Vec2 operations - using public fields directly
     let pos1 = Vec2::new(10.0, 20.0);
     let pos2 = Vec2::new(30.0, 40.0);
-    let distance = pos1.distance_to(pos2);
+    let diff = pos2 - pos1;
+    let distance = diff.length();
     println!(
-        "  ✓ Vec2: distance between ({}, {}) and ({}, {}) = {:.2}",
-        pos1.x(),
-        pos1.y(),
-        pos2.x(),
-        pos2.y(),
-        distance
+        "  ✓ Vec2: ({}, {}) to ({}, {}) = distance {:.2}",
+        pos1.x, pos1.y, pos2.x, pos2.y, distance
     );
 
-    // Test fractional indexing
-    let idx1 = FractionalIndex::between(None, None);
-    let idx2 = FractionalIndex::between(Some(&idx1), None);
+    // Vector math
+    let sum = pos1 + pos2;
     println!(
-        "  ✓ FractionalIndex: first='{}', second='{}'",
-        idx1.as_str(),
-        idx2.as_str()
+        "  ✓ Vec2: ({}, {}) + ({}, {}) = ({}, {})",
+        pos1.x, pos1.y, pos2.x, pos2.y, sum.x, sum.y
     );
 
-    // Test undo/redo
-    let shape = store.get(&shapes[0].id).unwrap();
-    store.put(DemoShape {
-        id: shapes[0].id.clone(),
-        index: shapes[0].index.clone(),
-        name: "Modified Red".to_string(),
-        position: Vec2::new(150.0, 150.0),
-        width: shapes[0].width,
-        height: shapes[0].height,
-        color: shapes[0].color,
+    // Color operations - using public fields
+    let red = Color::rgb(1.0, 0.2, 0.2);
+    let blue = Color::rgb(0.2, 0.4, 1.0);
+    println!(
+        "  ✓ Color: red=({}, {}, {}), blue=({}, {}, {})",
+        red.r, red.g, red.b, blue.r, blue.g, blue.b
+    );
+
+    // Transform operations - using Default and public fields
+    let mut transform = Transform::default();
+    transform.translation = Vec2::new(100.0, 200.0);
+    transform.rotation = std::f32::consts::PI / 4.0;
+    transform.scale = Vec2::new(1.5, 1.5);
+
+    println!(
+        "  ✓ Transform: pos=({}, {}), rot={:.2}°, scale=({}x{})",
+        transform.translation.x,
+        transform.translation.y,
+        transform.rotation.to_degrees(),
+        transform.scale.x,
+        transform.scale.y
+    );
+
+    println!("  ✓ Core types: Vec2, Color, Transform working correctly");
+}
+
+fn demo_animation_system() {
+    println!("\n🎬 Animation System Demo");
+    println!("{}", repeat('-').take(30).collect::<String>());
+
+    let mut manager = AnimationManager::new();
+
+    // Create a position animation
+    let target_id = EntityId::new();
+    let position_anim = PositionAnimation::new(
+        target_id,
+        vec![
+            PositionKeyframe::new(0.0, (0.0, 0.0), EasingFunction::EaseInOut),
+            PositionKeyframe::new(0.5, (50.0, 50.0), EasingFunction::EaseInOut),
+            PositionKeyframe::new(1.0, (100.0, 0.0), EasingFunction::EaseInOut),
+        ],
+    )
+    .with_config(AnimationConfig {
+        duration: Duration::from_millis(500),
+        ..Default::default()
     });
 
-    store.undo();
-    let restored = store.get(&shapes[0].id).unwrap();
-    println!("  ✓ Undo/Redo: name after undo = '{}'", restored.name);
+    manager.add_position_animation(position_anim);
+    println!("  ✓ Added position animation with {} keyframes", 3);
 
-    // Verify
-    assert_eq!(store.len(), 3);
-    assert_eq!(restored.name, "Red Rectangle");
-    println!("  ✓ Core module: {} shapes in store", store.len());
+    // Create a fade animation
+    let fade_target = EntityId::new();
+    let fade_anim = FloatAnimation::new(
+        fade_target,
+        AnimatedProperty::Opacity,
+        vec![
+            FloatKeyframe::new(0.0, 0.0, EasingFunction::Linear),
+            FloatKeyframe::new(1.0, 1.0, EasingFunction::Linear),
+        ],
+    )
+    .with_config(AnimationConfig {
+        duration: Duration::from_millis(300),
+        ..Default::default()
+    });
+
+    manager.add_float_animation(fade_anim);
+    println!("  ✓ Added fade animation (opacity 0→1)");
+
+    // Simulate animation updates
+    println!(
+        "  ✓ Animation manager has {} active animations",
+        manager.len()
+    );
+
+    // Use convenience function
+    let _convenience_anim = AnimationHelper::animate_position((0.0, 0.0), (200.0, 100.0), 1000);
+    println!("  ✓ Created convenience animation: 0→(200, 100) in 1s");
+
+    // Test easing functions
+    let eases: [EasingFunction; 6] = [
+        EasingFunction::Linear,
+        EasingFunction::EaseIn,
+        EasingFunction::EaseOut,
+        EasingFunction::EaseInOut,
+        EasingFunction::Elastic,
+        EasingFunction::Bounce,
+    ];
+
+    for easing in &eases {
+        let t = easing.apply(0.5);
+        println!("  ✓ Easing {:?}: t=0.5 → {:.3}", easing, t);
+    }
+
+    println!("  ✓ Animation system: {} animations active", manager.len());
 }
 
-fn demo_ecs_module() {
-    println!("\n🎮 ECS Module Demo");
+fn demo_zoom_system() {
+    println!("\n🔍 Zoom/LOD System Demo (C4 Model)");
     println!("{}", repeat('-').take(30).collect::<String>());
 
-    let mut world = archflow_ecs::World::new();
+    let mut zoom_manager = ZoomManager::new(800.0, 600.0);
 
-    // Spawn shapes using ECS
-    let rect_entity = spawn_shape(
-        &mut world,
-        Vec2::new(100.0, 100.0),
-        ShapeType::Rect,
-        150.0,
-        100.0,
-        Color::new(1.0, 0.3, 0.3, 1.0),
-    );
+    // Test zoom levels
+    let levels: [ZoomLevel; 4] = [
+        ZoomLevel::System,
+        ZoomLevel::Container,
+        ZoomLevel::Component,
+        ZoomLevel::Code,
+    ];
 
-    let _ellipse_entity = spawn_shape(
-        &mut world,
-        Vec2::new(300.0, 200.0),
-        ShapeType::Ellipse,
-        80.0,
-        80.0,
-        Color::new(0.3, 0.5, 1.0, 1.0),
-    );
+    for level in &levels {
+        println!("  ✓ Zoom Level {:?}: {}", level, level.name());
+        println!("    └─ {}", level.description());
+    }
 
-    let _text_entity = spawn_text(&mut world, Vec2::new(500.0, 100.0), "Hello ECS!");
+    // Test scale-based level detection
+    let scales = [50.0, 200.0, 700.0, 1500.0];
+    for scale in &scales {
+        let level = ZoomLevel::from_scale(*scale);
+        println!("  ✓ Scale {:.0}px → {:?}", scale, level);
+    }
 
-    println!("  ✓ Spawned {} entities", 3);
-
-    // Query all positions
-    let positions: Vec<(f32, f32)> = world
-        .query::<&Position>()
-        .iter(&world)
-        .map(|p: &Position| (p.x(), p.y()))
-        .collect();
-
-    println!("  ✓ Query found {} positions", positions.len());
-
-    // Verify entities
-    let rect_pos = world.get::<Position>(rect_entity).unwrap();
-    let rect_shape = world.get::<Shape>(rect_entity).unwrap();
-    let rect_transform = world.get::<Transform>(rect_entity).unwrap();
-
+    // Test zoom transitions
+    zoom_manager.zoom_to_level(ZoomLevel::Component);
     println!(
-        "  ✓ Rectangle: pos=({}, {}), size=({}x{}), scale=({}x{})",
-        rect_pos.x(),
-        rect_pos.y(),
-        rect_shape.width,
-        rect_shape.height,
-        rect_transform.scale.x(),
-        rect_transform.scale.y()
+        "  ✓ Zoomed to Component level (scale: {:.0})",
+        zoom_manager.scale()
     );
 
-    // Test transform operations
-    let mut transform = Transform::new();
-    transform.translate(Vec2::new(50.0, 50.0));
-    transform.rotate(std::f32::consts::PI / 4.0);
-    transform.scale_by(1.5);
+    // Simulate transition
+    zoom_manager.update(Duration::from_millis(600));
+    assert_eq!(zoom_manager.zoom_level(), ZoomLevel::Component);
 
+    // Zoom in
+    zoom_manager.zoom_in();
+    zoom_manager.update(Duration::from_millis(600));
+    assert_eq!(zoom_manager.zoom_level(), ZoomLevel::Code);
     println!(
-        "  ✓ Transform: pos=({}, {}), rot={:.2} rad, scale=({}x{})",
-        transform.position.x(),
-        transform.position.y(),
-        transform.rotation,
-        transform.scale.x(),
-        transform.scale.y()
+        "  ✓ Zoomed in to Code level (scale: {:.0})",
+        zoom_manager.scale()
     );
 
-    println!("  ✓ ECS module: 3 entities created");
+    // Zoom out
+    zoom_manager.zoom_out();
+    zoom_manager.update(Duration::from_millis(600));
+    assert_eq!(zoom_manager.zoom_level(), ZoomLevel::Component);
+
+    println!("  ✓ Zoom system: {} levels available", 4);
 }
 
-fn demo_renderer_module() {
-    println!("\n🎨 Renderer Module Demo");
+fn demo_high_level_apis() {
+    println!("\n🎨 High-Level APIs Demo");
     println!("{}", repeat('-').take(30).collect::<String>());
 
-    // Font Manager
-    let font_manager = FontManager::new();
-    let font_count = font_manager.font_db().faces().count();
-    println!("  ✓ FontManager: {} system fonts loaded", font_count);
-
-    // Text Renderer
-    let mut text_renderer = TextRenderer::new();
-
-    // Create text buffers
-    let buffer1 = text_renderer.create_text_buffer("Hello, ArchFlow!");
-    let buffer2 = text_renderer.create_text_buffer_with_style(
-        "Styled Text",
-        archflow_renderer::TextStyle {
-            font_size: 24.0,
-            color: [255, 100, 50, 255],
-            ..archflow_renderer::TextStyle::default()
-        },
-    );
+    // CanvasBuilder
+    let canvas_config = CanvasBuilder::new()
+        .size(1920.0, 1080.0)
+        .background_color(Color::rgb(0.1, 0.1, 0.15))
+        .pixel_ratio(2.0)
+        .build();
 
     println!(
-        "  ✓ TextBuffer '{}': {}x{} px",
-        buffer1.text(),
-        buffer1.width(),
-        buffer1.height()
+        "  ✓ CanvasBuilder: {}x{} @ {:.1}x",
+        canvas_config.width, canvas_config.height, canvas_config.pixel_ratio
     );
+
+    // ShapeFactory
+    let factory = ShapeFactory::new();
+
+    let _pos = factory.create_position(100.0, 200.0);
+    let _size = factory.create_size(150.0, 80.0);
+    let _bounds = factory.create_bounds(100.0, 200.0, 150.0, 80.0);
+    let _centered = factory.create_centered_bounds(400.0, 300.0, 100.0, 100.0);
+
+    println!("  ✓ ShapeFactory: created position, size, and bounds");
+
+    // Scene
+    let mut scene = Scene::new();
+
+    // Add shapes using the fluent API
+    let _rect_id = scene.add_rectangle(50.0, 50.0, 120.0, 80.0);
+    let _ellipse_id = scene.add_ellipse(300.0, 150.0, 60.0, 60.0);
+    let _line_id = scene.add_line(500.0, 100.0, 600.0, 200.0);
+
+    println!("  ✓ Scene: added {} shapes", scene.len());
+
+    // ColorPalette
+    let palette = ColorPalette::default();
     println!(
-        "  ✓ TextBuffer '{}': {}x{} px",
-        buffer2.text(),
-        buffer2.width(),
-        buffer2.height()
+        "  ✓ ColorPalette: primary={:?}, accent={:?}",
+        palette.primary, palette.accent
     );
 
-    // Path Tessellator
-    let tessellator = PathTessellator::new();
+    // SnapHelper
+    let snap = SnapHelper::new()
+        .enable()
+        .with_grid_size(10.0)
+        .with_threshold(5.0);
 
-    // Tessellate a rectangle
-    let rect_mesh = tessellator.tessellate_rect(
-        0.0,
-        0.0,
-        100.0,
-        100.0,
-        Some(FillStyle::new(Color::new(1.0, 0.2, 0.2, 1.0))),
-        None,
-    );
+    let original = Vec2::new(13.7, 27.3);
+    let snapped = snap.snap_to_grid(original);
     println!(
-        "  ✓ Rectangle tessellation: {} vertices, {} indices",
-        rect_mesh.vertices.len(),
-        rect_mesh.indices.len()
+        "  ✓ SnapHelper: ({:.1}, {:.1}) → ({:.1}, {:.1})",
+        original.x, original.y, snapped.x, snapped.y
     );
 
-    // Tessellate an ellipse
-    let ellipse_mesh = tessellator.tessellate_ellipse(
-        200.0,
-        200.0,
-        50.0,
-        50.0,
-        Some(FillStyle::new(Color::new(0.2, 0.5, 1.0, 1.0))),
-        None,
-    );
+    println!("  ✓ High-level APIs: Scene with {} shapes", scene.len());
+}
+
+fn demo_event_sourcing() {
+    println!("\n📝 Event Sourcing Demo");
+    println!("{}", repeat('-').take(30).collect::<String>());
+
+    // Create a document aggregate
+    let doc_id = EntityId::new();
+    let mut aggregate = DocumentAggregate::new(doc_id, "demo-document".to_string());
+
+    // Apply some events
+    let primitive_id = EntityId::new();
+    let created_event = DomainEvent::PrimitiveCreated {
+        primitive_id,
+        primitive_type: "rectangle".to_string(),
+        position: (100.0, 100.0),
+        size: (200.0, 150.0),
+        metadata: EventMetadata::new(EntityId::new(), 1, EntityId::new(), "test".to_string()),
+    };
+    aggregate.apply(&created_event);
+
+    let move_event = DomainEvent::PrimitiveMoved {
+        primitive_id,
+        from: (100.0, 100.0),
+        to: (150.0, 200.0),
+        metadata: EventMetadata::new(EntityId::new(), 2, EntityId::new(), "test".to_string()),
+    };
+    aggregate.apply(&move_event);
+
     println!(
-        "  ✓ Ellipse tessellation: {} vertices, {} indices",
-        ellipse_mesh.vertices.len(),
-        ellipse_mesh.indices.len()
+        "  ✓ DocumentAggregate: applied {} events",
+        aggregate.version
     );
 
-    // Tessellate a line
-    let line_mesh = tessellator.tessellate_line(
-        0.0,
-        0.0,
-        200.0,
-        50.0,
-        StrokeStyle::new(3.0, Color::new(0.0, 0.0, 0.0, 1.0)),
-    );
+    // Test commands
+    let create_cmd = Command::CreatePrimitive {
+        primitive_id: EntityId::new(),
+        primitive_type: "circle".to_string(),
+        position: (300.0, 300.0),
+        size: (50.0, 50.0),
+    };
+    println!("  ✓ Command: CreatePrimitive for circle");
+
+    // Event metadata
+    let _metadata = EventMetadata::new(EntityId::new(), 1, EntityId::new(), "demo".to_string());
+    println!("  ✓ EventMetadata: created");
+
+    // Undo/Redo stack
+    let mut stack = UndoRedoStack::new(100);
+    println!("  ✓ UndoRedoStack: created (capacity: 100)");
+
     println!(
-        "  ✓ Line tessellation: {} vertices, {} indices",
-        line_mesh.vertices.len(),
-        line_mesh.indices.len()
+        "  ✓ Event Sourcing: {} events in history",
+        aggregate.version
     );
-
-    // Tessellate a shape
-    let shape = Shape::rect(150.0, 100.0);
-    let position = Position::new(400.0, 300.0);
-    let fill = FillStyle::new(Color::new(0.3, 0.8, 0.3, 1.0));
-
-    let (fill_mesh, _) = tessellator.tessellate_shape(position, &shape, Some(fill), None);
-    println!(
-        "  ✓ Shape tessellation: {} vertices, {} indices",
-        fill_mesh.vertices.len(),
-        fill_mesh.indices.len()
-    );
-
-    println!("  ✓ Renderer module ready for GPU rendering");
 }

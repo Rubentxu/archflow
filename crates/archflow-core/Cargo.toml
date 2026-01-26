@@ -12,6 +12,19 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 kurbo = { workspace = true }
 
+# Web dependencies (for WASM builds)
+web-sys = { version = "0.3", features = [
+    "CanvasRenderingContext2d",
+    "HtmlCanvasElement",
+    "HtmlImageElement",
+    "HtmlVideoElement",
+    "Window",
+], optional = true }
+
 # Event Sourcing dependencies
 chrono = { version = "0.4", features = ["serde"] }
 serde_json = "1.0"
+
+[features]
+default = []
+wasm = ["dep:web-sys"]

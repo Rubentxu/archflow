@@ -123,6 +123,7 @@ impl UndoRedoStack {
 
 /// Main event journal coordinating undo/redo with event store
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct EventJournal {
     stack: UndoRedoStack,
     current_version: u64,

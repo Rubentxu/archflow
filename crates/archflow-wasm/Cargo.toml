@@ -11,10 +11,17 @@ crate-type = ["cdylib", "rlib"]
 # Workspace dependencies
 wasm-bindgen.workspace = true
 js-sys = "0.3"
-web-sys.workspace = true
+web-sys = { version = "0.3", features = [
+    "CanvasRenderingContext2d",
+    "HtmlCanvasElement",
+    "HtmlImageElement",
+    "HtmlVideoElement",
+    "Window",
+] }
 
-archflow-core = { path = "../archflow-core" }
+archflow-core = { path = "../archflow-core", features = ["wasm"] }
 archflow-ecs = { path = "../archflow-ecs" }
 archflow-geometry = { path = "../archflow-geometry" }
 archflow-renderer = { path = "../archflow-renderer" }
 archflow-workspace = { path = "../archflow-workspace" }
+console_error_panic_hook = "0.1"

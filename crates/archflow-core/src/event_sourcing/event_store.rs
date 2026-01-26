@@ -165,18 +165,21 @@ impl InMemoryEventStore {
     }
 
     /// Check if an aggregate exists
-    pub fn aggregate_exists(&self, aggregate_id: EntityId) -> bool {
+    #[allow(dead_code)]
+    pub fn aggregate_exists(&mut self, aggregate_id: EntityId) -> bool {
         let aggregates = self.aggregates.read().unwrap();
         aggregates.contains_key(&aggregate_id)
     }
 
     /// Get all aggregate IDs
-    pub fn aggregate_ids(&self) -> Vec<EntityId> {
+    #[allow(dead_code)]
+    pub fn aggregate_ids(&mut self) -> Vec<EntityId> {
         let aggregates = self.aggregates.read().unwrap();
         aggregates.keys().cloned().collect()
     }
 
     /// Clear all events (for testing)
+    #[allow(dead_code)]
     pub fn clear(&mut self) {
         let mut aggregates = self.aggregates.write().unwrap();
         let mut versions = self.versions.write().unwrap();
@@ -196,6 +199,7 @@ pub struct FileEventStore {
 
 impl FileEventStore {
     /// Create a new file-based event store
+    #[allow(dead_code)]
     pub fn new(base_dir: PathBuf) -> Result<Self, EventStoreError> {
         // Create directory if it doesn't exist
         std::fs::create_dir_all(&base_dir).map_err(|e| {
@@ -214,6 +218,7 @@ impl FileEventStore {
     }
 
     /// Load events from disk
+    #[allow(dead_code)]
     fn load_events(&mut self) -> Result<(), EventStoreError> {
         let entries = std::fs::read_dir(&self.base_dir)
             .map_err(|e| EventStoreError::IoError(e.to_string()))?;
@@ -239,6 +244,7 @@ impl FileEventStore {
     }
 
     /// Load events from a single file
+    #[allow(dead_code)]
     fn load_event_file(&mut self, path: &PathBuf) -> Result<(), EventStoreError> {
         let data =
             std::fs::read_to_string(path).map_err(|e| EventStoreError::IoError(e.to_string()))?;
@@ -264,12 +270,14 @@ impl FileEventStore {
     }
 
     /// Get the current event file path
+    #[allow(dead_code)]
     fn get_current_file(&self) -> PathBuf {
         let base_name = chrono::Utc::now().format("%Y%m%d_%H%M%S.events");
         self.base_dir.join(base_name.to_string())
     }
 
     /// Persist events to file
+    #[allow(dead_code)]
     fn persist_events(&self, events: &[StoredEvent]) -> Result<(), EventStoreError> {
         if events.is_empty() {
             return Ok(());
@@ -369,15 +377,8 @@ impl EventStore for FileEventStore {
 mod tests {
     use crate::event_sourcing::event::DomainEvent;
     use crate::event_sourcing::event::EventMetadata;
-    use crate::event_sourcing::event_store::{
-        EventStore, EventStoreError, InMemoryEventStore, StoredEvent,
-    };
+    use crate::event_sourcing::event_store::{EventStore, EventStoreError, InMemoryEventStore};
     use crate::EntityId;
-    use serde::{Deserialize, Serialize};
-    use std::collections::HashMap;
-    use std::path::PathBuf;
-    use std::sync::{Arc, RwLock};
-    use thiserror::Error;
 
     #[test]
     fn test_save_and_load_events() {

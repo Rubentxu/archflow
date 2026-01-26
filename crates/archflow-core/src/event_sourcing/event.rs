@@ -351,8 +351,8 @@ impl DomainEvent {
             DomainEvent::ConnectionCreated {
                 metadata,
                 connection_id,
-                source_port,
-                target_port,
+                source_port: _,
+                target_port: _,
             } => DomainEvent::ConnectionDeleted {
                 metadata: EventMetadata::new(
                     metadata.aggregate_id,

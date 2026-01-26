@@ -1,0 +1,11 @@
+[package]
+name = "archflow-demo-server"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+
+[dependencies]
+
+[profile.release]
+opt-level = 3
+lto = true

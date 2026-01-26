@@ -79,3 +79,4 @@ Cargo.lock
 repo-analysis/
 docs/current
 docs/old
+docs/reports
