@@ -20,7 +20,6 @@ web-sys = { version = "0.3", features = [
 ] }
 
 archflow-core = { path = "../archflow-core", features = ["wasm"] }
-archflow-ecs = { path = "../archflow-ecs" }
 archflow-geometry = { path = "../archflow-geometry" }
 archflow-renderer = { path = "../archflow-renderer" }
 archflow-workspace = { path = "../archflow-workspace" }
