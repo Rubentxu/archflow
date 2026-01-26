@@ -44,7 +44,7 @@ pub use components::{Dirty, DirtyType, RecordRef, Transform, TransformBundle};
 
 mod sync_record_to_ecs;
 
-pub use sync_record_to_ecs::{sync_records_to_ecs_system, RecordIdEntityExt};
+pub use sync_record_to_ecs::RecordIdEntityExt;
 
 /// ECS Hybrid Error type
 #[derive(Debug)]
