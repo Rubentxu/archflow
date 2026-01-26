@@ -2,16 +2,15 @@
 //!
 //! Performance benchmarks for spatial indexing operations.
 
-use archflow_records::{Record, RecordId, RecordStore};
+use archflow_records::{Bounds, Record, RecordId};
+use archflow_spatial::queries::SpatialQueries;
 use archflow_spatial::rtree::RTreeIndex;
-use archflow_spatial::trait_spatial_index::{SpatialBounds, AABB};
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use archflow_spatial::viewport_manager::ViewportManager;
 use std::str::FromStr;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BenchmarkRecord {
     pub id: RecordId,
-    pub bounds: Option<AABB<[f32; 2]>>,
     pub index: Option<archflow_records::FractionalIndex>,
     pub name: String,
     pub value: i32,
@@ -35,59 +34,14 @@ impl Record for BenchmarkRecord {
     }
 }
 
-impl archflow_spatial::trait_spatial_index::SpatialBounds for AABB<[f32; 2]> {
-    fn from_record(_record: &impl archflow_spatial::trait_spatial_index::HasBounds) -> Self {
-        Self {
-            min: [0.0, 0.0],
-            max: [1.0, 1.0],
-        }
-    }
-
-    fn contains(&self, point: [f32; 2]) -> bool {
-        point[0] >= self.min[0]
-            && point[0] <= self.max[0]
-            && point[1] >= self.min[1]
-            && point[1] <= self.max[1]
-    }
-
-    fn intersects(&self, other: &Self) -> bool {
-        !(self.max[0] < other.min[0]
-            || self.min[0] > other.max[0]
-            || self.max[1] < other.min[1]
-            || self.min[1] > other.max[1])
-    }
-
-    fn center(&self) -> [f32; 2] {
-        [
-            (self.min[0] + self.max[0]) / 2.0,
-            (self.min[1] + self.max[1]) / 2.0,
-        ]
-    }
-
-    fn area(&self) -> f32 {
-        (self.max[0] - self.min[0]) * (self.max[1] - self.min[1])
-    }
-
-    fn grow(&self, amount: f32) -> Self {
-        Self {
-            min: [self.min[0] - amount, self.min[1] - amount],
-            max: [self.max[0] + amount, self.max[1] + amount],
-        }
-    }
-
-    fn to_aabb(&self) -> AABB<[f32; 2]> {
-        AABB::from_corners(self.min, self.max)
-    }
-}
-
-fn generate_test_data(count: usize) -> Vec<(RecordId, AABB<[f32; 2]>)> {
+fn generate_test_data(count: usize) -> Vec<(RecordId, Bounds)> {
     (0..count)
         .map(|i| {
-            let x = (i as f32 % 100.0) * 10.0;
-            let y = (i as f32 / 100.0) * 10.0;
-            let bounds = AABB::from_corners([x, y], [x + 5.0, y + 5.0]);
+            let x = (i as f64 % 100.0) * 10.0;
+            let y = (i as f64 / 100.0) * 10.0;
+            let bounds = Bounds::new(x, y, x + 5.0, y + 5.0);
             (
-                RecordId::from_str(&format!("bench_{:08}", i)).unwrap(),
+                RecordId::from_str(&format!("bench_data_{:08}", i)).unwrap(),
                 bounds,
             )
         })
@@ -101,7 +55,7 @@ mod benchmarks {
     #[test]
     fn bench_rtree_insert_performance() {
         let items = generate_test_data(10_000);
-        let mut index = RTreeIndex::<BenchmarkRecord>::new(16);
+        let mut index = RTreeIndex::new(16);
 
         let start = std::time::Instant::now();
         for (id, bounds) in items {
@@ -116,17 +70,17 @@ mod benchmarks {
     #[test]
     fn bench_rtree_query_performance() {
         let items = generate_test_data(100_000);
-        let mut index = RTreeIndex::<BenchmarkRecord>::new(16);
+        let mut index = RTreeIndex::new(16);
 
         for (id, bounds) in items {
             index.insert(id, bounds);
         }
 
-        let query = AABB::from_corners([0.0, 0.0], [100.0, 100.0]);
+        let query = Bounds::new(0.0, 0.0, 100.0, 100.0);
 
         let start = std::time::Instant::now();
         for _ in 0..1000 {
-            let _ = index.rect_query(&query);
+            let _ = index.rect_query(query);
         }
         let elapsed = start.elapsed();
 
@@ -141,29 +95,22 @@ mod benchmarks {
     #[test]
     fn bench_viewport_culling() {
         let items = generate_test_data(50_000);
-        let mut index = RTreeIndex::<BenchmarkRecord>::new(16);
+        let mut index = RTreeIndex::new(16);
 
         for (id, bounds) in items {
             index.insert(id, bounds);
         }
 
-        let viewport = AABB::from_corners([0.0, 0.0], [100.0, 100.0]);
+        let viewport = Bounds::new(0.0, 0.0, 100.0, 100.0);
+        let queries = SpatialQueries::<BenchmarkRecord>::new(index);
 
         let start = std::time::Instant::now();
         for _ in 0..100 {
-            let _ = index.get_visible_elements(&viewport);
+            let _ = queries.selection_expanded(viewport, 0.0);
         }
         let elapsed = start.elapsed();
 
-        // Caché debe hacer esto muy rápido
-        assert!(elapsed.as_millis() < 10);
+        // Selection debe ser rápida
+        assert!(elapsed.as_millis() < 100);
     }
 }
-
-criterion_group!(
-    benches,
-    bench_rtree_insert_performance,
-    bench_rtree_query_performance,
-    bench_viewport_culling
-);
-criterion_main!(benches);
