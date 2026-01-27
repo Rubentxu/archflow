@@ -7,9 +7,10 @@
 //!
 //! - **RecordRef Component**: Links ECS entities to Records
 //! - **Transform Component**: 2D position, rotation, scale
+//! - **Renderable Component**: Rendering visibility and layering
 //! - **Dirty Tracking**: O(C) change detection and processing
 //! - **Optimized Sync**: Uses ChangeSet to process only changed records
-//! - **Bidirectional**: Records ↔ ECS synchronization
+//! - **Bidirectional**: Records ↔ ECS synchronization systems
 //!
 //! ## Architecture
 //!
@@ -26,11 +27,20 @@
 //! use archflow_records::RecordStore;
 //! use bevy_ecs::prelude::*;
 //!
+//! #[derive(Record)]
+//! struct MyRecord {
+//!     // fields
+//! }
+//!
 //! fn main() {
 //!     let mut world = World::new();
-//!     let mut schedule = Schedule::default();
+//!     world.insert_resource(RecordStore::<MyRecord>::new());
 //!
-//!     schedule.add_systems(sync_records_to_ecs_system::<MyRecord>);
+//!     let mut schedule = Schedule::default();
+//!     schedule.add_systems((
+//!         sync_records_to_ecs_system::<MyRecord>,
+//!         dirty_tracking_system,
+//!     ));
 //!
 //!     loop {
 //!         schedule.run(&mut world);
@@ -39,12 +49,15 @@
 //! ```
 
 pub mod components;
+pub mod systems;
 
-pub use components::{Dirty, DirtyType, RecordRef, Transform, TransformBundle};
-
-mod sync_record_to_ecs;
-
-pub use sync_record_to_ecs::RecordIdEntityExt;
+pub use components::{
+    Dirty, DirtyType, RecordRef, RenderableBundle, RenderableEcs, Transform, TransformBundle,
+};
+pub use systems::{
+    cleanup_dirty_system, clear_dirty_flags_system, dirty_tracking_system,
+    sync_records_to_ecs_system,
+};
 
 /// ECS Hybrid Error type
 #[derive(Debug)]

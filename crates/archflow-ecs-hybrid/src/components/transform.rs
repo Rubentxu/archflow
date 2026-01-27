@@ -3,7 +3,7 @@
 //! This module provides the Transform component for ECS entities,
 //! representing position, rotation, and scale in 2D space.
 
-use archflow_records::{Bounds, Record, RecordId};
+use archflow_records::Record;
 use bevy_ecs::prelude::*;
 use glam::Vec2;
 
@@ -201,7 +201,7 @@ impl TransformBundle {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use archflow_records::{Record, RecordId};
+    use archflow_records::{Bounds, Record, RecordId};
     use std::str::FromStr;
 
     #[derive(Debug, Clone, PartialEq)]

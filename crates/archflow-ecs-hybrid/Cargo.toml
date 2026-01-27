@@ -9,7 +9,7 @@ rust-version.workspace = true
 bevy_ecs.workspace = true
 glam.workspace = true
 thiserror.workspace = true
-archflow-records = { path = "../archflow-records" }
+archflow-records = { path = "../archflow-records", features = ["bevy"] }
 archflow-spatial = { path = "../archflow-spatial" }
 archflow-geometry = { path = "../archflow-geometry" }
 fixedbitset = "0.5"

@@ -23,6 +23,9 @@ use crate::trait_record::Record;
 use fixedbitset::FixedBitSet;
 use std::collections::BTreeMap;
 
+#[cfg(feature = "bevy")]
+use bevy_ecs::prelude::*;
+
 /// Optimized change representation.
 ///
 /// Uses dynamic sizing to accommodate any number of records.
@@ -332,7 +335,7 @@ impl Default for IndexMapper {
 /// assert_eq!(store.get(&id).unwrap().name, "test");
 /// ```
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "bevy", derive(bevy_ecs::component::Resource))]
+#[cfg_attr(feature = "bevy", derive(Resource))]
 pub struct RecordStore<R: Record> {
     /// Main record storage by ID
     records: BTreeMap<RecordId, R>,
@@ -509,6 +512,102 @@ impl<R: Record> RecordStore<R> {
     #[inline]
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (&RecordId, &mut R)> {
         self.records.iter_mut()
+    }
+
+    /// Returns an iterator over created and updated records from a ChangeSet.
+    ///
+    /// This method provides O(C) iteration over changed records, where C is the number
+    /// of changed records, not the total number of records in the store.
+    ///
+    /// # Arguments
+    ///
+    /// * `changeset` - Reference to the ChangeSet containing change information
+    ///
+    /// # Returns
+    ///
+    /// An iterator yielding tuples of `(&RecordId, &R)` for all created and updated records.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use archflow_records::{RecordStore, Record, RecordId, ChangeSet};
+    /// # use std::str::FromStr;
+    /// # #[derive(Debug, Clone, PartialEq, Eq)]
+    /// # struct MyRecord { id: RecordId, name: String }
+    /// # impl Record for MyRecord {
+    /// #     fn id(&self) -> &RecordId { &self.id }
+    /// #     fn type_name(&self) -> &'static str { "MyRecord" }
+    /// #     fn index(&self) -> Option<&archflow_records::FractionalIndex> { None }
+    /// #     fn with_index(self, _: archflow_records::FractionalIndex) -> Self { self }
+    /// #     fn eq_ignoring_metadata(&self, other: &Self) -> bool { self.id == other.id }
+    /// #     fn validate(&self) -> Result<(), archflow_records::RecordError> { Ok(()) }
+    /// # }
+    /// let mut store = RecordStore::new();
+    /// let id1 = RecordId::from_str("test_record_1").unwrap();
+    /// let id2 = RecordId::from_str("test_record_2").unwrap();
+    /// store.put(MyRecord { id: id1.clone(), name: "first".into() });
+    /// store.put(MyRecord { id: id2.clone(), name: "second".into() });
+    ///
+    /// let changeset = store.drain_changes();
+    ///
+    /// // Iterate only over changed records
+    /// for (id, record) in store.iter_changed(&changeset) {
+    ///     println!("Changed record: {:?} - {}", id, record.name);
+    /// }
+    /// ```
+    #[inline]
+    pub fn iter_changed<'a>(
+        &'a self,
+        changeset: &'a ChangeSet,
+    ) -> impl Iterator<Item = (&'a RecordId, &'a R)> + 'a {
+        self.iter_created(changeset)
+            .chain(self.iter_updated(changeset))
+    }
+
+    /// Returns an iterator over created records from a ChangeSet.
+    ///
+    /// This method provides O(C) iteration over created records.
+    ///
+    /// # Arguments
+    ///
+    /// * `changeset` - Reference to the ChangeSet containing change information
+    ///
+    /// # Returns
+    ///
+    /// An iterator yielding tuples of `(&RecordId, &R)` for all created records.
+    #[inline]
+    pub fn iter_created<'a>(
+        &'a self,
+        changeset: &'a ChangeSet,
+    ) -> impl Iterator<Item = (&'a RecordId, &'a R)> + 'a {
+        changeset.created_indices().filter_map(move |index| {
+            self.mapper
+                .get_id(index)
+                .and_then(|id| self.records.get(id).map(|r| (id, r)))
+        })
+    }
+
+    /// Returns an iterator over updated records from a ChangeSet.
+    ///
+    /// This method provides O(C) iteration over updated records.
+    ///
+    /// # Arguments
+    ///
+    /// * `changeset` - Reference to the ChangeSet containing change information
+    ///
+    /// # Returns
+    ///
+    /// An iterator yielding tuples of `(&RecordId, &R)` for all updated records.
+    #[inline]
+    pub fn iter_updated<'a>(
+        &'a self,
+        changeset: &'a ChangeSet,
+    ) -> impl Iterator<Item = (&'a RecordId, &'a R)> + 'a {
+        changeset.updated_indices().filter_map(move |index| {
+            self.mapper
+                .get_id(index)
+                .and_then(|id| self.records.get(id).map(|r| (id, r)))
+        })
     }
 
     /// Undoes the last change.
