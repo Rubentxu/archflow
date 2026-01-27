@@ -1,0 +1,48 @@
+{
+  "name": "@archflow/sdk",
+  "version": "0.1.0",
+  "description": "ArchFlow SDK - High-performance Rust-based diagramming SDK for web",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.mjs",
+      "require": "./dist/react.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc && tsc -p tsconfig.react.json",
+    "watch": "tsc --watch",
+    "test": "vitest"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/react": "^18.0.0",
+    "vitest": "^1.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/archflow/archflow.git",
+    "directory": "packages/sdk"
+  },
+  "keywords": [
+    "diagrams",
+    "canvas",
+    "editor",
+    "rust",
+    "wasm",
+    "collaboration"
+  ],
+  "author": "ArchFlow Team",
+  "license": "MIT"
+}
