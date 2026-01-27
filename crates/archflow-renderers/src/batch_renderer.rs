@@ -4,11 +4,11 @@
 //! instancing with bytemuck for zero-copy buffer operations.
 
 use bytemuck::{Pod, Zeroable};
-use glam::{Mat4, Vec2, Vec3};
+use glam::{Mat4, Vec3};
 use std::collections::HashMap;
 
-use crate::traits::{Bounds, Renderable};
-use archflow_records::RecordId;
+use crate::traits::Bounds;
+use crate::traits::Renderable;
 
 /// Raw instance data for GPU upload.
 ///
