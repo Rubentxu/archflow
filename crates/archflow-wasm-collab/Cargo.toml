@@ -1,0 +1,29 @@
+[package]
+name = "archflow-wasm-collab"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Workspace dependencies
+wasm-bindgen.workspace = true
+js-sys.workspace = true
+web-sys.workspace = true
+bytemuck = "1.21"
+fixedbitset = "0.5"
+
+# Internal dependencies
+archflow-records = { path = "../archflow-records" }
+archflow-geometry = { path = "../archflow-geometry" }
+archflow-renderers = { path = "../archflow-renderers" }
+archflow-collab = { path = "../archflow-collab" }
+archflow-primitives = { path = "../archflow-primitives" }
+
+# WASM-specific
+console_error_panic_hook = "0.1"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"

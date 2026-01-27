@@ -7,7 +7,7 @@ members = [
     "crates/archflow-renderers",
     "crates/archflow-spatial",
     "crates/archflow-workspace",
-    "crates/archflow-wasm",
+    "crates/archflow-wasm-collab",
     "crates/archflow-records",
     "crates/archflow-collab",
 ]
@@ -41,6 +41,10 @@ web-sys = { version = "0.3", features = [
     "HtmlImageElement",
     "HtmlVideoElement",
     "Window",
+    "WorkerGlobalScope",
+    "console",
 ] }
 
 # WebSys features para rendering
+js-sys = "0.3"
+fixedbitset = "0.5"
