@@ -4,9 +4,7 @@ members = [
     "crates/archflow-ecs-hybrid",
     "crates/archflow-geometry",
     "crates/archflow-primitives",
-    "crates/archflow-renderer",
-    "crates/archflow-renderer-canvas",
-    "crates/archflow-renderer-rough",
+    "crates/archflow-renderers",
     "crates/archflow-spatial",
     "crates/archflow-workspace",
     "crates/archflow-wasm",
@@ -17,7 +15,7 @@ resolver = "2"
 
 # Configuración del workspace
 [workspace.package]
-version = "0.7.0"
+version = "0.8.0"
 edition = "2024"
 rust-version = "1.85"
 
@@ -35,6 +33,8 @@ uuid = { version = "1.11", features = ["v4", "serde", "js"], default-features = 
 thiserror = "2.0"
 anyhow = "1.0"
 wasm-bindgen = "0.2.108"
+wgpu = { version = "24", features = ["spirv"] }
+bytemuck = { version = "1.21", features = ["derive"] }
 web-sys = { version = "0.3", features = [
     "CanvasRenderingContext2d",
     "HtmlCanvasElement",

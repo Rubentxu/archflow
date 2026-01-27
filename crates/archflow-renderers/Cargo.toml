@@ -1,15 +1,17 @@
 [package]
-name = "archflow-renderer"
+name = "archflow-renderers"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
 # Workspace dependencies
-archflow-core = { path = "../archflow-core" }
+glam.workspace = true
+bytemuck.workspace = true
+wgpu.workspace = true
+thiserror.workspace = true
+archflow-records = { path = "../archflow-records" }
 archflow-geometry = { path = "../archflow-geometry" }
-archflow-primitives = { path = "../archflow-primitives" }
-web-sys.workspace = true
 
 [lib]
 path = "src/lib.rs"

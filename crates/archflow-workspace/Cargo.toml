@@ -13,7 +13,7 @@ anyhow.workspace = true
 
 archflow-core = { path = "../archflow-core" }
 archflow-geometry = { path = "../archflow-geometry" }
-archflow-renderer = { path = "../archflow-renderer" }
+archflow-renderers = { path = "../archflow-renderers" }
 
 [lib]
 path = "src/lib.rs"
