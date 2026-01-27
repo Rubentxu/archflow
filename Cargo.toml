@@ -5,12 +5,15 @@ members = [
     "crates/archflow-geometry",
     "crates/archflow-primitives",
     "crates/archflow-renderers",
+    "crates/archflow-sdk",
     "crates/archflow-spatial",
     "crates/archflow-workspace",
     "crates/archflow-wasm-collab",
     "crates/archflow-records",
     "crates/archflow-collab",
     "crates/archflow-tests",
+    "crates/demo-web",
+    "crates/demo-server",
 ]
 resolver = "2"
 
@@ -49,3 +52,4 @@ web-sys = { version = "0.3", features = [
 # WebSys features para rendering
 js-sys = "0.3"
 fixedbitset = "0.5"
+getrandom = { version = "0.2", features = ["js"] }
