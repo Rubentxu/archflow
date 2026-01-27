@@ -1,0 +1,51 @@
+[package]
+name = "archflow-sdk"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+description = "ArchFlow SDK - High-performance Rust-based diagramming SDK for web"
+
+[features]
+default = []
+animations = ["archflow-ecs-hybrid"]
+full = ["animations"]
+wasm = ["wasm-bindgen"]
+
+[dependencies]
+# Workspace dependencies
+archflow-core = { path = "../archflow-core" }
+archflow-records = { path = "../archflow-records" }
+archflow-collab = { path = "../archflow-collab" }
+archflow-workspace = { path = "../archflow-workspace" }
+archflow-ecs-hybrid = { path = "../archflow-ecs-hybrid", optional = true }
+archflow-spatial = { path = "../archflow-spatial" }
+archflow-renderers = { path = "../archflow-renderers" }
+archflow-geometry = { path = "../archflow-geometry" }
+
+# WASM-specific dependencies
+wasm-bindgen = { version = "0.2.108", optional = true }
+js-sys = { version = "0.3", optional = true }
+web-sys = { version = "0.3", optional = true, features = [
+    "CanvasRenderingContext2d",
+    "HtmlCanvasElement",
+    "Window",
+] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive", "rc"] }
+serde-wasm-bindgen = { version = "0.6", optional = true }
+serde_json = "1.0"
+
+# Utilities
+thiserror = "1.0"
+anyhow = "1.0"
+uuid = { version = "1.11", features = ["v4", "serde"] }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-O4"]
+
+[package.metadata.ts-rs]
+compatibility = "es2020"
