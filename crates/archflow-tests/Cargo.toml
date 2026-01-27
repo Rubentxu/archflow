@@ -1,0 +1,33 @@
+[package]
+name = "archflow-tests"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[[example]]
+name = "demo"
+path = "src/demo.rs"
+
+[dependencies]
+# Workspace dependencies
+archflow-records = { path = "../archflow-records" }
+archflow-spatial = { path = "../archflow-spatial" }
+archflow-wasm-collab = { path = "../archflow-wasm-collab" }
+archflow-renderers = { path = "../archflow-renderers" }
+archflow-ecs-hybrid = { path = "../archflow-ecs-hybrid" }
+archflow-collab = { path = "../archflow-collab" }
+
+# External dependencies
+glam = { workspace = true }
+fixedbitset = { workspace = true }
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "performance_benchmarks"
+harness = false
+
+[[test]]
+name = "wasm_integration"
+path = "src/wasm_integration_tests.rs"
