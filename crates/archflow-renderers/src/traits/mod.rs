@@ -4,4 +4,4 @@
 
 pub mod renderable;
 
-pub use renderable::{Bounds, Renderable, RgbaColor};
+pub use renderable::{Bounds, MaterialId, Renderable, RgbaColor};

@@ -3,7 +3,29 @@
 //! This module provides the core trait for renderable objects
 //! and supporting types for 2D batch rendering.
 
-use glam::Vec2;
+use crate::batch_renderer::InstanceRaw;
+use glam::{Mat4, Vec2};
+
+/// Typed material identifier for batch rendering.
+///
+/// This newtype wrapper provides type safety over raw u64 material IDs,
+/// preventing accidental misuse and enabling better compiler checking.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct MaterialId(pub u64);
+
+impl From<u64> for MaterialId {
+    #[inline]
+    fn from(value: u64) -> Self {
+        Self(value)
+    }
+}
+
+impl From<MaterialId> for u64 {
+    #[inline]
+    fn from(val: MaterialId) -> Self {
+        val.0
+    }
+}
 
 /// Trait for renderable objects in the batch rendering system.
 ///
@@ -41,10 +63,26 @@ pub trait Renderable: Send + Sync {
     ///
     /// Renderables with the same material_id will be batched together
     /// to minimize GPU state changes.
-    fn material_id(&self) -> u64;
+    fn material_id(&self) -> MaterialId;
 
     /// Returns the color for this renderable.
     fn color(&self) -> RgbaColor;
+
+    /// Converts this renderable to GPU instance data.
+    ///
+    /// This method reduces Feature Envy by encapsulating the transformation
+    /// logic within the renderable itself.
+    ///
+    /// # Default Implementation
+    ///
+    /// Uses bounds and color to create instance data. Override this method
+    /// for custom instance data formats.
+    fn to_instance_data(&self) -> InstanceRaw {
+        InstanceRaw::from_bounds(
+            self.bounds().unwrap_or_default(),
+            self.color().to_f32_array(),
+        )
+    }
 }
 
 /// 2D axis-aligned bounding box.
@@ -133,6 +171,35 @@ impl Bounds {
     #[inline]
     pub fn size(&self) -> Vec2 {
         Vec2::new(self.width(), self.height())
+    }
+
+    /// Returns dimensions as a tuple (width, height).
+    ///
+    /// This method extracts the Data Clump of width and height,
+    /// providing a single return value for cases where both are needed.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use archflow_renderers::Bounds;
+    /// use glam::Vec2;
+    ///
+    /// let bounds = Bounds::new(Vec2::ZERO, Vec2::new(100.0, 50.0));
+    /// let (w, h) = bounds.dimensions();
+    /// assert_eq!(w, 100.0);
+    /// assert_eq!(h, 50.0);
+    /// ```
+    #[inline]
+    pub fn dimensions(&self) -> (f32, f32) {
+        (self.width(), self.height())
+    }
+
+    /// Returns center and size together as a single tuple.
+    ///
+    /// Reduces multiple method calls to a single operation.
+    #[inline]
+    pub fn center_and_size(&self) -> (Vec2, Vec2) {
+        (self.center(), self.size())
     }
 
     /// Checks if this bounds contains a point.
@@ -310,6 +377,7 @@ impl RgbaColor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use glam::{Mat4, Vec2};
     use std::f32::EPSILON;
 
     /// Test helper struct implementing Renderable
@@ -317,16 +385,16 @@ mod tests {
     struct TestRenderable {
         bounds: Bounds,
         priority: i32,
-        material_id: u64,
+        material_id: MaterialId,
         color: RgbaColor,
     }
 
     impl TestRenderable {
-        fn new(bounds: Bounds) -> Self {
+        fn new(bounds: Bounds, material_id: u64) -> Self {
             Self {
                 bounds,
                 priority: 0,
-                material_id: 1,
+                material_id: MaterialId(material_id),
                 color: RgbaColor::white(),
             }
         }
@@ -335,7 +403,7 @@ mod tests {
             Self {
                 bounds: Bounds::invalid(),
                 priority,
-                material_id: 1,
+                material_id: MaterialId(1),
                 color: RgbaColor::white(),
             }
         }
@@ -354,13 +422,53 @@ mod tests {
             self.priority
         }
 
-        fn material_id(&self) -> u64 {
+        fn material_id(&self) -> MaterialId {
             self.material_id
         }
 
         fn color(&self) -> RgbaColor {
             self.color
         }
+
+        fn to_instance_data(&self) -> InstanceRaw {
+            let bounds = self.bounds();
+            InstanceRaw::from_bounds(
+                bounds.unwrap_or_else(Bounds::invalid),
+                self.color.to_f32_array(),
+            )
+        }
+    }
+
+    // === MaterialId Tests ===
+
+    #[test]
+    fn test_material_id_newtype() {
+        let id1 = MaterialId(1);
+        let id2 = MaterialId(1);
+        let id3 = MaterialId(2);
+        assert_eq!(id1, id2);
+        assert_ne!(id1, id3);
+    }
+
+    #[test]
+    fn test_material_id_from_u64() {
+        let id: MaterialId = 42.into();
+        assert_eq!(id.0, 42);
+    }
+
+    #[test]
+    fn test_material_id_into_u64() {
+        let id = MaterialId(99);
+        let val: u64 = id.into();
+        assert_eq!(val, 99);
+    }
+
+    #[test]
+    fn test_material_id_ord() {
+        let ids = vec![MaterialId(3), MaterialId(1), MaterialId(2)];
+        let mut sorted = ids.clone();
+        sorted.sort();
+        assert_eq!(sorted, vec![MaterialId(1), MaterialId(2), MaterialId(3)]);
     }
 
     // === Bounds Tests ===
@@ -388,6 +496,24 @@ mod tests {
     }
 
     #[test]
+    fn test_bounds_dimensions_tuple() {
+        let bounds = Bounds::new(Vec2::ZERO, Vec2::new(100.0, 50.0));
+        let (w, h) = bounds.dimensions();
+        assert!((w - 100.0).abs() < EPSILON);
+        assert!((h - 50.0).abs() < EPSILON);
+    }
+
+    #[test]
+    fn test_bounds_center_and_size_tuple() {
+        let bounds = Bounds::new(Vec2::ZERO, Vec2::new(100.0, 100.0));
+        let (center, size) = bounds.center_and_size();
+        assert!((center.x - 50.0).abs() < EPSILON);
+        assert!((center.y - 50.0).abs() < EPSILON);
+        assert!((size.x - 100.0).abs() < EPSILON);
+        assert!((size.y - 100.0).abs() < EPSILON);
+    }
+
+    #[test]
     fn test_bounds_from_center_size() {
         let bounds = Bounds::from_center_size(Vec2::new(100.0, 100.0), Vec2::new(50.0, 30.0));
         assert!((bounds.min.x - 75.0).abs() < EPSILON);
@@ -406,20 +532,54 @@ mod tests {
     }
 
     #[test]
+    fn test_bounds_contains_edge_cases() {
+        let bounds = Bounds::new(Vec2::ZERO, Vec2::new(100.0, 100.0));
+        assert!(bounds.contains(Vec2::new(0.0, 0.0)));
+        assert!(bounds.contains(Vec2::new(100.0, 100.0)));
+        assert!(!bounds.contains(Vec2::new(-1.0, 50.0)));
+        assert!(!bounds.contains(Vec2::new(50.0, -1.0)));
+        assert!(!bounds.contains(Vec2::new(101.0, 50.0)));
+        assert!(!bounds.contains(Vec2::new(50.0, 101.0)));
+    }
+
+    #[test]
     fn test_bounds_intersects() {
         let a = Bounds::new(Vec2::ZERO, Vec2::new(100.0, 100.0));
         let b = Bounds::new(Vec2::new(50.0, 50.0), Vec2::new(150.0, 150.0));
         let c = Bounds::new(Vec2::new(200.0, 200.0), Vec2::new(300.0, 300.0));
-
         assert!(a.intersects(&b));
         assert!(b.intersects(&a));
         assert!(!a.intersects(&c));
     }
 
     #[test]
+    fn test_bounds_intersects_edge_cases() {
+        let a = Bounds::new(Vec2::ZERO, Vec2::new(100.0, 100.0));
+        let b = Bounds::new(Vec2::new(100.0, 0.0), Vec2::new(200.0, 100.0));
+        assert!(a.intersects(&b));
+        let c = Bounds::new(Vec2::new(25.0, 25.0), Vec2::new(75.0, 75.0));
+        assert!(a.intersects(&c));
+    }
+
+    #[test]
     fn test_bounds_invalid() {
         let bounds = Bounds::invalid();
         assert!(!bounds.is_valid());
+    }
+
+    #[test]
+    fn test_bounds_zero_size() {
+        let bounds = Bounds::new(Vec2::ZERO, Vec2::ZERO);
+        assert!(!bounds.is_valid());
+        assert_eq!(bounds.width(), 0.0);
+        assert_eq!(bounds.height(), 0.0);
+    }
+
+    #[test]
+    fn test_bounds_negative_size() {
+        let bounds = Bounds::new(Vec2::new(100.0, 100.0), Vec2::ZERO);
+        assert!(!bounds.is_valid());
+        assert_eq!(bounds.width(), -100.0);
     }
 
     #[test]
@@ -443,11 +603,10 @@ mod tests {
     fn test_rgba_color_to_f32_array() {
         let color = RgbaColor::new(255, 128, 0, 255);
         let [r, g, b, a] = color.to_f32_array();
-
-        assert!((r - 1.0).abs() < 0.01, "r should be ~1.0, got {}", r);
-        assert!((g - 0.5).abs() < 0.01, "g should be ~0.5, got {}", g);
-        assert!((b - 0.0).abs() < 0.01, "b should be ~0.0, got {}", b);
-        assert!((a - 1.0).abs() < 0.01, "a should be ~1.0, got {}", a);
+        assert!((r - 1.0).abs() < 0.01);
+        assert!((g - 0.5).abs() < 0.01);
+        assert!((b - 0.0).abs() < 0.01);
+        assert!((a - 1.0).abs() < 0.01);
     }
 
     #[test]
@@ -469,6 +628,24 @@ mod tests {
     }
 
     #[test]
+    fn test_rgba_color_red() {
+        let color = RgbaColor::red();
+        assert_eq!(color, RgbaColor::new(255, 0, 0, 255));
+    }
+
+    #[test]
+    fn test_rgba_color_green() {
+        let color = RgbaColor::green();
+        assert_eq!(color, RgbaColor::new(0, 255, 0, 255));
+    }
+
+    #[test]
+    fn test_rgba_color_blue() {
+        let color = RgbaColor::blue();
+        assert_eq!(color, RgbaColor::new(0, 0, 255, 255));
+    }
+
+    #[test]
     fn test_rgba_color_from_linear() {
         let color = RgbaColor::from_linear(0.5, 0.25, 0.75, 1.0);
         assert_eq!(color.r, 127);
@@ -478,10 +655,29 @@ mod tests {
     }
 
     #[test]
+    fn test_rgba_color_from_linear_edge_cases() {
+        let zero = RgbaColor::from_linear(0.0, 0.0, 0.0, 0.0);
+        assert_eq!(zero, RgbaColor::transparent());
+        let one = RgbaColor::from_linear(1.0, 1.0, 1.0, 1.0);
+        assert_eq!(one, RgbaColor::white());
+    }
+
+    #[test]
+    #[should_panic(expected = "r must be in [0, 1]")]
+    fn test_rgba_color_from_linear_panics_negative() {
+        RgbaColor::from_linear(-0.1, 0.5, 0.5, 1.0);
+    }
+
+    #[test]
+    #[should_panic(expected = "r must be in [0, 1]")]
+    fn test_rgba_color_from_linear_panics_overflow() {
+        RgbaColor::from_linear(1.1, 0.5, 0.5, 1.0);
+    }
+
+    #[test]
     fn test_rgba_color_is_transparent() {
         let opaque = RgbaColor::white();
         let transparent = RgbaColor::transparent();
-
         assert!(!opaque.is_transparent());
         assert!(transparent.is_transparent());
     }
@@ -490,7 +686,7 @@ mod tests {
 
     #[test]
     fn test_renderable_bounds() {
-        let renderable = TestRenderable::new(Bounds::new(Vec2::ZERO, Vec2::new(100.0, 100.0)));
+        let renderable = TestRenderable::new(Bounds::new(Vec2::ZERO, Vec2::new(100.0, 100.0)), 1);
         let bounds = renderable.bounds().unwrap();
         assert_eq!(bounds.min, Vec2::ZERO);
         assert_eq!(bounds.max, Vec2::new(100.0, 100.0));
@@ -498,7 +694,7 @@ mod tests {
 
     #[test]
     fn test_renderable_contains_point() {
-        let renderable = TestRenderable::new(Bounds::new(Vec2::ZERO, Vec2::new(100.0, 100.0)));
+        let renderable = TestRenderable::new(Bounds::new(Vec2::ZERO, Vec2::new(100.0, 100.0)), 1);
         assert!(renderable.contains_point(Vec2::new(50.0, 50.0)));
         assert!(!renderable.contains_point(Vec2::new(150.0, 150.0)));
     }
@@ -512,13 +708,28 @@ mod tests {
 
     #[test]
     fn test_renderable_material_id() {
-        let renderable = TestRenderable::new(Bounds::invalid());
-        assert_eq!(renderable.material_id(), 1);
+        let renderable = TestRenderable::new(Bounds::invalid(), 42);
+        assert_eq!(renderable.material_id(), MaterialId(42));
     }
 
     #[test]
     fn test_renderable_color() {
-        let renderable = TestRenderable::new(Bounds::invalid());
+        let renderable = TestRenderable::new(Bounds::invalid(), 1);
         assert_eq!(renderable.color(), RgbaColor::white());
+    }
+
+    #[test]
+    fn test_renderable_to_instance_data() {
+        let bounds = Bounds::new(Vec2::ZERO, Vec2::new(100.0, 100.0));
+        let renderable = TestRenderable::new(bounds, 1);
+        let instance = renderable.to_instance_data();
+        assert!(instance.model_matrix != Mat4::ZERO.to_cols_array_2d());
+    }
+
+    #[test]
+    fn test_renderable_to_instance_data_default_bounds() {
+        let renderable = TestRenderable::new(Bounds::invalid(), 1);
+        let instance = renderable.to_instance_data();
+        assert_eq!(instance.model_matrix, Mat4::IDENTITY.to_cols_array_2d());
     }
 }

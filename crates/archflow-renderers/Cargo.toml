@@ -14,5 +14,12 @@ raw-window-handle = "0.6"
 archflow-records = { path = "../archflow-records" }
 archflow-geometry = { path = "../archflow-geometry" }
 
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "benchmarks"
+harness = false
+
 [lib]
 path = "src/lib.rs"

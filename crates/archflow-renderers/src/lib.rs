@@ -53,11 +53,11 @@ pub mod traits;
 
 pub use batch_renderer::{BatchRenderer2D, InstanceRaw};
 pub use render_context::{RenderContext, RenderContextError};
-pub use traits::{Bounds, Renderable, RgbaColor};
+pub use traits::{Bounds, MaterialId, Renderable, RgbaColor};
 
 #[cfg(test)]
 mod tests {
-    use crate::{Bounds, Renderable, RgbaColor};
+    use crate::{Bounds, MaterialId, Renderable, RgbaColor};
     use glam::Vec2;
 
     /// Simple test renderable for doctest examples
@@ -66,16 +66,16 @@ mod tests {
         bounds: Bounds,
         color: RgbaColor,
         priority: i32,
-        material_id: u64,
+        material_id: MaterialId,
     }
 
     impl SimpleRenderable {
-        fn new(bounds: Bounds, color: RgbaColor) -> Self {
+        fn new(bounds: Bounds, color: RgbaColor, material_id: u64) -> Self {
             Self {
                 bounds,
                 color,
                 priority: 0,
-                material_id: 1,
+                material_id: MaterialId(material_id),
             }
         }
     }
@@ -93,7 +93,7 @@ mod tests {
             self.priority
         }
 
-        fn material_id(&self) -> u64 {
+        fn material_id(&self) -> MaterialId {
             self.material_id
         }
 
@@ -106,10 +106,44 @@ mod tests {
     fn test_simple_renderable() {
         let bounds = Bounds::new(Vec2::ZERO, Vec2::new(100.0, 100.0));
         let color = RgbaColor::red();
-        let renderable = SimpleRenderable::new(bounds, color);
+        let renderable = SimpleRenderable::new(bounds, color, 1);
 
         assert_eq!(renderable.bounds().unwrap(), bounds);
         assert_eq!(renderable.color(), color);
         assert!(renderable.contains_point(Vec2::new(50.0, 50.0)));
+        assert_eq!(renderable.material_id(), MaterialId(1));
+    }
+
+    #[test]
+    fn test_material_id_export() {
+        // Verify MaterialId is properly exported from the crate
+        let id: MaterialId = 42.into();
+        assert_eq!(id.0, 42);
+    }
+
+    #[test]
+    fn test_bounds_dimensions_data_clump() {
+        let bounds = Bounds::new(Vec2::ZERO, Vec2::new(100.0, 50.0));
+        let (w, h) = bounds.dimensions();
+        assert_eq!(w, 100.0);
+        assert_eq!(h, 50.0);
+    }
+
+    #[test]
+    fn test_bounds_center_and_size() {
+        let bounds = Bounds::new(Vec2::ZERO, Vec2::new(100.0, 100.0));
+        let (center, size) = bounds.center_and_size();
+        assert_eq!(center, Vec2::new(50.0, 50.0));
+        assert_eq!(size, Vec2::new(100.0, 100.0));
+    }
+
+    #[test]
+    fn test_renderable_to_instance_data() {
+        let bounds = Bounds::new(Vec2::ZERO, Vec2::new(100.0, 100.0));
+        let color = RgbaColor::red();
+        let renderable = SimpleRenderable::new(bounds, color, 1);
+
+        let instance = renderable.to_instance_data();
+        assert_eq!(instance.color, [1.0, 0.0, 0.0, 1.0]);
     }
 }

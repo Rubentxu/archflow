@@ -5,10 +5,9 @@
 
 use bytemuck::{Pod, Zeroable};
 use glam::{Mat4, Vec3};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
-use crate::traits::Bounds;
-use crate::traits::Renderable;
+use crate::traits::{Bounds, MaterialId, Renderable};
 
 /// Raw instance data for GPU upload.
 ///
@@ -77,8 +76,8 @@ impl InstanceRaw {
 /// Maintains batches of instances organized by material ID for efficient
 /// GPU rendering. Uses O(C) complexity where C is the number of changed records.
 pub struct BatchRenderer2D {
-    /// Batches organized by material ID
-    batches: HashMap<u64, Vec<InstanceRaw>>,
+    /// Batches organized by material ID (BTreeMap for deterministic iteration)
+    batches: BTreeMap<MaterialId, Vec<InstanceRaw>>,
     /// Maximum instances supported
     max_instances: usize,
     /// Total instance count
@@ -90,7 +89,7 @@ impl BatchRenderer2D {
     #[inline]
     pub fn new(max_instances: usize) -> Self {
         Self {
-            batches: HashMap::new(),
+            batches: BTreeMap::new(),
             max_instances,
             total_count: 0,
         }
@@ -104,13 +103,17 @@ impl BatchRenderer2D {
     }
 
     /// Adds an instance from a renderable.
+    ///
+    /// This method uses Feature Envy reduction: the renderable provides
+    /// its own instance data via `to_instance_data()`.
     #[inline]
     pub fn add(&mut self, renderable: &dyn Renderable) {
         if self.total_count >= self.max_instances {
             return;
         }
 
-        let instance = InstanceRaw::from_renderable(renderable);
+        // Feature Envy reduction: renderable encapsulates its instance data
+        let instance = renderable.to_instance_data();
         let material_id = renderable.material_id();
 
         self.batches
@@ -151,21 +154,24 @@ impl BatchRenderer2D {
         self.total_count == 0
     }
 
-    /// Iterates over all batches.
+    /// Iterates over all batches in deterministic order.
+    ///
+    /// Uses BTreeMap iteration which guarantees ascending key order.
+    /// This ensures consistent frame rendering across runs.
     #[inline]
-    pub fn iter_batches(&self) -> impl Iterator<Item = (&u64, &[InstanceRaw])> {
+    pub fn iter_batches(&self) -> impl Iterator<Item = (&MaterialId, &[InstanceRaw])> {
         self.batches.iter().map(|(k, v)| (k, v.as_slice()))
     }
 
     /// Returns a reference to all batches.
     #[inline]
-    pub fn batches(&self) -> &HashMap<u64, Vec<InstanceRaw>> {
+    pub fn batches(&self) -> &BTreeMap<MaterialId, Vec<InstanceRaw>> {
         &self.batches
     }
 
     /// Gets instances for a specific material.
     #[inline]
-    pub fn get_batch(&self, material_id: u64) -> &[InstanceRaw] {
+    pub fn get_batch(&self, material_id: MaterialId) -> &[InstanceRaw] {
         self.batches
             .get(&material_id)
             .map(|v| v.as_slice())
@@ -176,7 +182,7 @@ impl BatchRenderer2D {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::traits::{Bounds, Renderable, RgbaColor};
+    use crate::traits::{Bounds, MaterialId, Renderable, RgbaColor};
     use glam::Vec2;
 
     /// Test helper struct implementing Renderable
@@ -184,7 +190,7 @@ mod tests {
     struct TestRenderable {
         bounds: Bounds,
         priority: i32,
-        material_id: u64,
+        material_id: MaterialId,
         color: RgbaColor,
     }
 
@@ -193,7 +199,7 @@ mod tests {
             Self {
                 bounds,
                 priority: 0,
-                material_id,
+                material_id: MaterialId(material_id),
                 color,
             }
         }
@@ -212,13 +218,50 @@ mod tests {
             self.priority
         }
 
-        fn material_id(&self) -> u64 {
+        fn material_id(&self) -> MaterialId {
             self.material_id
         }
 
         fn color(&self) -> RgbaColor {
             self.color
         }
+
+        fn to_instance_data(&self) -> InstanceRaw {
+            InstanceRaw::from_bounds(self.bounds, self.color.to_f32_array())
+        }
+    }
+
+    // === MaterialId Tests ===
+
+    #[test]
+    fn test_material_id_newtype() {
+        let id1 = MaterialId(1);
+        let id2 = MaterialId(1);
+        let id3 = MaterialId(2);
+
+        assert_eq!(id1, id2);
+        assert_ne!(id1, id3);
+    }
+
+    #[test]
+    fn test_material_id_hash() {
+        use std::collections::HashSet;
+
+        let mut set = HashSet::new();
+        set.insert(MaterialId(1));
+        set.insert(MaterialId(2));
+        set.insert(MaterialId(1)); // Duplicate
+
+        assert_eq!(set.len(), 2);
+    }
+
+    #[test]
+    fn test_material_id_ord() {
+        let ids: Vec<MaterialId> = vec![MaterialId(3), MaterialId(1), MaterialId(2)];
+        let mut sorted = ids.clone();
+        sorted.sort();
+
+        assert_eq!(sorted, vec![MaterialId(1), MaterialId(2), MaterialId(3)]);
     }
 
     // === InstanceRaw Tests ===
@@ -377,7 +420,7 @@ mod tests {
     #[test]
     fn test_batch_renderer_get_batch_missing() {
         let renderer = BatchRenderer2D::new(1000);
-        let batch = renderer.get_batch(999);
+        let batch = renderer.get_batch(MaterialId(999));
         assert!(batch.is_empty());
     }
 
@@ -389,7 +432,7 @@ mod tests {
 
         renderer.add(&renderable);
 
-        let batch = renderer.get_batch(1);
+        let batch = renderer.get_batch(MaterialId(1));
         assert_eq!(batch.len(), 1);
     }
 
