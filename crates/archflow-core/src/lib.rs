@@ -18,6 +18,7 @@ mod error;
 mod rect;
 mod resources;
 mod transform;
+mod transform_enhanced;
 mod types;
 mod zoom;
 
@@ -30,6 +31,9 @@ pub use error::{CoreError, CoreResult};
 pub use rect::{Rect, Rect2D};
 pub use resources::*;
 pub use transform::Transform;
+pub use transform_enhanced::{
+    CompactTransform, Transform as TransformEnhanced, TransformDecomposition,
+};
 pub use types::{Mat3, Vec2};
 pub use zoom::*;
 

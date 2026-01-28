@@ -263,6 +263,37 @@ impl Mat3 {
         let y = self.m10 * v.x + self.m11 * v.y;
         Vec2::new(x, y)
     }
+
+    /// Calcular la matriz inversa
+    /// Para matrices 2D affine: [a, b, tx; c, d, ty; 0, 0, 1]
+    /// La inversa es: [d/det, -b/det, (b*ty - d*tx)/det; -c/det, a/det, (c*tx - a*ty)/det; 0, 0, 1]
+    pub fn inverse(self) -> Option<Self> {
+        let det = self.m00 * self.m11 - self.m01 * self.m10;
+
+        // Check for singular matrix
+        if det.abs() < 1e-10 {
+            return None;
+        }
+
+        let inv_det = 1.0 / det;
+
+        Some(Self {
+            m00: self.m11 * inv_det,
+            m01: -self.m01 * inv_det,
+            m02: (self.m01 * self.m12 - self.m11 * self.m02) * inv_det,
+            m10: -self.m10 * inv_det,
+            m11: self.m00 * inv_det,
+            m12: (self.m10 * self.m02 - self.m00 * self.m12) * inv_det,
+            m20: 0.0,
+            m21: 0.0,
+            m22: 1.0,
+        })
+    }
+
+    /// Calcular el determinante
+    pub fn determinant(&self) -> f32 {
+        self.m00 * self.m11 - self.m01 * self.m10
+    }
 }
 
 impl Default for Mat3 {
