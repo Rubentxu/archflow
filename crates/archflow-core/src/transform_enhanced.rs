@@ -15,6 +15,9 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::ops::{Mul, MulAssign};
 
+/// Epsilon value for floating-point comparisons
+const EPSILON: f32 = 1e-6;
+
 /// 2D Transform with full 3x3 matrix support
 ///
 /// Represents a 2D affine transform that can be composed, inverted, and decomposed.
@@ -99,21 +102,32 @@ impl Transform {
 
     /// Check if transform is identity
     pub fn is_identity(&self) -> bool {
-        self.matrix == Mat3::IDENTITY
+        (self.matrix.m00 - 1.0).abs() < EPSILON
+            && (self.matrix.m11 - 1.0).abs() < EPSILON
+            && (self.matrix.m22 - 1.0).abs() < EPSILON
+            && self.matrix.m01.abs() < EPSILON
+            && self.matrix.m10.abs() < EPSILON
+            && self.matrix.m02.abs() < EPSILON
+            && self.matrix.m12.abs() < EPSILON
+            && self.matrix.m20.abs() < EPSILON
+            && self.matrix.m21.abs() < EPSILON
     }
 
     /// Check if transform is only translation
     pub fn is_translation_only(&self) -> bool {
         let m = &self.matrix;
-        m.m00 == 1.0 && m.m11 == 1.0 && m.m01 == 0.0 && m.m10 == 0.0
+        (m.m00 - 1.0).abs() < EPSILON
+            && (m.m11 - 1.0).abs() < EPSILON
+            && m.m01.abs() < EPSILON
+            && m.m10.abs() < EPSILON
     }
 
     /// Check if transform is only uniform scale
     pub fn is_uniform_scale_only(&self) -> bool {
         let m = &self.matrix;
-        let translation = m.m02 == 0.0 && m.m12 == 0.0;
-        let rotation = m.m01 == 0.0 && m.m10 == 0.0;
-        let uniform_scale = (m.m00 - m.m11).abs() < 1e-6;
+        let translation = m.m02.abs() < EPSILON && m.m12.abs() < EPSILON;
+        let rotation = m.m01.abs() < EPSILON && m.m10.abs() < EPSILON;
+        let uniform_scale = (m.m00 - m.m11).abs() < EPSILON;
         translation && rotation && uniform_scale
     }
 
@@ -131,10 +145,8 @@ impl Transform {
 
     /// Get rotation angle in radians
     pub fn rotation(&self) -> f32 {
-        Vec2::new(self.matrix.m00, self.matrix.m10)
-            .normalize()
-            .y
-            .atan2(Vec2::new(self.matrix.m00, self.matrix.m10).normalize().x)
+        let normalized = Vec2::new(self.matrix.m00, self.matrix.m10).normalize();
+        normalized.y.atan2(normalized.x)
     }
 
     /// Convert to 3x3 matrix
@@ -225,8 +237,7 @@ impl TransformDecomposition {
 
         let rotation = normalized_a.y.atan2(normalized_a.x);
 
-        // Calculate skew (dot product unused but kept for potential future use)
-        let _dot = normalized_a.dot(normalized_b);
+        // Calculate skew
         let skew_x = (normalized_b.y * reflection).atan2(normalized_b.x * reflection)
             - std::f32::consts::FRAC_PI_2;
         let skew_y = normalized_a.y.atan2(normalized_a.x);
@@ -292,11 +303,11 @@ impl CompactTransform {
         let mat = transform.to_mat3();
 
         // Check if it's just translation
-        if decomp.scale_x == 1.0
-            && decomp.scale_y == 1.0
-            && decomp.rotation == 0.0
-            && decomp.skew_x == 0.0
-            && decomp.skew_y == 0.0
+        if (decomp.scale_x - 1.0).abs() < EPSILON
+            && (decomp.scale_y - 1.0).abs() < EPSILON
+            && decomp.rotation.abs() < EPSILON
+            && decomp.skew_x.abs() < EPSILON
+            && decomp.skew_y.abs() < EPSILON
         {
             return CompactTransform::Translation {
                 x: decomp.translation.x,
@@ -305,10 +316,10 @@ impl CompactTransform {
         }
 
         // Check if it's translation + uniform scale
-        if decomp.scale_x == decomp.scale_y
-            && decomp.rotation == 0.0
-            && decomp.skew_x == 0.0
-            && decomp.skew_y == 0.0
+        if (decomp.scale_x - decomp.scale_y).abs() < EPSILON
+            && decomp.rotation.abs() < EPSILON
+            && decomp.skew_x.abs() < EPSILON
+            && decomp.skew_y.abs() < EPSILON
         {
             return CompactTransform::TranslationScale {
                 x: decomp.translation.x,
@@ -318,10 +329,10 @@ impl CompactTransform {
         }
 
         // Check if it's translation + rotation only (no scale)
-        if decomp.scale_x == 1.0
-            && decomp.scale_y == 1.0
-            && decomp.skew_x == 0.0
-            && decomp.skew_y == 0.0
+        if (decomp.scale_x - 1.0).abs() < EPSILON
+            && (decomp.scale_y - 1.0).abs() < EPSILON
+            && decomp.skew_x.abs() < EPSILON
+            && decomp.skew_y.abs() < EPSILON
         {
             return CompactTransform::Rotation {
                 x: decomp.translation.x,
@@ -331,7 +342,10 @@ impl CompactTransform {
         }
 
         // Check if it's translation + non-uniform scale (no rotation)
-        if decomp.rotation == 0.0 && decomp.skew_x == 0.0 && decomp.skew_y == 0.0 {
+        if decomp.rotation.abs() < EPSILON
+            && decomp.skew_x.abs() < EPSILON
+            && decomp.skew_y.abs() < EPSILON
+        {
             return CompactTransform::Scale {
                 x: decomp.translation.x,
                 y: decomp.translation.y,
