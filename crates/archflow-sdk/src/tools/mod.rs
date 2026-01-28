@@ -3,8 +3,9 @@
 //! This module provides a comprehensive tools system for user interaction
 //! including selection, drawing, and erasing tools.
 
+use crate::a11y::{KeyCode, KeyEvent, Modifiers};
 use crate::canvas::{Canvas, Shape, ShapeGeometry, ShapeStyle, ShapeType};
-use crate::plugin::{PluginContext, PluginHost, PluginResult, Tool, ToolCategory};
+use crate::plugin::{PluginContext, PluginHost, PluginResult, Tool, ToolCategory, ToolShortcut};
 use crate::selection::{SelectionDelta, SelectionManager, SelectionMode};
 use archflow_core::{Color, EntityId, Rect, Vec2};
 use serde::{Deserialize, Serialize};
@@ -350,6 +351,99 @@ impl Tool for SelectTool {
         // Render selection box, resize handles, etc.
         Ok(())
     }
+
+    fn on_key_down(
+        &mut self,
+        event: &KeyEvent,
+        host: &mut dyn PluginHost,
+    ) -> PluginResult<Option<SelectionDelta>> {
+        match event.key_code {
+            KeyCode::Escape => {
+                // Deselect all on Escape
+                self.state = SelectToolState::Idle;
+                // The host would handle the actual deselection
+                Ok(None)
+            }
+            KeyCode::Delete | KeyCode::Backspace => {
+                // Delete selected shapes
+                // This would be handled by the host
+                Ok(None)
+            }
+            KeyCode::A if event.modifiers.ctrl => {
+                // Select all (Ctrl+A)
+                // This would be handled by the host
+                Ok(None)
+            }
+            KeyCode::C if event.modifiers.ctrl => {
+                // Copy selection (Ctrl+C)
+                // This would be handled by the host
+                Ok(None)
+            }
+            KeyCode::V if event.modifiers.ctrl => {
+                // Paste (Ctrl+V)
+                // This would be handled by the host
+                Ok(None)
+            }
+            KeyCode::D if event.modifiers.ctrl => {
+                // Duplicate (Ctrl+D)
+                // This would be handled by the host
+                Ok(None)
+            }
+            _ => Ok(None),
+        }
+    }
+
+    fn keyboard_shortcuts(&self) -> Vec<ToolShortcut> {
+        vec![
+            ToolShortcut::with_modifiers(
+                "Ctrl+A",
+                "Select all shapes",
+                "select_all",
+                vec![KeyCode::A],
+                true,
+                false,
+                false,
+                false,
+            ),
+            ToolShortcut::with_modifiers(
+                "Ctrl+C",
+                "Copy selection",
+                "copy",
+                vec![KeyCode::C],
+                true,
+                false,
+                false,
+                false,
+            ),
+            ToolShortcut::with_modifiers(
+                "Ctrl+V",
+                "Paste",
+                "paste",
+                vec![KeyCode::V],
+                true,
+                false,
+                false,
+                false,
+            ),
+            ToolShortcut::with_modifiers(
+                "Ctrl+D",
+                "Duplicate selection",
+                "duplicate",
+                vec![KeyCode::D],
+                true,
+                false,
+                false,
+                false,
+            ),
+            ToolShortcut::new(
+                "Delete / Backspace",
+                "Delete selected shapes",
+                "delete",
+                vec![KeyCode::Delete, KeyCode::Backspace],
+            ),
+            ToolShortcut::new("Escape", "Deselect all", "deselect", vec![KeyCode::Escape]),
+        ]
+    }
 }
 
 /// Drawing tool state
@@ -564,6 +658,58 @@ impl Tool for DrawTool {
         // Render preview shape
         Ok(())
     }
+
+    fn on_key_down(
+        &mut self,
+        event: &KeyEvent,
+        _host: &mut dyn PluginHost,
+    ) -> PluginResult<Option<SelectionDelta>> {
+        match event.key_code {
+            KeyCode::Escape => {
+                // Cancel drawing
+                self.state = DrawToolState::Idle;
+                Ok(None)
+            }
+            // Switch between shape types
+            KeyCode::R => {
+                self.shape_type = DrawShapeType::Rectangle;
+                Ok(None)
+            }
+            KeyCode::O => {
+                self.shape_type = DrawShapeType::Ellipse;
+                Ok(None)
+            }
+            KeyCode::L => {
+                self.shape_type = DrawShapeType::Line;
+                Ok(None)
+            }
+            KeyCode::A => {
+                self.shape_type = DrawShapeType::Arrow;
+                Ok(None)
+            }
+            KeyCode::P => {
+                self.shape_type = DrawShapeType::Path;
+                Ok(None)
+            }
+            KeyCode::F => {
+                self.shape_type = DrawShapeType::Freehand;
+                Ok(None)
+            }
+            _ => Ok(None),
+        }
+    }
+
+    fn keyboard_shortcuts(&self) -> Vec<ToolShortcut> {
+        vec![
+            ToolShortcut::new("Escape", "Cancel drawing", "cancel", vec![KeyCode::Escape]),
+            ToolShortcut::new("R", "Rectangle tool", "rectangle", vec![KeyCode::R]),
+            ToolShortcut::new("O", "Ellipse tool", "ellipse", vec![KeyCode::O]),
+            ToolShortcut::new("L", "Line tool", "line", vec![KeyCode::L]),
+            ToolShortcut::new("A", "Arrow tool", "arrow", vec![KeyCode::A]),
+            ToolShortcut::new("P", "Path tool", "path", vec![KeyCode::P]),
+            ToolShortcut::new("F", "Freehand tool", "freehand", vec![KeyCode::F]),
+        ]
+    }
 }
 
 /// Erase tool mode
@@ -696,6 +842,41 @@ impl Tool for EraseTool {
     fn render_overlay(&self, _context: &PluginContext) -> PluginResult<()> {
         // Render lasso path
         Ok(())
+    }
+
+    fn on_key_down(
+        &mut self,
+        event: &KeyEvent,
+        _host: &mut dyn PluginHost,
+    ) -> PluginResult<Option<SelectionDelta>> {
+        match event.key_code {
+            KeyCode::Escape => {
+                // Cancel erasing
+                self.clear_lasso();
+                self.is_active = false;
+                Ok(None)
+            }
+            KeyCode::S => {
+                // Switch to single erase mode
+                self.mode = EraseMode::Single;
+                self.clear_lasso();
+                Ok(None)
+            }
+            KeyCode::L => {
+                // Switch to lasso erase mode
+                self.mode = EraseMode::Lasso;
+                Ok(None)
+            }
+            _ => Ok(None),
+        }
+    }
+
+    fn keyboard_shortcuts(&self) -> Vec<ToolShortcut> {
+        vec![
+            ToolShortcut::new("Escape", "Cancel erasing", "cancel", vec![KeyCode::Escape]),
+            ToolShortcut::new("S", "Single erase mode", "single_mode", vec![KeyCode::S]),
+            ToolShortcut::new("L", "Lasso erase mode", "lasso_mode", vec![KeyCode::L]),
+        ]
     }
 }
 

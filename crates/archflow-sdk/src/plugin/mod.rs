@@ -4,9 +4,11 @@
 //! custom functionality. Plugins can hook into various lifecycle events,
 //! add new tools, and register custom shape renderers.
 
+use crate::a11y::{KeyCode, KeyEvent, Modifiers};
 use crate::canvas::Shape;
 use crate::events::CanvasEvent;
 use crate::layers::C4Level;
+use crate::selection::SelectionDelta;
 use crate::viewport::Viewport;
 use archflow_core::{EntityId, Vec2};
 use serde::{Deserialize, Serialize};
@@ -372,6 +374,27 @@ pub trait Tool: Send + Sync {
         Ok(())
     }
 
+    /// Called on key down
+    ///
+    /// Returns a SelectionDelta if the key event caused selection changes
+    fn on_key_down(
+        &mut self,
+        _event: &KeyEvent,
+        _host: &mut dyn PluginHost,
+    ) -> PluginResult<Option<SelectionDelta>> {
+        Ok(None)
+    }
+
+    /// Called on key up
+    fn on_key_up(&mut self, _event: &KeyEvent, _host: &mut dyn PluginHost) -> PluginResult<()> {
+        Ok(())
+    }
+
+    /// Returns the keyboard shortcuts for this tool
+    fn keyboard_shortcuts(&self) -> Vec<ToolShortcut> {
+        Vec::new()
+    }
+
     /// Renders the tool's cursor or overlay
     fn render_overlay(&self, _context: &PluginContext) -> PluginResult<()> {
         Ok(())
@@ -395,6 +418,80 @@ pub enum ToolCategory {
     Measure,
     /// Custom
     Custom,
+}
+
+/// Keyboard shortcut for a tool
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ToolShortcut {
+    /// Keys to press (e.g., "V", "Ctrl+Z", "Shift+Delete")
+    pub keys: String,
+    /// Description of what the shortcut does
+    pub description: String,
+    /// Action identifier
+    pub action: String,
+    /// Key codes that trigger this shortcut
+    pub key_codes: Vec<KeyCode>,
+    /// Required modifiers
+    pub modifiers: Modifiers,
+}
+
+impl ToolShortcut {
+    /// Creates a new tool shortcut
+    pub fn new(
+        keys: impl Into<String>,
+        description: impl Into<String>,
+        action: impl Into<String>,
+        key_codes: Vec<KeyCode>,
+    ) -> Self {
+        Self {
+            keys: keys.into(),
+            description: description.into(),
+            action: action.into(),
+            key_codes,
+            modifiers: Modifiers::default(),
+        }
+    }
+
+    /// Creates a shortcut with modifiers
+    pub fn with_modifiers(
+        keys: impl Into<String>,
+        description: impl Into<String>,
+        action: impl Into<String>,
+        key_codes: Vec<KeyCode>,
+        ctrl: bool,
+        shift: bool,
+        alt: bool,
+        meta: bool,
+    ) -> Self {
+        Self {
+            keys: keys.into(),
+            description: description.into(),
+            action: action.into(),
+            key_codes,
+            modifiers: Modifiers {
+                ctrl,
+                shift,
+                alt,
+                meta,
+            },
+        }
+    }
+
+    /// Checks if a key event matches this shortcut
+    pub fn matches(&self, event: &KeyEvent) -> bool {
+        if !event.key_down || event.repeated {
+            return false;
+        }
+
+        if !self.key_codes.contains(&event.key_code) {
+            return false;
+        }
+
+        event.modifiers.ctrl == self.modifiers.ctrl
+            && event.modifiers.shift == self.modifiers.shift
+            && event.modifiers.alt == self.modifiers.alt
+            && event.modifiers.meta == self.modifiers.meta
+    }
 }
 
 /// Shape renderer trait
