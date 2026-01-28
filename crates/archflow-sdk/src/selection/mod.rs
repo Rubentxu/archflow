@@ -1,9 +1,15 @@
 //! Selection Manager - Box Selection and Selection State Management
 //!
 //! Provides:
-//! - SelectionManager: Manages selection state and box selection
+//! - SelectionManager: Manages selection state and box selection with spatial indexing
 //! - SelectionMode: Controls selection behavior (replace, add, subtract)
 //! - SelectionDelta: Changes to selection state for undo/redo
+//!
+//! # Integration with Spatial Index
+//!
+//! The SelectionManager integrates with HybridSpatialIndex to provide efficient
+//! box selection queries. The spatial index is automatically updated when shapes
+//! are inserted or removed.
 
 pub mod handle_manager;
 pub mod spatial_index;
@@ -12,7 +18,7 @@ pub use handle_manager::{
     HandleCache, HandleType, SelectionHandle, SelectionHandleManager, TransformOperation,
     UnifiedBounds,
 };
-pub use spatial_index::{HybridSpatialIndex, SelectionSet};
+pub use spatial_index::{GridIndex, HybridSpatialIndex, SelectionSet};
 
 use archflow_core::{EntityId, Rect, Vec2};
 use archflow_primitives::selection::{DragSelectionBox, SelectionConfig};
@@ -87,25 +93,32 @@ pub type ShapeQueryCallback = dyn Fn(Rect) -> Vec<EntityId> + 'static;
 
 /// Selection manager for handling shape selection and box selection
 ///
-/// # Example
+/// This manager provides both callback-based query support and built-in
+/// spatial indexing through HybridSpatialIndex for efficient box selection.
+///
+/// # Example with Built-in Spatial Index
 ///
 /// ```rust
 /// use archflow_sdk::{SelectionManager, SelectionMode};
-/// use archflow_core::Vec2;
+/// use archflow_sdk::selection::HybridSpatialIndex;
+/// use archflow_core::{EntityId, Rect, Vec2};
 ///
 /// let mut selection_manager = SelectionManager::new();
+/// let mut spatial_index = HybridSpatialIndex::with_defaults();
 ///
-/// // Start box selection
-/// selection_manager.start_box_selection(100.0, 100.0, SelectionMode::Replace);
+/// // Add entities to the spatial index
+/// let id1 = EntityId::new();
+/// let id2 = EntityId::new();
+/// spatial_index.insert(id1, Rect::from_min_max(Vec2::ZERO, Vec2::new(100.0, 100.0)));
+/// spatial_index.insert(id2, Rect::from_min_max(Vec2::new(200.0, 200.0), Vec2::new(300.0, 300.0)));
 ///
-/// // Update selection box
-/// selection_manager.update_box_selection(200.0, 150.0);
+/// // Set the spatial index for automatic box selection queries
+/// selection_manager.set_spatial_index(spatial_index);
 ///
-/// // Finalize box selection with coordinate transformation
-/// let delta = selection_manager.finalize_box_selection(|point| {
-///     // Convert screen coordinates to canvas coordinates
-///     point
-/// }, true);
+/// // Now box selection will automatically query the spatial index
+/// selection_manager.start_box_selection(0.0, 0.0, SelectionMode::Replace);
+/// selection_manager.update_box_selection(250.0, 250.0);
+/// let delta = selection_manager.finalize_box_selection(|p| p, true);
 /// ```
 pub struct SelectionManager {
     /// Currently selected shape IDs
@@ -120,12 +133,18 @@ pub struct SelectionManager {
     is_active: bool,
     /// Selection mode for next operation
     mode: SelectionMode,
-    /// Callback for querying shapes in a rectangle
+    /// Optional spatial index for efficient box selection queries
+    spatial_index: Option<HybridSpatialIndex>,
+    /// Callback for querying shapes in a rectangle (legacy support)
     query_callback: Option<Box<ShapeQueryCallback>>,
 }
 
 impl SelectionManager {
-    /// Creates a new selection manager
+    /// Creates a new selection manager with default settings
+    ///
+    /// # Returns
+    ///
+    /// A new SelectionManager instance with no entities indexed
     pub fn new() -> Self {
         Self {
             selected: HashSet::new(),
@@ -134,7 +153,147 @@ impl SelectionManager {
             config: SelectionConfig::default(),
             is_active: false,
             mode: SelectionMode::Replace,
+            spatial_index: None,
             query_callback: None,
+        }
+    }
+
+    /// Creates a selection manager with a pre-configured spatial index
+    ///
+    /// # Arguments
+    ///
+    /// * `spatial_index` - The spatial index to use for box selection queries
+    ///
+    /// # Returns
+    ///
+    /// A new SelectionManager with the spatial index configured
+    pub fn with_spatial_index(spatial_index: HybridSpatialIndex) -> Self {
+        Self {
+            selected: HashSet::new(),
+            bounds: None,
+            drag_box: DragSelectionBox::new(),
+            config: SelectionConfig::default(),
+            is_active: false,
+            mode: SelectionMode::Replace,
+            spatial_index: Some(spatial_index),
+            query_callback: None,
+        }
+    }
+
+    /// Sets the spatial index for efficient box selection queries
+    ///
+    /// When a spatial index is set, box selection queries will automatically
+    /// use the index to find intersecting entities, providing O(1) query performance.
+    ///
+    /// # Arguments
+    ///
+    /// * `spatial_index` - The spatial index to use
+    pub fn set_spatial_index(&mut self, spatial_index: HybridSpatialIndex) {
+        self.spatial_index = Some(spatial_index);
+    }
+
+    /// Takes the spatial index, consuming the manager
+    ///
+    /// # Returns
+    ///
+    /// The spatial index if one was set, None otherwise
+    pub fn take_spatial_index(&mut self) -> Option<HybridSpatialIndex> {
+        self.spatial_index.take()
+    }
+
+    /// Checks if a spatial index is configured
+    ///
+    /// # Returns
+    ///
+    /// True if a spatial index is available for queries
+    pub fn has_spatial_index(&self) -> bool {
+        self.spatial_index.is_some()
+    }
+
+    /// Gets a reference to the spatial index for inspection
+    ///
+    /// # Returns
+    ///
+    /// Reference to the spatial index if present
+    pub fn spatial_index(&self) -> Option<&HybridSpatialIndex> {
+        self.spatial_index.as_ref()
+    }
+
+    /// Gets a mutable reference to the spatial index
+    ///
+    /// # Returns
+    ///
+    /// Mutable reference to the spatial index if present
+    pub fn spatial_index_mut(&mut self) -> Option<&mut HybridSpatialIndex> {
+        self.spatial_index.as_mut()
+    }
+
+    /// Inserts an entity into the spatial index
+    ///
+    /// This method updates the spatial index when a new shape is created.
+    /// It has no effect if no spatial index is configured.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The entity ID
+    /// * `bounds` - The entity's bounding box
+    pub fn insert_entity(&mut self, id: EntityId, bounds: Rect) {
+        if let Some(index) = self.spatial_index.as_mut() {
+            index.insert(id, bounds);
+        }
+    }
+
+    /// Removes an entity from the spatial index
+    ///
+    /// This method updates the spatial index when a shape is deleted.
+    /// It has no effect if no spatial index is configured.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The entity ID to remove
+    ///
+    /// # Returns
+    ///
+    /// The previous bounds of the entity if it was in the index
+    pub fn remove_entity(&mut self, id: &EntityId) -> Option<Rect> {
+        self.spatial_index
+            .as_mut()
+            .and_then(|index| index.remove(id))
+    }
+
+    /// Updates an entity's bounds in the spatial index
+    ///
+    /// This method efficiently updates bounds when a shape is transformed.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The entity ID
+    /// * `new_bounds` - The new bounding box
+    pub fn update_entity(&mut self, id: EntityId, new_bounds: Rect) {
+        if let Some(index) = self.spatial_index.as_mut() {
+            index.update(id, new_bounds);
+        }
+    }
+
+    /// Bulk inserts multiple entities into the spatial index
+    ///
+    /// More efficient than calling [`insert_entity`] for each entity.
+    ///
+    /// # Arguments
+    ///
+    /// * `entities` - Slice of (EntityId, Rect) pairs to insert
+    pub fn bulk_insert(&mut self, entities: &[(EntityId, Rect)]) {
+        if let Some(index) = self.spatial_index.as_mut() {
+            index.bulk_load(entities);
+        }
+    }
+
+    /// Clears all entities from the spatial index
+    ///
+    /// Useful when clearing the entire canvas.
+    pub fn clear_spatial_index(&mut self) {
+        if let Some(index) = self.spatial_index.as_mut() {
+            index.clear();
         }
     }
 
@@ -271,10 +430,16 @@ impl SelectionManager {
             ),
         );
 
-        // Query shapes within the selection rectangle using the callback
-        let intersecting_ids = match &self.query_callback {
-            Some(callback) => callback(canvas_rect),
-            None => Vec::new(),
+        // Query shapes within the selection rectangle
+        // Priority: spatial index (O(1)) > callback (fallback)
+        let intersecting_ids = if let Some(index) = &self.spatial_index {
+            // Use spatial index for O(1) query performance
+            index.query(canvas_rect)
+        } else if let Some(callback) = &self.query_callback {
+            // Fallback to callback for legacy support
+            callback(canvas_rect)
+        } else {
+            Vec::new()
         };
 
         // Apply selection mode
@@ -708,5 +873,324 @@ mod tests {
         assert_eq!(manager.selected_ids().len(), 2);
         assert!(delta.selected.contains(&id1));
         assert!(delta.selected.contains(&id2));
+    }
+
+    #[test]
+    fn test_box_selection_with_spatial_index() {
+        use crate::selection::HybridSpatialIndex;
+
+        let mut manager = SelectionManager::new();
+        let mut spatial_index = HybridSpatialIndex::with_defaults();
+
+        // Create entities at different positions
+        let id1 = EntityId::new();
+        let id2 = EntityId::new();
+        let id3 = EntityId::new();
+
+        // id1 and id2 are inside the selection box (0,0 to 100,100)
+        // id3 is outside (200,200 to 300,300)
+        spatial_index.insert(id1, Rect::from_min_max(Vec2::ZERO, Vec2::new(50.0, 50.0)));
+        spatial_index.insert(
+            id2,
+            Rect::from_min_max(Vec2::new(25.0, 25.0), Vec2::new(75.0, 75.0)),
+        );
+        spatial_index.insert(
+            id3,
+            Rect::from_min_max(Vec2::new(200.0, 200.0), Vec2::new(300.0, 300.0)),
+        );
+
+        manager.set_spatial_index(spatial_index);
+
+        // Start box selection covering (0,0) to (100,100)
+        manager.start_box_selection(0.0, 0.0, SelectionMode::Replace);
+        manager.update_box_selection(100.0, 100.0);
+
+        let delta = manager.finalize_box_selection(|v| v, true);
+
+        // id1 and id2 should be selected, id3 should not
+        assert!(manager.is_selected(&id1));
+        assert!(manager.is_selected(&id2));
+        assert!(!manager.is_selected(&id3));
+        assert_eq!(manager.selected_ids().len(), 2);
+        assert!(delta.selected.contains(&id1));
+        assert!(delta.selected.contains(&id2));
+        assert!(delta.deselected.is_empty());
+    }
+
+    #[test]
+    fn test_spatial_index_priority_over_callback() {
+        use crate::selection::HybridSpatialIndex;
+
+        let mut manager = SelectionManager::new();
+        let spatial_index = HybridSpatialIndex::with_defaults();
+
+        let id_spatial = EntityId::new();
+        let id_callback = EntityId::new();
+
+        // Set up both spatial index and callback
+        manager.set_spatial_index(spatial_index);
+        manager.set_query_callback(move |_rect| vec![id_callback]);
+
+        // Start and finalize box selection
+        manager.start_box_selection(0.0, 0.0, SelectionMode::Replace);
+        manager.update_box_selection(100.0, 100.0);
+
+        let delta = manager.finalize_box_selection(|v| v, true);
+
+        // Neither should be selected since spatial index is empty
+        assert!(!manager.is_selected(&id_spatial));
+        assert!(!manager.is_selected(&id_callback));
+        assert!(delta.selected.is_empty());
+    }
+
+    #[test]
+    fn test_spatial_index_insert_remove() {
+        use crate::selection::HybridSpatialIndex;
+
+        let mut manager = SelectionManager::new();
+        let mut spatial_index = HybridSpatialIndex::with_defaults();
+
+        let id1 = EntityId::new();
+        let id2 = EntityId::new();
+
+        spatial_index.insert(id1, Rect::from_min_max(Vec2::ZERO, Vec2::new(100.0, 100.0)));
+        spatial_index.insert(
+            id2,
+            Rect::from_min_max(Vec2::new(200.0, 200.0), Vec2::new(300.0, 300.0)),
+        );
+
+        manager.set_spatial_index(spatial_index);
+
+        // Verify has_spatial_index
+        assert!(manager.has_spatial_index());
+
+        // Test insert_entity
+        let id3 = EntityId::new();
+        manager.insert_entity(
+            id3,
+            Rect::from_min_max(Vec2::new(50.0, 50.0), Vec2::new(150.0, 150.0)),
+        );
+
+        // Test remove_entity
+        let removed_bounds = manager.remove_entity(&id1);
+        assert!(removed_bounds.is_some());
+
+        // Verify removal
+        manager.start_box_selection(0.0, 0.0, SelectionMode::Replace);
+        manager.update_box_selection(100.0, 100.0);
+        let _delta = manager.finalize_box_selection(|v| v, true);
+
+        // id1 should not be selected (was removed), id3 should be
+        assert!(!manager.is_selected(&id1));
+    }
+
+    #[test]
+    fn test_spatial_index_bulk_insert() {
+        use crate::selection::HybridSpatialIndex;
+
+        let mut manager = SelectionManager::new();
+        let mut spatial_index = HybridSpatialIndex::with_defaults();
+
+        // Create multiple entities - using 25px gaps so they don't overlap
+        let entities: Vec<(EntityId, Rect)> = (0..10)
+            .map(|i| {
+                let id = EntityId::new();
+                let x = (i as f32) * 60.0; // 60px apart to avoid overlap
+                let rect = Rect::from_min_max(Vec2::new(x, 0.0), Vec2::new(x + 25.0, 25.0));
+                (id, rect)
+            })
+            .collect();
+
+        spatial_index.bulk_load(&entities);
+        manager.set_spatial_index(spatial_index);
+
+        // Box selection covering first 5 entities (0, 60, 120, 180, 240)
+        // Selection from 0 to 250 (excludes entity at x=240 with width 25 that ends at 265)
+        manager.start_box_selection(0.0, 0.0, SelectionMode::Replace);
+        manager.update_box_selection(250.0, 50.0);
+
+        let delta = manager.finalize_box_selection(|v| v, true);
+
+        // Should have selected exactly 5 entities (0, 1, 2, 3, 4)
+        assert_eq!(manager.selected_ids().len(), 5);
+        assert_eq!(delta.selected.len(), 5);
+    }
+
+    #[test]
+    fn test_spatial_index_clear() {
+        use crate::selection::HybridSpatialIndex;
+
+        let mut manager = SelectionManager::new();
+        let mut spatial_index = HybridSpatialIndex::with_defaults();
+
+        let id1 = EntityId::new();
+        spatial_index.insert(id1, Rect::from_min_max(Vec2::ZERO, Vec2::new(100.0, 100.0)));
+
+        manager.set_spatial_index(spatial_index);
+        assert!(manager.has_spatial_index());
+
+        // Clear the spatial index
+        manager.clear_spatial_index();
+
+        // Verify spatial index is still present but empty
+        assert!(manager.has_spatial_index());
+
+        // Box selection should not find any entities
+        manager.start_box_selection(0.0, 0.0, SelectionMode::Replace);
+        manager.update_box_selection(100.0, 100.0);
+
+        let delta = manager.finalize_box_selection(|v| v, true);
+        assert!(delta.selected.is_empty());
+    }
+
+    #[test]
+    fn test_box_selection_mode_with_spatial_index() {
+        use crate::selection::HybridSpatialIndex;
+
+        let mut manager = SelectionManager::new();
+        let mut spatial_index = HybridSpatialIndex::with_defaults();
+
+        let id1 = EntityId::new();
+        let id2 = EntityId::new();
+        let id3 = EntityId::new();
+
+        // Place entities far apart to avoid any overlap
+        spatial_index.insert(id1, Rect::from_min_max(Vec2::ZERO, Vec2::new(50.0, 50.0)));
+        spatial_index.insert(
+            id2,
+            Rect::from_min_max(Vec2::new(200.0, 200.0), Vec2::new(250.0, 250.0)),
+        );
+        spatial_index.insert(
+            id3,
+            Rect::from_min_max(Vec2::new(400.0, 400.0), Vec2::new(450.0, 450.0)),
+        );
+
+        manager.set_spatial_index(spatial_index);
+
+        // Select id1 with Replace
+        manager.start_box_selection(0.0, 0.0, SelectionMode::Replace);
+        manager.update_box_selection(50.0, 50.0);
+        let _delta = manager.finalize_box_selection(|v| v, true);
+
+        assert!(manager.is_selected(&id1));
+        assert!(!manager.is_selected(&id2));
+        assert!(!manager.is_selected(&id3));
+
+        // Add id3 with Add mode (keep id1 selected)
+        manager.start_box_selection(400.0, 400.0, SelectionMode::Add);
+        manager.update_box_selection(450.0, 450.0);
+        let _delta = manager.finalize_box_selection(|v| v, true);
+
+        assert!(manager.is_selected(&id1));
+        assert!(!manager.is_selected(&id2));
+        assert!(manager.is_selected(&id3));
+
+        // Subtract mode - remove id1 with Subtract
+        manager.start_box_selection(0.0, 0.0, SelectionMode::Subtract);
+        manager.update_box_selection(50.0, 50.0);
+        let _delta = manager.finalize_box_selection(|v| v, true);
+
+        assert!(!manager.is_selected(&id1));
+        assert!(!manager.is_selected(&id2));
+        assert!(manager.is_selected(&id3));
+    }
+
+    #[test]
+    fn test_box_selection_intersect_mode_with_spatial_index() {
+        use crate::selection::HybridSpatialIndex;
+
+        let mut manager = SelectionManager::new();
+        let mut spatial_index = HybridSpatialIndex::with_defaults();
+
+        let id1 = EntityId::new();
+        let id2 = EntityId::new();
+
+        spatial_index.insert(id1, Rect::from_min_max(Vec2::ZERO, Vec2::new(100.0, 100.0)));
+        spatial_index.insert(
+            id2,
+            Rect::from_min_max(Vec2::new(50.0, 50.0), Vec2::new(150.0, 150.0)),
+        );
+
+        manager.set_spatial_index(spatial_index);
+
+        // First select all
+        manager.start_box_selection(0.0, 0.0, SelectionMode::Replace);
+        manager.update_box_selection(200.0, 200.0);
+        let _delta = manager.finalize_box_selection(|v| v, true);
+
+        assert!(manager.is_selected(&id1));
+        assert!(manager.is_selected(&id2));
+
+        // Now intersect with smaller box - should only keep overlapping entities
+        let mut spatial_index2 = HybridSpatialIndex::with_defaults();
+        spatial_index2.insert(
+            id2,
+            Rect::from_min_max(Vec2::new(50.0, 50.0), Vec2::new(150.0, 150.0)),
+        );
+        manager.set_spatial_index(spatial_index2);
+
+        manager.start_box_selection(50.0, 50.0, SelectionMode::Intersect);
+        manager.update_box_selection(100.0, 100.0);
+        let _delta = manager.finalize_box_selection(|v| v, true);
+
+        // Only id2 should remain (it intersects with both boxes)
+        assert!(!manager.is_selected(&id1));
+        assert!(manager.is_selected(&id2));
+    }
+
+    #[test]
+    fn test_spatial_index_take_and_replace() {
+        use crate::selection::HybridSpatialIndex;
+
+        let mut manager = SelectionManager::new();
+        let mut spatial_index = HybridSpatialIndex::with_defaults();
+
+        let id1 = EntityId::new();
+        spatial_index.insert(id1, Rect::from_min_max(Vec2::ZERO, Vec2::new(100.0, 100.0)));
+
+        manager.set_spatial_index(spatial_index);
+        assert!(manager.has_spatial_index());
+
+        // Take the spatial index
+        let taken = manager.take_spatial_index();
+        assert!(taken.is_some());
+        assert!(!manager.has_spatial_index());
+
+        // Create new spatial index
+        let mut new_index = HybridSpatialIndex::with_defaults();
+        let id2 = EntityId::new();
+        new_index.insert(id2, Rect::from_min_max(Vec2::ZERO, Vec2::new(100.0, 100.0)));
+
+        // Set new spatial index
+        manager.set_spatial_index(new_index);
+        assert!(manager.has_spatial_index());
+    }
+
+    #[test]
+    fn test_box_selection_partial_overlap() {
+        use crate::selection::HybridSpatialIndex;
+
+        let mut manager = SelectionManager::new();
+        let mut spatial_index = HybridSpatialIndex::with_defaults();
+
+        let id1 = EntityId::new();
+
+        // Entity at (75, 75) with size 100x100 - partially overlapping with selection
+        spatial_index.insert(
+            id1,
+            Rect::from_min_max(Vec2::new(75.0, 75.0), Vec2::new(175.0, 175.0)),
+        );
+
+        manager.set_spatial_index(spatial_index);
+
+        // Selection box from (0,0) to (100,100) - partial overlap
+        manager.start_box_selection(0.0, 0.0, SelectionMode::Replace);
+        manager.update_box_selection(100.0, 100.0);
+
+        let delta = manager.finalize_box_selection(|v| v, true);
+
+        // id1 should be selected due to partial overlap
+        assert!(manager.is_selected(&id1));
+        assert_eq!(manager.selected_ids().len(), 1);
     }
 }
