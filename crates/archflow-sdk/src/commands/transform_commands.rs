@@ -530,11 +530,11 @@ mod tests {
         let mut command = DuplicateShapeCommand::new(&[id], Vec2::new(20.0, 20.0));
         command.execute(&mut canvas).unwrap();
 
-        // The new ID should be the last one in all_shapes
-        let new_x = canvas.all_shapes().last().unwrap().x;
-        let new_y = canvas.all_shapes().last().unwrap().y;
-        assert_eq!(new_x, 120.0); // 100 + 20
-        assert_eq!(new_y, 120.0); // 100 + 20
+        // Get the new shape ID from the command
+        let new_id = command.new_ids()[0];
+        let new_shape = canvas.get_shape(new_id).unwrap();
+        assert_eq!(new_shape.x, 120.0); // 100 + 20
+        assert_eq!(new_shape.y, 120.0); // 100 + 20
     }
 
     #[test]
@@ -564,5 +564,104 @@ mod tests {
 
         // Should have 2 new shapes
         assert_eq!(canvas.all_shapes().len(), 4);
+    }
+
+    #[test]
+    fn test_batch_transform_execute() {
+        let mut canvas = Canvas::new(800.0, 600.0);
+        let id1 = canvas.create_rectangle(100.0, 100.0, 50.0, 50.0);
+        let id2 = canvas.create_rectangle(200.0, 200.0, 50.0, 50.0);
+
+        let mut original = HashMap::new();
+        original.insert(id1, (Vec2::new(100.0, 100.0), Vec2::new(150.0, 150.0), 0.0));
+        original.insert(id2, (Vec2::new(200.0, 200.0), Vec2::new(250.0, 250.0), 0.0));
+
+        let mut targets = HashMap::new();
+        targets.insert(
+            id1,
+            (Vec2::new(110.0, 110.0), Vec2::new(160.0, 160.0), 15.0),
+        );
+        targets.insert(
+            id2,
+            (Vec2::new(210.0, 210.0), Vec2::new(260.0, 260.0), 30.0),
+        );
+
+        let mut command = BatchTransformCommand::new(original, targets);
+        command.execute(&mut canvas).unwrap();
+
+        let shape1 = canvas.get_shape(id1).unwrap();
+        let shape2 = canvas.get_shape(id2).unwrap();
+
+        assert_eq!(shape1.x, 110.0);
+        assert_eq!(shape1.y, 110.0);
+        assert_eq!(shape1.width, 50.0);
+        assert_eq!(shape1.height, 50.0);
+        assert_eq!(shape1.rotation, 15.0);
+
+        assert_eq!(shape2.x, 210.0);
+        assert_eq!(shape2.y, 210.0);
+        assert_eq!(shape2.rotation, 30.0);
+    }
+
+    #[test]
+    fn test_batch_transform_undo() {
+        let mut canvas = Canvas::new(800.0, 600.0);
+        let id = canvas.create_rectangle(100.0, 100.0, 50.0, 50.0);
+
+        let mut original = HashMap::new();
+        original.insert(id, (Vec2::new(100.0, 100.0), Vec2::new(150.0, 150.0), 0.0));
+
+        let mut targets = HashMap::new();
+        targets.insert(id, (Vec2::new(200.0, 200.0), Vec2::new(250.0, 250.0), 45.0));
+
+        let mut command = BatchTransformCommand::new(original, targets);
+        command.execute(&mut canvas).unwrap();
+
+        // Verify changed state
+        let shape = canvas.get_shape(id).unwrap();
+        assert_eq!(shape.x, 200.0);
+        assert_eq!(shape.rotation, 45.0);
+
+        // Undo
+        command.undo(&mut canvas).unwrap();
+
+        // Verify original state restored
+        let shape = canvas.get_shape(id).unwrap();
+        assert_eq!(shape.x, 100.0);
+        assert_eq!(shape.rotation, 0.0);
+    }
+
+    #[test]
+    fn test_batch_transform_multiple_entities() {
+        let mut canvas = Canvas::new(800.0, 600.0);
+        let id1 = canvas.create_rectangle(100.0, 100.0, 50.0, 50.0);
+        let id2 = canvas.create_rectangle(300.0, 300.0, 50.0, 50.0);
+        let id3 = canvas.create_rectangle(500.0, 500.0, 50.0, 50.0);
+
+        let mut original = HashMap::new();
+        original.insert(id1, (Vec2::new(100.0, 100.0), Vec2::new(150.0, 150.0), 0.0));
+        original.insert(id2, (Vec2::new(300.0, 300.0), Vec2::new(350.0, 350.0), 0.0));
+        original.insert(id3, (Vec2::new(500.0, 500.0), Vec2::new(550.0, 550.0), 0.0));
+
+        let mut targets = HashMap::new();
+        targets.insert(
+            id1,
+            (Vec2::new(110.0, 110.0), Vec2::new(160.0, 160.0), 10.0),
+        );
+        targets.insert(
+            id2,
+            (Vec2::new(310.0, 310.0), Vec2::new(360.0, 360.0), 20.0),
+        );
+        targets.insert(
+            id3,
+            (Vec2::new(510.0, 510.0), Vec2::new(560.0, 560.0), 30.0),
+        );
+
+        let mut command = BatchTransformCommand::new(original, targets);
+        command.execute(&mut canvas).unwrap();
+
+        assert_eq!(canvas.get_shape(id1).unwrap().rotation, 10.0);
+        assert_eq!(canvas.get_shape(id2).unwrap().rotation, 20.0);
+        assert_eq!(canvas.get_shape(id3).unwrap().rotation, 30.0);
     }
 }
