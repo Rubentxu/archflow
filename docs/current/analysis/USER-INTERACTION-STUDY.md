@@ -615,12 +615,12 @@ Esta sección documenta el progreso de las épicas definidas en `docs/epics/` y 
 
 | Feature | Estado | Progreso |
 |---------|--------|----------|
-| Selection Handles | ⏳ Pendiente | 0% |
-| Resize Handles (8-direction) | ⏳ Pendiente | 0% |
-| Rotate Handle | ⏳ Pendiente | 0% |
-| Proportional Resize (Shift) | ⏳ Pendiente | 0% |
-| Center-based Resize (Alt) | ⏳ Pendiente | 0% |
-| Multi-entity Transform | ⏳ Pendiente | 0% |
+| Selection Handles | ✅ | 100% | Sistema de handles básico implementado con TDD |
+| Resize Handles (8-direction) | 🔄 | 30% | Matemáticas de resize corregidas, tests en progreso |
+| Rotate Handle | 🔄 | 40% | Rotación corregida con pruebas pasando |
+| Proportional Resize (Shift) | 🔄 | 20% | Implementación parcial |
+| Center-based Resize (Alt) | 🔄 | 20% | Implementación parcial |
+| Multi-entity Transform | 🔄 | 50% | Transformación múltiple en desarrollo |
 
 **dependencias:** EPIC-001, EPIC-002 (completados)
 
