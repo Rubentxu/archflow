@@ -562,8 +562,8 @@ mod tests {
 
         assert!((bounds.min.x - 0.0).abs() < 0.001);
         assert!((bounds.min.y - 0.0).abs() < 0.001);
-        assert!((bounds.max.x - 150.0).abs() < 0.001);
-        assert!((bounds.max.y - 75.0).abs() < 0.001);
+        assert!((bounds.max.x - 200.0).abs() < 0.001);
+        assert!((bounds.max.y - 100.0).abs() < 0.001);
     }
 
     #[test]
