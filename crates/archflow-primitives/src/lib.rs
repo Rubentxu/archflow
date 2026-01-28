@@ -3,7 +3,7 @@
 mod drag_drop;
 mod resize;
 mod routing;
-mod selection;
+pub mod selection;
 mod shapes;
 mod styles;
 
