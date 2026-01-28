@@ -51,6 +51,22 @@ impl SelectionDelta {
     pub fn is_empty(&self) -> bool {
         self.selected.is_empty() && self.deselected.is_empty()
     }
+
+    /// Merges this delta with another, combining their changes
+    pub fn merge(mut self, other: SelectionDelta) -> SelectionDelta {
+        self.selected.extend(other.selected);
+        self.deselected.extend(other.deselected);
+
+        // Update bounds: prefer non-None values
+        if self.new_bounds.is_none() {
+            self.new_bounds = other.new_bounds;
+        }
+        if self.previous_bounds.is_none() && other.previous_bounds.is_some() {
+            self.previous_bounds = other.previous_bounds;
+        }
+
+        self
+    }
 }
 
 /// Callback for querying shapes within a rectangle
@@ -66,6 +82,7 @@ pub type ShapeQueryCallback = dyn Fn(Rect) -> Vec<EntityId> + 'static;
 ///
 /// ```rust
 /// use archflow_sdk::{SelectionManager, SelectionMode};
+/// use archflow_core::Vec2;
 ///
 /// let mut selection_manager = SelectionManager::new();
 ///
@@ -75,11 +92,11 @@ pub type ShapeQueryCallback = dyn Fn(Rect) -> Vec<EntityId> + 'static;
 /// // Update selection box
 /// selection_manager.update_box_selection(200.0, 150.0);
 ///
-/// // Finalize box selection
-/// let delta = selection_manager.finalize_box_selection(|rect| {
-///     // Query shapes within rect from your spatial index
-///     Vec::new()
-/// });
+/// // Finalize box selection with coordinate transformation
+/// let delta = selection_manager.finalize_box_selection(|point| {
+///     // Convert screen coordinates to canvas coordinates
+///     point
+/// }, true);
 /// ```
 pub struct SelectionManager {
     /// Currently selected shape IDs

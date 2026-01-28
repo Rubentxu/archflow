@@ -544,6 +544,34 @@ impl Shape {
         }
     }
 
+    /// Creates a rectangle with explicit ID and parameters
+    pub fn rectangle(id: EntityId, position: Vec2, size: Vec2, fill_color: Color) -> Self {
+        let geometry = ShapeGeometry {
+            position,
+            size,
+            rotation: 0.0,
+        };
+        let style = ShapeStyle::solid(fill_color, Some(Color::rgb(0.0, 0.0, 0.0)), 2.0);
+        Self {
+            id,
+            shape_type: ShapeType::Rectangle,
+            x: position.x,
+            y: position.y,
+            width: size.x,
+            height: size.y,
+            rotation: 0.0,
+            fill_color: style.fill_color,
+            stroke_color: style.stroke.color,
+            stroke_width: style.stroke.width,
+            opacity: style.opacity,
+            geometry,
+            style,
+            layer_id: EntityId::new(),
+            selected: false,
+            properties: ShapeProperties::new(),
+        }
+    }
+
     /// Creates a new path shape
     #[inline]
     pub fn new_path(points: Vec<Vec2>) -> Self {
