@@ -76,7 +76,7 @@ Cargo.lock
 .claude/
 
 # Analysis data (keep in repo if needed)
-repo-analysis/
-docs/current
-docs/old
-docs/reports
+# Analysis data (keep in repo if needed)
+# repo-analysis/
+# docs/current/ (Keep documentation updated in repo)
+# docs/old/
