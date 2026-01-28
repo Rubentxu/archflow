@@ -17,10 +17,11 @@ pub const DEFAULT_SNAP_INCREMENT: f32 = 15.0;
 pub struct RotationAngle(pub f32);
 
 impl RotationAngle {
-    /// Create a new rotation angle
+    /// Create a new rotation angle, normalized to [0, 360)
     #[inline]
     pub fn new(degrees: f32) -> Self {
-        Self(degrees.rem_euclid(360.0))
+        let normalized = degrees.rem_euclid(360.0);
+        Self(normalized)
     }
 
     /// Get the angle in radians
