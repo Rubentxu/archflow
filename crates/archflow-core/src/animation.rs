@@ -5,10 +5,16 @@
 //! - KeyframeAnimation with multiple keyframes
 //! - Easing functions (linear, ease-in, ease-out, bezier)
 //! - AnimationManager for running animations
+//! - AnimatorBuilder for fluent animation creation API
+
+pub mod builder;
 
 use crate::EntityId;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
+
+// Re-export commonly used builder types for convenience
+pub use builder::{AnimationHandle, AnimatorBuilder, Ease};
 
 /// Timing function type for easing
 ///
