@@ -21,6 +21,7 @@
 pub mod a11y;
 pub mod background;
 pub mod canvas;
+pub mod collab;
 pub mod commands;
 pub mod events;
 pub mod layers;
@@ -50,6 +51,10 @@ pub use a11y::{
     A11yBounds, A11yConfig, A11yManager, A11yNode, A11yProperties, A11yReport, A11ySummary,
     A11yVerbosity, FocusableElement, FocusableType, KeyCode, KeyEvent, KeyboardShortcutHelp,
     LiveRegionType, Modifiers, NavigationDirection, NavigationMode, ShortcutInfo,
+};
+pub use collab::{
+    CollabConfig, CollabError, CollabManager, CollabMergeResult, CollabRecord, CursorPosition,
+    PresenceManager, UserInfo, UserPresence, UserSelection,
 };
 pub use commands::{
     Command, CommandError, CommandExecutor, CommandResult, CreateRectangleCommand,
