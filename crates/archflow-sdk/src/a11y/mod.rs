@@ -603,13 +603,18 @@ impl A11yManager {
             };
         }
 
-        // Handle mode switching keys
-        if event.key_code == KeyCode::Escape {
+        // Handle mode switching keys (Escape exits any accessibility mode)
+        if event.key_code == KeyCode::Escape && self.navigation_mode != NavigationMode::Normal {
+            let message = match self.navigation_mode {
+                NavigationMode::Focus => "Exited focus mode".to_string(),
+                NavigationMode::Read => "Exited read mode".to_string(),
+                NavigationMode::Normal => "Exited accessibility mode".to_string(),
+            };
             self.navigation_mode = NavigationMode::Normal;
             return KeyEventResult {
                 handled: true,
                 announcement: Some(A11yAnnouncement {
-                    text: "Exited accessibility mode".to_string(),
+                    text: message,
                     priority: LiveRegionType::Polite,
                     interrupt: false,
                 }),
@@ -723,7 +728,8 @@ impl A11yManager {
 
     /// Handles keyboard events in read mode
     fn handle_read_mode(&mut self, event: KeyEvent) -> KeyEventResult {
-        if event.key_code == KeyCode::Escape || event.key_code == KeyCode::Tab {
+        // Tab exits read mode
+        if event.key_code == KeyCode::Tab {
             self.navigation_mode = NavigationMode::Normal;
             return KeyEventResult {
                 handled: true,
@@ -2228,5 +2234,349 @@ mod tests {
             assert!(announcement_verbose.is_some());
             assert!(announcement_verbose.unwrap().text.contains("type"));
         }
+    }
+
+    // === Read Mode Tests ===
+
+    #[test]
+    fn test_read_mode_navigation() {
+        let mut manager = A11yManager::new();
+
+        // Register some focusable elements
+        manager.register_focusable(
+            EntityId::new(),
+            FocusableType::Shape,
+            "Rectangle",
+            A11yBounds::new(0.0, 0.0, 100.0, 50.0),
+        );
+
+        let id2 = EntityId::new();
+        manager.register_focusable(
+            id2,
+            FocusableType::Shape,
+            "Ellipse",
+            A11yBounds::new(100.0, 0.0, 80.0, 80.0),
+        );
+
+        manager.register_focusable(
+            EntityId::new(),
+            FocusableType::Shape,
+            "Line",
+            A11yBounds::new(0.0, 100.0, 150.0, 20.0),
+        );
+
+        // Set initial focus
+        manager.set_focus(id2);
+        assert_eq!(manager.focus_index, Some(1));
+
+        // Enter read mode
+        manager.set_navigation_mode(NavigationMode::Read);
+        assert_eq!(manager.navigation_mode(), NavigationMode::Read);
+
+        // Read next element (should announce without moving focus)
+        let event_next = KeyEvent {
+            key_code: KeyCode::ArrowDown,
+            modifiers: Modifiers::default(),
+            key_down: true,
+            repeated: false,
+        };
+
+        let result = manager.handle_key_event(event_next);
+        assert!(result.handled);
+        assert!(!result.focus_changed); // Focus should NOT change in read mode
+        assert!(result.announcement.is_some());
+        assert!(result.announcement.unwrap().text.contains("Line"));
+
+        // Verify focus is still at index 1
+        assert_eq!(manager.focus_index, Some(1));
+
+        // Read previous element
+        let event_prev = KeyEvent {
+            key_code: KeyCode::ArrowUp,
+            modifiers: Modifiers::default(),
+            key_down: true,
+            repeated: false,
+        };
+
+        let result_prev = manager.handle_key_event(event_prev);
+        assert!(result_prev.handled);
+        assert!(!result_prev.focus_changed);
+        assert!(result_prev.announcement.is_some());
+        assert!(result_prev.announcement.unwrap().text.contains("Rectangle"));
+
+        // Focus still at index 1
+        assert_eq!(manager.focus_index, Some(1));
+    }
+
+    #[test]
+    fn test_read_mode_exit_with_escape() {
+        let mut manager = A11yManager::new();
+
+        manager.register_focusable(
+            EntityId::new(),
+            FocusableType::Shape,
+            "Test Shape",
+            A11yBounds::new(0.0, 0.0, 50.0, 50.0),
+        );
+
+        // Enter read mode
+        manager.set_navigation_mode(NavigationMode::Read);
+        assert_eq!(manager.navigation_mode(), NavigationMode::Read);
+
+        // Exit with Escape
+        let event = KeyEvent {
+            key_code: KeyCode::Escape,
+            modifiers: Modifiers::default(),
+            key_down: true,
+            repeated: false,
+        };
+
+        let result = manager.handle_key_event(event);
+        assert!(result.handled);
+        assert_eq!(manager.navigation_mode(), NavigationMode::Normal);
+        assert!(result.announcement.is_some());
+        assert!(
+            result
+                .announcement
+                .unwrap()
+                .text
+                .contains("Exited read mode")
+        );
+    }
+
+    #[test]
+    fn test_read_mode_exit_with_tab() {
+        let mut manager = A11yManager::new();
+
+        manager.register_focusable(
+            EntityId::new(),
+            FocusableType::Shape,
+            "Test Shape",
+            A11yBounds::new(0.0, 0.0, 50.0, 50.0),
+        );
+
+        // Enter read mode
+        manager.set_navigation_mode(NavigationMode::Read);
+
+        // Exit with Tab
+        let event = KeyEvent {
+            key_code: KeyCode::Tab,
+            modifiers: Modifiers::default(),
+            key_down: true,
+            repeated: false,
+        };
+
+        let result = manager.handle_key_event(event);
+        assert!(result.handled);
+        assert_eq!(manager.navigation_mode(), NavigationMode::Normal);
+    }
+
+    #[test]
+    fn test_read_mode_home_end_keys() {
+        let mut manager = A11yManager::new();
+
+        manager.register_focusable(
+            EntityId::new(),
+            FocusableType::Shape,
+            "First Shape",
+            A11yBounds::new(0.0, 0.0, 50.0, 50.0),
+        );
+
+        let id2 = EntityId::new();
+        manager.register_focusable(
+            id2,
+            FocusableType::Shape,
+            "Second Shape",
+            A11yBounds::new(100.0, 0.0, 50.0, 50.0),
+        );
+
+        manager.register_focusable(
+            EntityId::new(),
+            FocusableType::Shape,
+            "Third Shape",
+            A11yBounds::new(200.0, 0.0, 50.0, 50.0),
+        );
+
+        // Set focus to middle element
+        manager.set_focus(id2);
+        manager.set_navigation_mode(NavigationMode::Read);
+
+        // Home key should read first element
+        let event_home = KeyEvent {
+            key_code: KeyCode::Home,
+            modifiers: Modifiers::default(),
+            key_down: true,
+            repeated: false,
+        };
+
+        let result_home = manager.handle_key_event(event_home);
+        assert!(result_home.handled);
+        assert!(result_home.announcement.is_some());
+        assert!(
+            result_home
+                .announcement
+                .unwrap()
+                .text
+                .contains("First Shape")
+        );
+
+        // End key should read last element
+        let event_end = KeyEvent {
+            key_code: KeyCode::End,
+            modifiers: Modifiers::default(),
+            key_down: true,
+            repeated: false,
+        };
+
+        let result_end = manager.handle_key_event(event_end);
+        assert!(result_end.handled);
+        assert!(result_end.announcement.is_some());
+        assert!(
+            result_end
+                .announcement
+                .unwrap()
+                .text
+                .contains("Third Shape")
+        );
+
+        // Focus should still be at index 1
+        assert_eq!(manager.focus_index, Some(1));
+    }
+
+    #[test]
+    fn test_read_mode_horizontal_navigation() {
+        let mut manager = A11yManager::new();
+
+        manager.register_focusable(
+            EntityId::new(),
+            FocusableType::Shape,
+            "Left Shape",
+            A11yBounds::new(0.0, 0.0, 50.0, 50.0),
+        );
+
+        let id2 = EntityId::new();
+        manager.register_focusable(
+            id2,
+            FocusableType::Shape,
+            "Center Shape",
+            A11yBounds::new(100.0, 0.0, 50.0, 50.0),
+        );
+
+        manager.register_focusable(
+            EntityId::new(),
+            FocusableType::Shape,
+            "Right Shape",
+            A11yBounds::new(200.0, 0.0, 50.0, 50.0),
+        );
+
+        manager.set_focus(id2);
+        manager.set_navigation_mode(NavigationMode::Read);
+
+        // Left arrow should read previous
+        let event_left = KeyEvent {
+            key_code: KeyCode::ArrowLeft,
+            modifiers: Modifiers::default(),
+            key_down: true,
+            repeated: false,
+        };
+
+        let result_left = manager.handle_key_event(event_left);
+        assert!(
+            result_left
+                .announcement
+                .unwrap()
+                .text
+                .contains("Left Shape")
+        );
+
+        // Right arrow should read next
+        let event_right = KeyEvent {
+            key_code: KeyCode::ArrowRight,
+            modifiers: Modifiers::default(),
+            key_down: true,
+            repeated: false,
+        };
+
+        let result_right = manager.handle_key_event(event_right);
+        assert!(
+            result_right
+                .announcement
+                .unwrap()
+                .text
+                .contains("Right Shape")
+        );
+    }
+
+    #[test]
+    fn test_read_mode_does_not_move_focus() {
+        let mut manager = A11yManager::new();
+
+        let id1 = EntityId::new();
+        let id2 = EntityId::new();
+        let id3 = EntityId::new();
+
+        manager.register_focusable(
+            id1,
+            FocusableType::Shape,
+            "Shape 1",
+            A11yBounds::new(0.0, 0.0, 50.0, 50.0),
+        );
+
+        manager.register_focusable(
+            id2,
+            FocusableType::Shape,
+            "Shape 2",
+            A11yBounds::new(100.0, 0.0, 50.0, 50.0),
+        );
+
+        manager.register_focusable(
+            id3,
+            FocusableType::Shape,
+            "Shape 3",
+            A11yBounds::new(200.0, 0.0, 50.0, 50.0),
+        );
+
+        // Set focus to first element
+        manager.set_focus(id1);
+        assert_eq!(manager.focus_index, Some(0));
+        assert_eq!(manager.focused_element().unwrap().id, id1);
+
+        // Enter read mode
+        manager.set_navigation_mode(NavigationMode::Read);
+
+        // Navigate through all elements in read mode
+        for _ in 0..5 {
+            let event = KeyEvent {
+                key_code: KeyCode::ArrowDown,
+                modifiers: Modifiers::default(),
+                key_down: true,
+                repeated: false,
+            };
+            manager.handle_key_event(event);
+        }
+
+        // Focus should NOT have changed
+        assert_eq!(manager.focus_index, Some(0));
+        assert_eq!(manager.focused_element().unwrap().id, id1);
+    }
+
+    #[test]
+    fn test_read_mode_empty_focusable_list() {
+        let mut manager = A11yManager::new();
+
+        // No focusable elements registered
+        manager.set_navigation_mode(NavigationMode::Read);
+
+        // Try to navigate
+        let event = KeyEvent {
+            key_code: KeyCode::ArrowDown,
+            modifiers: Modifiers::default(),
+            key_down: true,
+            repeated: false,
+        };
+
+        let result = manager.handle_key_event(event);
+        // Should handle but produce no announcement (no elements to read)
+        assert!(!result.handled || result.announcement.is_none());
     }
 }
