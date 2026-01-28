@@ -10,7 +10,7 @@
 use crate::canvas::Canvas;
 use crate::layers::C4Level;
 use crate::viewport::Viewport;
-use archflow_core::EntityId;
+use archflow_core::{EntityId, Vec2};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -84,6 +84,47 @@ pub struct A11yBounds {
     pub y: f32,
     pub width: f32,
     pub height: f32,
+}
+
+impl A11yBounds {
+    /// Creates new bounds
+    pub fn new(x: f32, y: f32, width: f32, height: f32) -> Self {
+        Self {
+            x,
+            y,
+            width,
+            height,
+        }
+    }
+
+    /// Returns the center point of the bounds
+    pub fn center(&self) -> Vec2 {
+        Vec2::new(self.x + self.width / 2.0, self.y + self.height / 2.0)
+    }
+
+    /// Returns the minimum corner
+    pub fn min(&self) -> Vec2 {
+        Vec2::new(self.x, self.y)
+    }
+
+    /// Returns the maximum corner
+    pub fn max(&self) -> Vec2 {
+        Vec2::new(self.x + self.width, self.y + self.height)
+    }
+
+    /// Checks if a point is contained within the bounds
+    pub fn contains(&self, point: Vec2) -> bool {
+        point.x >= self.x
+            && point.x <= self.x + self.width
+            && point.y >= self.y
+            && point.y <= self.y + self.height
+    }
+}
+
+impl Default for A11yBounds {
+    fn default() -> Self {
+        Self::new(0.0, 0.0, 0.0, 0.0)
+    }
 }
 
 /// Keyboard navigation mode
@@ -442,6 +483,12 @@ impl A11yManager {
         &self.config
     }
 
+    /// Gets mutable configuration (for testing)
+    #[cfg(test)]
+    pub fn config_mut(&mut self) -> &mut A11yConfig {
+        &mut self.config
+    }
+
     /// Sets accessibility properties for an element
     pub fn set_properties(&mut self, id: EntityId, props: A11yProperties) {
         self.properties.insert(id, props);
@@ -780,11 +827,103 @@ impl A11yManager {
         Some(new_index)
     }
 
-    /// Finds an element in a spatial direction
+    /// Finds an element in a spatial direction using actual spatial queries
+    ///
+    /// This method implements directional navigation by:
+    /// 1. Getting the current element's center point
+    /// 2. Defining a search cone in the target direction
+    /// 3. Finding all elements within that cone
+    /// 4. Selecting the closest element
     fn find_element_in_direction(&self, current: usize, _delta: isize) -> usize {
-        // Simple implementation - in a real scenario, this would use spatial queries
-        // to find elements above/below/left/right of the current element
-        (current + 1) % self.focusable.len()
+        if self.focusable.is_empty() {
+            return current;
+        }
+
+        let current_element = match self.focusable.get(current) {
+            Some(el) => el,
+            None => return 0,
+        };
+
+        let current_center = current_element.bounds.center();
+        let direction = self.determine_navigation_direction(current_center, _delta);
+
+        // Find all elements in the direction cone
+        let mut candidates: Vec<(usize, f32)> = self
+            .focusable
+            .iter()
+            .enumerate()
+            .filter(|(idx, el)| {
+                *idx != current
+                    && self.is_in_direction_cone(current_center, el.bounds.center(), direction)
+            })
+            .map(|(idx, el)| {
+                (
+                    idx,
+                    self.distance_squared(current_center, el.bounds.center()),
+                )
+            })
+            .collect();
+
+        // Sort by distance and return the closest
+        candidates.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
+
+        candidates.first().map(|(idx, _)| *idx).unwrap_or(current)
+    }
+
+    /// Determines the navigation direction based on delta
+    fn determine_navigation_direction(
+        &self,
+        _current_center: Vec2,
+        delta: isize,
+    ) -> NavigationDirection {
+        match delta {
+            -1 => NavigationDirection::Up,
+            1 => NavigationDirection::Down,
+            _ => NavigationDirection::Next,
+        }
+    }
+
+    /// Checks if a target point is within the navigation cone for a direction
+    fn is_in_direction_cone(
+        &self,
+        origin: Vec2,
+        target: Vec2,
+        direction: NavigationDirection,
+    ) -> bool {
+        let diff = target - origin;
+
+        // Minimum distance threshold (in pixels) to avoid jumping to nearby elements
+        const MIN_DISTANCE: f32 = 10.0;
+
+        if diff.length() < MIN_DISTANCE {
+            return false;
+        }
+
+        match direction {
+            NavigationDirection::Up => {
+                // Target must be above (negative Y) and within 45 degrees of vertical
+                diff.y < 0.0 && diff.x.abs() < diff.y.abs()
+            }
+            NavigationDirection::Down => {
+                // Target must be below (positive Y) and within 45 degrees of vertical
+                diff.y > 0.0 && diff.x.abs() < diff.y.abs()
+            }
+            NavigationDirection::Left => {
+                // Target must be to the left (negative X) and within 45 degrees of horizontal
+                diff.x < 0.0 && diff.y.abs() < diff.x.abs()
+            }
+            NavigationDirection::Right => {
+                // Target must be to the right (positive X) and within 45 degrees of horizontal
+                diff.x > 0.0 && diff.y.abs() < diff.x.abs()
+            }
+            _ => true,
+        }
+    }
+
+    /// Calculates squared distance between two points (avoids sqrt for performance)
+    fn distance_squared(&self, a: Vec2, b: Vec2) -> f32 {
+        let diff = b - a;
+        diff.x * diff.x + diff.y * diff.y
     }
 
     /// Reads an element in the specified direction without moving focus
@@ -927,6 +1066,77 @@ impl A11yManager {
         self.announcements.clear();
     }
 
+    /// Registers a focusable element
+    pub fn register_focusable(
+        &mut self,
+        id: EntityId,
+        element_type: FocusableType,
+        name: impl Into<String>,
+        bounds: A11yBounds,
+    ) {
+        let focusable = FocusableElement {
+            id,
+            element_type,
+            name: name.into(),
+            bounds,
+            focus_order: self.focusable.len(),
+        };
+        self.focusable.push(focusable);
+    }
+
+    /// Unregisters a focusable element
+    pub fn unregister_focusable(&mut self, id: EntityId) {
+        self.focusable.retain(|el| el.id != id);
+        // Update focus orders
+        for (index, el) in self.focusable.iter_mut().enumerate() {
+            el.focus_order = index;
+        }
+    }
+
+    /// Updates the bounds of a focusable element
+    pub fn update_focusable_bounds(&mut self, id: EntityId, bounds: A11yBounds) {
+        if let Some(el) = self.focusable.iter_mut().find(|e| e.id == id) {
+            el.bounds = bounds;
+        }
+    }
+
+    /// Clears all focusable elements
+    pub fn clear_focusable(&mut self) {
+        self.focusable.clear();
+        self.focus_index = None;
+    }
+
+    /// Gets the number of focusable elements
+    pub fn focusable_count(&self) -> usize {
+        self.focusable.len()
+    }
+
+    /// Rebuilds the focusable elements list from a canvas
+    /// This is a convenience method that extracts focusable elements from a canvas
+    pub fn rebuild_from_canvas(&mut self, canvas: &Canvas) {
+        self.clear_focusable();
+
+        // Add layers as focusable
+        for layer in canvas.layer_manager().all_layers() {
+            self.register_focusable(
+                layer.id,
+                FocusableType::Layer,
+                format!("Layer: {}", layer.name),
+                A11yBounds::new(0.0, 0.0, 100.0, 30.0), // Placeholder bounds
+            );
+        }
+
+        // Add shapes as focusable
+        for shape in canvas.all_shapes() {
+            self.register_focusable(
+                shape.id,
+                FocusableType::Shape,
+                format!("{:?} at ({}, {})", shape.shape_type, shape.x, shape.y),
+                A11yBounds::new(shape.x, shape.y, shape.width, shape.height),
+            );
+        }
+    }
+
     /// Sets the canvas description
     pub fn set_canvas_description(&mut self, description: impl Into<String>) {
         self.canvas_description = description.into();
@@ -1007,10 +1217,8 @@ impl A11yManager {
 
     /// Rebuilds the focusable elements list
     fn rebuild_focusable(&mut self) {
-        self.focusable.clear();
-
-        // Add shapes as focusable
-        // In a real implementation, this would iterate through canvas shapes
+        // This is now a no-op since we have public methods for registration
+        // Kept for backwards compatibility but should not be called directly
     }
 }
 
@@ -1353,5 +1561,672 @@ mod tests {
         };
 
         assert_eq!(count_nodes(&root), 4); // root + child1 + grandchild + child2
+    }
+
+    // === Spatial Navigation Tests ===
+
+    #[test]
+    fn test_a11y_bounds_center() {
+        let bounds = A11yBounds::new(0.0, 0.0, 100.0, 50.0);
+        let center = bounds.center();
+
+        assert_eq!(center.x, 50.0);
+        assert_eq!(center.y, 25.0);
+    }
+
+    #[test]
+    fn test_a11y_bounds_contains() {
+        let bounds = A11yBounds::new(10.0, 10.0, 100.0, 50.0);
+
+        // Point inside
+        assert!(bounds.contains(Vec2::new(50.0, 30.0)));
+
+        // Point outside - left
+        assert!(!bounds.contains(Vec2::new(5.0, 30.0)));
+
+        // Point outside - right
+        assert!(!bounds.contains(Vec2::new(120.0, 30.0)));
+
+        // Point outside - top
+        assert!(!bounds.contains(Vec2::new(50.0, 5.0)));
+
+        // Point outside - bottom
+        assert!(!bounds.contains(Vec2::new(50.0, 70.0)));
+    }
+
+    #[test]
+    fn test_a11y_bounds_min_max() {
+        let bounds = A11yBounds::new(10.0, 20.0, 100.0, 50.0);
+
+        assert_eq!(bounds.min(), Vec2::new(10.0, 20.0));
+        assert_eq!(bounds.max(), Vec2::new(110.0, 70.0));
+    }
+
+    #[test]
+    fn test_register_focusable() {
+        let mut manager = A11yManager::new();
+        let id = EntityId::new();
+
+        manager.register_focusable(
+            id,
+            FocusableType::Shape,
+            "Test Shape",
+            A11yBounds::new(0.0, 0.0, 100.0, 50.0),
+        );
+
+        assert_eq!(manager.focusable_count(), 1);
+        // Note: A11yManager doesn't have is_selected, that's for SelectionManager
+        // assert!(manager.is_selected(&id));
+    }
+
+    #[test]
+    fn test_unregister_focusable() {
+        let mut manager = A11yManager::new();
+        let id = EntityId::new();
+
+        manager.register_focusable(
+            id,
+            FocusableType::Shape,
+            "Test Shape",
+            A11yBounds::new(0.0, 0.0, 100.0, 50.0),
+        );
+
+        assert_eq!(manager.focusable_count(), 1);
+
+        manager.unregister_focusable(id);
+
+        assert_eq!(manager.focusable_count(), 0);
+    }
+
+    #[test]
+    fn test_update_focusable_bounds() {
+        let mut manager = A11yManager::new();
+        let id = EntityId::new();
+
+        manager.register_focusable(
+            id,
+            FocusableType::Shape,
+            "Test Shape",
+            A11yBounds::new(0.0, 0.0, 100.0, 50.0),
+        );
+
+        manager.set_focus(id);
+
+        manager.update_focusable_bounds(id, A11yBounds::new(50.0, 50.0, 200.0, 100.0));
+
+        let element = manager.focused_element();
+        assert!(element.is_some());
+        assert_eq!(element.unwrap().bounds.x, 50.0);
+    }
+
+    #[test]
+    fn test_clear_focusable() {
+        let mut manager = A11yManager::new();
+
+        manager.register_focusable(
+            EntityId::new(),
+            FocusableType::Shape,
+            "Shape 1",
+            A11yBounds::new(0.0, 0.0, 100.0, 50.0),
+        );
+
+        manager.register_focusable(
+            EntityId::new(),
+            FocusableType::Shape,
+            "Shape 2",
+            A11yBounds::new(100.0, 100.0, 100.0, 50.0),
+        );
+
+        assert_eq!(manager.focusable_count(), 2);
+
+        manager.clear_focusable();
+
+        assert_eq!(manager.focusable_count(), 0);
+        assert!(manager.focused_element().is_none());
+    }
+
+    #[test]
+    fn test_focus_navigation_next() {
+        let mut manager = A11yManager::new();
+
+        // Create 3 focusable elements
+        manager.register_focusable(
+            EntityId::new(),
+            FocusableType::Shape,
+            "Shape 1",
+            A11yBounds::new(0.0, 0.0, 50.0, 50.0),
+        );
+
+        let id2 = EntityId::new();
+        manager.register_focusable(
+            id2,
+            FocusableType::Shape,
+            "Shape 2",
+            A11yBounds::new(100.0, 0.0, 50.0, 50.0),
+        );
+
+        manager.register_focusable(
+            EntityId::new(),
+            FocusableType::Shape,
+            "Shape 3",
+            A11yBounds::new(200.0, 0.0, 50.0, 50.0),
+        );
+
+        // Focus first element
+        manager.set_focus(manager.focusable[0].id);
+        assert_eq!(manager.focus_index, Some(0));
+
+        // Navigate to next
+        manager.focus_next();
+        assert_eq!(manager.focus_index, Some(1));
+
+        // Navigate to next (should wrap to last, then to first)
+        manager.focus_next();
+        assert_eq!(manager.focus_index, Some(2));
+
+        manager.focus_next();
+        assert_eq!(manager.focus_index, Some(0)); // Wrapped around
+    }
+
+    #[test]
+    fn test_focus_navigation_previous() {
+        let mut manager = A11yManager::new();
+
+        manager.register_focusable(
+            EntityId::new(),
+            FocusableType::Shape,
+            "Shape 1",
+            A11yBounds::new(0.0, 0.0, 50.0, 50.0),
+        );
+
+        manager.register_focusable(
+            EntityId::new(),
+            FocusableType::Shape,
+            "Shape 2",
+            A11yBounds::new(100.0, 0.0, 50.0, 50.0),
+        );
+
+        manager.register_focusable(
+            EntityId::new(),
+            FocusableType::Shape,
+            "Shape 3",
+            A11yBounds::new(200.0, 0.0, 50.0, 50.0),
+        );
+
+        // Focus last element
+        manager.set_focus(manager.focusable[2].id);
+        assert_eq!(manager.focus_index, Some(2));
+
+        // Navigate to previous
+        manager.focus_previous();
+        assert_eq!(manager.focus_index, Some(1));
+
+        manager.focus_previous();
+        assert_eq!(manager.focus_index, Some(0));
+
+        manager.focus_previous();
+        assert_eq!(manager.focus_index, Some(2)); // Wrapped around
+    }
+
+    #[test]
+    fn test_spatial_navigation_up() {
+        let mut manager = A11yManager::new();
+
+        // Create elements in a vertical line
+        manager.register_focusable(
+            EntityId::new(),
+            FocusableType::Shape,
+            "Bottom Shape",
+            A11yBounds::new(0.0, 100.0, 50.0, 50.0),
+        );
+
+        let middle_id = EntityId::new();
+        manager.register_focusable(
+            middle_id,
+            FocusableType::Shape,
+            "Middle Shape",
+            A11yBounds::new(0.0, 50.0, 50.0, 50.0),
+        );
+
+        manager.register_focusable(
+            EntityId::new(),
+            FocusableType::Shape,
+            "Top Shape",
+            A11yBounds::new(0.0, 0.0, 50.0, 50.0),
+        );
+
+        // Focus middle element
+        manager.set_focus(middle_id);
+
+        // Navigate up (should go to top element)
+        let event = KeyEvent {
+            key_code: KeyCode::ArrowUp,
+            modifiers: Modifiers::default(),
+            key_down: true,
+            repeated: false,
+        };
+
+        manager.set_navigation_mode(NavigationMode::Focus);
+        let result = manager.handle_key_event(event);
+
+        assert!(result.handled);
+        assert!(result.focus_changed);
+        // Should navigate to element at index 2 (top)
+    }
+
+    #[test]
+    fn test_spatial_navigation_down() {
+        let mut manager = A11yManager::new();
+
+        manager.register_focusable(
+            EntityId::new(),
+            FocusableType::Shape,
+            "Top Shape",
+            A11yBounds::new(0.0, 0.0, 50.0, 50.0),
+        );
+
+        let middle_id = EntityId::new();
+        manager.register_focusable(
+            middle_id,
+            FocusableType::Shape,
+            "Middle Shape",
+            A11yBounds::new(0.0, 50.0, 50.0, 50.0),
+        );
+
+        manager.register_focusable(
+            EntityId::new(),
+            FocusableType::Shape,
+            "Bottom Shape",
+            A11yBounds::new(0.0, 100.0, 50.0, 50.0),
+        );
+
+        // Focus middle element
+        manager.set_focus(middle_id);
+
+        // Navigate down (should go to bottom element)
+        let event = KeyEvent {
+            key_code: KeyCode::ArrowDown,
+            modifiers: Modifiers::default(),
+            key_down: true,
+            repeated: false,
+        };
+
+        manager.set_navigation_mode(NavigationMode::Focus);
+        let result = manager.handle_key_event(event);
+
+        assert!(result.handled);
+        assert!(result.focus_changed);
+    }
+
+    #[test]
+    fn test_spatial_navigation_left_right() {
+        let mut manager = A11yManager::new();
+
+        // Create elements in a horizontal line
+        manager.register_focusable(
+            EntityId::new(),
+            FocusableType::Shape,
+            "Left Shape",
+            A11yBounds::new(0.0, 0.0, 50.0, 50.0),
+        );
+
+        let middle_id = EntityId::new();
+        manager.register_focusable(
+            middle_id,
+            FocusableType::Shape,
+            "Middle Shape",
+            A11yBounds::new(100.0, 0.0, 50.0, 50.0),
+        );
+
+        manager.register_focusable(
+            EntityId::new(),
+            FocusableType::Shape,
+            "Right Shape",
+            A11yBounds::new(200.0, 0.0, 50.0, 50.0),
+        );
+
+        // Focus middle element
+        manager.set_focus(middle_id);
+
+        // Navigate right
+        let event_right = KeyEvent {
+            key_code: KeyCode::ArrowRight,
+            modifiers: Modifiers::default(),
+            key_down: true,
+            repeated: false,
+        };
+
+        manager.set_navigation_mode(NavigationMode::Focus);
+        let result_right = manager.handle_key_event(event_right);
+
+        assert!(result_right.handled);
+        assert!(result_right.focus_changed);
+    }
+
+    #[test]
+    fn test_key_event_from_u32() {
+        // Test conversion from raw key codes
+        let key_up: KeyCode = 38.into();
+        assert_eq!(key_up, KeyCode::ArrowUp);
+
+        let key_down: KeyCode = 40.into();
+        assert_eq!(key_down, KeyCode::ArrowDown);
+
+        let key_a: KeyCode = 65.into();
+        assert_eq!(key_a, KeyCode::A);
+
+        let key_0: KeyCode = 48.into();
+        assert_eq!(key_0, KeyCode::Digit0);
+    }
+
+    #[test]
+    fn test_navigation_direction_enum() {
+        assert_eq!(NavigationDirection::Up, NavigationDirection::Up);
+        assert_eq!(NavigationDirection::Down, NavigationDirection::Down);
+        assert_eq!(NavigationDirection::Left, NavigationDirection::Left);
+        assert_eq!(NavigationDirection::Right, NavigationDirection::Right);
+        assert_eq!(NavigationDirection::Next, NavigationDirection::Next);
+        assert_eq!(NavigationDirection::Previous, NavigationDirection::Previous);
+        assert_eq!(NavigationDirection::First, NavigationDirection::First);
+        assert_eq!(NavigationDirection::Last, NavigationDirection::Last);
+    }
+
+    #[test]
+    fn test_focus_mode_activation() {
+        let mut manager = A11yManager::new();
+
+        // Activate focus mode with Enter
+        let event = KeyEvent {
+            key_code: KeyCode::Enter,
+            modifiers: Modifiers::default(),
+            key_down: true,
+            repeated: false,
+        };
+
+        let result = manager.handle_key_event(event);
+
+        assert!(result.handled);
+        assert_eq!(manager.navigation_mode(), NavigationMode::Focus);
+        assert!(result.announcement.is_some());
+        assert!(result.announcement.unwrap().text.contains("Focus mode"));
+    }
+
+    #[test]
+    fn test_escape_exits_focus_mode() {
+        let mut manager = A11yManager::new();
+
+        // Enter focus mode
+        manager.set_navigation_mode(NavigationMode::Focus);
+
+        // Exit with Escape
+        let event = KeyEvent {
+            key_code: KeyCode::Escape,
+            modifiers: Modifiers::default(),
+            key_down: true,
+            repeated: false,
+        };
+
+        let result = manager.handle_key_event(event);
+
+        assert!(result.handled);
+        assert_eq!(manager.navigation_mode(), NavigationMode::Normal);
+        assert!(result.announcement.unwrap().text.contains("Exited"));
+    }
+
+    #[test]
+    fn test_announcement_queue() {
+        let mut manager = A11yManager::new();
+
+        manager.announce("Test announcement", LiveRegionType::Polite);
+
+        let announcements = manager.get_announcements();
+        assert_eq!(announcements.len(), 1);
+        assert_eq!(announcements[0].text, "Test announcement");
+
+        // Should be cleared after getting
+        let announcements2 = manager.get_announcements();
+        assert_eq!(announcements2.len(), 0);
+    }
+
+    #[test]
+    fn test_set_canvas_description() {
+        let mut manager = A11yManager::new();
+
+        manager.set_canvas_description("Test Canvas Description");
+
+        // Build tree and verify description is included
+        let canvas = Canvas::new(800.0, 600.0);
+        let tree = manager.build_tree(&canvas);
+
+        assert_eq!(tree.description, "Test Canvas Description");
+    }
+
+    #[test]
+    fn test_aria_attribute_generation() {
+        let mut manager = A11yManager::new();
+        let id = EntityId::new();
+
+        let props = A11yProperties {
+            role: "button".to_string(),
+            label: "Click me".to_string(),
+            description: "A clickable button".to_string(),
+            live_region: Some(LiveRegionType::Polite),
+            controls: vec!["panel1".to_string()],
+            described_by: vec!["desc1".to_string()],
+            labelled_by: vec!["label1".to_string()],
+            hidden: false,
+            disabled: false,
+            expanded: None,
+            selected: None,
+            tab_index: Some(0),
+        };
+
+        manager.set_properties(id, props);
+
+        let aria = manager.generate_aria_attrs(id);
+
+        assert!(aria.contains(r#"role="button""#));
+        assert!(aria.contains(r#"aria-label="Click me""#));
+        assert!(aria.contains(r#"aria-description="A clickable button""#));
+        assert!(aria.contains(r#"aria-live="polite""#));
+        assert!(aria.contains(r#"aria-controls="panel1""#));
+        assert!(aria.contains(r#"tabindex="0""#));
+    }
+
+    #[test]
+    fn test_distance_squared_calculation() {
+        let manager = A11yManager::new();
+
+        let a = Vec2::new(0.0, 0.0);
+        let b = Vec2::new(3.0, 4.0); // Distance should be 5, so squared is 25
+
+        let distance_sq = manager.distance_squared(a, b);
+
+        assert!((distance_sq - 25.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_is_in_direction_cone_up() {
+        let manager = A11yManager::new();
+
+        let origin = Vec2::new(100.0, 100.0);
+        let target_up = Vec2::new(100.0, 50.0); // Directly above
+        let target_down = Vec2::new(100.0, 150.0); // Directly below
+        let target_diagonal = Vec2::new(50.0, 50.0); // Diagonal (45°)
+
+        assert!(manager.is_in_direction_cone(origin, target_up, NavigationDirection::Up));
+        assert!(!manager.is_in_direction_cone(origin, target_down, NavigationDirection::Up));
+        // Diagonal should not be in "up" cone (within 45°)
+        assert!(!manager.is_in_direction_cone(origin, target_diagonal, NavigationDirection::Up));
+    }
+
+    #[test]
+    fn test_is_in_direction_cone_down() {
+        let manager = A11yManager::new();
+
+        let origin = Vec2::new(100.0, 100.0);
+        let target_down = Vec2::new(100.0, 150.0);
+        let target_up = Vec2::new(100.0, 50.0);
+
+        assert!(manager.is_in_direction_cone(origin, target_down, NavigationDirection::Down));
+        assert!(!manager.is_in_direction_cone(origin, target_up, NavigationDirection::Down));
+    }
+
+    #[test]
+    fn test_is_in_direction_cone_left() {
+        let manager = A11yManager::new();
+
+        let origin = Vec2::new(100.0, 100.0);
+        let target_left = Vec2::new(50.0, 100.0);
+        let target_right = Vec2::new(150.0, 100.0);
+
+        assert!(manager.is_in_direction_cone(origin, target_left, NavigationDirection::Left));
+        assert!(!manager.is_in_direction_cone(origin, target_right, NavigationDirection::Left));
+    }
+
+    #[test]
+    fn test_is_in_direction_cone_right() {
+        let manager = A11yManager::new();
+
+        let origin = Vec2::new(100.0, 100.0);
+        let target_right = Vec2::new(150.0, 100.0);
+        let target_left = Vec2::new(50.0, 100.0);
+
+        assert!(manager.is_in_direction_cone(origin, target_right, NavigationDirection::Right));
+        assert!(!manager.is_in_direction_cone(origin, target_left, NavigationDirection::Right));
+    }
+
+    #[test]
+    fn test_is_in_direction_cone_min_distance() {
+        let manager = A11yManager::new();
+
+        let origin = Vec2::new(100.0, 100.0);
+        let target_too_close = Vec2::new(100.0, 105.0); // Only 5 pixels away
+
+        // Should not be in direction cone due to minimum distance threshold
+        assert!(!manager.is_in_direction_cone(origin, target_too_close, NavigationDirection::Down));
+    }
+
+    #[test]
+    fn test_set_focus_by_id() {
+        let mut manager = A11yManager::new();
+
+        let id1 = EntityId::new();
+        let id2 = EntityId::new();
+
+        manager.register_focusable(
+            id1,
+            FocusableType::Shape,
+            "Shape 1",
+            A11yBounds::new(0.0, 0.0, 50.0, 50.0),
+        );
+
+        manager.register_focusable(
+            id2,
+            FocusableType::Shape,
+            "Shape 2",
+            A11yBounds::new(100.0, 0.0, 50.0, 50.0),
+        );
+
+        // Set focus to second element
+        assert!(manager.set_focus(id2));
+        assert_eq!(manager.focus_index, Some(1));
+
+        // Try to set focus to non-existent element
+        assert!(!manager.set_focus(EntityId::new()));
+    }
+
+    #[test]
+    fn test_clear_focus() {
+        let mut manager = A11yManager::new();
+
+        let id = EntityId::new();
+        manager.register_focusable(
+            id,
+            FocusableType::Shape,
+            "Shape 1",
+            A11yBounds::new(0.0, 0.0, 50.0, 50.0),
+        );
+
+        manager.set_focus(id);
+        assert!(manager.focused_element().is_some());
+
+        manager.clear_focus();
+        assert!(manager.focused_element().is_none());
+        assert!(manager.focus_index.is_none());
+    }
+
+    #[test]
+    fn test_focused_element() {
+        let mut manager = A11yManager::new();
+
+        let id = EntityId::new();
+        manager.register_focusable(
+            id,
+            FocusableType::Shape,
+            "Test Shape",
+            A11yBounds::new(0.0, 0.0, 50.0, 50.0),
+        );
+
+        manager.set_focus(id);
+
+        let focused = manager.focused_element();
+        assert!(focused.is_some());
+        assert_eq!(focused.unwrap().id, id);
+    }
+
+    #[test]
+    fn test_focused_element_none_when_no_focus() {
+        let manager = A11yManager::new();
+
+        // No focusable elements
+        assert!(manager.focused_element().is_none());
+
+        // Focusable elements but no focus set
+        let mut manager = A11yManager::new();
+        manager.register_focusable(
+            EntityId::new(),
+            FocusableType::Shape,
+            "Shape 1",
+            A11yBounds::new(0.0, 0.0, 50.0, 50.0),
+        );
+
+        assert!(manager.focused_element().is_none());
+    }
+
+    #[test]
+    fn test_a11y_config_verbosity() {
+        let mut manager = A11yManager::new();
+
+        // Test minimal verbosity (no announcements)
+        manager.config_mut().verbosity = A11yVerbosity::Minimal;
+        manager.set_navigation_mode(NavigationMode::Focus);
+
+        let id = EntityId::new();
+        manager.register_focusable(
+            id,
+            FocusableType::Shape,
+            "Test Shape",
+            A11yBounds::new(0.0, 0.0, 50.0, 50.0),
+        );
+
+        manager.set_focus(id);
+
+        // With minimal verbosity, generate_focus_announcement should return None
+        {
+            let focused = manager.focused_element().unwrap();
+            let announcement = manager.generate_focus_announcement(focused);
+            assert!(announcement.is_none());
+        }
+
+        // Test verbose verbosity (detailed announcements)
+        manager.config_mut().verbosity = A11yVerbosity::Verbose;
+
+        {
+            let focused = manager.focused_element().unwrap();
+            let announcement_verbose = manager.generate_focus_announcement(focused);
+            assert!(announcement_verbose.is_some());
+            assert!(announcement_verbose.unwrap().text.contains("type"));
+        }
     }
 }
