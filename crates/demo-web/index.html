@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>ArchFlow Demo</title>
+        <style>
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            body {
+                font-family:
+                    system-ui,
+                    -apple-system,
+                    sans-serif;
+                overflow: hidden;
+                background: #1e1e1e;
+            }
+
+            #app {
+                display: grid;
+                grid-template-rows: 48px 1fr 24px;
+                height: 100vh;
+            }
+
+            #toolbar {
+                background: #1e1e1e;
+                color: #fff;
+                display: flex;
+                align-items: center;
+                padding: 0 16px;
+                gap: 8px;
+                border-bottom: 1px solid #333;
+            }
+
+            #toolbar button {
+                background: #333;
+                border: none;
+                color: #fff;
+                padding: 6px 12px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 13px;
+                transition: background 0.15s;
+            }
+
+            #toolbar button:hover {
+                background: #444;
+            }
+
+            #toolbar button.active {
+                background: #0066cc;
+            }
+
+            #toolbar .separator {
+                width: 1px;
+                height: 24px;
+                background: #333;
+                margin: 0 8px;
+            }
+
+            #toolbar .spacer {
+                flex: 1;
+            }
+
+            #canvas-container {
+                position: relative;
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+            }
+
+            #canvas {
+                display: block;
+                width: 100%;
+                height: 100%;
+            }
+
+            #cursors {
+                position: absolute;
+                top: 0;
+                left: 0;
+                pointer-events: none;
+            }
+
+            .cursor {
+                position: absolute;
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 10px;
+                font-weight: bold;
+                color: white;
+                transform: translate(-50%, -50%);
+                transition:
+                    left 0.1s ease-out,
+                    top 0.1s ease-out;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            }
+
+            .cursor::after {
+                content: attr(data-name);
+                position: absolute;
+                top: 100%;
+                left: 50%;
+                transform: translateX(-50%);
+                margin-top: 4px;
+                padding: 2px 6px;
+                background: rgba(0, 0, 0, 0.7);
+                border-radius: 3px;
+                font-size: 11px;
+                white-space: nowrap;
+            }
+
+            #statusbar {
+                background: #1e1e1e;
+                color: #888;
+                display: flex;
+                align-items: center;
+                padding: 0 16px;
+                font-size: 12px;
+                gap: 16px;
+                border-top: 1px solid #333;
+            }
+
+            #statusbar span {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="app">
+            <div id="toolbar">
+                <span style="font-weight: 600; margin-right: 4px">🎨</span>
+                <span style="font-weight: 600; margin-right: 16px"
+                    >ArchFlow</span
+                >
+                <div class="separator"></div>
+                <button data-tool="select" class="active">✋ Select</button>
+                <button data-tool="rect">⬜ Rectangle</button>
+                <button data-tool="ellipse">⭕ Ellipse</button>
+                <button data-tool="line">📏 Line</button>
+                <div class="spacer"></div>
+                <button id="btn-clear">🗑️ Clear</button>
+            </div>
+            <div id="canvas-container">
+                <canvas id="canvas" style="width: 100%; height: 100%; display: block;"></canvas>
+                <div id="cursors"></div>
+            </div>
+            <div id="statusbar">
+                <span id="status-shape-count">Shapes: 0</span>
+                <span id="status-pos">Pos: 0, 0</span>
+                <span id="status-zoom">Zoom: 100%</span>
+            </div>
+        </div>
+
+        <script type="module">
+            import init, { ArchFlowDemo } from "./pkg/archflow_demo_web.js";
+
+            async function main() {
+                await init();
+
+                const canvas = document.getElementById("canvas");
+                const container = document.getElementById("canvas-container");
+                const cursorsContainer = document.getElementById("cursors");
+
+                // Set canvas to viewport size (infinite canvas illusion)
+                function resizeCanvas() {
+                    const width = container.clientWidth;
+                    const height = container.clientHeight;
+                    canvas.width = width;
+                    canvas.height = height;
+                    canvas.style.width = width + "px";
+                    canvas.style.height = height + "px";
+                    cursorsContainer.style.width = width + "px";
+                    cursorsContainer.style.height = height + "px";
+                    demo.resize(width, height);
+                }
+
+                // Create demo instance FIRST
+                const demo = new ArchFlowDemo(canvas);
+
+                // Initial resize
+                resizeCanvas();
+                window.addEventListener("resize", resizeCanvas);
+
+                // Tool selection
+                document.querySelectorAll("[data-tool]").forEach((btn) => {
+                    btn.addEventListener("click", () => {
+                        document
+                            .querySelectorAll("[data-tool]")
+                            .forEach((b) => b.classList.remove("active"));
+                        btn.classList.add("active");
+                        demo.set_tool(btn.dataset.tool);
+                    });
+                });
+
+                // Clear button
+                document
+                    .getElementById("btn-clear")
+                    .addEventListener("click", () => {
+                        demo.clear();
+                    });
+
+                // Mouse events
+                canvas.addEventListener("mousedown", (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    demo.on_mousedown(
+                        e.clientX - rect.left,
+                        e.clientY - rect.top,
+                        e.button,
+                    );
+                });
+
+                canvas.addEventListener("mousemove", (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    demo.on_mousemove(x, y);
+
+                    // Update status bar
+                    document.getElementById("status-pos").textContent =
+                        `Pos: ${Math.round(x)}, ${Math.round(y)}`;
+                });
+
+                canvas.addEventListener("mouseup", (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    demo.on_mouseup(
+                        e.clientX - rect.left,
+                        e.clientY - rect.top,
+                    );
+                });
+
+                // Wheel for zoom
+                canvas.addEventListener(
+                    "wheel",
+                    (e) => {
+                        e.preventDefault();
+                        const rect = canvas.getBoundingClientRect();
+                        demo.on_wheel(
+                            e.clientX - rect.left,
+                            e.clientY - rect.top,
+                            e.deltaY > 0,
+                        );
+                    },
+                    { passive: false },
+                );
+
+                // Right-click to delete selected
+                canvas.addEventListener("contextmenu", (e) => {
+                    e.preventDefault();
+                    demo.delete_selected();
+                });
+
+                // Keyboard events for Phase 1 features
+                document.addEventListener("keydown", (e) => {
+                    const key = e.key;
+                    const shift = e.shiftKey;
+                    const ctrl = e.metaKey || e.ctrlKey;
+
+                    // Prevent default for our shortcuts
+                    if (ctrl || key === "ArrowUp" || key === "ArrowDown" ||
+                        key === "ArrowLeft" || key === "ArrowRight" ||
+                        key === " " || key === "Delete" || key === "Backspace" ||
+                        key === "Escape") {
+                        // Don't prevent default for text input
+                    }
+
+                    demo.on_keydown(key, shift, ctrl);
+
+                    // Update UI state after key actions
+                    updateStatus();
+                });
+
+                document.addEventListener("keyup", (e) => {
+                    demo.on_keyup(e.key);
+                });
+
+                // Update status bar with current state
+                function updateStatus() {
+                    const zoom = Math.round(demo.get_zoom() * 100);
+                    document.getElementById("status-zoom").textContent = `Zoom: ${zoom}%`;
+                }
+
+                // Animation loop
+                let lastShapeCount = 0;
+                let lastZoom = 100;
+
+                function render() {
+                    demo.render();
+
+                    const shapeCount = demo.shape_count();
+                    if (shapeCount !== lastShapeCount) {
+                        document.getElementById("status-shape-count").textContent =
+                            `Shapes: ${shapeCount}`;
+                        lastShapeCount = shapeCount;
+                    }
+
+                    const zoom = Math.round(demo.get_zoom() * 100);
+                    if (zoom !== lastZoom) {
+                        document.getElementById("status-zoom").textContent =
+                            `Zoom: ${zoom}%`;
+                        lastZoom = zoom;
+                    }
+
+                    requestAnimationFrame(render);
+                }
+                render();
+
+                // Simulate remote cursor for collaboration demo
+                const remoteUsers = ["Alice", "Bob", "Charlie"];
+                let userIndex = 0;
+
+                setInterval(() => {
+                    const x = Math.random() * canvas.width;
+                    const y = Math.random() * canvas.height;
+                    const name = remoteUsers[userIndex % remoteUsers.length];
+                    demo.simulate_remote_cursor(x, y, name);
+
+                    // Update cursor display
+                    updateCursors(demo, name);
+                    userIndex++;
+                }, 2500);
+
+                function updateCursors(demo, activeName) {
+                    // For demo, just show one simulated cursor
+                    const existing = cursorsContainer.querySelector(
+                        `[data-name="${activeName}"]`,
+                    );
+                    if (!existing) {
+                        const cursor = document.createElement("div");
+                        cursor.className = "cursor";
+                        cursor.dataset.name = activeName;
+                        cursor.style.background = `hsl(${(userIndex * 120) % 360}, 70%, 50%)`;
+                        cursor.textContent = activeName[0];
+                        cursorsContainer.appendChild(cursor);
+                    }
+                }
+
+                console.log("ArchFlow Demo initialized");
+            }
+
+            main().catch(console.error);
+        </script>
+    </body>
+</html>
