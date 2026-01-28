@@ -10,6 +10,17 @@ use archflow_core::{Color, EntityId, Rect, Transform, Vec2};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// Represents an operation that can be performed on a canvas
+#[derive(Clone, Debug, PartialEq)]
+pub enum CanvasOperation {
+    /// Create a new shape
+    CreateShape(Shape),
+    /// Update an existing shape
+    UpdateShape(EntityId, Shape, Shape),
+    /// Delete a shape
+    DeleteShape(EntityId, Shape),
+}
+
 /// Error type for canvas operations
 #[derive(Debug, thiserror::Error)]
 pub enum CanvasError {
@@ -23,38 +34,433 @@ pub enum CanvasError {
     Other(&'static str),
 }
 
+/// Represents the geometric properties of a shape.
+///
+/// This struct encapsulates position, dimensions, and rotation, reducing
+/// Connascence of Type by grouping related fields into a cohesive unit.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ShapeGeometry {
+    /// Position of the shape (top-left corner) in canvas coordinates
+    pub position: Vec2,
+    /// Width and height of the shape
+    pub size: Vec2,
+    /// Rotation in degrees (0.0 = no rotation)
+    pub rotation: f32,
+}
+
+impl ShapeGeometry {
+    /// Creates a new geometry with the given position, size, and rotation.
+    ///
+    /// # Arguments
+    ///
+    /// * `position` - Top-left corner position
+    /// * `size` - Width and height (both must be non-negative)
+    /// * `rotation` - Rotation in degrees
+    #[inline]
+    pub fn new(position: Vec2, size: Vec2, rotation: f32) -> Self {
+        Self {
+            position,
+            size,
+            rotation,
+        }
+    }
+
+    /// Creates a geometry from individual position and dimension values.
+    ///
+    /// # Arguments
+    ///
+    /// * `x` - X coordinate of top-left corner
+    /// * `y` - Y coordinate of top-left corner
+    /// * `width` - Shape width (must be non-negative)
+    /// * `height` - Shape height (must be non-negative)
+    /// * `rotation` - Rotation in degrees
+    #[inline]
+    pub fn from_components(x: f32, y: f32, width: f32, height: f32, rotation: f32) -> Self {
+        Self {
+            position: Vec2::new(x, y),
+            size: Vec2::new(width.abs(), height.abs()),
+            rotation,
+        }
+    }
+
+    /// Returns the bounding rectangle of the geometry.
+    #[inline]
+    pub fn bounds(&self) -> Rect {
+        Rect::from_min_max(self.position, self.position + self.size)
+    }
+
+    /// Returns the center point of the geometry.
+    #[inline]
+    pub fn center(&self) -> Vec2 {
+        self.position + self.size / 2.0
+    }
+
+    /// Applies a translation to the geometry.
+    ///
+    /// # Arguments
+    ///
+    /// * `delta` - Translation vector
+    ///
+    /// # Returns
+    ///
+    /// A new geometry with the position translated
+    #[inline]
+    pub fn translated(&self, delta: Vec2) -> Self {
+        Self {
+            position: self.position + delta,
+            size: self.size,
+            rotation: self.rotation,
+        }
+    }
+
+    /// Checks if a point is within the geometry bounds.
+    ///
+    /// # Arguments
+    ///
+    /// * `point` - Point to check in canvas coordinates
+    ///
+    /// # Returns
+    ///
+    /// True if the point is inside the bounds
+    #[inline]
+    pub fn contains(&self, point: Vec2) -> bool {
+        let bounds = self.bounds();
+        point.x >= bounds.min.x
+            && point.x <= bounds.max.x
+            && point.y >= bounds.min.y
+            && point.y <= bounds.max.y
+    }
+}
+
+/// Represents stroke properties for shapes.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Stroke {
+    /// Stroke color (None means no stroke)
+    pub color: Option<Color>,
+    /// Stroke width in pixels
+    pub width: f32,
+}
+
+impl Default for Stroke {
+    fn default() -> Self {
+        Self {
+            color: None,
+            width: 0.0,
+        }
+    }
+}
+
+impl Stroke {
+    /// Creates a new stroke with the given color and width.
+    ///
+    /// # Arguments
+    ///
+    /// * `color` - Stroke color (use `None` for no stroke)
+    /// * `width` - Stroke width in pixels (must be non-negative)
+    #[inline]
+    pub fn new(color: Option<Color>, width: f32) -> Self {
+        Self {
+            color,
+            width: width.max(0.0),
+        }
+    }
+
+    /// Returns true if this stroke is visible (has color and positive width).
+    #[inline]
+    pub fn is_visible(&self) -> bool {
+        self.color.is_some() && self.width > 0.0
+    }
+}
+
+/// Represents the visual style properties of a shape.
+///
+/// This struct groups all visual appearance properties together,
+/// improving type safety and reducing Connascence of Type.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ShapeStyle {
+    /// Fill color (transparent means no fill)
+    pub fill_color: Color,
+    /// Stroke properties
+    pub stroke: Stroke,
+    /// Opacity (0.0 = fully transparent, 1.0 = fully opaque)
+    pub opacity: f32,
+}
+
+impl Default for ShapeStyle {
+    fn default() -> Self {
+        Self {
+            fill_color: Color::TRANSPARENT,
+            stroke: Stroke::default(),
+            opacity: 1.0,
+        }
+    }
+}
+
+impl ShapeStyle {
+    /// Creates a new style with the given fill color.
+    ///
+    /// # Arguments
+    ///
+    /// * `fill_color` - Fill color (use `Color::TRANSPARENT` for no fill)
+    #[inline]
+    pub fn with_fill(fill_color: Color) -> Self {
+        Self {
+            fill_color,
+            stroke: Stroke::default(),
+            opacity: 1.0,
+        }
+    }
+
+    /// Creates a solid style with the given fill and stroke.
+    ///
+    /// # Arguments
+    ///
+    /// * `fill_color` - Fill color
+    /// * `stroke_color` - Stroke color (use `None` for no stroke)
+    /// * `stroke_width` - Stroke width in pixels
+    #[inline]
+    pub fn solid(fill_color: Color, stroke_color: Option<Color>, stroke_width: f32) -> Self {
+        Self {
+            fill_color,
+            stroke: Stroke::new(stroke_color, stroke_width),
+            opacity: 1.0,
+        }
+    }
+
+    /// Sets the stroke properties.
+    ///
+    /// # Arguments
+    ///
+    /// * `stroke` - Stroke to use
+    ///
+    /// # Returns
+    ///
+    /// A new style with the updated stroke
+    #[inline]
+    pub fn with_stroke(mut self, stroke: Stroke) -> Self {
+        self.stroke = stroke;
+        self
+    }
+
+    /// Sets the opacity.
+    ///
+    /// # Arguments
+    ///
+    /// * `opacity` - Opacity value (0.0 to 1.0)
+    ///
+    /// # Returns
+    ///
+    /// A new style with the updated opacity
+    #[inline]
+    pub fn with_opacity(mut self, opacity: f32) -> Self {
+        self.opacity = opacity.clamp(0.0, 1.0);
+        self
+    }
+}
+
+/// Custom properties for shapes with type-safe access.
+///
+/// This replaces the generic `serde_json::Value` approach with specific
+/// typed accessors for common property types.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct ShapeProperties {
+    inner: HashMap<String, PropertyValue>,
+}
+
+impl ShapeProperties {
+    /// Creates a new empty properties collection.
+    #[inline]
+    pub fn new() -> Self {
+        Self {
+            inner: HashMap::new(),
+        }
+    }
+
+    /// Gets a string property.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - Property key
+    ///
+    /// # Returns
+    ///
+    /// The string value if it exists
+    #[inline]
+    pub fn get_string(&self, key: &str) -> Option<&str> {
+        match self.inner.get(key) {
+            Some(PropertyValue::String(s)) => Some(s),
+            _ => None,
+        }
+    }
+
+    /// Sets a string property.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - Property key
+    /// * `value` - String value
+    #[inline]
+    pub fn set_string(&mut self, key: impl Into<String>, value: impl Into<String>) {
+        self.inner
+            .insert(key.into(), PropertyValue::String(value.into()));
+    }
+
+    /// Gets a number property.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - Property key
+    ///
+    /// # Returns
+    ///
+    /// The number value if it exists
+    #[inline]
+    pub fn get_number(&self, key: &str) -> Option<f64> {
+        match self.inner.get(key) {
+            Some(PropertyValue::Number(n)) => Some(*n),
+            _ => None,
+        }
+    }
+
+    /// Sets a number property.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - Property key
+    /// * `value` - Number value
+    #[inline]
+    pub fn set_number(&mut self, key: impl Into<String>, value: f64) {
+        self.inner.insert(key.into(), PropertyValue::Number(value));
+    }
+
+    /// Gets a boolean property.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - Property key
+    ///
+    /// # Returns
+    ///
+    /// The boolean value if it exists
+    #[inline]
+    pub fn get_boolean(&self, key: &str) -> Option<bool> {
+        match self.inner.get(key) {
+            Some(PropertyValue::Boolean(b)) => Some(*b),
+            _ => None,
+        }
+    }
+
+    /// Sets a boolean property.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - Property key
+    /// * `value` - Boolean value
+    #[inline]
+    pub fn set_boolean(&mut self, key: impl Into<String>, value: bool) {
+        self.inner.insert(key.into(), PropertyValue::Boolean(value));
+    }
+
+    /// Gets the label property (common use case).
+    ///
+    /// # Returns
+    ///
+    /// The label if it exists
+    #[inline]
+    pub fn label(&self) -> Option<&str> {
+        self.get_string("label")
+    }
+
+    /// Sets the label property.
+    ///
+    /// # Arguments
+    ///
+    /// * `label` - Label text
+    #[inline]
+    pub fn set_label(&mut self, label: impl Into<String>) {
+        self.set_string("label", label);
+    }
+
+    /// Gets the locked property (common use case).
+    ///
+    /// # Returns
+    ///
+    /// The locked state if set
+    #[inline]
+    pub fn locked(&self) -> Option<bool> {
+        self.get_boolean("locked")
+    }
+
+    /// Sets the locked property.
+    ///
+    /// # Arguments
+    ///
+    /// * `locked` - Locked state
+    #[inline]
+    pub fn set_locked(&mut self, locked: bool) {
+        self.set_boolean("locked", locked);
+    }
+}
+
+/// Internal representation of property values.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+enum PropertyValue {
+    String(String),
+    Number(f64),
+    Boolean(bool),
+}
+
 /// A shape in the canvas
+///
+/// This struct maintains both the new structured fields (geometry, style)
+/// for type safety and the flat fields (x, y, width, etc.) for backwards
+/// compatibility and serialization.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Shape {
     /// Unique shape ID
     pub id: EntityId,
     /// Shape type
     pub shape_type: ShapeType,
-    /// Position and dimensions
-    pub x: f32,
-    pub y: f32,
-    pub width: f32,
-    pub height: f32,
-    /// Rotation in degrees
-    pub rotation: f32,
-    /// Visual properties
-    pub fill_color: Color,
-    pub stroke_color: Option<Color>,
-    pub stroke_width: f32,
-    pub opacity: f32,
+    /// Geometric properties (position, size, rotation) - NEW STRUCTURED API
+    pub geometry: ShapeGeometry,
+    /// Visual style properties - NEW STRUCTURED API
+    pub style: ShapeStyle,
     /// Layer ID
-    pub layer_id: Option<EntityId>,
+    pub layer_id: EntityId,
     /// Whether the shape is selected
     pub selected: bool,
-    /// Custom properties
-    pub properties: HashMap<String, serde_json::Value>,
+    /// Custom properties - NEW TYPED API
+    pub properties: ShapeProperties,
+
+    // Backwards compatibility fields (computed from geometry/style)
+    /// X position (computed from geometry.position.x)
+    pub x: f32,
+    /// Y position (computed from geometry.position.y)
+    pub y: f32,
+    /// Width (computed from geometry.size.x)
+    pub width: f32,
+    /// Height (computed from geometry.size.y)
+    pub height: f32,
+    /// Rotation (computed from geometry.rotation)
+    pub rotation: f32,
+    /// Fill color (computed from style.fill_color)
+    pub fill_color: Color,
+    /// Stroke color (computed from style.stroke.color)
+    pub stroke_color: Option<Color>,
+    /// Stroke width (computed from style.stroke.width)
+    pub stroke_width: f32,
+    /// Opacity (computed from style.opacity)
+    pub opacity: f32,
 }
 
 impl Shape {
     /// Creates a new rectangle shape
     #[inline]
     pub fn new_rectangle(x: f32, y: f32, width: f32, height: f32) -> Self {
+        let geometry = ShapeGeometry::from_components(x, y, width, height, 0.0);
+        let style = ShapeStyle::with_fill(Color::rgb(0.2, 0.4, 0.8));
         Self {
+            // Backwards compatibility fields first
             id: EntityId::new(),
             shape_type: ShapeType::Rectangle,
             x,
@@ -62,34 +468,49 @@ impl Shape {
             width,
             height,
             rotation: 0.0,
-            fill_color: Color::rgb(0.2, 0.4, 0.8),
-            stroke_color: None,
-            stroke_width: 0.0,
-            opacity: 1.0,
-            layer_id: None,
+            fill_color: style.fill_color,
+            stroke_color: style.stroke.color,
+            stroke_width: style.stroke.width,
+            opacity: style.opacity,
+            // New structured fields at the end
+            geometry,
+            style,
+            layer_id: EntityId::new(),
             selected: false,
-            properties: HashMap::new(),
+            properties: ShapeProperties::new(),
         }
     }
 
     /// Creates a new ellipse shape
     #[inline]
     pub fn new_ellipse(x: f32, y: f32, radius_x: f32, radius_y: f32) -> Self {
+        let geometry = ShapeGeometry::from_components(
+            x - radius_x,
+            y - radius_y,
+            radius_x * 2.0,
+            radius_y * 2.0,
+            0.0,
+        );
+        let style = ShapeStyle::with_fill(Color::rgb(0.2, 0.6, 0.4));
         Self {
+            // Backwards compatibility fields first
             id: EntityId::new(),
             shape_type: ShapeType::Ellipse,
-            x: x - radius_x,
-            y: y - radius_y,
-            width: radius_x * 2.0,
-            height: radius_y * 2.0,
+            x: geometry.position.x,
+            y: geometry.position.y,
+            width: geometry.size.x,
+            height: geometry.size.y,
             rotation: 0.0,
-            fill_color: Color::rgb(0.2, 0.6, 0.4),
-            stroke_color: None,
-            stroke_width: 0.0,
-            opacity: 1.0,
-            layer_id: None,
+            fill_color: style.fill_color,
+            stroke_color: style.stroke.color,
+            stroke_width: style.stroke.width,
+            opacity: style.opacity,
+            // New structured fields at the end
+            geometry,
+            style,
+            layer_id: EntityId::new(),
             selected: false,
-            properties: HashMap::new(),
+            properties: ShapeProperties::new(),
         }
     }
 
@@ -98,21 +519,28 @@ impl Shape {
     pub fn new_line(x1: f32, y1: f32, x2: f32, y2: f32) -> Self {
         let min_x = x1.min(x2);
         let min_y = y1.min(y2);
+        let geometry =
+            ShapeGeometry::from_components(min_x, min_y, (x2 - x1).abs(), (y2 - y1).abs(), 0.0);
+        let style = ShapeStyle::solid(Color::TRANSPARENT, Some(Color::rgb(0.3, 0.3, 0.3)), 2.0);
         Self {
+            // Backwards compatibility fields first
             id: EntityId::new(),
             shape_type: ShapeType::Line,
-            x: min_x,
-            y: min_y,
-            width: (x2 - x1).abs(),
-            height: (y2 - y1).abs(),
+            x: geometry.position.x,
+            y: geometry.position.y,
+            width: geometry.size.x,
+            height: geometry.size.y,
             rotation: 0.0,
-            fill_color: Color::TRANSPARENT,
-            stroke_color: Some(Color::rgb(0.3, 0.3, 0.3)),
-            stroke_width: 2.0,
-            opacity: 1.0,
-            layer_id: None,
+            fill_color: style.fill_color,
+            stroke_color: style.stroke.color,
+            stroke_width: style.stroke.width,
+            opacity: style.opacity,
+            // New structured fields at the end
+            geometry,
+            style,
+            layer_id: EntityId::new(),
             selected: false,
-            properties: HashMap::new(),
+            properties: ShapeProperties::new(),
         }
     }
 
@@ -120,25 +548,72 @@ impl Shape {
     #[inline]
     pub fn new_path(points: Vec<Vec2>) -> Self {
         let bounds = Self::calculate_bounds(&points);
+        let geometry = ShapeGeometry::from_components(
+            bounds.min.x,
+            bounds.min.y,
+            bounds.width(),
+            bounds.height(),
+            0.0,
+        );
+        let style = ShapeStyle::solid(Color::TRANSPARENT, Some(Color::rgb(0.3, 0.3, 0.3)), 2.0);
         Self {
+            // Backwards compatibility fields first
             id: EntityId::new(),
             shape_type: ShapeType::Path,
-            x: bounds.min.x,
-            y: bounds.min.y,
-            width: bounds.width(),
-            height: bounds.height(),
+            x: geometry.position.x,
+            y: geometry.position.y,
+            width: geometry.size.x,
+            height: geometry.size.y,
             rotation: 0.0,
-            fill_color: Color::TRANSPARENT,
-            stroke_color: Some(Color::rgb(0.3, 0.3, 0.3)),
-            stroke_width: 2.0,
-            opacity: 1.0,
-            layer_id: None,
+            fill_color: style.fill_color,
+            stroke_color: style.stroke.color,
+            stroke_width: style.stroke.width,
+            opacity: style.opacity,
+            // New structured fields at the end
+            geometry,
+            style,
+            layer_id: EntityId::new(),
             selected: false,
-            properties: HashMap::new(),
+            properties: ShapeProperties::new(),
         }
     }
 
-    /// Calculates bounding box from points
+    /// Updates the geometry and syncs backwards compatibility fields
+    #[inline]
+    pub fn update_geometry(&mut self, geometry: ShapeGeometry) {
+        // Extract values first to avoid move issues
+        let x = geometry.position.x;
+        let y = geometry.position.y;
+        let width = geometry.size.x;
+        let height = geometry.size.y;
+        let rotation = geometry.rotation;
+
+        self.geometry = geometry;
+        self.x = x;
+        self.y = y;
+        self.width = width;
+        self.height = height;
+        self.rotation = rotation;
+    }
+
+    /// Updates the style and syncs backwards compatibility fields
+    #[inline]
+    pub fn update_style(&mut self, style: ShapeStyle) {
+        // Extract values first to avoid move issues
+        let fill_color = style.fill_color;
+        let stroke_color = style.stroke.color;
+        let stroke_width = style.stroke.width;
+        let opacity = style.opacity;
+
+        self.style = style;
+        self.fill_color = fill_color;
+        self.stroke_color = stroke_color;
+        self.stroke_width = stroke_width;
+        self.opacity = opacity;
+    }
+
+    /// Calculates the bounding box for a list of points
+    #[inline]
     fn calculate_bounds(points: &[Vec2]) -> Rect {
         if points.is_empty() {
             return Rect::default();
@@ -153,10 +628,7 @@ impl Shape {
     /// Gets the bounding rectangle
     #[inline]
     pub fn bounds(&self) -> Rect {
-        Rect::from_min_max(
-            Vec2::new(self.x, self.y),
-            Vec2::new(self.x + self.width, self.y + self.height),
-        )
+        self.geometry.bounds()
     }
 
     /// Checks if a point is inside the shape

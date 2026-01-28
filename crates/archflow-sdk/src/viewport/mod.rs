@@ -20,7 +20,7 @@ pub enum ViewportError {
 ///
 /// The viewport defines which portion of the canvas is visible to the user,
 /// including the origin offset (top-left corner in canvas coordinates) and
-/// the zoom level.
+/// the zoom level. Zoom limits are configurable through the builder pattern.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Viewport {
     /// Position of the viewport origin in canvas coordinates
@@ -82,7 +82,7 @@ impl Viewport {
             screen_width / bounds.width()
         };
 
-        let zoom = (zoom * 0.9).clamp(0.1, 10.0); // Add some padding
+        let zoom = (zoom * 0.9).clamp(0.1, 10.0);
 
         Self {
             offset: center - Vec2::new((screen_width / 2.0) / zoom, (screen_height / 2.0) / zoom),
@@ -121,6 +121,15 @@ impl Viewport {
     }
 
     /// Returns the visible bounds in canvas coordinates
+    ///
+    /// # Arguments
+    ///
+    /// * `screen_width` - Width of the screen
+    /// * `screen_height` - Height of the screen
+    ///
+    /// # Returns
+    ///
+    /// The visible rectangle in canvas coordinates
     #[inline]
     pub fn visible_bounds(&self, screen_width: f32, screen_height: f32) -> Rect {
         let min = self.screen_to_canvas(Vec2::ZERO);
@@ -129,6 +138,15 @@ impl Viewport {
     }
 
     /// Returns the visible area in screen coordinates
+    ///
+    /// # Arguments
+    ///
+    /// * `screen_width` - Width of the screen
+    /// * `screen_height` - Height of the screen
+    ///
+    /// # Returns
+    ///
+    /// The screen rectangle
     #[inline]
     pub fn screen_bounds(&self, screen_width: f32, screen_height: f32) -> Rect {
         Rect::from_min_max(Vec2::new(0.0, 0.0), Vec2::new(screen_width, screen_height))
@@ -225,6 +243,275 @@ impl Default for Viewport {
     }
 }
 
+/// Builder pattern for creating Viewport instances with custom configuration.
+///
+/// This eliminates Connascence of Position by providing explicit, chainable
+/// methods for configuration instead of requiring parameters in a specific order.
+///
+/// # Example
+///
+/// ```rust
+/// use archflow_sdk::viewport::{Viewport, ViewportBuilder};
+///
+/// let viewport = ViewportBuilder::new()
+///     .with_offset(archflow_core::Vec2::new(100.0, 50.0))
+///     .with_zoom(1.5)
+///     .with_zoom_limits(0.05, 20.0)
+///     .build();
+/// ```
+#[derive(Debug, Default)]
+pub struct ViewportBuilder {
+    offset: Option<Vec2>,
+    zoom: Option<f32>,
+    min_zoom: f32,
+    max_zoom: f32,
+    screen_size: Option<(f32, f32)>,
+    content_bounds: Option<Rect>,
+}
+
+impl ViewportBuilder {
+    /// Creates a new viewport builder with default values.
+    ///
+    /// Default zoom limits are 0.1 (10%) to 10.0 (1000%).
+    #[inline]
+    pub fn new() -> Self {
+        Self {
+            offset: None,
+            zoom: None,
+            min_zoom: 0.1,
+            max_zoom: 10.0,
+            screen_size: None,
+            content_bounds: None,
+        }
+    }
+
+    /// Sets the viewport offset (top-left corner in canvas coordinates).
+    ///
+    /// # Arguments
+    ///
+    /// * `offset` - The position of the viewport origin
+    ///
+    /// # Returns
+    ///
+    /// The builder for method chaining
+    #[inline]
+    pub fn with_offset(mut self, offset: Vec2) -> Self {
+        self.offset = Some(offset);
+        self
+    }
+
+    /// Sets the zoom level.
+    ///
+    /// # Arguments
+    ///
+    /// * `zoom` - The zoom level (must be positive)
+    ///
+    /// # Returns
+    ///
+    /// The builder for method chaining
+    ///
+    /// # Panics
+    ///
+    /// Will panic if zoom is not positive when [`build`] is called
+    ///
+    /// [`build`]: #method.build
+    #[inline]
+    pub fn with_zoom(mut self, zoom: f32) -> Self {
+        self.zoom = Some(zoom);
+        self
+    }
+
+    /// Sets custom zoom limits.
+    ///
+    /// # Arguments
+    ///
+    /// * `min` - Minimum zoom level (must be positive and less than max)
+    /// * `max` - Maximum zoom level (must be greater than min)
+    ///
+    /// # Returns
+    ///
+    /// The builder for method chaining
+    ///
+    /// # Panics
+    ///
+    /// Will panic if min is not positive or max is not greater than min
+    /// when [`build`] is called
+    ///
+    /// [`build`]: #method.build
+    #[inline]
+    pub fn with_zoom_limits(mut self, min: f32, max: f32) -> Self {
+        self.min_zoom = min;
+        self.max_zoom = max;
+        self
+    }
+
+    /// Configures the viewport to fit the given content bounds.
+    ///
+    /// This is useful when you want the viewport to show a specific area.
+    ///
+    /// # Arguments
+    ///
+    /// * `bounds` - The rectangular area to fit
+    /// * `screen_width` - Width of the screen/canvas
+    /// * `screen_height` - Height of the screen/canvas
+    ///
+    /// # Returns
+    ///
+    /// The builder for method chaining
+    #[inline]
+    pub fn fit_bounds(mut self, bounds: Rect, screen_width: f32, screen_height: f32) -> Self {
+        self.content_bounds = Some(bounds);
+        self.screen_size = Some((screen_width, screen_height));
+        self
+    }
+
+    /// Sets the screen size for zoom calculations.
+    ///
+    /// # Arguments
+    ///
+    /// * `width` - Screen width
+    /// * `height` - Screen height
+    ///
+    /// # Returns
+    ///
+    /// The builder for method chaining
+    #[inline]
+    pub fn with_screen_size(mut self, width: f32, height: f32) -> Self {
+        self.screen_size = Some((width, height));
+        self
+    }
+
+    /// Validates the builder configuration.
+    ///
+    /// This method performs all validations and returns a Result to enable
+    /// early returns with the ? operator.
+    ///
+    /// # Returns
+    ///
+    /// Ok(()) if configuration is valid, or an error otherwise
+    #[inline]
+    fn validate(&self) -> Result<(), ViewportError> {
+        if let Some(zoom) = self.zoom {
+            if zoom <= 0.0 {
+                return Err(ViewportError::InvalidZoom(zoom));
+            }
+        }
+
+        if self.min_zoom <= 0.0 {
+            return Err(ViewportError::InvalidZoom(self.min_zoom));
+        }
+
+        if self.max_zoom <= self.min_zoom {
+            return Err(ViewportError::InvalidZoom(self.max_zoom));
+        }
+
+        if let Some((width, height)) = self.screen_size {
+            if width <= 0.0 || height <= 0.0 {
+                return Err(ViewportError::BoundsError("Screen size must be positive"));
+            }
+        }
+
+        if let Some(bounds) = self.content_bounds {
+            if bounds.width() <= 0.0 || bounds.height() <= 0.0 {
+                return Err(ViewportError::BoundsError(
+                    "Content bounds must have positive dimensions",
+                ));
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Builds the Viewport instance.
+    ///
+    /// # Returns
+    ///
+    /// A configured Viewport instance
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`ViewportError`] if configuration is invalid:
+    /// - Zoom is not positive
+    /// - Zoom limits are invalid
+    /// - Screen size is not positive
+    /// - Content bounds have non-positive dimensions
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use archflow_sdk::viewport::{ViewportBuilder, ViewportError};
+    /// use archflow_core::{Rect, Vec2};
+    ///
+    /// let result = ViewportBuilder::new()
+    ///     .with_offset(Vec2::new(100.0, 50.0))
+    ///     .with_zoom(1.5)
+    ///     .with_zoom_limits(0.05, 20.0)
+    ///     .build();
+    ///
+    /// match result {
+    ///     Ok(viewport) => println!("Created: {}", viewport),
+    ///     Err(e) => eprintln!("Failed to create viewport: {}", e),
+    /// }
+    /// ```
+    #[inline]
+    pub fn build(self) -> Result<Viewport, ViewportError> {
+        self.validate()?;
+
+        // Handle fit_bounds priority
+        if let (Some(bounds), Some((screen_width, screen_height))) =
+            (self.content_bounds, self.screen_size)
+        {
+            return Ok(Viewport::fit_bounds(bounds, screen_width, screen_height));
+        }
+
+        // Handle screen_size for default zoom_to_fit behavior
+        if let Some((screen_width, screen_height)) = self.screen_size {
+            if self.offset.is_none() && self.zoom.is_none() {
+                // Default to showing a reasonable default area
+                let default_bounds = Rect::from_min_max(
+                    Vec2::new(-screen_width / 2.0, -screen_height / 2.0),
+                    Vec2::new(screen_width / 2.0, screen_height / 2.0),
+                );
+                return Ok(Viewport::fit_bounds(
+                    default_bounds,
+                    screen_width,
+                    screen_height,
+                ));
+            }
+        }
+
+        // Build from explicit values
+        let offset = self.offset.unwrap_or_default();
+        let zoom = self.zoom.unwrap_or(1.0);
+
+        // Clamp zoom to configured limits
+        let zoom = zoom.clamp(self.min_zoom, self.max_zoom);
+
+        Ok(Viewport {
+            offset,
+            zoom,
+            min_zoom: self.min_zoom,
+            max_zoom: self.max_zoom,
+        })
+    }
+}
+
+impl fmt::Display for ViewportBuilder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "ViewportBuilder(")?;
+        if let Some(offset) = self.offset {
+            write!(f, "offset=({}, {})", offset.x, offset.y)?;
+        }
+        if let Some(zoom) = self.zoom {
+            if self.offset.is_some() {
+                write!(f, ", ")?;
+            }
+            write!(f, "zoom={}", zoom)?;
+        }
+        write!(f, ", zoom_limits=[{}, {}])", self.min_zoom, self.max_zoom)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -310,6 +597,103 @@ mod tests {
         // zoom = 600 / 100 * 0.9 = 5.4
         assert!((viewport.zoom - 5.4).abs() < 0.1);
     }
+
+    // ViewportBuilder tests
+    #[test]
+    fn test_viewport_builder_default() {
+        let builder = ViewportBuilder::new();
+        let viewport = builder.build().unwrap();
+
+        assert_eq!(viewport.offset, Vec2::ZERO);
+        assert_eq!(viewport.zoom, 1.0);
+        assert_eq!(viewport.min_zoom, 0.1);
+        assert_eq!(viewport.max_zoom, 10.0);
+    }
+
+    #[test]
+    fn test_viewport_builder_with_offset_and_zoom() {
+        let viewport = ViewportBuilder::new()
+            .with_offset(Vec2::new(100.0, 50.0))
+            .with_zoom(1.5)
+            .build()
+            .unwrap();
+
+        assert_eq!(viewport.offset, Vec2::new(100.0, 50.0));
+        assert_eq!(viewport.zoom, 1.5);
+    }
+
+    #[test]
+    fn test_viewport_builder_with_custom_zoom_limits() {
+        let viewport = ViewportBuilder::new()
+            .with_zoom(5.0)
+            .with_zoom_limits(0.05, 20.0)
+            .build()
+            .unwrap();
+
+        assert_eq!(viewport.min_zoom, 0.05);
+        assert_eq!(viewport.max_zoom, 20.0);
+    }
+
+    #[test]
+    fn test_viewport_builder_fit_bounds() {
+        let bounds = Rect::from_min_max(Vec2::new(0.0, 0.0), Vec2::new(200.0, 200.0));
+        let viewport = ViewportBuilder::new()
+            .fit_bounds(bounds, 800.0, 600.0)
+            .build()
+            .unwrap();
+
+        // Should fit bounds into 800x600 screen with 10% padding
+        assert!(viewport.zoom > 1.0);
+        assert!(viewport.zoom < 10.0);
+    }
+
+    #[test]
+    fn test_viewport_builder_invalid_zoom() {
+        let result = ViewportBuilder::new().with_zoom(-1.0).build();
+
+        assert!(matches!(result, Err(ViewportError::InvalidZoom(_))));
+    }
+
+    #[test]
+    fn test_viewport_builder_invalid_zoom_limits() {
+        let result = ViewportBuilder::new().with_zoom_limits(-0.1, 10.0).build();
+
+        assert!(matches!(result, Err(ViewportError::InvalidZoom(_))));
+    }
+
+    #[test]
+    fn test_viewport_builder_invalid_bounds() {
+        let empty_bounds = Rect::from_min_max(Vec2::new(0.0, 0.0), Vec2::new(0.0, 0.0));
+        let result = ViewportBuilder::new()
+            .fit_bounds(empty_bounds, 800.0, 600.0)
+            .build();
+
+        assert!(matches!(result, Err(ViewportError::BoundsError(_))));
+    }
+
+    #[test]
+    fn test_viewport_builder_zoom_clamping() {
+        // Zoom should be clamped to max_zoom
+        let viewport = ViewportBuilder::new()
+            .with_zoom(100.0)
+            .with_zoom_limits(0.1, 10.0)
+            .build()
+            .unwrap();
+
+        assert_eq!(viewport.zoom, 10.0);
+    }
+
+    #[test]
+    fn test_viewport_builder_display() {
+        let builder = ViewportBuilder::new()
+            .with_offset(Vec2::new(100.0, 50.0))
+            .with_zoom(1.5);
+
+        let display = format!("{}", builder);
+        assert!(display.contains("100"));
+        assert!(display.contains("50"));
+        assert!(display.contains("1.5"));
+    }
 }
 
 /// Manages viewport state and provides viewport-related operations
@@ -350,6 +734,25 @@ impl ViewportManager {
     #[inline]
     pub fn set_viewport(&mut self, viewport: Viewport) {
         self.viewport = viewport.constrain(self.constrained_bounds);
+    }
+
+    /// Sets the viewport using a builder for flexible configuration
+    ///
+    /// # Arguments
+    ///
+    /// * `builder` - A configured ViewportBuilder
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the builder configuration is invalid
+    #[inline]
+    pub fn set_viewport_builder(&mut self, builder: ViewportBuilder) -> Result<(), ViewportError> {
+        let viewport = builder
+            .with_screen_size(self.screen_width, self.screen_height)
+            .build()?;
+
+        self.viewport = viewport.constrain(self.constrained_bounds);
+        Ok(())
     }
 
     /// Pans the viewport by the given delta (in screen pixels)

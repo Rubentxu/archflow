@@ -21,6 +21,7 @@ archflow-ecs-hybrid = { path = "../archflow-ecs-hybrid", optional = true }
 archflow-spatial = { path = "../archflow-spatial" }
 archflow-renderers = { path = "../archflow-renderers" }
 archflow-geometry = { path = "../archflow-geometry" }
+archflow-primitives = { path = "../archflow-primitives" }
 
 # WASM-specific dependencies
 wasm-bindgen = { version = "0.2.108", optional = true }
@@ -30,16 +31,20 @@ web-sys = { version = "0.3", optional = true, features = [
     "HtmlCanvasElement",
     "Window",
 ] }
+serde-wasm-bindgen = { version = "0.6", optional = true }
+console_error_panic_hook = { version = "0.1", optional = true }
+console_log = { version = "1.0", optional = true }
 
 # Serialization
 serde = { version = "1.0", features = ["derive", "rc"] }
-serde-wasm-bindgen = { version = "0.6", optional = true }
 serde_json = "1.0"
 
 # Utilities
 thiserror = "1.0"
 anyhow = "1.0"
 uuid = { version = "1.11", features = ["v4", "serde"] }
+rand = "0.8"
+log = "0.4"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
