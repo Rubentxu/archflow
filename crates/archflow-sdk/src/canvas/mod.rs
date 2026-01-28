@@ -691,6 +691,20 @@ impl Default for ShapeType {
     }
 }
 
+impl std::fmt::Display for ShapeType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ShapeType::Rectangle => write!(f, "rectangle"),
+            ShapeType::Ellipse => write!(f, "ellipse"),
+            ShapeType::Line => write!(f, "line"),
+            ShapeType::Path => write!(f, "path"),
+            ShapeType::Text => write!(f, "text"),
+            ShapeType::Image => write!(f, "image"),
+            ShapeType::Group => write!(f, "group"),
+        }
+    }
+}
+
 /// Selection in the canvas
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Selection {
