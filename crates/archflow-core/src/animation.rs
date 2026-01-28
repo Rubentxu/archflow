@@ -6,8 +6,10 @@
 //! - Easing functions (linear, ease-in, ease-out, bezier)
 //! - AnimationManager for running animations
 //! - AnimatorBuilder for fluent animation creation API
+//! - Timeline for animation sequencing
 
 pub mod builder;
+pub mod timeline;
 
 use crate::EntityId;
 use serde::{Deserialize, Serialize};
@@ -15,6 +17,8 @@ use std::time::Duration;
 
 // Re-export commonly used builder types for convenience
 pub use builder::{AnimationHandle, AnimatorBuilder, Ease};
+// Re-export commonly used timeline types for convenience
+pub use timeline::{Timeline, TimelineHandle, TimelineLabel, TimelinePosition};
 
 /// Timing function type for easing
 ///
@@ -1609,7 +1613,7 @@ mod tests {
         assert!(!manager.is_animating());
 
         let target_id = EntityId::from_u128(1);
-        let mut animation = PositionAnimation::new(
+        let animation = PositionAnimation::new(
             target_id,
             vec![
                 PositionKeyframe::new(0.0, (0.0, 0.0), EasingFunction::Linear),
@@ -2050,9 +2054,9 @@ mod tests {
         let bezier = EasingFunction::CubicBezier(0.25, 0.1, 0.25, 1.0);
 
         // Test that it produces valid values in range [0, 1]
-        let v0 = bezier.apply(0.0);
+        let _v0 = bezier.apply(0.0);
         let v05 = bezier.apply(0.5);
-        let v1 = bezier.apply(1.0);
+        let _v1 = bezier.apply(1.0);
 
         assert!(
             v05 >= 0.0 && v05 <= 1.0,
