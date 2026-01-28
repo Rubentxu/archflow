@@ -11,6 +11,7 @@ uuid = { workspace = true, features = ["v4", "serde"] }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 kurbo = { workspace = true }
+rand = "0.8"
 
 # Web dependencies (for WASM builds)
 web-sys = { version = "0.3", features = [

@@ -8,8 +8,10 @@
 //! - AnimatorBuilder for fluent animation creation API
 //! - Timeline for animation sequencing
 //! - Stagger for wave-based animation delays
+//! - Event system for animation lifecycle integration
 
 pub mod builder;
+pub mod events;
 pub mod stagger;
 pub mod timeline;
 
@@ -23,6 +25,11 @@ pub use builder::{AnimationHandle, AnimatorBuilder, Ease};
 pub use timeline::{Timeline, TimelineHandle, TimelineLabel, TimelinePosition};
 // Re-export commonly used stagger types for convenience
 pub use stagger::{GridPosition, Stagger, StaggerAxis, StaggerFrom};
+// Re-export event system types
+pub use events::{
+    AnimatedPropertyValue, AnimationCanvasAdapter, AnimationEvent, AnimationEventDispatcher,
+    AnimationId, AnimationPhase, CanvasAnimationOperation, CanvasAnimationUpdate,
+};
 
 /// Timing function type for easing
 ///
