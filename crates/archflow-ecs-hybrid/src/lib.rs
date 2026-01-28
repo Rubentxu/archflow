@@ -11,6 +11,7 @@
 //! - **Dirty Tracking**: O(C) change detection and processing
 //! - **Optimized Sync**: Uses ChangeSet to process only changed records
 //! - **Bidirectional**: Records ↔ ECS synchronization systems
+//! - **Particle Systems**: High-performance particle simulation with SoA layout
 //!
 //! ## Architecture
 //!
@@ -57,6 +58,16 @@ pub use components::{
 pub use systems::{
     cleanup_dirty_system, clear_dirty_flags_system, dirty_tracking_system,
     sync_records_to_ecs_system,
+};
+
+// Re-export particle components and systems
+pub use components::particles::{
+    EmitterConfig, ParticleAcceleration, ParticleBundle, ParticleColor, ParticleEmitter,
+    ParticleLifetime, ParticlePosition, ParticleSize, ParticleVelocity,
+};
+pub use systems::particles::{
+    Time, particle_animation_system, particle_cleanup_system, particle_emission_system,
+    particle_lifetime_system, particle_physics_no_accel_system, particle_physics_system,
 };
 
 /// ECS Hybrid Error type
