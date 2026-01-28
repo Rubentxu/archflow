@@ -3,6 +3,8 @@
 //! This module provides WebAssembly bindings for the ArchFlow SDK,
 //! enabling JavaScript/TypeScript integration.
 
+pub mod animation;
+
 use crate::background::{GridConfig, GridType};
 use crate::canvas::{Canvas, Shape, ShapeChanges, ShapeType};
 use crate::events::{EventBuilder, EventStore, UndoManager};
@@ -658,6 +660,100 @@ export interface ShapeData {
     opacity: number;
     rotation: number;
     layerId: string;
+}
+
+/**
+ * Animation System TypeScript Definitions
+ */
+
+export class AnimationSystem {
+    constructor();
+
+    // Animation Builder API
+    animate(targetId: string): AnimationBuilder;
+
+    // Timeline API
+    timeline(): TimelineBuilder;
+
+    // Staggering API
+    stagger(config: StaggerConfig): Stagger;
+
+    // Event Listeners
+    onStart(callback: (event: AnimationEvent) => void): void;
+    onComplete(callback: (event: AnimationEvent) => void): void;
+    onUpdate(callback: (event: AnimationEvent) => void, throttleMs?: number): void;
+
+    // Global Control
+    pauseAll(): void;
+    resumeAll(): void;
+    stopAll(): void;
+    activeCount(): number;
+}
+
+export class AnimationBuilder {
+    // Property targets
+    to(x: number, y: number): AnimationBuilder;
+    rotate(degrees: number): AnimationBuilder;
+    fade(opacity: number): AnimationBuilder;
+    scale(width: number, height: number): AnimationBuilder;
+    color(r: number, g: number, b: number, a: number): AnimationBuilder;
+
+    // Timing
+    duration(ms: number): AnimationBuilder;
+    delay(ms: number): AnimationBuilder;
+
+    // Configuration
+    easing(easingName: string): AnimationBuilder;
+    loop(count: number): AnimationBuilder;
+
+    // Start animation
+    play(): string;
+}
+
+export class TimelineBuilder {
+    add(animationId: string, position?: string): TimelineBuilder;
+    addLabel(label: string): TimelineBuilder;
+    setTimeScale(scale: number): TimelineBuilder;
+    setLoops(count: number): TimelineBuilder;
+    play(): string;
+}
+
+export class Stagger {
+    applyTo(targetIds: string[], system: AnimationSystem): string[];
+    getDelay(index: number, total: number): number;
+}
+
+export interface StaggerConfig {
+    from: 'start' | 'center' | 'end' | 'edges' | number;
+    axis: 'x' | 'y' | 'both';
+    amount: number;
+    grid?: GridConfig;
+}
+
+export interface GridConfig {
+    columns: number;
+    rows: number;
+}
+
+export interface AnimationEvent {
+    animationId: string;
+    targetEntity?: string;
+    phase: 'Started' | 'Running' | 'Completed' | 'Cancelled' | 'Failed';
+    property?: AnimatedPropertyValue;
+    progress: number;
+    durationMs: number;
+    elapsedMs: number;
+    timestamp: number;
+}
+
+export interface AnimatedPropertyValue {
+    position?: { from: [number, number]; to: [number, number]; current: [number, number] };
+    size?: { from: [number, number]; to: [number, number]; current: [number, number] };
+    rotation?: { from: number; to: number; current: number };
+    opacity?: { from: number; to: number; current: number };
+    fillColor?: { from: [number, number, number, number]; to: [number, number, number, number]; current: [number, number, number, number] };
+    strokeColor?: { from: [number, number, number, number]; to: [number, number, number, number]; current: [number, number, number, number] };
+    strokeWidth?: { from: number; to: number; current: number };
 }
 "#
     .to_string()
