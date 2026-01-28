@@ -242,39 +242,19 @@ impl TransformDecomposition {
     }
 
     /// Create a transform from decomposition
+    ///
+    /// Composes the transform in the order: Translate * Rotate * Scale
+    /// This matches the standard 2D transform composition order.
     pub fn to_transform(self) -> Transform {
-        let (sin, cos) = self.rotation.sin_cos();
-        let (_skew_sin_x, skew_cos_x) = self.skew_x.sin_cos();
-        let (_skew_sin_y, skew_cos_y) = self.skew_y.sin_cos();
+        // Build transform by composing: Translate * Rotate * Scale
+        let translate = Transform::from_translation_vec(self.translation);
+        let rotate = Transform::from_rotation(self.rotation);
+        let scale = Transform::from_scale_vec(Vec2::new(self.scale_x, self.scale_y));
 
-        // Apply: Translate * Rotate * Scale * Skew
-        // Skew X: [1, 0, 0; tan(skew_x), 1, 0; 0, 0, 1]
-        // Skew Y: [1, tan(skew_y), 0; 0, 1, 0; 0, 0, 1]
-        // Scale: [scale_x, 0, 0; 0, scale_y, 0; 0, 0, 1]
-        // Rotate: [cos, -sin, 0; sin, cos, 0; 0, 0, 1]
-        // Translate: [1, 0, tx; 0, 1, ty; 0, 0, 1]
-
-        let m00 = self.scale_x * cos * skew_cos_x;
-        let m01 = -self.scale_x * sin * skew_cos_y;
-        let m02 = self.translation.x;
-
-        let m10 = self.scale_y * sin * skew_cos_x;
-        let m11 = self.scale_y * cos * skew_cos_y;
-        let m12 = self.translation.y;
-
-        Transform {
-            matrix: Mat3 {
-                m00,
-                m01,
-                m02,
-                m10,
-                m11,
-                m12,
-                m20: 0.0,
-                m21: 0.0,
-                m22: 1.0,
-            },
-        }
+        // Apply in order: translate first, then rotate, then scale
+        // Actually, when applying to a point: p' = T * R * S * p
+        // So we compose as: T.compose(R).compose(S)
+        translate.compose(rotate).compose(scale)
     }
 
     /// Get the memory usage in bytes
@@ -694,5 +674,161 @@ mod tests {
         let restored: CompactTransform = serde_json::from_str(&json).unwrap();
 
         assert_eq!(original, restored);
+    }
+
+    #[test]
+    fn test_composition_associativity() {
+        // Test that (a * b) * c == a * (b * c)
+        let a = Transform::from_translation(10.0, 0.0);
+        let b = Transform::from_rotation(std::f32::consts::FRAC_PI_4);
+        let c = Transform::from_scale(2.0);
+
+        let left = (a.compose(b)).compose(c);
+        let right = a.compose(b.compose(c));
+
+        let point = Vec2::new(5.0, 5.0);
+        let left_result = left.transform_point(point);
+        let right_result = right.transform_point(point);
+
+        assert!((left_result.x - right_result.x).abs() < 1e-5);
+        assert!((left_result.y - right_result.y).abs() < 1e-5);
+    }
+
+    #[test]
+    fn test_multiple_composition() {
+        // Chain multiple transforms: translate -> rotate -> scale
+        let translate = Transform::from_translation(100.0, 50.0);
+        let rotate = Transform::from_rotation(std::f32::consts::FRAC_PI_2);
+        let scale = Transform::from_scale(2.0);
+
+        let combined = translate.compose(rotate).compose(scale);
+
+        let point = Vec2::new(10.0, 0.0);
+        let result = combined.transform_point(point);
+
+        // After scale: (20, 0)
+        // After rotate 90°: (0, 20)
+        // After translate: (100, 70)
+        assert!((result.x - 100.0).abs() < 1e-5);
+        assert!((result.y - 70.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn test_inverse_composed() {
+        // Create a complex transform
+        let translate = Transform::from_translation(100.0, 50.0);
+        let rotate = Transform::from_rotation(std::f32::consts::FRAC_PI_4);
+        let composed = translate.compose(rotate);
+
+        let inv = composed.inverse().unwrap();
+
+        // Test round-trip
+        let point = Vec2::new(200.0, 150.0);
+        let transformed = composed.transform_point(point);
+        let back = inv.transform_point(transformed);
+
+        assert!((back.x - point.x).abs() < 1e-4);
+        assert!((back.y - point.y).abs() < 1e-4);
+    }
+
+    #[test]
+    fn test_inverse_non_invertible_returns_none() {
+        // A zero scale transform is not invertible
+        let zero_scale = Transform::from_scale(0.0);
+        assert!(zero_scale.inverse().is_none());
+
+        // Very small scale is also effectively non-invertible
+        let tiny_scale = Transform::from_scale(1e-10);
+        assert!(tiny_scale.inverse().is_none());
+    }
+
+    #[test]
+    fn test_decomposition_reconstructs_original() {
+        // Create a complex transform
+        let original = Transform::from_translation(50.0, 75.0)
+            .compose(Transform::from_rotation(std::f32::consts::FRAC_PI_3))
+            .compose(Transform::from_scale_vec(Vec2::new(2.0, 1.5)));
+
+        // Decompose and reconstruct
+        let decomp = original.decompose();
+        let reconstructed = decomp.to_transform();
+
+        // Test multiple points
+        let test_points = [
+            Vec2::ZERO,
+            Vec2::new(1.0, 0.0),
+            Vec2::new(0.0, 1.0),
+            Vec2::new(5.0, 5.0),
+        ];
+
+        for point in test_points {
+            let orig = original.transform_point(point);
+            let recon = reconstructed.transform_point(point);
+
+            assert!(
+                (orig.x - recon.x).abs() < 1e-4,
+                "x mismatch at {:?}: {} vs {}",
+                point,
+                orig.x,
+                recon.x
+            );
+            assert!(
+                (orig.y - recon.y).abs() < 1e-4,
+                "y mismatch at {:?}: {} vs {}",
+                point,
+                orig.y,
+                recon.y
+            );
+        }
+    }
+
+    #[test]
+    fn test_translation_uses_less_memory() {
+        let full_matrix_size = std::mem::size_of::<Transform>();
+        let compact_translation = CompactTransform::Translation { x: 100.0, y: 200.0 };
+
+        // Compact translation should use significantly less memory
+        assert!(
+            compact_translation.memory_usage() < full_matrix_size / 2,
+            "Compact translation memory usage {} should be less than half of full matrix {}",
+            compact_translation.memory_usage(),
+            full_matrix_size
+        );
+    }
+
+    #[test]
+    fn test_matrix_to_compact_translation() {
+        let matrix = Transform::from_translation(50.0, 100.0);
+        let compact = CompactTransform::from_transform(matrix);
+
+        match compact {
+            CompactTransform::Translation { x, y } => {
+                assert!((x - 50.0).abs() < 1e-6);
+                assert!((y - 100.0).abs() < 1e-6);
+            }
+            _ => panic!("Expected Translation variant for pure translation"),
+        }
+    }
+
+    #[test]
+    fn test_matrix_to_compact_scale_nonuniform() {
+        let matrix = Transform::from_translation(10.0, 20.0)
+            .compose(Transform::from_scale_vec(Vec2::new(2.0, 3.0)));
+        let compact = CompactTransform::from_transform(matrix);
+
+        match compact {
+            CompactTransform::Scale {
+                x,
+                y,
+                scale_x,
+                scale_y,
+            } => {
+                assert!((x - 10.0).abs() < 1e-6);
+                assert!((y - 20.0).abs() < 1e-6);
+                assert!((scale_x - 2.0).abs() < 1e-6);
+                assert!((scale_y - 3.0).abs() < 1e-6);
+            }
+            _ => panic!("Expected Scale variant for non-uniform scale"),
+        }
     }
 }
