@@ -317,8 +317,8 @@ impl MultiTransform {
 /// Rotate an offset vector by an angle
 #[inline]
 fn rotate_offset(offset: Vec2, angle: RotationAngle) -> Vec2 {
-    let cos = (-angle.to_radians()).cos();
-    let sin = (-angle.to_radians()).sin();
+    let cos = angle.to_radians().cos();
+    let sin = angle.to_radians().sin();
 
     Vec2::new(
         offset.x * cos - offset.y * sin,
@@ -340,8 +340,8 @@ fn rotate_entity_bounds(bounds: (Vec2, Vec2), center: Vec2, angle: RotationAngle
         .map(|p| {
             let dx = p.x - center.x;
             let dy = p.y - center.y;
-            let cos = (-angle.to_radians()).cos();
-            let sin = (-angle.to_radians()).sin();
+            let cos = angle.to_radians().cos();
+            let sin = angle.to_radians().sin();
 
             Vec2::new(
                 center.x + dx * cos - dy * sin,
@@ -355,7 +355,14 @@ fn rotate_entity_bounds(bounds: (Vec2, Vec2), center: Vec2, angle: RotationAngle
     let max_x = rotated.iter().map(|p| p.x).fold(f32::MIN, f32::max);
     let max_y = rotated.iter().map(|p| p.y).fold(f32::MIN, f32::max);
 
-    (Vec2::new(min_x, min_y), Vec2::new(max_x, max_y))
+    // Adjust bounds to be centered around the target center
+    let current_center = Vec2::new((min_x + max_x) / 2.0, (min_y + max_y) / 2.0);
+    let adjustment = center - current_center;
+
+    (
+        Vec2::new(min_x + adjustment.x, min_y + adjustment.y),
+        Vec2::new(max_x + adjustment.x, max_y + adjustment.y),
+    )
 }
 
 /// Batch update shapes with transform result
@@ -399,7 +406,7 @@ mod tests {
     use super::*;
     use archflow_core::EntityId;
 
-    fn create_test_entities() -> HashMap<EntityId, ((Vec2, Vec2), f32)> {
+    fn create_test_entities() -> (HashMap<EntityId, ((Vec2, Vec2), f32)>, EntityId, EntityId) {
         let mut entities = HashMap::new();
 
         let id1 = EntityId::new();
@@ -414,12 +421,12 @@ mod tests {
             ((Vec2::new(200.0, 200.0), Vec2::new(250.0, 250.0)), 0.0),
         );
 
-        entities
+        (entities, id1, id2)
     }
 
     #[test]
     fn test_from_entities() {
-        let entities = create_test_entities();
+        let (entities, _id1, _id2) = create_test_entities();
         let multi = MultiTransform::from_entities(&entities).unwrap();
 
         assert_eq!(multi.len(), 2);
@@ -437,7 +444,7 @@ mod tests {
 
     #[test]
     fn test_apply_resize() {
-        let entities = create_test_entities();
+        let (entities, id1, _id2) = create_test_entities();
         let multi = MultiTransform::from_entities(&entities).unwrap();
 
         // Create a resize result (double the size)
@@ -454,13 +461,13 @@ mod tests {
         assert!(result.was_modified);
 
         // Entity 1 should be centered around new unified center
-        let bounds1 = result.get_bounds(&entities.keys().next().unwrap()).unwrap();
+        let bounds1 = result.get_bounds(&id1).unwrap();
         assert!((bounds1.0.x - 75.0).abs() < 10.0);
     }
 
     #[test]
     fn test_apply_rotation() {
-        let entities = create_test_entities();
+        let (entities, id1, id2) = create_test_entities();
         let multi = MultiTransform::from_entities(&entities).unwrap();
 
         let rotation_result = RotationResult {
@@ -476,20 +483,30 @@ mod tests {
         assert!(result.was_modified);
 
         // Both entities should have 90° rotation
-        for (id, _) in &entities {
-            let rotation = result.get_rotation(id).unwrap();
-            assert!((rotation - 90.0).abs() < 0.1);
-        }
+        let rotation1 = result.get_rotation(&id1).unwrap();
+        let rotation2 = result.get_rotation(&id2).unwrap();
+        assert!((rotation1 - 90.0).abs() < 0.1);
+        assert!((rotation2 - 90.0).abs() < 0.1);
     }
 
     #[test]
     fn test_preserved_relative_positions() {
-        let entities = create_test_entities();
+        let (entities, id1, id2) = create_test_entities();
         let multi = MultiTransform::from_entities(&entities).unwrap();
 
-        // Original positions relative to center
-        let id1_offset = multi.transforms[0].offset;
-        let id2_offset = multi.transforms[1].offset;
+        // Get offsets by entity ID to ensure correct mapping
+        let id1_offset = multi
+            .transforms
+            .iter()
+            .find(|t| t.entity_id == id1)
+            .unwrap()
+            .offset;
+        let id2_offset = multi
+            .transforms
+            .iter()
+            .find(|t| t.entity_id == id2)
+            .unwrap()
+            .offset;
 
         // Apply rotation
         let rotation_result = RotationResult {
@@ -501,9 +518,9 @@ mod tests {
 
         let result = multi.apply_rotation(rotation_result);
 
-        // Get new centers
-        let bounds1 = result.get_bounds(&entities.keys().next().unwrap()).unwrap();
-        let bounds2 = result.get_bounds(&entities.keys().nth(1).unwrap()).unwrap();
+        // Get new centers by specific entity IDs
+        let bounds1 = result.get_bounds(&id1).unwrap();
+        let bounds2 = result.get_bounds(&id2).unwrap();
 
         let new_center1 = Vec2::new(
             (bounds1.0.x + bounds1.1.x) / 2.0,
