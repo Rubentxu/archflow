@@ -239,23 +239,23 @@ impl RotationOperation<DraggingRotationState> {
     fn calculate_rotation(&self, mouse_pos: Vec2) -> RotationResult {
         let current_angle = self.calculate_angle(mouse_pos);
 
-        let delta = current_angle.to_degrees() - self.state.start_angle.to_degrees();
+        let delta = self.state.start_angle.to_degrees() - current_angle.to_degrees();
 
         let mut new_angle = RotationAngle::new(self.original_angle.to_degrees() + delta);
 
         let mut was_snapped = false;
         if self.config.snap_enabled && self.config.snap_increment > 0.0 {
-            let snapped_angle = new_angle.snap_to(self.config.snap_increment);
-            if snapped_angle != new_angle {
-                new_angle = snapped_angle;
-                was_snapped = true;
-            }
+            let raw_snapped =
+                (new_angle.0 / self.config.snap_increment).round() * self.config.snap_increment;
+            let snapped_angle = RotationAngle::new(raw_snapped);
+            was_snapped = true;
+            new_angle = snapped_angle;
         }
 
         let guide_point = self.center
             + Vec2::new(
-                self.config.handle_radius * (-new_angle.to_radians()).cos(),
-                self.config.handle_radius * (-new_angle.to_radians()).sin(),
+                self.config.handle_radius * (-current_angle.to_radians()).cos(),
+                self.config.handle_radius * (-current_angle.to_radians()).sin(),
             );
 
         RotationResult {
@@ -304,7 +304,7 @@ impl<S> RotationOperation<S> {
     fn calculate_angle(&self, point: Vec2) -> RotationAngle {
         let dx = point.x - self.center.x;
         let dy = point.y - self.center.y;
-        let angle_rad = dx.atan2(dy);
+        let angle_rad = (-dy).atan2(dx);
         let angle_deg = angle_rad.to_degrees();
 
         RotationAngle::new(angle_deg)
