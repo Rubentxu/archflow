@@ -7,8 +7,10 @@
 //! - AnimationManager for running animations
 //! - AnimatorBuilder for fluent animation creation API
 //! - Timeline for animation sequencing
+//! - Stagger for wave-based animation delays
 
 pub mod builder;
+pub mod stagger;
 pub mod timeline;
 
 use crate::EntityId;
@@ -19,6 +21,8 @@ use std::time::Duration;
 pub use builder::{AnimationHandle, AnimatorBuilder, Ease};
 // Re-export commonly used timeline types for convenience
 pub use timeline::{Timeline, TimelineHandle, TimelineLabel, TimelinePosition};
+// Re-export commonly used stagger types for convenience
+pub use stagger::{GridPosition, Stagger, StaggerAxis, StaggerFrom};
 
 /// Timing function type for easing
 ///
