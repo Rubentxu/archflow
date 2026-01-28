@@ -5,6 +5,15 @@
 //! - SelectionMode: Controls selection behavior (replace, add, subtract)
 //! - SelectionDelta: Changes to selection state for undo/redo
 
+pub mod handle_manager;
+pub mod spatial_index;
+
+pub use handle_manager::{
+    HandleCache, HandleType, SelectionHandle, SelectionHandleManager, TransformOperation,
+    UnifiedBounds,
+};
+pub use spatial_index::{HybridSpatialIndex, SelectionSet};
+
 use archflow_core::{EntityId, Rect, Vec2};
 use archflow_primitives::selection::{DragSelectionBox, SelectionConfig};
 use serde::{Deserialize, Serialize};
