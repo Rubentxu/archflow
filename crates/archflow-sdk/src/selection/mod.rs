@@ -13,12 +13,17 @@
 
 pub mod handle_manager;
 pub mod spatial_index;
+pub mod transform;
 
 pub use handle_manager::{
-    HandleCache, HandleType, SelectionHandle, SelectionHandleManager, TransformOperation,
-    UnifiedBounds,
+    HandleCache, HandleType, SelectionHandle, SelectionHandleManager, UnifiedBounds,
 };
 pub use spatial_index::{GridIndex, HybridSpatialIndex, SelectionSet};
+pub use transform::{
+    DEFAULT_SNAP_INCREMENT, MIN_HANDLE_SIZE, MultiTransform, MultiTransformResult, ResizeConfig,
+    ResizeOperation, ResizeResult, RotationAngle, RotationConfig, RotationOperation,
+    RotationResult, TransformResult, TransformType,
+};
 
 use archflow_core::{EntityId, Rect, Vec2};
 use archflow_primitives::selection::{DragSelectionBox, SelectionConfig};
