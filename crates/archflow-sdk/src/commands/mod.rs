@@ -14,6 +14,12 @@
 //! Due to the current Canvas API limitations (shapes get auto-generated IDs),
 //! commands work with the actual IDs returned by Canvas operations.
 
+pub mod clipboard_manager;
+pub mod transform_commands;
+
+pub use clipboard_manager::{ClipboardData, ClipboardManager, PasteResult};
+pub use transform_commands::{ResizeShapeCommand, RotateShapeCommand};
+
 use crate::canvas::{Canvas, ShapeChanges};
 use crate::selection::SelectionDelta;
 use archflow_core::{EntityId, Vec2};
@@ -51,6 +57,12 @@ pub trait Command: fmt::Debug + Send + Sync {
 
     /// Returns a description of what this command does.
     fn description(&self) -> &str;
+
+    /// Try to merge with another command (for continuous operations like drag).
+    /// Returns true if merge was successful.
+    fn merge(&mut self, _other: &dyn Command) -> bool {
+        false
+    }
 }
 
 /// Manages command execution and undo/redo history.
