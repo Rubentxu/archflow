@@ -353,6 +353,39 @@ impl GroupManager {
         self.groups.len()
     }
 
+    /// Gets all groups (returns IDs)
+    pub fn get_all_groups(&self) -> Vec<EntityId> {
+        self.groups.keys().copied().collect()
+    }
+
+    /// Locks a group (prevents editing)
+    pub fn lock_group(&mut self, group_id: EntityId) -> GroupResult<()> {
+        let group = self
+            .groups
+            .get_mut(&group_id)
+            .ok_or(GroupError::GroupNotFound(group_id))?;
+        group.locked = true;
+        Ok(())
+    }
+
+    /// Unlocks a group
+    pub fn unlock_group(&mut self, group_id: EntityId) -> GroupResult<()> {
+        let group = self
+            .groups
+            .get_mut(&group_id)
+            .ok_or(GroupError::GroupNotFound(group_id))?;
+        group.locked = false;
+        Ok(())
+    }
+
+    /// Checks if a group is locked
+    pub fn is_group_locked(&self, group_id: EntityId) -> bool {
+        self.groups
+            .get(&group_id)
+            .map(|g| g.locked)
+            .unwrap_or(false)
+    }
+
     /// Adds a shape to an existing group
     pub fn add_shape_to_group(
         &mut self,
