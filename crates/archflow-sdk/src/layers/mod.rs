@@ -332,6 +332,99 @@ impl LayerManager {
     pub fn layer_count(&self) -> usize {
         self.layers.len()
     }
+
+    /// Moves a layer up in z-order
+    #[inline]
+    pub fn move_layer_up(&mut self, id: EntityId) -> bool {
+        if let Some(pos) = self.layer_order.iter().position(|&layer_id| layer_id == id) {
+            if pos < self.layer_order.len() - 1 {
+                self.layer_order.swap(pos, pos + 1);
+                // Update z-orders
+                for (idx, &layer_id) in self.layer_order.iter().enumerate() {
+                    if let Some(layer) = self.layers.get_mut(&layer_id) {
+                        layer.z_order = idx as i32;
+                    }
+                }
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Moves a layer down in z-order
+    #[inline]
+    pub fn move_layer_down(&mut self, id: EntityId) -> bool {
+        if let Some(pos) = self.layer_order.iter().position(|&layer_id| layer_id == id) {
+            if pos > 0 {
+                self.layer_order.swap(pos, pos - 1);
+                // Update z-orders
+                for (idx, &layer_id) in self.layer_order.iter().enumerate() {
+                    if let Some(layer) = self.layers.get_mut(&layer_id) {
+                        layer.z_order = idx as i32;
+                    }
+                }
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Moves a layer to the top (front)
+    #[inline]
+    pub fn move_layer_to_top(&mut self, id: EntityId) -> bool {
+        if let Some(pos) = self.layer_order.iter().position(|&layer_id| layer_id == id) {
+            if pos < self.layer_order.len() - 1 {
+                let layer_id = self.layer_order.remove(pos);
+                self.layer_order.push(layer_id);
+                // Update z-orders
+                for (idx, &layer_id) in self.layer_order.iter().enumerate() {
+                    if let Some(layer) = self.layers.get_mut(&layer_id) {
+                        layer.z_order = idx as i32;
+                    }
+                }
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Moves a layer to the bottom (back)
+    #[inline]
+    pub fn move_layer_to_bottom(&mut self, id: EntityId) -> bool {
+        if let Some(pos) = self.layer_order.iter().position(|&layer_id| layer_id == id) {
+            if pos > 0 {
+                let layer_id = self.layer_order.remove(pos);
+                self.layer_order.insert(0, layer_id);
+                // Update z-orders
+                for (idx, &layer_id) in self.layer_order.iter().enumerate() {
+                    if let Some(layer) = self.layers.get_mut(&layer_id) {
+                        layer.z_order = idx as i32;
+                    }
+                }
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Gets layers in z-order
+    #[inline]
+    pub fn get_layers_in_order(&self) -> Vec<&Layer> {
+        let mut layers: Vec<&Layer> = self.layers.values().collect();
+        layers.sort_by_key(|layer| layer.z_order);
+        layers
+    }
+
+    /// Renames a layer
+    #[inline]
+    pub fn rename_layer(&mut self, id: EntityId, name: String) -> bool {
+        if let Some(layer) = self.layers.get_mut(&id) {
+            layer.name = name;
+            true
+        } else {
+            false
+        }
+    }
 }
 
 #[cfg(test)]
@@ -423,5 +516,82 @@ mod tests {
         assert_eq!(manager.layer_count(), 0);
 
         assert!(!manager.delete_layer(id)); // Delete again should fail
+    }
+
+    #[test]
+    fn test_move_layer_up() {
+        let mut manager = LayerManager::new();
+        let id1 = manager.create_layer(C4Level::Context, "Layer 1".to_string());
+        let id2 = manager.create_layer(C4Level::Context, "Layer 2".to_string());
+
+        assert!(manager.move_layer_up(id1));
+        let layers = manager.get_layers_in_order();
+        assert_eq!(layers[0].id, id2);
+        assert_eq!(layers[1].id, id1);
+    }
+
+    #[test]
+    fn test_move_layer_down() {
+        let mut manager = LayerManager::new();
+        let id1 = manager.create_layer(C4Level::Context, "Layer 1".to_string());
+        let id2 = manager.create_layer(C4Level::Context, "Layer 2".to_string());
+
+        assert!(manager.move_layer_down(id2));
+        let layers = manager.get_layers_in_order();
+        assert_eq!(layers[0].id, id2);
+        assert_eq!(layers[1].id, id1);
+    }
+
+    #[test]
+    fn test_move_layer_to_top() {
+        let mut manager = LayerManager::new();
+        let id1 = manager.create_layer(C4Level::Context, "Layer 1".to_string());
+        let id2 = manager.create_layer(C4Level::Context, "Layer 2".to_string());
+        let id3 = manager.create_layer(C4Level::Context, "Layer 3".to_string());
+
+        assert!(manager.move_layer_to_top(id1));
+        let layers = manager.get_layers_in_order();
+        assert_eq!(layers[0].id, id2);
+        assert_eq!(layers[1].id, id3);
+        assert_eq!(layers[2].id, id1);
+    }
+
+    #[test]
+    fn test_move_layer_to_bottom() {
+        let mut manager = LayerManager::new();
+        let id1 = manager.create_layer(C4Level::Context, "Layer 1".to_string());
+        let id2 = manager.create_layer(C4Level::Context, "Layer 2".to_string());
+        let id3 = manager.create_layer(C4Level::Context, "Layer 3".to_string());
+
+        assert!(manager.move_layer_to_bottom(id3));
+        let layers = manager.get_layers_in_order();
+        assert_eq!(layers[0].id, id3);
+        assert_eq!(layers[1].id, id1);
+        assert_eq!(layers[2].id, id2);
+    }
+
+    #[test]
+    fn test_get_layers_in_order() {
+        let mut manager = LayerManager::new();
+        let id1 = manager.create_layer(C4Level::Context, "Layer 1".to_string());
+        let id2 = manager.create_layer(C4Level::Context, "Layer 2".to_string());
+        let id3 = manager.create_layer(C4Level::Context, "Layer 3".to_string());
+
+        let layers = manager.get_layers_in_order();
+        assert_eq!(layers.len(), 3);
+        assert_eq!(layers[0].id, id1);
+        assert_eq!(layers[1].id, id2);
+        assert_eq!(layers[2].id, id3);
+    }
+
+    #[test]
+    fn test_rename_layer() {
+        let mut manager = LayerManager::new();
+        let id = manager.create_layer(C4Level::Context, "Original".to_string());
+
+        assert!(manager.rename_layer(id, "Renamed".to_string()));
+        assert_eq!(manager.get_layer(id).unwrap().name, "Renamed");
+
+        assert!(!manager.rename_layer(EntityId::new(), "Should Fail".to_string()));
     }
 }
