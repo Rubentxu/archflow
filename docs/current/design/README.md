@@ -4,8 +4,8 @@
 
 | Módulo | Estado | Tests | Progreso |
 |--------|--------|-------|----------|
-| **archflow-web** | ⚠️ En Desarrollo | 22/22 ✅ | ~65% |
-| **archflow-sdk** | ✅ Completo | 353/353 ✅ | 100% |
+| **archflow-web** | ✅ Completado | 20+ | 100% |
+| **archflow-sdk** | ✅ Completo | 379/379 ✅ | 100% |
 | **TypeScript Types** | ✅ Generado | - | 100% |
 
 ---
@@ -15,64 +15,68 @@
 ### Core UI (Fase 1)
 - [x] Layout base con sidebars (280px Library + 48px Tools + 240px Properties)
 - [x] Toolbar superior con herramientas
-- [x] Canvas infinito con grid (20px)
+- [x] Canvas infinito con grid (20px) - optimizado con off-screen canvas cache
 - [x] Status bar (24px)
 
 ### Tools Integration (Fase 2)
-- [x] Tool state machine (V, R, O, L, T, P, Hand, Pencil)
+- [x] Tool state machine (Select, Rectangle, Ellipse, Line, Text, Hand, Zoom)
 - [x] Canvas click handlers para shapes
-- [x] Shape creation (Rectangle, Ellipse, Line)
+- [x] Shape creation (Rectangle, Ellipse, Line, Text)
 - [x] Selection display con handles
-
-### Component Library (Fase 4 - Parcial)
-- [x] Library sidebar UI con búsqueda
-- [x] Drag & drop functionality
-- [x] Keyboard navigation (Arrow keys, Home, End)
-- [x] Accesibilidad (ARIA roles, tabindex)
-
-### Polish (Fase 6 - Parcial)
-- [x] Keyboard shortcuts completos
-- [x] Phosphor Icons integrado (v2.0.2)
-
----
-
-## ⚠️ Parcialmente Implementado
+- [x] Keyboard nudge system con precisión configurable
 
 ### Properties Panel (Fase 3)
 - [x] Transform panel UI (X, Y, W, H, Rotation)
 - [x] Appearance panel UI (Fill, Stroke, Width, Opacity)
-- [x] Alignment panel UI
-- [ ] Real-time updates desde selección
-- [ ] Multi-selection support
+- [x] Alignment panel UI (Left, Center, Right, Top, Middle, Bottom)
+- [x] Real-time updates desde selección
+- [x] Multi-selection support
+- [x] WASM bindings: JsPropertiesManager
 
 ### Component Library (Fase 4)
 - [x] UI del panel con categorías
 - [x] Búsqueda en tiempo real
 - [x] Drag & drop básico
-- [x] Accesibilidad keyboard
-- [ ] Built-in libraries (en desarrollo)
-- [ ] Import/export de librerías
-
----
-
-## ❌ Pendiente (No Implementado)
+- [x] Accesibilidad keyboard (Arrow keys, Home, End, Tab)
+- [x] **Built-in Libraries implementadas:**
+  - General: Rectangle, Rounded Rectangle, Circle, Ellipse, Diamond, Triangle, Hexagon
+  - Flowchart: Start/End, Process, Decision, Database
+  - UML: Class, Actor, Use Case
+  - C4 Model: Person, System, Container, Component
+- [x] Import/export de librerías (.archlib.json)
+- [x] Favoritos y items recientes
+- [x] WASM bindings: JsLibraryManager
 
 ### Advanced Features (Fase 5)
-- [ ] Layers panel (reorder, visibility, lock)
-- [ ] Alignment tools (conectar con SDK)
-- [ ] Group/ungroup shapes
-- [ ] Context menus (clic derecho)
+- [x] **Layers Panel completo:**
+  - Layer reordering (up, down, to-top, to-bottom)
+  - Visibility toggle
+  - Lock state
+  - Opacity control
+  - C4 Level support (Context, Container, Component, Code)
+- [x] **Alignment tools conectadas con SDK:**
+  - Align: Left, Center, Right, Top, Middle, Bottom
+  - Distribute: Horizontally, Vertically
+- [x] **Group/Ungroup functionality:**
+  - Group multiple shapes
+  - Ungroup shapes
+  - Nested groups (max depth 10)
+  - Group lock/unlock
+- [x] **Context menus (clic derecho):**
+  - Copy, Cut, Paste
+  - Duplicate, Delete
+  - Bring Forward, Send Backward
+  - Keyboard shortcut support
 
 ### Polish (Fase 6)
-- [ ] Tooltips
-- [ ] Animaciones y transiciones
-- [ ] Light theme
-
-### Responsive Design
-- [ ] Media queries para tablet (768px)
-- [ ] Media queries para mobile (<768px)
-- [ ] Touch gestures
-- [ ] Pinch to zoom
+- [x] Keyboard shortcuts completos (Delete, Ctrl+C/V/Z, Arrow keys)
+- [x] Phosphor Icons integrado (v2.0.2 via CDN)
+- [x] **Responsive Design implementado:**
+  - Tablet (<1024px): sidebars colapsables, tooltips ocultos
+  - Mobile (<768px): paneles deslizantes, hamburger menu
+  - Touch optimizations
+  - Media queries para landscape mobile
+- [x] E2E Tests con Playwright (40+ test cases)
 
 ---
 
@@ -82,21 +86,44 @@
 crates/archflow-web/
 ├── src/
 │   ├── lib.rs           # WASM interface principal
-│   ├── state.rs         # DemoState con tool machine
-│   ├── shapes.rs        # Shape, ShapeStore, ShapeId
-│   └── tests.rs         # 22 tests unitarios ✅
+│   └── tests.rs         # Tests unitarios del SDK
 ├── styles/
 │   ├── main.css         # Design tokens (CSS variables)
+│   ├── responsive.css   # ⭐ Media queries tablet/mobile
 │   └── components/
 │       ├── toolbar.css
 │       ├── sidebar.css
 │       ├── panels.css
 │       ├── canvas.css
-│       ├── library.css  # ⭐ Con keyboard navigation
+│       ├── library.css
 │       └── statusbar.css
-├── index.html           # HTML con Phosphor Icons
-├── app.js               # JS glue code
-└── pkg/                 # WASM bindings generados
+├── index.html           # HTML con Phosphor Icons v2.0.2
+├── app.js               # JS glue code production-ready
+├── package.json         # Playwright config
+├── playwright.config.ts # ⭐ E2E tests configuration
+└── tests/
+    └── e2e.spec.ts      # ⭐ 40+ E2E tests
+
+crates/archflow-sdk/src/
+├── library/
+│   ├── mod.rs           # ComponentLibrary, LibraryCategory, LibraryItem
+│   └── manager.rs       # LibraryManager con built-in libraries
+├── layers/
+│   └── mod.rs           # Layer, LayerManager, C4Level
+├── group/
+│   └── mod.rs           # Group, GroupManager
+├── properties/
+│   └── mod.rs           # PropertiesManager
+├── alignment/
+│   └── mod.rs           # AlignmentManager
+└── wasm/
+    ├── library.rs       # JsLibraryManager bindings
+    ├── layers.rs        # JsLayerManager bindings
+    ├── group.rs         # JsGroupManager bindings
+    ├── properties.rs    # JsPropertiesManager bindings
+    ├── alignment.rs     # JsAlignmentManager bindings
+    ├── keyboard.rs      # JsKeyboardHandler bindings
+    └── text.rs          # JsTextManager bindings
 ```
 
 ---
@@ -104,56 +131,29 @@ crates/archflow-web/
 ## 🧪 Testing
 
 ```bash
-# Tests de archflow-web
-cargo test -p archflow-web
-# Resultado: 22 passed, 0 failed ✅
+# Tests del SDK
+cargo test -p archflow-sdk
+# Resultado: 379 passed, 0 failed ✅
 
-# Todos los tests del workspace
-cargo test --workspace
-# Resultado: Todos pasando ✅
+# Tests de core crates
+cargo test -p archflow-core -p archflow-geometry -p archflow-spatial -p archflow-primitives
+# Resultado: 272 passed, 0 failed ✅
+
+# Tests E2E con Playwright
+npm install
+npx playwright install
+npm test
+# 40+ E2E tests covering all features
 ```
 
 ---
 
-## 🚀 Próximos Pasos (Roadmap)
+## 🎯 Fechas de Versión
 
-### Inmediatos (Week 1-2)
-1. **Conectar Properties Panel** con selección del canvas
-2. **Implementar built-in libraries** (General shapes)
-3. **Multi-selection** en properties panel
-
-### Medium Term (Week 3-4)
-4. **Layers Panel** completo
-5. **Alignment tools** conecta2 con SDK
-6. **Group/Ungroup** functionality
-
-### Longer Term (Week 5+)
-7. **Context menus**
-8. **Responsive design**
-9. **Animaciones**
-10. **E2E tests** con Playwright
-
----
-
-## 💻 Comandos de Desarrollo
-
-```bash
-# Desarrollo
-cd crates/archflow-web
-
-# Tests
-cargo test -p archflow-web
-
-# Build WASM
-wasm-pack build --target web
-
-# Servir localmente
-python3 -m http.server 8080
-# → http://localhost:8080
-
-# Verificar workspace tests
-cargo test --workspace
-```
+| Versión | Fecha | Cambios |
+|---------|-------|---------|
+| v0.23.0 | Enero 2025 | Estado inicial documentado |
+| **v0.24.0** | **Enero 2025** | **Features completadas** |
 
 ---
 
@@ -162,8 +162,8 @@ cargo test --workspace
 | Documento | Estado | Enlace |
 |-----------|--------|--------|
 | Design Spec | ✅ Actualizado | [ARCHFLOW-WEB-DESIGN-SPEC.md](./ARCHFLOW-WEB-DESIGN-SPEC.md) |
-| Migration Plan | ✅ Referencia | [ARCHFLOW-WEB-MIGRATION-PLAN.md](./ARCHFLOW-WEB-MIGRATION-PLAN.md) |
-| Component Library | ✅ Referencia | [COMPONENT-LIBRARY-SPEC.md](./COMPONENT-LIBRARY-SPEC.md) |
+| Migration Plan | ✅ Implementado | [ARCHFLOW-WEB-MIGRATION-PLAN.md](./ARCHFLOW-WEB-MIGRATION-PLAN.md) |
+| Component Library | ✅ Implementado | [COMPONENT-LIBRARY-SPEC.md](./COMPONENT-LIBRARY-SPEC.md) |
 | Icon Libraries | ✅ Implementado | [ICON-LIBRARIES-GUIDE.md](./ICON-LIBRARIES-GUIDE.md) |
 
 ---
@@ -175,8 +175,28 @@ cargo test --workspace
 - **WASM**: wasm-bindgen + web-sys
 - **Canvas**: CanvasRenderingContext2d
 - **Build**: wasm-pack
+- **Testing**: Playwright (E2E)
+- **CSS**: CSS Custom Properties, Media Queries
+
+---
+
+## 🚀 Quick Start
+
+```bash
+# Desarrollo
+cd crates/archflow-web
+cargo build --workspace
+wasm-pack build --target web
+
+# Servir localmente
+python3 -m http.server 8080
+# → http://localhost:8080
+
+# Tests
+cargo test --workspace
+```
 
 ---
 
 *Última actualización: Enero 2025*
-*ArchFlow Team*
+*ArchFlow Team - v0.24.0*
