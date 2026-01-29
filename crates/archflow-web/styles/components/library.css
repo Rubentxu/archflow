@@ -1,0 +1,294 @@
+/**
+ * Component Library Panel Styles
+ */
+
+/* Library Panel Container */
+#library-panel {
+    display: flex;
+    flex-direction: column;
+    width: var(--library-panel-width);
+    background-color: var(--color-bg-sidebar);
+    border-right: 1px solid var(--color-border-divider);
+    z-index: var(--z-ui);
+}
+
+/* Search Bar */
+.library-search {
+    padding: var(--space-3);
+    border-bottom: 1px solid var(--color-border-divider);
+}
+
+.library-search-input {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.library-search-input input {
+    width: 100%;
+    height: 32px;
+    padding: 0 var(--space-3) 0 var(--space-8);
+    background-color: var(--color-bg-input);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-md);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-sm);
+    outline: none;
+    transition: border-color var(--transition-fast);
+}
+
+.library-search-input input:focus {
+    border-color: var(--color-border-focus);
+}
+
+.library-search-input input::placeholder {
+    color: var(--color-text-muted);
+}
+
+.library-search-icon {
+    position: absolute;
+    left: var(--space-2);
+    font-size: var(--font-size-md);
+    color: var(--color-text-muted);
+    pointer-events: none;
+}
+
+.library-search-actions {
+    position: absolute;
+    right: var(--space-2);
+    display: flex;
+    gap: var(--space-1);
+}
+
+.library-search-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background-color: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    transition: all var(--transition-fast);
+}
+
+.library-search-btn:hover {
+    background-color: var(--color-bg-hover);
+    color: var(--color-text-primary);
+}
+
+/* Library Categories Container */
+.library-categories {
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* Library Category */
+.library-category {
+    border-bottom: 1px solid var(--color-border-divider);
+}
+
+.library-category:last-child {
+    border-bottom: none;
+}
+
+/* Category Header */
+.category-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-2) var(--space-3);
+    background-color: var(--color-bg-toolbar);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.category-header:hover {
+    background-color: var(--color-bg-hover);
+}
+
+.category-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.category-icon {
+    font-size: var(--font-size-md);
+}
+
+.category-toggle {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    transition: transform var(--transition-fast);
+}
+
+.category-toggle.collapsed {
+    transform: rotate(-90deg);
+}
+
+/* Category Content */
+.category-content {
+    padding: var(--space-3);
+}
+
+.category-content.collapsed {
+    display: none;
+}
+
+/* Component Grid */
+.component-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-2);
+}
+
+/* Component Item */
+.component-item {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    padding: var(--space-2);
+    background-color: var(--color-bg-panel);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-md);
+    cursor: grab;
+    transition: all var(--transition-fast);
+}
+
+.component-item:hover,
+.component-item:focus-visible {
+    background-color: var(--color-bg-hover);
+    border-color: var(--color-primary);
+}
+
+.component-item:active {
+    cursor: grabbing;
+}
+
+.component-item.focused {
+    background-color: var(--color-bg-hover);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+.component-item.dragging {
+    opacity: 0.5;
+}
+
+.component-preview {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+.component-preview svg {
+    width: 32px;
+    height: 32px;
+}
+
+.component-preview .icon {
+    font-size: 28px;
+    line-height: 1;
+}
+
+.component-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* Library Footer */
+.library-footer {
+    padding: var(--space-3);
+    border-top: 1px solid var(--color-border-divider);
+}
+
+/* Import Button */
+.import-library-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    width: 100%;
+    height: 32px;
+    background-color: transparent;
+    border: 1px dashed var(--color-border-default);
+    border-radius: var(--radius-md);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.import-library-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background-color: rgba(0, 102, 204, 0.1);
+}
+
+/* No Results State */
+.library-no-results {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-8) var(--space-4);
+    color: var(--color-text-muted);
+    text-align: center;
+}
+
+.library-no-results-icon {
+    font-size: var(--font-size-3xl);
+    margin-bottom: var(--space-2);
+}
+
+.library-no-results-text {
+    font-size: var(--font-size-sm);
+}
+
+/* Recent Items Section */
+.library-recent {
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid var(--color-border-divider);
+}
+
+.library-recent-title {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: var(--space-2);
+}
+
+/* Favorites Section */
+.library-favorites {
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid var(--color-border-divider);
+}
+
+.library-favorites-title {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: var(--space-2);
+}

@@ -49,12 +49,12 @@ pub mod transform_result;
 
 pub use multi_transform::{CanvasAdapter, EntityTransform, MultiTransform, MultiTransformResult};
 pub use resize_operation::{
-    CompletedState, DraggingState, IdleState, MIN_HANDLE_SIZE, ResizeConfig, ResizeOperation,
-    ResizeResult,
+    CompletedState, DraggingState, IdleState, ResizeConfig, ResizeOperation, ResizeResult,
+    MIN_HANDLE_SIZE,
 };
 pub use rotation_operation::{
-    CompletedRotationState, DEFAULT_SNAP_INCREMENT, DraggingRotationState, IdleRotationState,
-    RotationAngle, RotationConfig, RotationOperation, RotationResult, rotate_bounds,
-    rotate_point_around_center,
+    rotate_bounds, rotate_point_around_center, CompletedRotationState, DraggingRotationState,
+    IdleRotationState, RotationAngle, RotationConfig, RotationOperation, RotationResult,
+    DEFAULT_SNAP_INCREMENT,
 };
 pub use transform_result::{TransformResult, TransformType};

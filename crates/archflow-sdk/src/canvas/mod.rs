@@ -404,7 +404,7 @@ impl ShapeProperties {
 
 /// Internal representation of property values.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-enum PropertyValue {
+pub enum PropertyValue {
     String(String),
     Number(f64),
     Boolean(bool),

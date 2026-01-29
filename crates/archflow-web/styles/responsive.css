@@ -1,0 +1,466 @@
+/**
+ * ArchFlow Web - Responsive Design
+ * Media queries for tablet and mobile devices
+ */
+
+/* ========================================
+   Responsive Breakpoints
+   ======================================== */
+
+/*
+   Mobile: < 768px
+   Tablet: 768px - 1024px
+   Desktop: > 1024px (default)
+*/
+
+/* ========================================
+   Tablet (768px - 1024px)
+   ======================================== */
+
+@media screen and (max-width: 1024px) {
+  /* Hide properties panel by default on tablet */
+  .properties-panel {
+    width: 220px;
+  }
+
+  .library-panel {
+    width: 260px;
+  }
+
+  /* Smaller toolbar buttons */
+  .toolbar-btn {
+    padding: var(--space-1);
+    min-width: 36px;
+    height: 36px;
+  }
+
+  .toolbar-btn i {
+    font-size: 16px;
+  }
+
+  .toolbar-btn .label {
+    display: none;
+  }
+
+  /* Smaller component items */
+  .component-item {
+    padding: var(--space-1) var(--space-2);
+    min-height: 40px;
+  }
+
+  .component-item .icon {
+    font-size: 18px;
+    width: 24px;
+    height: 24px;
+  }
+
+  /* Sidebar icons only */
+  .sidebar-btn .icon {
+    font-size: 18px;
+  }
+
+  .sidebar-btn .label {
+    display: none;
+  }
+
+  /* Smaller panels */
+  .panel {
+    padding: var(--space-2);
+  }
+
+  .panel-header {
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--font-size-sm);
+  }
+
+  .panel-title {
+    font-size: var(--font-size-sm);
+  }
+
+  /* Compact toolbar */
+  .toolbar {
+    height: 44px;
+    padding: var(--space-1) var(--space-2);
+  }
+
+  /* Grid size adjustment */
+  :root {
+    --grid-size: 16px;
+    --toolbar-height: 44px;
+    --library-panel-width: 260px;
+    --properties-panel-width: 220px;
+  }
+}
+
+@media screen and (max-width: 900px) {
+  /* Hide sidebar icons on smaller tablets */
+  .sidebar {
+    width: 44px;
+  }
+
+  .sidebar-btn {
+    padding: var(--space-1);
+  }
+
+  /* Stack toolbar items more tightly */
+  .toolbar-group {
+    gap: var(--space-1);
+  }
+
+  /* Smaller font sizes */
+  body {
+    font-size: var(--font-size-sm);
+  }
+
+  .panel-section-title {
+    font-size: var(--font-size-xs);
+  }
+
+  .property-label {
+    font-size: var(--font-size-xs);
+  }
+
+  .property-value {
+    font-size: var(--font-size-sm);
+  }
+
+  /* Hide tooltips */
+  [data-tooltip] {
+    position: relative;
+  }
+
+  [data-tooltip]::after {
+    display: none;
+  }
+}
+
+/* ========================================
+   Mobile (< 768px)
+   ======================================== */
+
+@media screen and (max-width: 768px) {
+  /* Full-screen canvas, hide sidebars */
+  .app-container {
+    grid-template-columns: 1fr;
+    grid-template-rows: var(--toolbar-height) 1fr var(--statusbar-height);
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .library-panel {
+    position: fixed;
+    left: 0;
+    top: var(--toolbar-height);
+    bottom: var(--statusbar-height);
+    width: 100%;
+    max-width: 320px;
+    z-index: var(--z-modal);
+    transform: translateX(-100%);
+    transition: transform var(--transition-base);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .library-panel.open {
+    transform: translateX(0);
+  }
+
+  .properties-panel {
+    position: fixed;
+    right: 0;
+    top: var(--toolbar-height);
+    bottom: var(--statusbar-height);
+    width: 100%;
+    max-width: 300px;
+    z-index: var(--z-modal);
+    transform: translateX(100%);
+    transition: transform var(--transition-base);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .properties-panel.open {
+    transform: translateX(0);
+  }
+
+  /* Mobile toolbar with hamburger menu */
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .toolbar-left,
+  .toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+  }
+
+  .toolbar-center {
+    display: none;
+  }
+
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    background: var(--color-bg-hover);
+    color: var(--color-text-primary);
+  }
+
+  .mobile-menu-btn i {
+    font-size: 20px;
+  }
+
+  /* Hide most toolbar buttons on mobile */
+  .toolbar-btn {
+    display: none;
+  }
+
+  .toolbar-btn.mobile-visible {
+    display: flex;
+  }
+
+  /* Canvas takes full space */
+  .canvas-container {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Status bar simplified */
+  .statusbar {
+    font-size: var(--font-size-xs);
+    padding: 0 var(--space-2);
+  }
+
+  .statusbar-item {
+    padding: var(--space-1);
+  }
+
+  /* Mobile context menu */
+  .context-menu {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    width: 100%;
+    max-width: 100%;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    box-shadow: var(--shadow-xl);
+    animation: slideUp var(--transition-base);
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  .context-menu-items {
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-2);
+  }
+
+  .menu-item {
+    padding: var(--space-3);
+    font-size: var(--font-size-md);
+    border-radius: var(--radius-md);
+  }
+
+  /* Mobile modal overlay */
+  .modal-overlay {
+    background: rgba(0, 0, 0, 0.8);
+  }
+
+  .modal-content {
+    width: 90%;
+    max-width: 400px;
+    margin: var(--space-4);
+  }
+
+  /* Touch-friendly adjustments */
+  .component-item {
+    min-height: 48px;
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .shape-preview {
+    width: 32px;
+    height: 32px;
+  }
+
+  /* Hide scrollbar but allow scrolling */
+  .panel-content {
+    scrollbar-width: none;
+  }
+
+  .panel-content::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Font size adjustments */
+  :root {
+    --grid-size: 12px;
+    --toolbar-height: 48px;
+    --statusbar-height: 28px;
+    --library-panel-width: 100%;
+    --properties-panel-width: 100%;
+  }
+}
+
+/* ========================================
+   Small Mobile (< 480px)
+   ======================================== */
+
+@media screen and (max-width: 480px) {
+  /* Even more compact UI */
+  .toolbar {
+    padding: var(--space-1);
+  }
+
+  .mobile-menu-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .statusbar {
+    font-size: 10px;
+  }
+
+  /* Single column library grid */
+  .component-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-2);
+  }
+
+  .component-item {
+    padding: var(--space-2);
+    text-align: center;
+  }
+
+  .component-item .icon {
+    margin: 0 auto var(--space-1);
+  }
+
+  .component-item .name {
+    font-size: var(--font-size-xs);
+  }
+}
+
+/* ========================================
+   Touch Device Optimizations
+   ======================================== */
+
+@media (hover: none) and (pointer: coarse) {
+  /* Touch-specific styles */
+  .toolbar-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .sidebar-btn {
+    min-height: 48px;
+  }
+
+  /* Larger touch targets */
+  .component-item {
+    min-height: 56px;
+  }
+
+  .menu-item {
+    min-height: 48px;
+  }
+
+  button,
+  .toolbar-btn,
+  .sidebar-btn,
+  .panel-btn {
+    cursor: default;
+  }
+
+  button:active,
+  .toolbar-btn:active,
+  .sidebar-btn:active,
+  .panel-btn:active {
+    background: var(--color-bg-active);
+  }
+
+  /* Disable hover effects that don't work on touch */
+  .component-item:hover {
+    background: var(--color-bg-hover);
+  }
+}
+
+/* ========================================
+   Landscape Mobile
+   ======================================== */
+
+@media screen and (max-height: 500px) and (orientation: landscape) {
+  .app-container {
+    grid-template-rows: var(--toolbar-height) 1fr;
+  }
+
+  .statusbar {
+    display: none;
+  }
+
+  .library-panel,
+  .properties-panel {
+    max-height: calc(100vh - var(--toolbar-height));
+    overflow-y: auto;
+  }
+}
+
+/* ========================================
+   High DPI / Retina Displays
+   ======================================== */
+
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .shape-preview {
+    shape-rendering: geometricPrecision;
+  }
+
+  .canvas {
+    image-rendering: -webkit-optimize-contrast;
+  }
+}
+
+/* ========================================
+   Print Styles
+   ======================================== */
+
+@media print {
+  .toolbar,
+  .sidebar,
+  .library-panel,
+  .properties-panel,
+  .statusbar,
+  .context-menu {
+    display: none !important;
+  }
+
+  .app-container {
+    display: block;
+  }
+
+  .canvas-container {
+    width: 100%;
+    height: auto;
+    position: relative;
+  }
+
+  .canvas {
+    position: relative;
+    width: 100%;
+    height: auto;
+  }
+}

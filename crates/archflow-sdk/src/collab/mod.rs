@@ -29,7 +29,7 @@
 //! ```
 
 use crate::canvas::{Canvas, Shape, ShapeType};
-use archflow_collab::{CRDT, SiteId, VectorClock};
+use archflow_collab::{SiteId, VectorClock, CRDT};
 use archflow_core::EntityId;
 use archflow_records::{
     DeltaManager, FractionalIndex, Record, RecordChange, RecordId, RecordStore,

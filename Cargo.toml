@@ -12,7 +12,7 @@ members = [
     "crates/archflow-records",
     "crates/archflow-collab",
     "crates/archflow-tests",
-    "crates/demo-web",
+    "crates/archflow-web",
     "crates/demo-server",
 ]
 resolver = "2"

@@ -5,12 +5,34 @@
  * The SDK exposes the high-performance Rust engine via a clean JavaScript interface.
  */
 
-// === Types ===
+// === Types from Rust (auto-generated) ===
+import type {
+  TsVec2,
+  TsColor,
+  TsEntityId,
+  TsRect,
+  TsTransform,
+  JsVec2,
+  JsColor,
+  JsRect,
+  JsSelection,
+  JsShape,
+} from '@archflow/sdk-types';
 
-export interface Vec2 {
-  x: number;
-  y: number;
-}
+// Core type wrappers
+export type { TsVec2 as Vec2, TsColor, TsEntityId, TsRect, TsTransform } from '@archflow/sdk-types';
+
+// WASM interop types
+export type {
+  JsVec2,
+  JsColor,
+  JsRect,
+  JsSelection,
+  JsShape,
+} from '@archflow/sdk-types';
+
+// Re-export Vec2 for internal use
+type Vec2 = TsVec2;
 
 export interface Viewport {
   offset: Vec2;

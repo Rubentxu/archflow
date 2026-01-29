@@ -28,11 +28,13 @@ pub mod events;
 pub mod group;
 pub mod keyboard;
 pub mod layers;
+pub mod library;
 pub mod plugin;
 pub mod properties;
 pub mod selection;
 pub mod text;
 pub mod tools;
+pub mod ts_export;
 pub mod viewport;
 #[cfg(feature = "wasm")]
 pub mod wasm;
@@ -44,6 +46,11 @@ pub use events::{
     EventStoreConfig, RecordedEvent, UndoManager,
 };
 pub use layers::{C4Level, Layer, LayerManager};
+pub use library::{
+    manager::{LibraryError, LibraryManager},
+    ComponentData, ComponentGeometry, ComponentLibrary, ComponentStyle, LibraryCategory,
+    LibraryItem, LibraryMetadata, LibraryShapeType, LibrarySource, ShapeDefinition,
+};
 pub use plugin::{
     MenuAction, MenuItem, Modifier, Plugin, PluginCapability, PluginContext, PluginError,
     PluginHost, PluginId, PluginMetadata, PluginRegistry, PluginState, PluginVersion, Shortcut,
@@ -57,33 +64,33 @@ pub use a11y::{
     A11yVerbosity, FocusableElement, FocusableType, KeyCode, KeyEvent, KeyboardShortcutHelp,
     LiveRegionType, Modifiers, NavigationDirection, NavigationMode, ShortcutInfo,
 };
+pub use alignment::{
+    AlignCommand, AlignmentAxis, AlignmentError, AlignmentManager, AlignmentResult, AlignmentType,
+    DistributeCommand, DistributionAxis, HorizontalAlign, VerticalAlign,
+};
 pub use collab::{
     CollabConfig, CollabError, CollabManager, CollabMergeResult, CollabRecord, CursorPosition,
     PresenceManager, UserInfo, UserPresence, UserSelection,
 };
 pub use commands::{
-    Command, CommandError, CommandExecutor, CommandResult, CreateRectangleCommand,
-    DeleteShapeCommand, MoveShapeCommand, AsAny,
-};
-pub use alignment::{
-    AlignCommand, AlignmentAxis, AlignmentError, AlignmentManager, AlignmentResult, AlignmentType,
-    DistributeCommand, DistributionAxis, HorizontalAlign, VerticalAlign,
-};
-pub use properties::{
-    PrimitiveValue, PropertiesManager, PropertyError, PropertyResult, PropertyType, PropertyUpdateEvent,
-    PropertyValue, ShapeProperties, UpdatePropertyCommand,
-};
-pub use text::{
-    CreateTextCommand, TextAlignment, TextEntity, TextError, TextManager, TextResult, TextStyle,
-    UpdateTextContentCommand,
+    AsAny, Command, CommandError, CommandExecutor, CommandResult, CreateRectangleCommand,
+    DeleteShapeCommand, MoveShapeCommand,
 };
 pub use group::{
-    Group, GroupBounds, GroupCommand, GroupError, GroupManager, GroupResult, MAX_GROUP_DEPTH,
-    ShapeTransform, UngroupCommand,
+    Group, GroupBounds, GroupCommand, GroupError, GroupManager, GroupResult, ShapeTransform,
+    UngroupCommand, MAX_GROUP_DEPTH,
 };
 pub use keyboard::{
     AutoRepeatConfig, CanvasNudgeExt, KeyboardNudgeSystem, NudgeCommand, NudgeDirection,
     PrecisionLevel,
+};
+pub use properties::{
+    PrimitiveValue, PropertiesManager, PropertyError, PropertyResult, PropertyType,
+    PropertyUpdateEvent, PropertyValue, ShapeProperties, UpdatePropertyCommand,
+};
+pub use text::{
+    CreateTextCommand, TextAlignment, TextEntity, TextError, TextManager, TextResult, TextStyle,
+    UpdateTextContentCommand,
 };
 pub use tools::{
     CursorType, DrawShapeType, DrawTool, EraseMode, EraseTool, MouseButton, MouseEvent,

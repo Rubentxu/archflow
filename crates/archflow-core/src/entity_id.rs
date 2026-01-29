@@ -14,6 +14,11 @@ impl EntityId {
         Self(Uuid::new_v4())
     }
 
+    /// Crear EntityId desde un string UUID
+    pub fn from_str(s: &str) -> Option<Self> {
+        Uuid::parse_str(s).ok().map(Self)
+    }
+
     /// Crear EntityId desde bytes (para deserialización)
     pub fn from_bytes(bytes: &[u8; 16]) -> Self {
         Self(Uuid::from_bytes(*bytes))

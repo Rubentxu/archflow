@@ -1,0 +1,294 @@
+/**
+ * ArchFlow Web - Main Stylesheet
+ *
+ * Design System Variables and Base Styles
+ * Based on ARCHFLOW-WEB-DESIGN-SPEC.md
+ */
+
+/* ========================================
+   CSS Custom Properties (Design Tokens)
+   ======================================== */
+
+:root {
+    /* Primary Colors (Brand) */
+    --color-primary: #0066cc;
+    --color-primary-hover: #0055aa;
+    --color-primary-light: #4d9fff;
+    --color-primary-dark: #004488;
+
+    /* Background Colors */
+    --color-bg-canvas: #1e1e1e;
+    --color-bg-sidebar: #2c2c2c;
+    --color-bg-toolbar: #252525;
+    --color-bg-panel: #2a2a2a;
+    --color-bg-hover: #3a3a3a;
+    --color-bg-active: #404040;
+    --color-bg-input: #1a1a1a;
+
+    /* Text Colors */
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #a0a0a0;
+    --color-text-muted: #666666;
+    --color-text-accent: #4d9fff;
+    --color-text-inverse: #1e1e1e;
+
+    /* Border Colors */
+    --color-border-default: #333333;
+    --color-border-focus: #4d9fff;
+    --color-border-divider: #2a2a2a;
+    --color-border-hover: #444444;
+
+    /* Functional Colors */
+    --color-success: #4caf50;
+    --color-warning: #ff9800;
+    --color-error: #f44336;
+    --color-info: #2196f3;
+
+    /* Shape Preset Colors */
+    --shape-blue: #3366cc;
+    --shape-green: #33aa66;
+    --shape-orange: #ff8800;
+    --shape-purple: #9933cc;
+    --shape-red: #cc3333;
+    --shape-yellow: #ffcc00;
+    --shape-cyan: #00ccff;
+
+    /* C4 Model Colors */
+    --c4-person: #08427b;
+    --c4-system: #1168bd;
+    --c4-container: #438dd5;
+    --c4-component: #85bbf0;
+
+    /* Typography */
+    --font-family-base:
+        "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+        Ubuntu, sans-serif;
+    --font-family-mono:
+        "JetBrains Mono", "Fira Code", Consolas, Monaco, "Courier New",
+        monospace;
+
+    /* Font Sizes */
+    --font-size-xs: 11px;
+    --font-size-sm: 12px;
+    --font-size-base: 13px;
+    --font-size-md: 14px;
+    --font-size-lg: 16px;
+    --font-size-xl: 18px;
+    --font-size-2xl: 20px;
+    --font-size-3xl: 24px;
+
+    /* Font Weights */
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+
+    /* Line Heights */
+    --line-height-tight: 1.25;
+    --line-height-normal: 1.5;
+    --line-height-relaxed: 1.75;
+
+    /* Spacing Scale (4px base) */
+    --space-0: 0;
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+    --space-12: 48px;
+
+    /* Layout Dimensions */
+    --toolbar-height: 48px;
+    --statusbar-height: 24px;
+    --library-panel-width: 280px;
+    --sidebar-width: 48px;
+    --properties-panel-width: 240px;
+
+    /* Border Radius */
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-xl: 12px;
+    --radius-full: 9999px;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.6);
+
+    /* Transitions */
+    --transition-fast: 100ms ease;
+    --transition-base: 150ms ease;
+    --transition-slow: 200ms ease;
+    --transition-bounce: 200ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    /* Z-Index Scale */
+    --z-canvas: 0;
+    --z-grid: 1;
+    --z-shapes: 10;
+    --z-selection: 20;
+    --z-ui: 100;
+    --z-toolbar: 200;
+    --z-dropdown: 300;
+    --z-popover: 400;
+    --z-modal: 500;
+    --z-toast: 600;
+
+    /* Grid */
+    --grid-size: 20px;
+    --grid-color: #2a2a2a;
+}
+
+/* ========================================
+   CSS Reset & Base Styles
+   ======================================== */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-normal);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+body {
+    font-family: var(--font-family-base);
+    font-weight: var(--font-weight-normal);
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-canvas);
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Typography Reset */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-tight);
+}
+
+p {
+    margin: 0;
+}
+
+a {
+    color: var(--color-text-accent);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+
+a:hover {
+    color: var(--color-primary-light);
+}
+
+/* Form Elements Reset */
+button {
+    font-family: inherit;
+    font-size: inherit;
+    cursor: pointer;
+    border: none;
+    background: none;
+    color: inherit;
+}
+
+input,
+textarea,
+select {
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+    background-color: var(--color-bg-input);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-sm);
+    padding: var(--space-1) var(--space-2);
+    outline: none;
+    transition: border-color var(--transition-fast);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    border-color: var(--color-border-focus);
+}
+
+input::placeholder {
+    color: var(--color-text-muted);
+}
+
+/* Scrollbar Styles */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--color-bg-panel);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--color-border-default);
+    border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-border-hover);
+}
+
+/* Selection */
+::selection {
+    background-color: var(--color-primary);
+    color: var(--color-text-primary);
+}
+
+/* Focus Visible */
+:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+/* Utility Classes */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.invisible {
+    visibility: hidden;
+}
+
+/* Import Component Styles */
+@import "./components/toolbar.css";
+@import "./components/sidebar.css";
+@import "./components/panels.css";
+@import "./components/canvas.css";
+@import "./components/library.css";
+@import "./components/statusbar.css";
+@import "./responsive.css";

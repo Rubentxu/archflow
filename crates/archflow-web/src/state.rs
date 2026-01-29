@@ -21,10 +21,6 @@ pub const ZOOM_MAX: f32 = 10.0;
 pub const ZOOM_MIN: f32 = 0.1;
 /// Default zoom step for keyboard/mouse zoom
 pub const ZOOM_STEP: f32 = 0.1;
-/// Nudge amount for arrow keys (1 pixel at 100% zoom)
-pub const NUDGE_AMOUNT: f64 = 1.0;
-/// Large nudge amount with Shift (10 pixels)
-pub const LARGE_NUDGE_AMOUNT: f64 = 10.0;
 /// Maximum number of commands in undo history
 pub const MAX_UNDO_HISTORY: usize = 100;
 

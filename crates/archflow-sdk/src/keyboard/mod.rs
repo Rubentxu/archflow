@@ -10,11 +10,12 @@ use crate::canvas::{Canvas, ShapeChanges};
 use crate::commands::{Command, CommandError, CommandResult};
 use crate::selection::SelectionDelta;
 use archflow_core::{EntityId, Vec2};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 /// Precision level for keyboard nudge operations
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum PrecisionLevel {
     /// Normal precision: 1px per nudge
     Normal,
@@ -42,7 +43,7 @@ impl Default for PrecisionLevel {
 }
 
 /// Direction for nudge operations
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum NudgeDirection {
     /// Move up (negative Y)
     Up,
@@ -240,7 +241,7 @@ pub struct KeyboardNudgeSystem {
 }
 
 /// Configuration for auto-repeat behavior
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AutoRepeatConfig {
     /// Initial delay before auto-repeat starts
     pub initial_delay: Duration,

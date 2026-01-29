@@ -1,0 +1,128 @@
+/**
+ * Status Bar Component Styles
+ */
+
+/* Status Bar Container */
+#statusbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--statusbar-height);
+  padding: 0 var(--space-4);
+  background-color: var(--color-bg-toolbar);
+  border-top: 1px solid var(--color-border-divider);
+  z-index: var(--z-toolbar);
+}
+
+/* Status Sections */
+.status-section {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* Status Items */
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.status-label {
+  color: var(--color-text-muted);
+}
+
+.status-value {
+  color: var(--color-text-secondary);
+  font-family: var(--font-family-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Status Buttons */
+.status-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 20px;
+  padding: 0 var(--space-2);
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.status-btn:hover {
+  background-color: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.status-btn.active {
+  background-color: var(--color-primary);
+  color: var(--color-text-primary);
+}
+
+/* Status Indicators */
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--color-success);
+}
+
+.status-indicator.warning {
+  background-color: var(--color-warning);
+}
+
+.status-indicator.error {
+  background-color: var(--color-error);
+}
+
+/* Separator */
+.status-separator {
+  width: 1px;
+  height: 16px;
+  background-color: var(--color-border-divider);
+}
+
+/* Zoom Controls in Status Bar */
+.status-zoom {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.status-zoom-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background-color: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.status-zoom-btn:hover {
+  background-color: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .status-section {
+    gap: var(--space-2);
+  }
+  
+  .status-item {
+    font-size: var(--font-size-xs);
+  }
+}

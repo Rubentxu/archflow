@@ -2335,13 +2335,11 @@ mod tests {
         assert!(result.handled);
         assert_eq!(manager.navigation_mode(), NavigationMode::Normal);
         assert!(result.announcement.is_some());
-        assert!(
-            result
-                .announcement
-                .unwrap()
-                .text
-                .contains("Exited read mode")
-        );
+        assert!(result
+            .announcement
+            .unwrap()
+            .text
+            .contains("Exited read mode"));
     }
 
     #[test]
@@ -2412,13 +2410,11 @@ mod tests {
         let result_home = manager.handle_key_event(event_home);
         assert!(result_home.handled);
         assert!(result_home.announcement.is_some());
-        assert!(
-            result_home
-                .announcement
-                .unwrap()
-                .text
-                .contains("First Shape")
-        );
+        assert!(result_home
+            .announcement
+            .unwrap()
+            .text
+            .contains("First Shape"));
 
         // End key should read last element
         let event_end = KeyEvent {
@@ -2431,13 +2427,11 @@ mod tests {
         let result_end = manager.handle_key_event(event_end);
         assert!(result_end.handled);
         assert!(result_end.announcement.is_some());
-        assert!(
-            result_end
-                .announcement
-                .unwrap()
-                .text
-                .contains("Third Shape")
-        );
+        assert!(result_end
+            .announcement
+            .unwrap()
+            .text
+            .contains("Third Shape"));
 
         // Focus should still be at index 1
         assert_eq!(manager.focus_index, Some(1));
@@ -2481,13 +2475,11 @@ mod tests {
         };
 
         let result_left = manager.handle_key_event(event_left);
-        assert!(
-            result_left
-                .announcement
-                .unwrap()
-                .text
-                .contains("Left Shape")
-        );
+        assert!(result_left
+            .announcement
+            .unwrap()
+            .text
+            .contains("Left Shape"));
 
         // Right arrow should read next
         let event_right = KeyEvent {
@@ -2498,13 +2490,11 @@ mod tests {
         };
 
         let result_right = manager.handle_key_event(event_right);
-        assert!(
-            result_right
-                .announcement
-                .unwrap()
-                .text
-                .contains("Right Shape")
-        );
+        assert!(result_right
+            .announcement
+            .unwrap()
+            .text
+            .contains("Right Shape"));
     }
 
     #[test]
