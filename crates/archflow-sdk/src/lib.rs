@@ -24,6 +24,7 @@ pub mod canvas;
 pub mod collab;
 pub mod commands;
 pub mod events;
+pub mod keyboard;
 pub mod layers;
 pub mod plugin;
 pub mod selection;
@@ -58,7 +59,11 @@ pub use collab::{
 };
 pub use commands::{
     Command, CommandError, CommandExecutor, CommandResult, CreateRectangleCommand,
-    DeleteShapeCommand, MoveShapeCommand,
+    DeleteShapeCommand, MoveShapeCommand, AsAny,
+};
+pub use keyboard::{
+    AutoRepeatConfig, CanvasNudgeExt, KeyboardNudgeSystem, NudgeCommand, NudgeDirection,
+    PrecisionLevel,
 };
 pub use tools::{
     CursorType, DrawShapeType, DrawTool, EraseMode, EraseTool, MouseButton, MouseEvent,

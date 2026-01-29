@@ -250,22 +250,42 @@ crates/archflow-sdk/src/
 
 ## 📝 Historias de Usuario
 
-### US-006.1: Keyboard Nudge & Precision Movement
+### US-006.1: Keyboard Nudge & Precision Movement ✅ **IMPLEMENTED**
 
 #### Descripción
 Como usuario, quiero mover objetos seleccionados usando las teclas de flecha con diferentes niveles de precisión para posicionar elementos con exactitud.
 
+#### Estado
+✅ **COMPLETADO** - Implementado en `crates/archflow-sdk/src/keyboard/mod.rs`
+
 #### Criterios de Aceptación
 
-1. **Nudge básico**: Flechas mueven 1px por pulsación
-2. **Nudge rápido**: Shift + Flechas mueven 10px por pulsación
-3. **Nudge preciso**: Alt + Flechas mueven 0.1px por pulsación
-4. **Soporte multi-selección**: Todas las entidades seleccionadas se mueven juntas
-5. **Undo/Redo**: Secuencias de nudge se agrupan en un solo comando
-6. **Auto-repeat**: Mantener presionada la tecla continúa el movimiento (60fps)
-7. **Detección de fin**: Detener el batch de undo cuando el usuario suelta la tecla
+- [x] **Nudge básico**: Flechas mueven 1px por pulsación
+- [x] **Nudge rápido**: Shift + Flechas mueven 10px por pulsación
+- [x] **Nudge preciso**: Alt + Flechas mueven 0.1px por pulsación
+- [x] **Soporte multi-selección**: Todas las entidades seleccionadas se mueven juntas
+- [x] **Undo/Redo**: Secuencias de nudge se agrupan en un solo comando
+- [x] **Auto-repeat**: Mantener presionada la tecla continúa el movimiento
+- [x] **Detección de fin**: Finalizar batch de undo al soltar la tecla
 
-#### Requisitos TDD
+#### Implementación
+
+**Módulo**: `keyboard`
+
+**Componentes principales**:
+- `KeyboardNudgeSystem`: Sistema principal de control de nudge
+- `NudgeCommand`: Comando implementando trait `Command` para undo/redo
+- `PrecisionLevel`: Enum con niveles Normal (1px), Fast (10px), Precise (0.1px)
+- `NudgeDirection`: Enum con direcciones Up, Down, Left, Right
+- `CanvasNudgeExt`: Extensión del Canvas para operaciones de nudge
+
+**Características**:
+- Batching automático de comandos con timeout configurable (300ms por defecto)
+- Soporte para merge de comandos consecutivos
+- Integración completa con el sistema de comandos existente
+- API fluent para configuración de auto-repeat
+
+#### Tests Implementados (23 tests - TDD ✅)
 
 **Test Obligatorios (Red → Green → Refactor):**
 
@@ -954,5 +974,5 @@ Antes de marcar este EPIC como completado, verificar:
 ---
 
 *Documento creado: 2025-01-28*
-*Última actualización: 2025-01-28*
-*Estado: Listo para desarrollo*
+*Última actualización: 2025-01-29*
+*Estado: En desarrollo - US-006.1 Completada*

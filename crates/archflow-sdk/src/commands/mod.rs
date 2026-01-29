@@ -48,7 +48,7 @@ pub enum CommandError {
 }
 
 /// Trait for commands that can be executed and undone.
-pub trait Command: fmt::Debug + Send + Sync {
+pub trait Command: fmt::Debug + Send + Sync + AsAny {
     /// Executes the command.
     fn execute(&mut self, canvas: &mut Canvas) -> CommandResult<Option<SelectionDelta>>;
 
@@ -62,6 +62,18 @@ pub trait Command: fmt::Debug + Send + Sync {
     /// Returns true if merge was successful.
     fn merge(&mut self, _other: &dyn Command) -> bool {
         false
+    }
+}
+
+/// Trait for downcasting Command trait objects
+pub trait AsAny {
+    /// Returns the command as a trait object
+    fn as_any(&self) -> &dyn std::any::Any;
+}
+
+impl<T: Command + 'static> AsAny for T {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
     }
 }
 
