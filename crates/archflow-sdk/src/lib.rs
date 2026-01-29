@@ -19,6 +19,7 @@
 #![warn(missing_docs, rust_2018_idioms)]
 
 pub mod a11y;
+pub mod alignment;
 pub mod background;
 pub mod canvas;
 pub mod collab;
@@ -61,6 +62,10 @@ pub use collab::{
 pub use commands::{
     Command, CommandError, CommandExecutor, CommandResult, CreateRectangleCommand,
     DeleteShapeCommand, MoveShapeCommand, AsAny,
+};
+pub use alignment::{
+    AlignCommand, AlignmentAxis, AlignmentError, AlignmentManager, AlignmentResult, AlignmentType,
+    DistributeCommand, DistributionAxis, HorizontalAlign, VerticalAlign,
 };
 pub use group::{
     Group, GroupBounds, GroupCommand, GroupError, GroupManager, GroupResult, MAX_GROUP_DEPTH,

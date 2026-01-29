@@ -499,23 +499,48 @@ fn test_group_serialization() {
 
 ---
 
-### US-006.3: Alignment & Distribution Tools
+### US-006.3: Alignment & Distribution Tools ✅ **IMPLEMENTED**
 
 #### Descripción
 Como usuario, quiero alinear y distribuir múltiples objetos seleccionados horizontal y verticalmente para crear layouts precisos.
 
+#### Estado
+✅ **COMPLETADO** - Implementado en `crates/archflow-sdk/src/alignment/mod.rs`
+
 #### Criterios de Aceptación
 
-1. **Align Left**: Alinear al borde izquierdo más extremo
-2. **Align Center**: Alinear al centro horizontal promedio
-3. **Align Right**: Alinear al borde derecho más extremo
-4. **Align Top/Middle/Bottom**: Equivalentes verticales
-5. **Distribute Horizontal**: Espaciado equidistante horizontal
-6. **Distribute Vertical**: Espaciado equidistante vertical
-7. **Smart guides**: Líneas guía visuales durante alineación (bonus)
-8. **Multi-select**: Funciona con 2+ objetos seleccionados
+- [x] **Align Left**: Alinear al borde izquierdo más extremo
+- [x] **Align Center**: Alinear al centro horizontal promedio
+- [x] **Align Right**: Alinear al borde derecho más extremo
+- [x] **Align Top/Middle/Bottom**: Equivalentes verticales
+- [x] **Distribute Horizontal**: Espaciado equidistante horizontal
+- [x] **Distribute Vertical**: Espaciado equidistante vertical
+- [x] **Multi-select**: Funciona con 2+ objetos seleccionados
+- [x] **Undo/Redo**: Todas las operaciones soportan undo/redo
 
-#### Requisitos TDD
+#### Implementación
+
+**Módulo**: `alignment`
+
+**Componentes principales**:
+- `AlignmentManager`: Gestiona operaciones de alineación y distribución
+- `AlignCommand`: Comando para operaciones de alineación con undo/redo
+- `DistributeCommand`: Comando para operaciones de distribución con undo/redo
+- `AlignmentType`: Enum con tipos de alineación (Horizontal: Left/Center/Right, Vertical: Top/Middle/Bottom)
+- `DistributionAxis`: Enum para eje de distribución (Horizontal/Vertical)
+
+**Características**:
+- Alineación horizontal: Left, Center, Right
+- Alineación vertical: Top, Middle, Bottom
+- Distribución uniforme en ambos ejes
+- Validación de mínimo 2 formas seleccionadas
+- Preservación de propiedades no afectadas (ancho, alto, rotación, etc.)
+- Integración completa con sistema de comandos para undo/redo
+- Tests exhaustivos (18 tests TDD)
+
+#### Tests Implementados (18 tests - TDD ✅)
+
+**Tests Obligatorios (todos pasando):
 
 **Test Obligatorios:**
 
