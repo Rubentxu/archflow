@@ -31,6 +31,7 @@ pub mod layers;
 pub mod plugin;
 pub mod properties;
 pub mod selection;
+pub mod text;
 pub mod tools;
 pub mod viewport;
 #[cfg(feature = "wasm")]
@@ -71,6 +72,10 @@ pub use alignment::{
 pub use properties::{
     PrimitiveValue, PropertiesManager, PropertyError, PropertyResult, PropertyType, PropertyUpdateEvent,
     PropertyValue, ShapeProperties, UpdatePropertyCommand,
+};
+pub use text::{
+    CreateTextCommand, TextAlignment, TextEntity, TextError, TextManager, TextResult, TextStyle,
+    UpdateTextContentCommand,
 };
 pub use group::{
     Group, GroupBounds, GroupCommand, GroupError, GroupManager, GroupResult, MAX_GROUP_DEPTH,

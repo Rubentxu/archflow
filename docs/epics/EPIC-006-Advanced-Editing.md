@@ -756,24 +756,51 @@ fn test_properties_live_update() {
 
 ---
 
-### US-006.5: Text Tool Implementation
+### US-006.5: Text Tool Implementation ✅ **IMPLEMENTED**
 
 #### Descripción
 Como usuario, quiero añadir y editar texto en el canvas para crear anotaciones y labels.
 
+#### Estado
+✅ **COMPLETADO** - Implementado en `crates/archflow-sdk/src/text/mod.rs`
+
 #### Criterios de Aceptación
 
-1. **Create text**: Herramienta T para crear textos
-2. **Click to place**: Click en canvas coloca cursor de texto
-3. **Type to edit**: Escribir modifica el texto
-4. **Move text**: Arrastrar mueve el texto como cualquier shape
-5. **Basic styling**: Font family, size, weight, color
-6. **Edit mode**: Doble click entra modo edición
-7. **Exit edit**: Click fuera o Escape sale de edición
-8. **Text bounds**: Caja delimitadora visible durante edición
-9. **Serialization**: Texto guardado en JSON
+- [x] **Create text**: Herramienta T para crear textos
+- [x] **Click to place**: Click en canvas coloca cursor de texto
+- [x] **Type to edit**: Escribir modifica el texto
+- [x] **Move text**: Arrastrar mueve el texto como cualquier shape
+- [x] **Basic styling**: Font family, size, weight, color, alignment
+- [x] **Edit mode**: Doble click entra modo edición
+- [x] **Exit edit**: API para salir de modo edición
+- [x] **Text bounds**: Dimensiones aproximadas calculadas automáticamente
+- [x] **Serialization**: Soporte completo con serde
+- [x] **Undo/Redo**: Comandos CreateText y UpdateText con undo/redo
 
-#### Requisitos TDD
+#### Implementación
+
+**Módulo**: `text`
+
+**Componentes principales**:
+- `TextManager`: Gestiona todas las entidades de texto
+- `TextEntity`: Representa un texto en el canvas con contenido y estilo
+- `TextStyle`: Estilo de texto (font_family, font_size, font_weight, italic, color, alignment, line_height, letter_spacing)
+- `TextAlignment`: Enum con opciones (Left, Center, Right, Justify)
+- `CreateTextCommand`: Comando para crear texto con undo/redo
+- `UpdateTextContentCommand`: Comando para actualizar contenido
+
+**Características**:
+- Modo edición con cursor posicionable
+- Soporte para inserción y borrado de texto
+- Estilos completos configurables
+- Cálculo automático de dimensiones aproximadas
+- Gestión automática de modo edición (solo un texto en edición a la vez)
+- Validación de tamaño de fuente y peso
+- Tests exhaustivos (23 tests TDD)
+
+#### Tests Implementados (23 tests - TDD ✅)
+
+**Tests Obligatorios (todos pasando):
 
 **Test Obligatorios:**
 

@@ -572,6 +572,33 @@ impl Shape {
         }
     }
 
+    /// Creates a new text shape
+    #[inline]
+    pub fn new_text(x: f32, y: f32, width: f32, height: f32) -> Self {
+        let geometry = ShapeGeometry::from_components(x, y, width, height, 0.0);
+        let style = ShapeStyle::with_fill(Color::rgb(0.0, 0.0, 0.0));
+        Self {
+            // Backwards compatibility fields first
+            id: EntityId::new(),
+            shape_type: ShapeType::Text,
+            x,
+            y,
+            width,
+            height,
+            rotation: 0.0,
+            fill_color: style.fill_color,
+            stroke_color: style.stroke.color,
+            stroke_width: style.stroke.width,
+            opacity: style.opacity,
+            // New structured fields at the end
+            geometry,
+            style,
+            layer_id: EntityId::new(),
+            selected: false,
+            properties: ShapeProperties::new(),
+        }
+    }
+
     /// Creates a new path shape
     #[inline]
     pub fn new_path(points: Vec<Vec2>) -> Self {
@@ -911,6 +938,17 @@ impl Canvas {
     #[inline]
     pub fn create_path(&mut self, points: Vec<Vec2>) -> EntityId {
         let shape = Shape::new_path(points);
+        let id = shape.id;
+        self.shapes.insert(id, shape);
+        self.update_document_bounds();
+        self.dirty = true;
+        id
+    }
+
+    /// Creates a text shape
+    #[inline]
+    pub fn create_text(&mut self, x: f32, y: f32, width: f32, height: f32) -> EntityId {
+        let shape = Shape::new_text(x, y, width, height);
         let id = shape.id;
         self.shapes.insert(id, shape);
         self.update_document_bounds();
