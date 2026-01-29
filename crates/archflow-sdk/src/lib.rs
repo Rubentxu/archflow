@@ -29,6 +29,7 @@ pub mod group;
 pub mod keyboard;
 pub mod layers;
 pub mod plugin;
+pub mod properties;
 pub mod selection;
 pub mod tools;
 pub mod viewport;
@@ -66,6 +67,10 @@ pub use commands::{
 pub use alignment::{
     AlignCommand, AlignmentAxis, AlignmentError, AlignmentManager, AlignmentResult, AlignmentType,
     DistributeCommand, DistributionAxis, HorizontalAlign, VerticalAlign,
+};
+pub use properties::{
+    PrimitiveValue, PropertiesManager, PropertyError, PropertyResult, PropertyType, PropertyUpdateEvent,
+    PropertyValue, ShapeProperties, UpdatePropertyCommand,
 };
 pub use group::{
     Group, GroupBounds, GroupCommand, GroupError, GroupManager, GroupResult, MAX_GROUP_DEPTH,
