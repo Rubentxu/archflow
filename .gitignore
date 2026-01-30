@@ -79,4 +79,5 @@ Cargo.lock
 # Analysis data (keep in repo if needed)
 # repo-analysis/
 # docs/current/ (Keep documentation updated in repo)
-# docs/old/
+docs/
+.vite
