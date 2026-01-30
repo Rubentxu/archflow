@@ -19,5 +19,9 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@phosphor-icons/core": "^2.1.1",
+    "@phosphor-icons/web": "^2.1.2"
+  }
 }

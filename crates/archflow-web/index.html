@@ -1,362 +1,411 @@
 <!doctype html>
 <html lang="en">
-  <head>
+
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="ArchFlow - Professional diagramming tool with infinite canvas and C4 Model support" />
+    <meta name="description"
+        content="ArchFlow - Professional diagramming tool with infinite canvas and C4 Model support" />
     <title>ArchFlow - Professional Diagramming</title>
-    
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    
+
     <!-- Styles -->
-    <link rel="stylesheet" href="./styles/main.css" />
-    
+    <link rel="stylesheet" href="/styles/main.css" />
+
     <!-- Icons -->
-    <script src="https://unpkg.com/@phosphor-icons/core@2.0.2/script.js"></script>
-  </head>
-  <body>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+
+<body>
     <!-- Main Application Container -->
     <div id="app">
-      <!-- Toolbar -->
-      <header id="toolbar" role="banner">
-        <!-- Logo Section -->
-        <div class="toolbar-section logo">
-          <span class="logo-icon" aria-hidden="true">🎨</span>
-          <span class="logo-text">ArchFlow</span>
-        </div>
-        
-        <!-- Tools Section -->
-        <div class="toolbar-section tools">
-          <button class="tool-btn active" data-tool="select" title="Select (V)" aria-label="Select tool">
-            <i class="ph ph-cursor" aria-hidden="true"></i>
-            <span class="label">Select</span>
-          </button>
-          <button class="tool-btn" data-tool="rect" title="Rectangle (R)" aria-label="Rectangle tool">
-            <i class="ph ph-square" aria-hidden="true"></i>
-            <span class="label">Rect</span>
-          </button>
-          <button class="tool-btn" data-tool="ellipse" title="Ellipse (O)" aria-label="Ellipse tool">
-            <i class="ph ph-circle" aria-hidden="true"></i>
-            <span class="label">Ellipse</span>
-          </button>
-          <button class="tool-btn" data-tool="line" title="Line (L)" aria-label="Line tool">
-            <i class="ph ph-line-segment" aria-hidden="true"></i>
-            <span class="label">Line</span>
-          </button>
-          <button class="tool-btn" data-tool="text" title="Text (T)" aria-label="Text tool">
-            <i class="ph ph-text-t" aria-hidden="true"></i>
-            <span class="label">Text</span>
-          </button>
-        </div>
-        
-        <!-- Actions Section -->
-        <div class="toolbar-section actions">
-          <button class="icon-btn" id="btn-undo" title="Undo (Ctrl+Z)" aria-label="Undo">
-            <i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i>
-          </button>
-          <button class="icon-btn" id="btn-redo" title="Redo (Ctrl+Y)" aria-label="Redo">
-            <i class="ph ph-arrow-clockwise" aria-hidden="true"></i>
-          </button>
-          <div class="toolbar-separator" aria-hidden="true"></div>
-          <button class="icon-btn" id="btn-clear" title="Clear Canvas" aria-label="Clear canvas">
-            <i class="ph ph-trash" aria-hidden="true"></i>
-          </button>
-        </div>
-        
-        <div class="toolbar-spacer" aria-hidden="true"></div>
-        
-        <!-- Zoom Section -->
-        <div class="toolbar-section zoom">
-          <button class="icon-btn" id="zoom-out" title="Zoom Out" aria-label="Zoom out">
-            <i class="ph ph-minus" aria-hidden="true"></i>
-          </button>
-          <span class="zoom-level" id="zoom-level" aria-live="polite">100%</span>
-          <button class="icon-btn" id="zoom-in" title="Zoom In" aria-label="Zoom in">
-            <i class="ph ph-plus" aria-hidden="true"></i>
-          </button>
-          <button class="tool-btn" id="zoom-fit" title="Fit to Screen">
-            <span class="label">Fit</span>
-          </button>
-        </div>
-      </header>
-      
-      <!-- Library Panel (Component Library) -->
-      <aside id="library-panel" aria-label="Component Library">
-        <!-- Search -->
-        <div class="library-search">
-          <div class="library-search-input">
-            <i class="ph ph-magnifying-glass library-search-icon" aria-hidden="true"></i>
-            <input 
-              type="text" 
-              id="library-search-input" 
-              placeholder="Search components..." 
-              aria-label="Search components"
-            />
-            <div class="library-search-actions">
-              <button class="library-search-btn" id="library-settings" title="Library Settings" aria-label="Library settings">
-                <i class="ph ph-gear" aria-hidden="true"></i>
-              </button>
+        <!-- Header / Top Bar -->
+        <header id="header" role="banner">
+            <div class="header-left">
+                <div class="workspace-tabs">
+                    <div class="tab active">
+                        <i class="ph ph-file-dashed"></i>
+                        <span>Untitled Diagram</span>
+                    </div>
+                    <button class="tab-add"><i class="ph ph-plus"></i></button>
+                </div>
+                <div class="header-separator"></div>
+                <nav class="breadcrumbs">
+                    <a href="#">Projects</a>
+                    <span class="breadcrumb-separator">/</span>
+                    <span class="breadcrumb-current">Untitled Diagram</span>
+                </nav>
             </div>
-          </div>
+
+            <div class="header-right">
+                <nav class="main-menu">
+                    <a href="#">File</a>
+                    <a href="#">Edit</a>
+                    <a href="#">View</a>
+                    <a href="#">Help</a>
+                </nav>
+                <div class="user-section">
+                    <div class="avatar-group">
+                        <img src="https://ui-avatars.com/api/?name=User+1&background=random" alt="User 1"
+                            class="avatar" />
+                        <img src="https://ui-avatars.com/api/?name=User+2&background=random" alt="User 2"
+                            class="avatar" />
+                        <div class="avatar-more">+3</div>
+                    </div>
+                    <button class="deploy-btn">
+                        <i class="ph ph-rocket-launch"></i>
+                        Deploy
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Floating Tool Palette -->
+        <div id="floating-tools">
+            <div class="tool-palette">
+                <button class="tool-btn active" data-tool="select" title="Select (V)">
+                    <i class="ph-fill ph-cursor"></i>
+                </button>
+                <button class="tool-btn" data-tool="hand" title="Pan (Space)">
+                    <i class="ph-fill ph-hand-palm"></i>
+                </button>
+                <div class="tool-separator"></div>
+                <button class="tool-btn" data-tool="rect" title="Rectangle (R)">
+                    <i class="ph-fill ph-square-half"></i>
+                </button>
+                <button class="tool-btn" data-tool="text" title="Text (T)">
+                    <i class="ph-bold ph-text-t"></i>
+                </button>
+                <button class="tool-btn" data-tool="line" title="Connection (C)">
+                    <i class="ph-fill ph-graph"></i>
+                </button>
+                <div class="tool-separator"></div>
+                <button class="simulate-btn" id="btn-simulate">
+                    <span class="simulate-icon-wrapper">
+                        <i class="ph-fill ph-play"></i>
+                    </span>
+                    SIMULATE
+                </button>
+            </div>
         </div>
-        
-        <!-- Categories -->
-        <div class="library-categories" id="library-categories">
-          <!-- Categories will be populated dynamically -->
-        </div>
-        
-        <!-- Footer -->
-        <div class="library-footer">
-          <button class="import-library-btn" id="import-library" title="Import Custom Library">
-            <i class="ph ph-plus" aria-hidden="true"></i>
-            <span>Import Library</span>
-          </button>
-        </div>
-      </aside>
-      
-      <!-- Sidebar (Tool Palette + Layers) -->
-      <aside id="sidebar" aria-label="Tools and Layers">
-        <!-- Tool Palette -->
-        <div class="tool-palette">
-          <button class="tool-icon active" data-tool="select" title="Select (V)" aria-label="Select tool">
-            <i class="ph ph-cursor" aria-hidden="true"></i>
-          </button>
-          <button class="tool-icon" data-tool="rect" title="Rectangle (R)" aria-label="Rectangle tool">
-            <i class="ph ph-square" aria-hidden="true"></i>
-          </button>
-          <button class="tool-icon" data-tool="ellipse" title="Ellipse (O)" aria-label="Ellipse tool">
-            <i class="ph ph-circle" aria-hidden="true"></i>
-          </button>
-          <button class="tool-icon" data-tool="line" title="Line (L)" aria-label="Line tool">
-            <i class="ph ph-line-segment" aria-hidden="true"></i>
-          </button>
-          <button class="tool-icon" data-tool="text" title="Text (T)" aria-label="Text tool">
-            <i class="ph ph-text-t" aria-hidden="true"></i>
-          </button>
-          <button class="tool-icon" data-tool="pencil" title="Pencil (P)" aria-label="Pencil tool">
-            <i class="ph ph-pencil-simple" aria-hidden="true"></i>
-          </button>
-          
-          <div class="sidebar-separator" aria-hidden="true"></div>
-          
-          <button class="tool-icon" data-tool="hand" title="Pan (Space)" aria-label="Pan tool">
-            <i class="ph ph-hand-grabbing" aria-hidden="true"></i>
-          </button>
-        </div>
-        
-        <!-- Layers Panel -->
-        <div id="layers-panel">
-          <div class="panel-header">
-            <span class="panel-header-title">Layers</span>
-            <button class="icon-btn" id="btn-add-layer" title="Add Layer" aria-label="Add layer">
-              <i class="ph ph-plus" aria-hidden="true"></i>
+
+
+
+        <!-- Component Library Sidebar (Left) -->
+        <aside id="library-panel" aria-label="Component Library">
+            <div class="library-search">
+                <div class="search-input-wrapper">
+                    <i class="ph ph-magnifying-glass"></i>
+                    <input type="text" id="library-search-input" placeholder="Search resources..."
+                        aria-label="Search" />
+                    <span class="search-shortcut">⌘K</span>
+                </div>
+            </div>
+            <div class="library-categories" id="library-categories">
+                <div class="category open" data-category="compute">
+                    <div class="category-header">
+                        <i class="ph ph-caret-down"></i>
+                        <span class="category-title">Compute</span>
+                        <span class="category-count">12</span>
+                    </div>
+                    <div class="category-items">
+                        <div class="library-item" data-type="ec2" draggable="true">
+                            <i class="ph-fill ph-server aws-compute"></i>
+                            <span>EC2</span>
+                        </div>
+                        <div class="library-item" data-type="lambda" draggable="true">
+                            <i class="ph ph-lightning aws-compute"></i>
+                            <span>Lambda</span>
+                        </div>
+                        <div class="library-item" data-type="eks" draggable="true">
+                            <i class="ph-fill ph-hexagon aws-compute"></i>
+                            <span>EKS</span>
+                        </div>
+                        <div class="library-item" data-type="lightsail" draggable="true">
+                            <i class="ph ph-lamp-base aws-compute"></i>
+                            <span>Lightsail</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="category" data-category="database">
+                    <div class="category-header">
+                        <i class="ph ph-caret-right"></i>
+                        <span class="category-title">Database</span>
+                        <span class="category-count">8</span>
+                    </div>
+                </div>
+                <div class="category" data-category="storage">
+                    <div class="category-header">
+                        <i class="ph ph-caret-right"></i>
+                        <span class="category-title">Storage</span>
+                        <span class="category-count">5</span>
+                    </div>
+                </div>
+                <div class="category" data-category="networking">
+                    <div class="category-header">
+                        <i class="ph ph-caret-right"></i>
+                        <span class="category-title">Networking</span>
+                        <span class="category-count">14</span>
+                    </div>
+                </div>
+                <!-- Sidebar Toggle -->
+                <button id="toggle-sidebar" class="panel-toggle-btn" title="Toggle Library">
+                    <i class="ph-bold ph-caret-left"></i>
+                </button>
+        </aside>
+
+        <!-- Canvas Area -->
+        <main id="canvas-area" role="main" aria-label="Canvas">
+            <canvas id="canvas" aria-label="Drawing canvas"></canvas>
+
+            <!-- Zoom Controls (Bottom Left of Canvas) -->
+            <div id="canvas-zoom-controls">
+                <button id="zoom-in" title="Zoom In"><i class="ph ph-plus"></i></button>
+                <button id="zoom-out" title="Zoom Out"><i class="ph ph-minus"></i></button>
+                <div id="zoom-level">100%</div>
+            </div>
+        </main>
+
+        <!-- Properties Panel -->
+        <aside id="properties" aria-label="Properties">
+            <!-- Properties Toggle -->
+            <button id="toggle-properties" class="panel-toggle-btn" title="Toggle Properties">
+                <i class="ph-bold ph-caret-right"></i>
             </button>
-          </div>
-          <div class="panel-content" id="layers-list">
-            <!-- Layers will be populated dynamically -->
-          </div>
-        </div>
-      </aside>
-      
-      <!-- Canvas Area -->
-      <main id="canvas-area" role="main" aria-label="Canvas">
-        <canvas id="canvas" aria-label="Drawing canvas"></canvas>
-        <div id="cursors-overlay" aria-hidden="true"></div>
-        <div id="selection-overlay" aria-hidden="true"></div>
-      </main>
-      
-      <!-- Properties Panel -->
-      <aside id="properties" aria-label="Properties">
-        <!-- Transform Section -->
-        <div class="panel-section" id="transform-panel">
-          <div class="section-header" role="button" tabindex="0" aria-expanded="true">
-            <span class="section-title">Transform</span>
-            <i class="ph ph-caret-down section-toggle" aria-hidden="true"></i>
-          </div>
-          <div class="section-content">
-            <div class="field-row">
-              <label class="field-label">X</label>
-              <div class="field-input">
-                <input type="number" id="prop-x" value="0" step="1" aria-label="X position" />
-              </div>
-              <label class="field-label">Y</label>
-              <div class="field-input">
-                <input type="number" id="prop-y" value="0" step="1" aria-label="Y position" />
-              </div>
+            <!-- Transform Section -->
+            <div class="panel-section" id="transform-panel">
+                <div class="section-header">
+                    <span class="section-title">
+                        <i class="ph ph-bounding-box" style="color: var(--color-text-muted);"></i>
+                        Transform
+                    </span>
+                    <i class="ph ph-caret-down section-toggle"></i>
+                </div>
+                <div class="section-content">
+                    <div class="field-row">
+                        <label class="field-label">X</label>
+                        <div class="field-input">
+                            <input type="number" id="prop-x" value="0" />
+                        </div>
+                        <label class="field-label">Y</label>
+                        <div class="field-input">
+                            <input type="number" id="prop-y" value="0" />
+                        </div>
+                    </div>
+                    <div class="field-row">
+                        <label class="field-label">W</label>
+                        <div class="field-input">
+                            <input type="number" id="prop-width" value="100" />
+                        </div>
+                        <label class="field-label">H</label>
+                        <div class="field-input">
+                            <input type="number" id="prop-height" value="100" />
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="field-row">
-              <label class="field-label">W</label>
-              <div class="field-input">
-                <input type="number" id="prop-width" value="100" step="1" aria-label="Width" />
-              </div>
-              <label class="field-label">H</label>
-              <div class="field-input">
-                <input type="number" id="prop-height" value="100" step="1" aria-label="Height" />
-              </div>
+
+            <!-- Appearance Section -->
+            <div class="panel-section" id="appearance-panel">
+                <div class="section-header">
+                    <span class="section-title">
+                        <i class="ph ph-palette" style="color: var(--color-text-muted);"></i>
+                        Appearance
+                    </span>
+                    <i class="ph ph-caret-down section-toggle"></i>
+                </div>
+                <div class="section-content">
+                    <div class="field-row">
+                        <label class="field-label">Fill</label>
+                        <div class="color-picker">
+                            <div class="color-preview" id="prop-fill-preview" style="background: #3366cc"></div>
+                            <span class="color-value" id="prop-fill-value">#3366cc</span>
+                        </div>
+                    </div>
+                    <div class="field-row">
+                        <label class="field-label">Stroke</label>
+                        <div class="color-picker">
+                            <div class="color-preview" id="prop-stroke-preview" style="background: #cccccc"></div>
+                            <span class="color-value" id="prop-stroke-value">#cccccc</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="field-row">
-              <label class="field-label">Rotation</label>
-              <div class="field-input">
-                <input type="number" id="prop-rotation" value="0" step="1" aria-label="Rotation" />
-              </div>
-              <span>°</span>
+
+            <!-- AWS Properties Section -->
+            <div class="panel-section" id="aws-properties" class="hidden">
+                <div class="section-header">
+                    <span class="section-title">PROPERTIES</span>
+                    <button class="section-action-btn"><i class="ph ph-dots-three"></i></button>
+                </div>
+                <div class="section-content">
+                    <div class="aws-property">
+                        <div class="property-header">
+                            <div class="property-icon">
+                                <i class="ph ph-server"></i>
+                            </div>
+                            <div class="property-info">
+                                <h3 id="aws-resource-name">High-Mem Instance</h3>
+                                <p id="aws-instance-type">r6g.xlarge</p>
+                            </div>
+                        </div>
+                        <div class="property-details">
+                            <div class="property-row">
+                                <label class="property-label">Instance Type</label>
+                                <select class="aws-property-select" id="aws-instance-type-select">
+                                    <option>r6g.xlarge</option>
+                                    <option>r6g.2xlarge</option>
+                                    <option>r6g.4xlarge</option>
+                                    <option>r6g.8xlarge</option>
+                                </select>
+                            </div>
+                            <div class="property-row">
+                                <label class="property-label">Region</label>
+                                <select class="aws-property-select" id="aws-region-select">
+                                    <option>us-east-1 (N. Virginia)</option>
+                                    <option>us-west-1 (N. California)</option>
+                                    <option>eu-west-1 (Ireland)</option>
+                                    <option>ap-southeast-1 (Singapore)</option>
+                                </select>
+                            </div>
+                            <div class="property-row">
+                                <label class="property-label">Tags</label>
+                                <div id="aws-tags">
+                                    <span class="tag">env:prod</span>
+                                    <button class="tag-remove">✕</button>
+                                    <button class="tag-add">+ Add Tag</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <label class="checkbox-field">
-              <input type="checkbox" id="prop-lock-aspect" aria-label="Lock aspect ratio" />
-              <span class="checkbox-label">Lock aspect ratio</span>
-            </label>
-          </div>
-        </div>
-        
-        <!-- Appearance Section -->
-        <div class="panel-section" id="appearance-panel">
-          <div class="section-header" role="button" tabindex="0" aria-expanded="true">
-            <span class="section-title">Appearance</span>
-            <i class="ph ph-caret-down section-toggle" aria-hidden="true"></i>
-          </div>
-          <div class="section-content">
-            <div class="field-row">
-              <label class="field-label">Fill</label>
-              <div class="color-picker">
-                <div class="color-preview" id="prop-fill-preview" style="background-color: #3366cc;" role="button" tabindex="0" aria-label="Select fill color"></div>
-                <span class="color-value" id="prop-fill-value">#3366cc</span>
-              </div>
+
+            <!-- Motion & Particles Section -->
+            <div class="panel-section" id="motion-panel">
+                <div class="section-header">
+                    <span class="section-title">
+                        <i class="ph-fill ph-waves" style="color: #0ea5e9;"></i>
+                        Motion & Particles
+                    </span>
+                    <span class="status-indicator">
+                        <span class="status-text" style="font-size: 10px; color: var(--color-text-muted);">LIVE</span>
+                        <span class="status-dot" style="background-color: #0ea5e9;"></span>
+                    </span>
+                </div>
+                <div class="section-content">
+                    <div class="motion-control">
+                        <div class="status-indicator">
+                            <span class="status-dot"></span>
+                            <span class="status-text">LIVE</span>
+                        </div>
+                        <div class="slider-control">
+                            <label>Throughput Speed</label>
+                            <div class="slider-container">
+                                <input type="range" class="aws-property-input" id="throughput-slider" min="0" max="1000"
+                                    value="500" />
+                                <span id="throughput-value">500 req/s</span>
+                            </div>
+                        </div>
+                        <div class="slider-control">
+                            <label>Packet Size</label>
+                            <div class="slider-container">
+                                <input type="range" class="aws-property-input" id="packet-size-slider" min="1" max="100"
+                                    value="24" />
+                                <span id="packet-size-value">24kb</span>
+                            </div>
+                        </div>
+                        <div class="flow-controls">
+                            <div class="flow-color">
+                                <label>FLOW COLOR</label>
+                                <div class="color-options">
+                                    <div class="color-option active" style="background-color: #0099CC;"></div>
+                                    <div class="color-option" style="background-color: #FF9900;"></div>
+                                    <div class="color-option" style="background-color: #00CC66;"></div>
+                                    <div class="color-option" style="background-color: #CC66CC;"></div>
+                                </div>
+                            </div>
+                            <div class="effect-style">
+                                <label>EFFECT STYLE</label>
+                                <select class="aws-property-select" id="effect-style-select">
+                                    <option>Pulse</option>
+                                    <option>Wave</option>
+                                    <option>Spiral</option>
+                                    <option>Random</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="field-row">
-              <label class="field-label">Stroke</label>
-              <div class="color-picker">
-                <div class="color-preview" id="prop-stroke-preview" style="background-color: #ffffff;" role="button" tabindex="0" aria-label="Select stroke color"></div>
-                <span class="color-value" id="prop-stroke-value">#ffffff</span>
-              </div>
+
+            <!-- Alignment Section -->
+            <div class="panel-section" id="alignment-panel">
+                <div class="section-header">
+                    <span class="section-title">
+                        <i class="ph ph-align-center-horizontal" style="color: var(--color-text-muted);"></i>
+                        Align
+                    </span>
+                    <i class="ph ph-caret-down section-toggle"></i>
+                </div>
+                <div class="section-content">
+                    <div class="alignment-grid">
+                        <button class="align-btn" title="Align Left">
+                            <i class="ph ph-align-left"></i>
+                        </button>
+                        <button class="align-btn" title="Center">
+                            <i class="ph ph-align-center-horizontal"></i>
+                        </button>
+                        <button class="align-btn" title="Align Right">
+                            <i class="ph ph-align-right"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
-            <div class="field-row slider-field">
-              <label class="field-label">Width</label>
-              <input type="range" id="prop-stroke-width" min="0" max="10" value="1" aria-label="Stroke width" />
-              <span class="slider-value" id="stroke-width-value">1px</span>
+        </aside>
+
+        <!-- Status Bar -->
+        <footer id="statusbar" role="contentinfo">
+            <div class="status-left">
+                <div class="connection-status">
+                    <span class="status-dot online"></span>
+                    <span class="status-text">AWS Connected</span>
+                    <span class="status-version">v2.4.0</span>
+                </div>
             </div>
-            <div class="field-row slider-field">
-              <label class="field-label">Opacity</label>
-              <input type="range" id="prop-opacity" min="0" max="100" value="100" aria-label="Opacity" />
-              <span class="slider-value" id="opacity-value">100%</span>
+            <div class="status-right">
+                <div id="status-position">0, 0</div>
+                <div class="status-divider"></div>
+                <button class="status-btn active" id="toggle-grid">Grid</button>
+                <button class="status-btn active" id="toggle-snap">Snap</button>
             </div>
-          </div>
-        </div>
-        
-        <!-- Alignment Section -->
-        <div class="panel-section" id="alignment-panel">
-          <div class="section-header" role="button" tabindex="0" aria-expanded="true">
-            <span class="section-title">Align</span>
-            <i class="ph ph-caret-down section-toggle" aria-hidden="true"></i>
-          </div>
-          <div class="section-content">
-            <div class="alignment-grid">
-              <button class="align-btn" data-align="left" title="Align Left" aria-label="Align left">
-                <i class="ph ph-align-left" aria-hidden="true"></i>
-              </button>
-              <button class="align-btn" data-align="center-h" title="Center Horizontally" aria-label="Center horizontally">
-                <i class="ph ph-align-center-horizontal" aria-hidden="true"></i>
-              </button>
-              <button class="align-btn" data-align="right" title="Align Right" aria-label="Align right">
-                <i class="ph ph-align-right" aria-hidden="true"></i>
-              </button>
-              <button class="align-btn" data-align="top" title="Align Top" aria-label="Align top">
-                <i class="ph ph-align-top" aria-hidden="true"></i>
-              </button>
-              <button class="align-btn" data-align="center-v" title="Center Vertically" aria-label="Center vertically">
-                <i class="ph ph-align-center-vertical" aria-hidden="true"></i>
-              </button>
-              <button class="align-btn" data-align="bottom" title="Align Bottom" aria-label="Align bottom">
-                <i class="ph ph-align-bottom" aria-hidden="true"></i>
-              </button>
-            </div>
-            <div class="action-row">
-              <button class="action-btn" id="btn-distribute-h" title="Distribute Horizontally">
-                <i class="ph ph-arrows-horizontal" aria-hidden="true"></i>
-                Distribute H
-              </button>
-              <button class="action-btn" id="btn-distribute-v" title="Distribute Vertically">
-                <i class="ph ph-arrows-vertical" aria-hidden="true"></i>
-                Distribute V
-              </button>
-            </div>
-          </div>
-        </div>
-      </aside>
-      
-      <!-- Status Bar -->
-      <footer id="statusbar" role="contentinfo">
-        <div class="status-section">
-          <span class="status-item">
-            <span class="status-label">Shapes:</span>
-            <span class="status-value" id="status-shape-count">0</span>
-          </span>
-          <span class="status-item">
-            <span class="status-label">Selected:</span>
-            <span class="status-value" id="status-selected-count">0</span>
-          </span>
-        </div>
-        
-        <div class="status-section">
-          <span class="status-item">
-            <span class="status-label">Pos:</span>
-            <span class="status-value" id="status-position">0, 0</span>
-          </span>
-          <span class="status-item">
-            <span class="status-label">Zoom:</span>
-            <span class="status-value" id="status-zoom">100%</span>
-          </span>
-        </div>
-        
-        <div class="status-section">
-          <button class="status-btn active" id="toggle-grid" title="Toggle Grid" aria-pressed="true">
-            Grid: ON
-          </button>
-          <button class="status-btn active" id="toggle-snap" title="Toggle Snap" aria-pressed="true">
-            Snap: ON
-          </button>
-        </div>
-      </footer>
-    </div>
-    
-    <!-- Context Menu (Hidden by default) -->
-    <div id="context-menu" class="hidden" role="menu" aria-hidden="true">
-      <div class="menu-item" role="menuitem" data-action="copy">
-        <span>Copy</span>
-        <span class="menu-shortcut">Ctrl+C</span>
-      </div>
-      <div class="menu-item" role="menuitem" data-action="cut">
-        <span>Cut</span>
-        <span class="menu-shortcut">Ctrl+X</span>
-      </div>
-      <div class="menu-item" role="menuitem" data-action="paste">
-        <span>Paste</span>
-        <span class="menu-shortcut">Ctrl+V</span>
-      </div>
-      <div class="menu-separator" role="separator"></div>
-      <div class="menu-item" role="menuitem" data-action="duplicate">
-        <span>Duplicate</span>
-        <span class="menu-shortcut">Ctrl+D</span>
-      </div>
-      <div class="menu-separator" role="separator"></div>
-      <div class="menu-item" role="menuitem" data-action="delete">
-        <span>Delete</span>
-        <span class="menu-shortcut">Del</span>
-      </div>
-      <div class="menu-separator" role="separator"></div>
-      <div class="menu-item" role="menuitem" data-action="bring-forward">
-        <span>Bring Forward</span>
-        <span class="menu-shortcut">]</span>
-      </div>
-      <div class="menu-item" role="menuitem" data-action="send-backward">
-        <span>Send Backward</span>
-        <span class="menu-shortcut">[</span>
-      </div>
+        </footer>
     </div>
 
-    <!-- Application Scripts -->
+    <!-- Context Menu -->
+    <div id="context-menu" class="hidden" role="menu">
+        <div class="menu-item" data-action="copy">
+            <span>Copy</span>
+            <span class="menu-shortcut">Ctrl+C</span>
+        </div>
+        <div class="menu-item" data-action="paste">
+            <span>Paste</span>
+            <span class="menu-shortcut">Ctrl+V</span>
+        </div>
+        <div class="menu-separator"></div>
+        <div class="menu-item" data-action="delete">
+            <span>Delete</span>
+            <span class="menu-shortcut">Del</span>
+        </div>
+    </div>
+
+    <!-- Application Script (Module) -->
     <script type="module" src="./app.js"></script>
-  </body>
+</body>
+
 </html>
