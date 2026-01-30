@@ -131,7 +131,7 @@ La cuarta responsabilidad es la **integración con frameworks UI**: proporcionar
 │  ┌─────────────────────────┬────────────────────────────────────┐  │
 │  │   archflow-records      │    archflow-ecs-hybrid            │  │
 │  │   (Store, ChangeSet)    │    (Animations + Layers)          │  │
-│  │                         │    OPCIONAL via feature flag      │  │
+│  │                         │       │  │
 │  └─────────────────────────┴────────────────────────────────────┘  │
 │                                                                    │
 │  ┌─────────────────────────┬────────────────────────────────────┐  │
