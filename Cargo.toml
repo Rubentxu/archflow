@@ -1,6 +1,12 @@
 [workspace]
 members = [
     "crates/archflow-core",
+    "crates/canvas",
+    "crates/a11y",
+    "crates/editing",
+    "crates/collab-new",
+    "crates/render",
+    # Legacy crates (to be deprecated)
     "crates/archflow-ecs-hybrid",
     "crates/archflow-geometry",
     "crates/archflow-primitives",
