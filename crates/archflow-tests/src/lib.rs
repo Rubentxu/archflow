@@ -3,7 +3,10 @@
 //! This crate contains end-to-end tests that verify the complete
 //! workflow across all ArchFlow components.
 
-use archflow_records::{Bounds, Record, RecordId};
+use archflow_records::{Bounds, Record, RecordId, RecordStore};
+use archflow_wasm_collab::{BinaryDeltaCodec, ShapeField, SharedBuffer};
+use std::str::FromStr;
+use std::time::Instant;
 
 // ============================================================
 // INTEGRATION TESTS

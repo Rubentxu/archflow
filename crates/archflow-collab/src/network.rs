@@ -6,6 +6,7 @@ use crate::types::SiteId;
 use archflow_records::{RecordChange, RecordId};
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use std::str::FromStr;
 
 /// Session identifier for tracking client sessions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
