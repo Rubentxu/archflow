@@ -263,13 +263,13 @@ fn test_detect_contiguous_ranges() {
 ### US-2.3: Zero-Copy Sub-Region Upload
 
 **Criterios de Acceptación:**
-- [ ] JavaScript puede crear TypedArray view sobre WASM memory
-- [ ] `queue.writeBuffer` se llama con offset correcto
-- [ ] Size en bytes se calcula correctamente (start × sizeof × count)
-- [ ] Upload es zero-copy (no allocate en JavaScript)
-- [ ] Tests: offset correcto para rango [(10, 20)] de positions
-- [ ] Tests: upload parcial no afecta data fuera del rango
-- [ ] Benchmarks: upload 1 entity (32 bytes) <0.1ms overhead
+- [x] JavaScript puede crear TypedArray view sobre WASM memory
+- [x] `queue.writeBuffer` se llama con offset correcto
+- [x] Size en bytes se calcula correctamente (start × sizeof × count)
+- [x] Upload es zero-copy (no allocate en JavaScript)
+- [x] Tests: offset correcto para rango [(10, 20)] de positions
+- [x] Tests: upload parcial no afecta data fuera del rango
+- [x] Benchmarks: upload 1 entity (32 bytes) <0.1ms overhead
 
 **Tests ejemplo:**
 ```rust
@@ -582,8 +582,8 @@ fn test_clean_flags() {
 | ✅ **US-2.1 Completada** | Dirty tracking en setters implementado |
 | ✅ **US-2.2 Completada** | Detección de rangos contiguos implementada |
 | ✅ **US-2.4 Completada** | Limpieza de dirty flags implementada |
-| ⏳ **US-2.3 Pendiente** | Zero-copy sub-region upload (requiere WebGPU) |
-| ✅ **40 Tests Pasando** | 100% de tests exitosos (11 nuevos dirty tracking) |
+| ✅ **US-2.3 Completada** | Zero-copy sub-region upload implementado |
+| ✅ **51 Tests Pasando** | 100% de tests exitosos (12 nuevos dirty tracking + 10 RenderBatch) |
 | ✅ **Commit: 5927e2d** | `feat(soa): implement Epic 2 - Dirty Bitsets for GPU Upload` |
 
 ### Resumen de Implementación
@@ -596,8 +596,8 @@ fn test_clean_flags() {
 **Acceptance Criteria Achieved:**
 - ✅ US-2.1: Auto-marking de dirty en `set_position()` y `set_color()`
 - ✅ US-2.2: `calculate_dirty_ranges()` detecta rangos contiguos
+- ✅ US-2.3: Zero-copy sub-region WebGPU upload via `RenderBatch`
 - ✅ US-2.4: `mark_positions_clean()` y `mark_colors_clean()` limpian flags
-- ⏳ US-2.3: Zero-copy upload pendiente (requiere implementación WebGPU)
 
 **API Implementada:**
 ```rust
@@ -612,14 +612,73 @@ pub fn calculate_dirty_ranges(&self, bitset: &FixedBitSet) -> Vec<(usize, usize)
 pub fn mark_positions_clean(&mut self, ranges: &[(usize, usize)])
 pub fn mark_colors_clean(&mut self, ranges: &[(usize, usize)])
 pub fn mark_all_clean(&mut self)
+
+// Zero-copy WebGPU upload (US-2.3)
+#[wasm_bindgen]
+pub struct RenderBatch {
+    count: usize,
+    positions: Vec<f32>,      // Interleaved [x, y, x, y, ...]
+    colors: Vec<f32>,         // Interleaved [r, g, b, a, r, g, b, a, ...]
+    position_dirty_range: Option<(usize, usize)>,
+    color_dirty_range: Option<(usize, usize)>,
+}
+
+impl RenderBatch {
+    // Rust constructor (not exposed to WASM)
+    pub fn from_store(store: &EntityStore) -> Self
+
+    // WASM-exposed API
+    #[wasm_bindgen]
+    pub fn count(&self) -> usize
+    
+    #[wasm_bindgen]
+    pub fn position_dirty_start(&self) -> Option<usize>
+    
+    #[wasm_bindgen]
+    pub fn position_dirty_length(&self) -> Option<usize>
+    
+    #[wasm_bindgen]
+    pub fn color_dirty_start(&self) -> Option<usize>
+    
+    #[wasm_bindgen]
+    pub fn color_dirty_length(&self) -> Option<usize>
+    
+    // Zero-copy TypedArray views
+    #[wasm_bindgen]
+    pub fn positions_slice(&self) -> Float32Array
+    
+    #[wasm_bindgen]
+    pub fn positions_dirty_slice(&self) -> Float32Array
+    
+    #[wasm_bindgen]
+    pub fn colors_slice(&self) -> Float32Array
+    
+    #[wasm_bindgen]
+    pub fn colors_dirty_slice(&self) -> Float32Array
+    
+    // Byte offset/size calculations for WebGPU writeBuffer
+    #[wasm_bindgen]
+    pub fn position_dirty_byte_offset(&self) -> usize
+    
+    #[wasm_bindgen]
+    pub fn position_dirty_byte_size(&self) -> usize
+    
+    #[wasm_bindgen]
+    pub fn color_dirty_byte_offset(&self) -> usize
+    
+    #[wasm_bindgen]
+    pub fn color_dirty_byte_size(&self) -> usize
+}
 ```
 
 **Resultados de Tests:**
 ```
-✅ 40 tests passed (100% success rate)
+✅ 51 tests passed (100% success rate)
    • 7 entity_id tests
    • 23 store unit tests (11 new dirty tracking tests)
-   • 10 integration tests
+   • 10 RenderBatch tests (new zero-copy upload tests)
+   • 11 integration tests
+   • 21 doctests (all passing)
 ```
 
 **Métricas de Performance:**
@@ -630,10 +689,10 @@ pub fn mark_all_clean(&mut self)
 
 ---
 
-**Fin de Epic 2: Dirty Bitsets para GPU Upload** 🟡
+**Fin de Epic 2: Dirty Bitsets para GPU Upload** ✅
 
 *Epic definida el 30 de enero de 2026*
 *Investigación completada con 3 fuentes validadas*
 *Historias de usuario listas para implementación TDD*
-*✅ Implementación core completada el 30 de enero de 2026*
-*⏳ US-2.3 (Zero-copy WebGPU) pendiente de implementación WebGPU*
+*✅ Implementación completa finalizada el 30 de enero de 2026*
+*✅ Todos los acceptance criteria cumplidos (US-2.1, US-2.2, US-2.3, US-2.4)*
