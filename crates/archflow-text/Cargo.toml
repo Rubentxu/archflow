@@ -1,0 +1,22 @@
+[package]
+name = "archflow-text"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+# Core dependencies
+archflow-core = { path = "../archflow-core" }
+serde = { workspace = true, features = ["derive"] }
+thiserror = { workspace = true }
+
+# Text shaping
+rustybuzz = "0.13"
+ttf-parser = "0.20"
+
+# WASM dependencies
+wasm-bindgen = { workspace = true }
+js-sys = { workspace = true }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"

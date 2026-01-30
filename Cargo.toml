@@ -7,6 +7,7 @@ members = [
     "crates/collab-new",
     "crates/render",
     "crates/soa-entity",
+    "crates/archflow-text",
     # Legacy crates (to be deprecated)
     "crates/archflow-ecs-hybrid",
     "crates/archflow-geometry",
