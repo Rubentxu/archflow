@@ -47,11 +47,11 @@ const FRAGMENTATION_THRESHOLD: f32 = 0.3; // 30%
 /// use archflow_core::Vec2;
 ///
 /// let mut store = EntityStore::new(1000);
-/// let id = store.spawn();
-/// store.set_position(id, Vec2::new(100.0, 200.0));
+/// let id = store.spawn().unwrap();
+/// store.set_position(id, Vec2::new(100.0, 200.0)).unwrap();
 ///
 /// // Check what's dirty
-/// let dirty_ranges = store.calculate_dirty_ranges(&store.dirty_positions());
+/// let dirty_ranges = store.calculate_dirty_ranges(store.dirty_positions());
 /// ```
 pub struct EntityStore {
     /// Maximum number of entities
@@ -142,6 +142,19 @@ impl EntityStore {
         self.capacity - self.count
     }
 
+    /// Returns the generation for a given index.
+    ///
+    /// This is used internally by RenderBatch to construct valid EntityIds
+    /// for accessing entity data.
+    #[inline]
+    pub(crate) fn generation_for_index(&self, index: usize) -> u32 {
+        if index < self.capacity {
+            self.generations[index]
+        } else {
+            0
+        }
+    }
+
     /// Returns the current fragmentation ratio (0.0 = compact, 1.0 = all holes).
     #[inline]
     pub fn fragmentation(&self) -> f32 {
@@ -159,10 +172,10 @@ impl EntityStore {
     /// use soa_entity::{EntityStore, EntityId};
     ///
     /// let mut store = EntityStore::new(100);
-    /// let id = store.spawn();
+    /// let id = store.spawn().unwrap();
     /// assert!(store.is_valid(id));
     ///
-    /// store.despawn(id);
+    /// store.despawn(id).unwrap();
     /// assert!(!store.is_valid(id));
     /// ```
     #[inline]
@@ -192,8 +205,8 @@ impl EntityStore {
     /// use soa_entity::EntityStore;
     ///
     /// let mut store = EntityStore::new(100);
-    /// let id1 = store.spawn();
-    /// let id2 = store.spawn();
+    /// let id1 = store.spawn().unwrap();
+    /// let id2 = store.spawn().unwrap();
     ///
     /// assert_ne!(id1, id2); // Unique IDs
     /// ```
@@ -242,7 +255,7 @@ impl EntityStore {
     /// use soa_entity::{EntityStore, EntityId};
     ///
     /// let mut store = EntityStore::new(100);
-    /// let id = store.spawn();
+    /// let id = store.spawn().unwrap();
     ///
     /// store.despawn(id).unwrap();
     /// assert!(!store.is_valid(id));
@@ -282,7 +295,7 @@ impl EntityStore {
     /// use soa_entity::EntityStore;
     ///
     /// let mut store = EntityStore::new(100);
-    /// let ids: Vec<_> = (0..50).map(|_| store.spawn()).collect();
+    /// let ids: Vec<_> = (0..50).map(|_| store.spawn().unwrap()).collect();
     ///
     /// // Create fragmentation by despawning some entities
     /// for id in ids.iter().take(25) {
@@ -291,7 +304,8 @@ impl EntityStore {
     ///
     /// store.compact();
     /// assert_eq!(store.count(), 25);
-    /// assert_eq!(store.free_slots_count(), 0);
+    /// // After compact: 25 live entities + 75 free slots = 100 capacity
+    /// assert_eq!(store.free_slots_count(), 75);
     /// ```
     pub fn compact(&mut self) {
         if self.count == 0 {
@@ -696,8 +710,8 @@ mod tests {
             .set_color(id, Color::rgba(1.0, 0.5, 0.25, 0.75))
             .unwrap();
 
-        let pos_before = store.position(id).unwrap();
-        let col_before = store.color(id).unwrap();
+        let _pos_before = store.position(id).unwrap();
+        let _col_before = store.color(id).unwrap();
 
         store.compact();
 
