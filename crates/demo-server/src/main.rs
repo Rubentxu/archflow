@@ -70,7 +70,7 @@ async fn handle_client(mut stream: TcpStream, dir: Arc<PathBuf>) {
         return;
     }
 
-    let method = parts[0];
+    let _method = parts[0];
     let path = parts[1];
 
     if let Err(e) = handle_request(&mut stream, &dir, path).await {
@@ -123,7 +123,7 @@ async fn main() -> std::io::Result<()> {
     println!("");
 
     loop {
-        let (stream, addr) = listener.accept().await?;
+        let (stream, _addr) = listener.accept().await?;
         let dir = Arc::clone(&dir);
         tokio::spawn(async move {
             handle_client(stream, dir).await;

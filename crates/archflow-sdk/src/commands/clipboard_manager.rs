@@ -1,7 +1,7 @@
 //! Clipboard Manager - Copy/Paste operations for shapes
 
 use crate::canvas::{Canvas, Shape, ShapeChanges};
-use crate::commands::{Command, CommandError, CommandResult};
+use crate::commands::{CommandError, CommandResult};
 use archflow_core::{EntityId, Vec2};
 use serde::{Deserialize, Serialize};
 

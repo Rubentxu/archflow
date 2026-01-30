@@ -2,7 +2,7 @@
 //!
 //! Provides WebAssembly bindings for text tool operations
 
-use crate::text::{TextAlignment, TextManager, TextStyle};
+use crate::text::TextManager;
 use wasm_bindgen::prelude::*;
 
 /// WASM-exposed text manager

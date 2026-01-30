@@ -2,7 +2,6 @@
 
 use crate::command::{Command, CommandError, CommandResult};
 use crate::EntityId;
-use std::collections::HashMap;
 
 /// Configuration for history manager
 #[derive(Clone, Debug)]

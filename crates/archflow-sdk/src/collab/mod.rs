@@ -28,15 +28,14 @@
 //! let pending = collab.get_pending_changes();
 //! ```
 
-use crate::canvas::{Canvas, Shape, ShapeType};
+use crate::canvas::{Shape, ShapeType};
 use archflow_collab::{SiteId, VectorClock, CRDT};
 use archflow_core::EntityId;
 use archflow_records::{
-    DeltaManager, FractionalIndex, Record, RecordChange, RecordId, RecordStore,
+    DeltaManager, FractionalIndex, Record, RecordChange, RecordId,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
 
 /// Configuration for collaboration manager
 #[derive(Clone, Debug)]
@@ -204,7 +203,7 @@ impl CollabManager {
     /// Tracks a shape update operation
     pub fn track_shape_update(
         &mut self,
-        old_shape: Shape,
+        _old_shape: Shape,
         new_shape: Shape,
     ) -> Result<(), CollabError> {
         let record = CollabRecord::from_shape(new_shape);

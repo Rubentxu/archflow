@@ -12,7 +12,7 @@ pub mod library;
 pub mod properties;
 pub mod text;
 
-use crate::background::{GridConfig, GridType};
+use crate::background::GridConfig;
 use crate::canvas::{Canvas, Shape, ShapeChanges};
 use crate::layers::C4Level;
 use archflow_core::{EntityId, Vec2};

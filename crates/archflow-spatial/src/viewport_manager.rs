@@ -39,13 +39,13 @@ impl<R> ViewportManager<R> {
         }
 
         // Insert new elements
-        for id in &changeset.created {
+        for _id in &changeset.created {
             // Note: In a real implementation, we would fetch bounds from a RecordStore
             // For now, this is a placeholder that shows the structure
         }
 
         // Insert updated elements
-        for id in &changeset.updated {
+        for _id in &changeset.updated {
             // Note: In a real implementation, we would fetch bounds from a RecordStore
             // For now, this is a placeholder that shows the structure
         }

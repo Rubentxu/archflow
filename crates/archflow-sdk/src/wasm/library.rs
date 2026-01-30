@@ -1,9 +1,9 @@
 //! WASM bindings for Component Library System
 
 use crate::library::{
-    manager::{LibraryError, LibraryManager},
-    ComponentData, ComponentGeometry, ComponentLibrary, ComponentStyle, ItemPreview,
-    LibraryCategory, LibraryItem, LibraryMetadata, LibraryShapeType, LibrarySource,
+    manager::LibraryManager,
+    ComponentData, ComponentLibrary, ItemPreview,
+    LibraryCategory, LibraryItem, LibraryShapeType,
 };
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;

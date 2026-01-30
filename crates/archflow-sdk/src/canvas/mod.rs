@@ -4,9 +4,9 @@
 //! background, and layer management for the infinite canvas.
 
 use crate::background::{BackgroundRenderer, GridConfig};
-use crate::layers::{C4Level, Layer, LayerManager};
+use crate::layers::{C4Level, LayerManager};
 use crate::viewport::{Viewport, ViewportManager};
-use archflow_core::{Color, EntityId, Rect, Transform, Vec2};
+use archflow_core::{Color, EntityId, Rect, Vec2};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

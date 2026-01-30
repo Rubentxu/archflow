@@ -4,7 +4,7 @@
 //! and supporting types for 2D batch rendering.
 
 use crate::batch_renderer::InstanceRaw;
-use glam::{Mat4, Vec2};
+use glam::Vec2;
 
 /// Typed material identifier for batch rendering.
 ///

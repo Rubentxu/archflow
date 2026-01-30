@@ -257,7 +257,7 @@ impl FractionalIndex {
     pub fn as_u64(&self) -> u64 {
         let mut result: u64 = 0;
         let bytes = self.0.as_bytes();
-        for (i, &b) in bytes.iter().enumerate().take(8) {
+        for (_i, &b) in bytes.iter().enumerate().take(8) {
             result = (result << 8) | (b as u64);
         }
         result

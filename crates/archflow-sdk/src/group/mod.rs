@@ -7,12 +7,12 @@
 //! - Serialization support
 //! - Layer ordering integration
 
-use crate::canvas::{Canvas, Shape, ShapeChanges, ShapeType};
+use crate::canvas::{Canvas, Shape};
 use crate::commands::{Command, CommandResult};
 use crate::selection::SelectionDelta;
 use archflow_core::{EntityId, Vec2};
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 /// Maximum nesting depth for groups to prevent infinite recursion
 pub const MAX_GROUP_DEPTH: u32 = 10;
@@ -520,7 +520,7 @@ impl GroupCommand {
 }
 
 impl Command for GroupCommand {
-    fn execute(&mut self, canvas: &mut Canvas) -> CommandResult<Option<SelectionDelta>> {
+    fn execute(&mut self, _canvas: &mut Canvas) -> CommandResult<Option<SelectionDelta>> {
         // This command requires a GroupManager which we don't have direct access to
         // In a real implementation, this would be handled differently
         // For now, we mark as executed and return
@@ -528,7 +528,7 @@ impl Command for GroupCommand {
         Ok(None)
     }
 
-    fn undo(&mut self, canvas: &mut Canvas) -> CommandResult<Option<SelectionDelta>> {
+    fn undo(&mut self, _canvas: &mut Canvas) -> CommandResult<Option<SelectionDelta>> {
         // Would need GroupManager access to ungroup
         self.executed = false;
         Ok(None)
@@ -562,14 +562,14 @@ impl UngroupCommand {
 }
 
 impl Command for UngroupCommand {
-    fn execute(&mut self, canvas: &mut Canvas) -> CommandResult<Option<SelectionDelta>> {
+    fn execute(&mut self, _canvas: &mut Canvas) -> CommandResult<Option<SelectionDelta>> {
         // This command requires a GroupManager which we don't have direct access to
         // In a real implementation, this would be handled differently
         self.executed = true;
         Ok(None)
     }
 
-    fn undo(&mut self, canvas: &mut Canvas) -> CommandResult<Option<SelectionDelta>> {
+    fn undo(&mut self, _canvas: &mut Canvas) -> CommandResult<Option<SelectionDelta>> {
         // Would need GroupManager access to regroup
         self.executed = false;
         Ok(None)

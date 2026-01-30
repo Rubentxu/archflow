@@ -5,7 +5,7 @@
 //! types of transforms in a uniform way.
 
 use crate::selection::transform::{
-    MultiTransformResult, ResizeResult, RotationAngle, RotationResult,
+    MultiTransformResult, ResizeResult, RotationResult,
 };
 use crate::selection::{HandleType, UnifiedBounds};
 use archflow_core::EntityId;

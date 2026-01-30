@@ -3,7 +3,7 @@
 //! This module provides the layer system for organizing shapes and
 //! supporting the C4 model (Context, Container, Component, Code).
 
-use archflow_core::{EntityId, Vec2};
+use archflow_core::EntityId;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -249,7 +249,7 @@ impl LayerManager {
     /// Shapes in the layer are not deleted, just removed from the layer.
     #[inline]
     pub fn delete_layer(&mut self, id: EntityId) -> bool {
-        if let Some(layer) = self.layers.remove(&id) {
+        if let Some(_layer) = self.layers.remove(&id) {
             self.layer_order.retain(|&layer_id| layer_id != id);
             true
         } else {

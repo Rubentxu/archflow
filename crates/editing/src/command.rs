@@ -3,7 +3,6 @@
 //! This module defines the Command trait and common commands for editing operations.
 
 use crate::EntityId;
-use serde::{Deserialize, Serialize};
 
 /// Result of executing a command
 pub type CommandResult = Result<(), CommandError>;

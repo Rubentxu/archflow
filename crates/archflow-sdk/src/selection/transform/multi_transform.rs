@@ -4,11 +4,10 @@
 //! their relative positions. Essential for group transformations.
 
 use crate::selection::transform::{
-    ResizeOperation, ResizeResult, RotationAngle, RotationOperation, RotationResult,
+    ResizeResult, RotationAngle, RotationResult,
 };
 use crate::selection::{HandleType, UnifiedBounds};
-use archflow_core::{EntityId, Rect, Vec2};
-use serde::{Deserialize, Serialize};
+use archflow_core::{EntityId, Vec2};
 use std::collections::HashMap;
 
 /// Relative transform data for an entity within a multi-entity selection

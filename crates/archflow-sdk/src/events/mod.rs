@@ -329,7 +329,7 @@ impl EventStore {
         self.current_hash = Self::calculate_hash(&event, self.current_hash);
 
         // Store the hash in metadata
-        let hash = self.current_hash;
+        let _hash = self.current_hash;
         self.events.push(event);
 
         // Trim old events if limit is set

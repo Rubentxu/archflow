@@ -9,7 +9,6 @@
 use crate::{EntityId, Primitive, Vec2};
 use archflow_core::Rect;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// Estado del drag
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -302,7 +301,7 @@ impl DragManager {
             self.previous_mouse_position = was_at; // Use last preparing position for accurate frame delta
 
             // Emitir evento de drag started si no se emitió
-            if let Some(id) = self.active_id {
+            if let Some(_id) = self.active_id {
                 // Actualizar el evento inicial con la posición correcta
                 if let Some(first_event) = self.events.first_mut() {
                     if let DragEvent::DragStarted {
@@ -386,7 +385,7 @@ impl DragManager {
             return position;
         }
 
-        let half_grid = self.snap_config.grid_size / 2.0;
+        let _half_grid = self.snap_config.grid_size / 2.0;
         let snapped_x =
             (position.x / self.snap_config.grid_size.x).round() * self.snap_config.grid_size.x;
         let snapped_y =

@@ -622,7 +622,7 @@ impl<R: Record> RecordStore<R> {
 
         // Apply the inverted change to the store
         match inverted {
-            RecordChange::Created { ref id, .. } => {
+            RecordChange::Created { id: _, .. } => {
                 // Inverse of Deleted is Created -> we're undoing a delete
                 // The record was already removed when we did the delete
                 // Do nothing
@@ -657,7 +657,7 @@ impl<R: Record> RecordStore<R> {
 
         // Apply the inverted change to the store
         match inverted {
-            RecordChange::Created { ref id, .. } => {
+            RecordChange::Created { id: _, .. } => {
                 // Inverse of Deleted is Created -> we're redoing a delete
                 // Do nothing, record was already gone
             }
@@ -730,7 +730,7 @@ impl<R: Record> RecordStore<R> {
         &'a self,
         start: Option<&'a FractionalIndex>,
         end: Option<&'a FractionalIndex>,
-    ) -> impl Iterator<Item = (&RecordId, &'a R)> + 'a {
+    ) -> impl Iterator<Item = (&'a RecordId, &'a R)> + 'a {
         self.records.iter().filter(move |(_, r)| {
             let idx = r.index();
             match (start, end, idx) {

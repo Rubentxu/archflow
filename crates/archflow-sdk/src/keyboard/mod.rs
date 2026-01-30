@@ -7,7 +7,7 @@
 //! - Multi-selection support
 
 use crate::canvas::{Canvas, ShapeChanges};
-use crate::commands::{Command, CommandError, CommandResult};
+use crate::commands::{Command, CommandResult};
 use crate::selection::SelectionDelta;
 use archflow_core::{EntityId, Vec2};
 use serde::{Deserialize, Serialize};

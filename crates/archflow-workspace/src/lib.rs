@@ -100,7 +100,7 @@ impl EventJournal {
         }
     }
 
-    fn add_event(&mut self, event: DomainEvent) {
+    fn add_event(&mut self, _event: DomainEvent) {
         // Placeholder: agrupar eventos en commits
     }
 }

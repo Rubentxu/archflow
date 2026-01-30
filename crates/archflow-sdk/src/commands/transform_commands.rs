@@ -9,7 +9,7 @@
 //!
 //! Commands support merging for continuous operations like drag-resize.
 
-use crate::canvas::{Canvas, Shape, ShapeChanges};
+use crate::canvas::{Canvas, ShapeChanges};
 use crate::commands::{Command, CommandError, CommandResult};
 use crate::selection::SelectionDelta;
 use archflow_core::{EntityId, Vec2};

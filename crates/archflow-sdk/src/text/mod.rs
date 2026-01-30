@@ -8,7 +8,7 @@
 //! - Serialization support
 //! - Integration with undo/redo system
 
-use crate::canvas::{Canvas, Shape, ShapeChanges, ShapeGeometry, ShapeStyle, ShapeType};
+use crate::canvas::Canvas;
 use crate::commands::{Command, CommandResult};
 use crate::selection::SelectionDelta;
 use archflow_core::{Color, EntityId, Vec2};
@@ -425,8 +425,8 @@ impl Command for CreateTextCommand {
         Ok(None)
     }
 
-    fn undo(&mut self, canvas: &mut Canvas) -> CommandResult<Option<SelectionDelta>> {
-        if let Some(id) = self.created_shape_id {
+    fn undo(&mut self, _canvas: &mut Canvas) -> CommandResult<Option<SelectionDelta>> {
+        if let Some(_id) = self.created_shape_id {
             // In a real implementation, we'd remove the shape from canvas
             // For now, we just mark as not executed
         }

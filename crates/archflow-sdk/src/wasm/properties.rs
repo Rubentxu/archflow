@@ -2,12 +2,8 @@
 //!
 //! Provides WebAssembly bindings for property editing
 
-use crate::canvas::ShapeChanges;
 use crate::properties::PropertiesManager;
-use archflow_core::EntityId;
-use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-use ts_rs::TS;
 use wasm_bindgen::prelude::*;
 
 /// WASM-exposed properties manager

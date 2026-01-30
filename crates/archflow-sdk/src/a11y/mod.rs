@@ -8,8 +8,6 @@
 //! - High contrast mode support
 
 use crate::canvas::Canvas;
-use crate::layers::C4Level;
-use crate::viewport::Viewport;
 use archflow_core::{EntityId, Vec2};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

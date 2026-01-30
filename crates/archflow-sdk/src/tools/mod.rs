@@ -3,12 +3,11 @@
 //! This module provides a comprehensive tools system for user interaction
 //! including selection, drawing, and erasing tools.
 
-use crate::a11y::{KeyCode, KeyEvent, Modifiers};
-use crate::canvas::{Canvas, Shape, ShapeGeometry, ShapeStyle, ShapeType};
+use crate::a11y::{KeyCode, KeyEvent};
+use crate::canvas::{Canvas, Shape, ShapeGeometry, ShapeStyle};
 use crate::plugin::{PluginContext, PluginHost, PluginResult, Tool, ToolCategory, ToolShortcut};
-use crate::selection::{SelectionDelta, SelectionManager, SelectionMode};
+use crate::selection::SelectionDelta;
 use archflow_core::{Color, EntityId, Rect, Vec2};
-use serde::{Deserialize, Serialize};
 
 /// Result type for tool operations
 pub type ToolResult<T> = Result<T, ToolError>;
@@ -355,7 +354,7 @@ impl Tool for SelectTool {
     fn on_key_down(
         &mut self,
         event: &KeyEvent,
-        host: &mut dyn PluginHost,
+        _host: &mut dyn PluginHost,
     ) -> PluginResult<Option<SelectionDelta>> {
         match event.key_code {
             KeyCode::Escape => {

@@ -13,7 +13,6 @@ use wgpu::{
 };
 
 use crate::batch_renderer::{BatchRenderer2D, InstanceRaw};
-use crate::traits::MaterialId;
 
 /// Error type for render context operations.
 #[derive(Debug, Error)]
@@ -297,7 +296,7 @@ impl RenderContext {
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
 
             // Iterate batches in deterministic order (BTreeMap guarantees sorted keys)
-            for (material_id, instances) in batches.iter_batches() {
+            for (_material_id, instances) in batches.iter_batches() {
                 if instances.is_empty() {
                     continue;
                 }

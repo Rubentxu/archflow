@@ -2,10 +2,8 @@
 //!
 //! Provides WebAssembly bindings for alignment and distribution operations
 
-use crate::alignment::AlignmentManager;
 use crate::canvas::Canvas;
 use archflow_core::EntityId;
-use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use wasm_bindgen::prelude::*;
 
@@ -25,13 +23,13 @@ impl JsAlignmentManager {
 
     /// Sets the canvas reference for alignment operations
     #[wasm_bindgen]
-    pub fn set_canvas(&mut self, canvas_ptr: usize) {
+    pub fn set_canvas(&mut self, _canvas_ptr: usize) {
         // Pointer-based canvas reference for WASM
     }
 
     /// Aligns multiple shapes to the given alignment type
     #[wasm_bindgen]
-    pub fn align(&self, shape_ids: Vec<String>, alignment_type: String) -> bool {
+    pub fn align(&self, shape_ids: Vec<String>, _alignment_type: String) -> bool {
         if shape_ids.len() < 2 {
             return false;
         }
@@ -52,7 +50,7 @@ impl JsAlignmentManager {
 
     /// Distributes shapes evenly
     #[wasm_bindgen]
-    pub fn distribute(&self, shape_ids: Vec<String>, axis: String) -> bool {
+    pub fn distribute(&self, shape_ids: Vec<String>, _axis: String) -> bool {
         if shape_ids.len() < 3 {
             return false;
         }

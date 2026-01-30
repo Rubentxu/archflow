@@ -340,7 +340,7 @@ impl IntersectionEngine {
     /// Verificar intersección entre segmentos
     fn segments_intersect(&self, seg1: kurbo::PathSeg, seg2: kurbo::PathSeg) -> bool {
         // Sampling approach - discretizar y verificar
-        let samples = 20;
+        let _samples = 20;
 
         match seg1 {
             kurbo::PathSeg::Line(line1) => {

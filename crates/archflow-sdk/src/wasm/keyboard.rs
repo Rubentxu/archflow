@@ -145,8 +145,8 @@ impl JsKeyboardHandler {
 
     /// Nudges the selection in a direction
     #[wasm_bindgen]
-    pub fn nudge(&mut self, direction: String, times: i32) {
-        let dir = match direction.as_str() {
+    pub fn nudge(&mut self, direction: String, _times: i32) {
+        let _dir = match direction.as_str() {
             "up" => NudgeDirection::Up,
             "down" => NudgeDirection::Down,
             "left" => NudgeDirection::Left,

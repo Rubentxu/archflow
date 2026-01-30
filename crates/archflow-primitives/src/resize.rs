@@ -7,10 +7,9 @@
 //! - Min/max constraints
 //! - Centrado automático durante resize
 
-use crate::{EntityId, Primitive, Vec2};
+use crate::{EntityId, Vec2};
 use archflow_core::{Rect, Transform};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// Tipo de handle de redimensionado
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

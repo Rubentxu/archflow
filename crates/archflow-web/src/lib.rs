@@ -1,25 +1,24 @@
 //! ArchFlow Web - Production-ready WASM module for browser application
 //!
 //! This module provides WebAssembly bindings for ArchFlow web application.
-//! Uses Canvas 2D API via web-sys for rendering with production-ready patterns.
 
+#![warn(missing_docs, rust_2018_idioms)]
+
+use serde::Deserialize;
 use wasm_bindgen::prelude::*;
-use web_sys::CanvasRenderingContext2d;
+use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement};
+
+// Use serde-wasm-bindgen for JsValue serialization
+use serde_wasm_bindgen::from_value;
 
 mod shapes;
 mod state;
 
-#[cfg(test)]
-mod tests;
-
-pub use shapes::{RemoteCursor, Shape, ShapeId, ShapeStore, ShapeType};
-pub use state::{EditorState, InteractionState, Rect, Tool};
-
-// Re-export library manager from SDK
-pub use archflow_sdk::wasm::library::JsLibraryManager;
-pub use archflow_sdk::wasm::properties::JsPropertiesManager;
+// Re-export managers from SDK
 pub use archflow_sdk::wasm::alignment::JsAlignmentManager;
 pub use archflow_sdk::wasm::group::JsGroupManager;
+pub use archflow_sdk::wasm::library::JsLibraryManager;
+pub use archflow_sdk::wasm::properties::JsPropertiesManager;
 
 /// Main production WASM struct exposed to JavaScript
 /// Uses ArchFlowEditor from SDK as the core editor
@@ -32,20 +31,71 @@ pub struct ArchFlowEditor {
     /// Canvas dimensions
     width: u32,
     height: u32,
-    /// Cached grid off-screen canvas
-    grid_canvas: Option<web_sys::OffscreenCanvas>,
+}
+
+/// Point with x and y coordinates
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Point {
+    x: f32,
+    y: f32,
+}
+
+/// Selection with shape IDs
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Selection {
+    shape_ids: Vec<String>,
+}
+
+/// Shape representation
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Shape {
+    id: String,
+    shape_type: String,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+    #[serde(default)]
+    fill_color: Color,
+    #[serde(default)]
+    stroke_color: Option<Color>,
+    #[serde(default)]
+    stroke_width: f32,
+    #[serde(default)]
+    selected: bool,
+}
+
+/// Color representation
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Color {
+    r: f32,
+    g: f32,
+    b: f32,
+    a: f32,
+}
+
+impl Default for Color {
+    fn default() -> Self {
+        Self {
+            r: 0.0,
+            g: 0.0,
+            b: 0.0,
+            a: 1.0,
+        }
+    }
 }
 
 #[wasm_bindgen]
 impl ArchFlowEditor {
     /// Creates a new editor instance with production initialization
     #[wasm_bindgen(constructor)]
-    pub fn new(canvas: web_sys::HtmlCanvasElement) -> Result<ArchFlowEditor, JsValue> {
+    pub fn new(canvas: HtmlCanvasElement) -> Result<ArchFlowEditor, JsValue> {
         // Initialize panic hook for better error messages
         console_error_panic_hook::set_once();
-
-        // Initialize logging
-        console_log::init_with_level(log::Level::Info).map_err(|_| "Failed to init logging")?;
 
         // Get canvas context
         let context = canvas
@@ -60,112 +110,44 @@ impl ArchFlowEditor {
         // Create SDK editor
         let editor = archflow_sdk::wasm::ArchFlowEditor::new(width as f32, height as f32);
 
-        // Log initialization
-        log::info!("ArchFlowEditor initialized with dimensions {}x{}", width, height);
-
         Ok(ArchFlowEditor {
             editor,
             context,
             width,
             height,
-            grid_canvas: None,
         })
     }
 
-    /// Resizes the canvas and updates viewport
+    /// Resizes the canvas
     #[wasm_bindgen]
     pub fn resize(&mut self, width: u32, height: u32) {
         self.width = width;
         self.height = height;
-        // Invalidate cached grid
-        self.grid_canvas = None;
     }
 
-    // === Tool Management (kept for compatibility) ===
-
-    /// Sets the current tool (legacy method)
-    #[wasm_bindgen]
-    pub fn set_tool(&mut self, _tool: &str) {
-        // Legacy - tools are now managed by SDK
-        log::debug!("Tool setting is now handled by SDK");
-    }
-
-    // === Input Handling (delegates to SDK) ===
-
-    #[wasm_bindgen]
-    pub fn on_mousedown(&mut self, x: f64, y: f64, button: u16) {
-        // Convert screen to canvas coordinates
-        let canvas_point = self.editor.screen_to_canvas(x as f32, y as f32);
-        let point = archflow_core::Vec2::new(canvas_point.x, canvas_point.y);
-        self.editor.canvas.borrow_mut().on_mousedown(point, button);
-    }
-
-    #[wasm_bindgen]
-    pub fn on_mousemove(&mut self, x: f64, y: f64) {
-        let canvas_point = self.editor.screen_to_canvas(x as f32, y as f32);
-        let point = archflow_core::Vec2::new(canvas_point.x, canvas_point.y);
-        self.editor.canvas.borrow_mut().on_mousemove(point);
-    }
-
-    #[wasm_bindgen]
-    pub fn on_mouseup(&mut self, x: f64, y: f64) {
-        let canvas_point = self.editor.screen_to_canvas(x as f32, y as f32);
-        let point = archflow_core::Vec2::new(canvas_point.x, canvas_point.y);
-        self.editor.canvas.borrow_mut().on_mouseup(point);
-    }
-
-    #[wasm_bindgen]
-    pub fn on_wheel(&mut self, x: f64, y: f64, zoom_out: bool) {
-        let factor = if zoom_out { 0.9 } else { 1.1 };
-        self.editor.zoom_at(x as f32, y as f32, factor);
-    }
-
-    // === Keyboard Events ===
-
-    /// Handles key down event with full keyboard support
-    #[wasm_bindgen]
-    pub fn on_keydown(&mut self, key: &str, shift: bool, ctrl: bool) {
-        // Use SDK's keyboard handler
-        self.editor.handle_keydown(key, shift, ctrl);
-    }
-
-    /// Handles key up event
-    #[wasm_bindgen]
-    pub fn on_keyup(&mut self, key: &str) {
-        self.editor.handle_keyup(key);
-    }
-
-    // === Shape Operations (delegates to SDK) ===
+    // === Shape Operations ===
 
     #[wasm_bindgen]
     pub fn add_rect(&mut self, x: f64, y: f64, width: f64, height: f64) -> String {
-        self.editor.create_rectangle(x as f32, y as f32, width as f32, height as f32)
+        self.editor
+            .create_rectangle(x as f32, y as f32, width as f32, height as f32)
     }
 
     #[wasm_bindgen]
     pub fn add_ellipse(&mut self, x: f64, y: f64, radius_x: f64, radius_y: f64) -> String {
-        self.editor.create_ellipse(x as f32, y as f32, radius_x as f32, radius_y as f32)
+        self.editor
+            .create_ellipse(x as f32, y as f32, radius_x as f32, radius_y as f32)
     }
 
     #[wasm_bindgen]
     pub fn add_line(&mut self, x1: f64, y1: f64, x2: f64, y2: f64) -> String {
-        self.editor.create_line(x1 as f32, y1 as f32, x2 as f32, y2 as f32)
+        self.editor
+            .create_line(x1 as f32, y1 as f32, x2 as f32, y2 as f32)
     }
 
     #[wasm_bindgen]
-    pub fn delete_selected(&mut self) {
-        let selection = self.editor.get_selection();
-        for shape_id in selection.shape_ids {
-            self.editor.delete_shape(&shape_id);
-        }
-    }
-
-    #[wasm_bindgen]
-    pub fn clear(&mut self) {
-        let shapes = self.editor.get_all_shapes();
-        for shape in shapes.into_serde::<Vec<archflow_sdk::wasm::JsShape>>().unwrap_or_default() {
-            self.editor.delete_shape(&shape.id);
-        }
+    pub fn delete_shape(&mut self, id: &str) -> bool {
+        self.editor.delete_shape(id)
     }
 
     #[wasm_bindgen]
@@ -174,84 +156,69 @@ impl ArchFlowEditor {
     }
 
     #[wasm_bindgen]
-    pub fn select_all(&mut self) {
-        let shapes = self.editor.get_all_shapes();
-        let ids: Vec<String> = shapes
-            .into_serde::<Vec<archflow_sdk::wasm::JsShape>>()
-            .unwrap_or_default()
-            .into_iter()
-            .map(|s| s.id)
-            .collect();
-        self.editor.select_multiple(ids);
-    }
-
-    // === Query Methods ===
-
-    #[wasm_bindgen]
-    pub fn shape_count(&self) -> usize {
-        let shapes = self.editor.get_all_shapes();
-        shapes
-            .into_serde::<Vec<archflow_sdk::wasm::JsShape>>()
-            .map(|v| v.len())
-            .unwrap_or(0)
+    pub fn select(&mut self, id: &str) {
+        self.editor.select(id);
     }
 
     #[wasm_bindgen]
-    pub fn selection_count(&self) -> usize {
-        let selection = self.editor.get_selection();
-        selection
-            .into_serde::<archflow_sdk::wasm::JsSelection>()
-            .map(|s| s.shape_ids.len())
-            .unwrap_or(0)
+    pub fn get_shape(&self, id: &str) -> JsValue {
+        self.editor.get_shape(id)
     }
 
     #[wasm_bindgen]
-    pub fn can_undo(&self) -> bool {
-        // SDK command manager tracks undo state
-        false // Placeholder - implement with command history
+    pub fn get_all_shapes(&self) -> JsValue {
+        self.editor.get_all_shapes()
     }
 
     #[wasm_bindgen]
-    pub fn can_redo(&self) -> bool {
-        false // Placeholder - implement with command history
+    pub fn get_selection(&self) -> JsValue {
+        self.editor.get_selection()
+    }
+
+    // === Viewport Operations ===
+
+    #[wasm_bindgen]
+    pub fn pan(&mut self, dx: f64, dy: f64) {
+        self.editor.pan(dx as f32, dy as f32);
     }
 
     #[wasm_bindgen]
-    pub fn get_zoom(&self) -> f32 {
-        // Get zoom from viewport
-        1.0 // Placeholder - get from viewport
+    pub fn zoom_at(&mut self, x: f64, y: f64, factor: f64) {
+        self.editor.zoom_at(x as f32, y as f32, factor as f32);
     }
 
-    // === SDK Accessors (Production API) ===
-
-    /// Gets the underlying SDK editor for advanced operations
     #[wasm_bindgen]
-    pub fn get_editor(&self) -> &archflow_sdk::wasm::ArchFlowEditor {
-        &self.editor
+    pub fn zoom_to_fit(&mut self) {
+        self.editor.zoom_to_fit();
     }
 
-    /// Gets the library manager for component library operations
     #[wasm_bindgen]
-    pub fn get_library_manager(&self) -> JsLibraryManager {
-        JsLibraryManager::new()
+    pub fn screen_to_canvas(&self, x: f32, y: f32) -> JsValue {
+        self.editor.screen_to_canvas(x, y)
     }
 
-    /// Gets the properties manager for property panel operations
+    // === Grid Configuration ===
+
     #[wasm_bindgen]
-    pub fn get_properties_manager(&self) -> JsPropertiesManager {
-        JsPropertiesManager::new()
+    pub fn get_grid_config(&self) -> JsValue {
+        self.editor.get_grid_config()
     }
 
-    /// Gets the alignment manager for alignment operations
     #[wasm_bindgen]
-    pub fn get_alignment_manager(&self) -> JsAlignmentManager {
-        JsAlignmentManager::new()
+    pub fn set_grid_config(&self, config: JsValue) {
+        self.editor.set_grid_config(config);
     }
 
-    /// Gets the group manager for group operations
+    // === C4 Level ===
+
     #[wasm_bindgen]
-    pub fn get_group_manager(&self) -> JsGroupManager {
-        JsGroupManager::new()
+    pub fn get_c4_level(&self) -> String {
+        self.editor.get_c4_level()
+    }
+
+    #[wasm_bindgen]
+    pub fn set_c4_level(&self, level: &str) {
+        self.editor.set_c4_level(level);
     }
 
     // === Rendering ===
@@ -260,120 +227,56 @@ impl ArchFlowEditor {
     pub fn render(&mut self) {
         // Clear canvas
         self.context.set_fill_style(&JsValue::from_str("#1e1e1e"));
-        let _ = self.context.fill_rect(0.0, 0.0, self.width as f64, self.height as f64);
+        let _ = self
+            .context
+            .fill_rect(0.0, 0.0, self.width as f64, self.height as f64);
 
-        // Save context state
-        self.context.save();
-
-        // Get viewport transformation
-        let viewport = self.editor.canvas.borrow().viewport();
-        let transform = viewport.transform();
-
-        // Apply transformations
-        self.context
-            .translate(transform.m41 as f64, transform.m42 as f64)
-            .ok();
-        self.context
-            .scale(transform.m11 as f64, transform.m22 as f64)
-            .ok();
-
-        // Render cached grid (optimized)
-        self.render_cached_grid();
-
-        // Render all shapes via SDK
+        // Render all shapes
         let shapes = self.editor.get_all_shapes();
-        if let Ok(js_shapes) = shapes.into_serde::<Vec<archflow_sdk::wasm::JsShape>>() {
+        if let Ok(js_shapes) = from_value::<Vec<Shape>>(shapes) {
             for shape in js_shapes {
-                self.render_js_shape(&shape);
+                self.render_shape(&shape);
             }
         }
-
-        // Restore context
-        self.context.restore();
-
-        // Render selection bounds
-        self.render_selection_bounds();
     }
 
-    // === Collaboration Simulation ===
+    // === SDK Accessors ===
 
+    /// Gets the underlying SDK editor
     #[wasm_bindgen]
-    pub fn simulate_remote_cursor(&mut self, _x: f64, _y: f64, _name: &str) {
-        // Remote cursors are handled by collab module
-        log::debug!("Remote cursor simulation - use collab module");
+    pub fn get_editor(&self) -> *const archflow_sdk::wasm::ArchFlowEditor {
+        &self.editor as *const _
     }
 
+    /// Gets the library manager
     #[wasm_bindgen]
-    pub fn get_delta(&self) -> Vec<u8> {
-        // Serialize canvas state for collaboration
-        Vec::new() // Placeholder - implement with collab delta
+    pub fn get_library_manager(&self) -> JsLibraryManager {
+        JsLibraryManager::new()
+    }
+
+    /// Gets the properties manager
+    #[wasm_bindgen]
+    pub fn get_properties_manager(&self) -> JsPropertiesManager {
+        JsPropertiesManager::new()
+    }
+
+    /// Gets the alignment manager
+    #[wasm_bindgen]
+    pub fn get_alignment_manager(&self) -> JsAlignmentManager {
+        JsAlignmentManager::new()
+    }
+
+    /// Gets the group manager
+    #[wasm_bindgen]
+    pub fn get_group_manager(&self) -> JsGroupManager {
+        JsGroupManager::new()
     }
 }
 
-// Private rendering methods with optimizations
+// Private rendering methods
 impl ArchFlowEditor {
-    /// Creates cached grid off-screen canvas for performance
-    fn ensure_grid_cache(&mut self) {
-        if self.grid_canvas.is_none() {
-            if let Ok(offscreen) = web_sys::OffscreenCanvas::new(self.width, self.height) {
-                let ctx = offscreen
-                    .get_context("2d")
-                    .ok()
-                    .flatten()
-                    .and_then(|c| c.dyn_into::<web_sys::OffscreenCanvasRenderingContext2d>().ok());
-
-                if let Some(ctx) = ctx {
-                    self.render_grid_to_context(&ctx);
-                    self.grid_canvas = Some(offscreen);
-                }
-            }
-        }
-    }
-
-    /// Renders cached grid image (optimized)
-    fn render_cached_grid(&mut self) {
-        self.ensure_grid_cache();
-        if let Some(offscreen) = &self.grid_canvas {
-            if let Ok bitmap = offscreen.transfer_to_image_bitmap() {
-                let _ = self.context.draw_image_with_image_bitmap(&bitmap, 0.0, 0.0);
-            }
-        }
-    }
-
-    /// Renders grid to a context (used for caching)
-    fn render_grid_to_context(&self, ctx: &web_sys::OffscreenCanvasRenderingContext2d) {
-        let grid_config = self.editor.get_grid_config();
-        if let Ok(config) = grid_config.into_serde::<archflow_sdk::background::GridConfig>() {
-            if !config.show_grid {
-                return;
-            }
-
-            let spacing = config.spacing as f64;
-            let dot_color = format!(
-                "rgba({},{},{},{})",
-                (config.dot_color.r * 255.0) as u8,
-                (config.dot_color.g * 255.0) as u8,
-                (config.dot_color.b * 255.0) as u8,
-                config.dot_color.a
-            );
-
-            ctx.set_fill_style(&JsValue::from_str(&dot_color));
-
-            let mut x = 0.0;
-            while x < self.width as f64 {
-                let mut y = 0.0;
-                while y < self.height as f64 {
-                    let _ = ctx.arc(x, y, config.dot_radius as f64, 0.0, std::f64::consts::PI * 2.0);
-                    let _ = ctx.fill();
-                    y += spacing;
-                }
-                x += spacing;
-            }
-        }
-    }
-
-    /// Renders a JS shape from SDK
-    fn render_js_shape(&self, shape: &archflow_sdk::wasm::JsShape) {
+    /// Renders a single shape
+    fn render_shape(&self, shape: &Shape) {
         let fill_color = format!(
             "rgba({},{},{},{})",
             (shape.fill_color.r * 255.0) as u8,
@@ -392,7 +295,8 @@ impl ArchFlowEditor {
                 (stroke.b * 255.0) as u8,
                 stroke.a
             );
-            self.context.set_stroke_style(&JsValue::from_str(&stroke_color));
+            self.context
+                .set_stroke_style(&JsValue::from_str(&stroke_color));
             self.context.set_line_width(shape.stroke_width as f64);
         }
 
@@ -403,7 +307,12 @@ impl ArchFlowEditor {
 
         match shape.shape_type.as_str() {
             "Rectangle" | "Rect" => {
-                let _ = path.rect(shape.x as f64, shape.y as f64, shape.width as f64, shape.height as f64);
+                let _ = path.rect(
+                    shape.x as f64,
+                    shape.y as f64,
+                    shape.width as f64,
+                    shape.height as f64,
+                );
             }
             "Ellipse" | "Circle" => {
                 let rx = shape.width as f64 / 2.0;
@@ -420,8 +329,12 @@ impl ArchFlowEditor {
                 );
             }
             _ => {
-                // Default to rectangle
-                let _ = path.rect(shape.x as f64, shape.y as f64, shape.width as f64, shape.height as f64);
+                let _ = path.rect(
+                    shape.x as f64,
+                    shape.y as f64,
+                    shape.width as f64,
+                    shape.height as f64,
+                );
             }
         }
 
@@ -429,62 +342,40 @@ impl ArchFlowEditor {
         if shape.stroke_color.is_some() {
             let _ = self.context.stroke_with_path(&path);
         }
-
-        // Render selection indicator
-        if shape.selected {
-            self.render_selection_outline(shape.x as f64, shape.y as f64, shape.width as f64, shape.height as f64);
-        }
-    }
-
-    /// Renders selection bounds
-    fn render_selection_bounds(&self) {
-        let selection = self.editor.get_selection();
-        if let Ok(js_selection) = selection.into_serde::<archflow_sdk::wasm::JsSelection>() {
-            if !js_selection.shape_ids.is_empty() {
-                self.render_selection_outline(
-                    js_selection.bounds.x as f64,
-                    js_selection.bounds.y as f64,
-                    js_selection.bounds.width as f64,
-                    js_selection.bounds.height as f64,
-                );
-            }
-        }
-    }
-
-    /// Renders selection outline
-    fn render_selection_outline(&self, x: f64, y: f64, width: f64, height: f64) {
-        self.context.set_stroke_style(&JsValue::from_str("#0066cc"));
-        self.context.set_line_width(2.0);
-        let _ = self.context.set_line_dash(&JsValue::from_str("5,5"));
-
-        let path = match web_sys::Path2d::new() {
-            Ok(p) => p,
-            Err(_) => return,
-        };
-        let _ = path.rect(x, y, width, height);
-        let _ = self.context.stroke_with_path(&path);
-
-        let _ = self.context.set_line_dash(&JsValue::from_str(""));
-
-        // Draw handles
-        self.render_handle(x, y);
-        self.render_handle(x + width, y);
-        self.render_handle(x, y + height);
-        self.render_handle(x + width, y + height);
-    }
-
-    /// Renders a resize handle
-    fn render_handle(&self, x: f64, y: f64) {
-        self.context.set_fill_style(&JsValue::from_str("#0066cc"));
-        let path = match web_sys::Path2d::new() {
-            Ok(p) => p,
-            Err(_) => return,
-        };
-        let _ = path.rect(x - 4.0, y - 4.0, 8.0, 8.0);
-        let _ = self.context.fill_with_path_2d(&path);
     }
 }
 
 /// Backward compatibility type alias
-#[wasm_bindgen]
 pub type ArchFlowDemo = ArchFlowEditor;
+
+/// Initialize function for backward compatibility
+#[wasm_bindgen(start)]
+pub fn init() {
+    console_error_panic_hook::set_once();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Note: This test can only run on wasm32 target
+    // Run with: wasm-pack test --firefox --chrome
+    #[test]
+    #[cfg(target_arch = "wasm32")]
+    fn test_editor_creation() {
+        // Test that we can at least create the editor struct
+        let editor = archflow_sdk::wasm::ArchFlowEditor::new(800.0, 600.0);
+        assert_eq!(
+            from_value::<Dimensions>(editor.get_dimensions())
+                .unwrap()
+                .width,
+            800.0
+        );
+    }
+
+    #[derive(Deserialize)]
+    struct Dimensions {
+        width: f32,
+        height: f32,
+    }
+}

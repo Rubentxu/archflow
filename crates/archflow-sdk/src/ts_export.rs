@@ -74,7 +74,7 @@ impl From<archflow_core::EntityId> for TsEntityId {
 }
 
 impl From<TsEntityId> for archflow_core::EntityId {
-    fn from(ts_id: TsEntityId) -> Self {
+    fn from(_ts_id: TsEntityId) -> Self {
         // For conversion back, we always create a new ID
         // The string representation is for TypeScript interop only
         Self::new()

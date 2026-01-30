@@ -1,8 +1,7 @@
 //! Accessibility manager for focus, keyboard navigation, and ARIA support
 
 use crate::{
-    A11yAnnouncement, A11yBounds, A11yConfig, A11yVerbosity, FocusableElement, FocusableType,
-    KeyCode, KeyEvent, KeyEventResult, LiveRegionType,
+    A11yAnnouncement, A11yBounds, A11yConfig, FocusableElement, FocusableType, LiveRegionType,
     navigation::{NavigationDirection, NavigationMode},
 };
 use crate::{CanvasLike, EntityId, Vec2};

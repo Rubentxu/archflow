@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::{A11yAnnouncement, LiveRegionType};
+use crate::A11yAnnouncement;
 
 /// Key code representation
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]

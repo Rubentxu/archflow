@@ -4,7 +4,6 @@
 //! similar to draw.io or excalidraw libraries.
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use ts_rs::TS;
 
 pub mod manager;

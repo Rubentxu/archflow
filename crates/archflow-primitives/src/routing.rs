@@ -9,7 +9,7 @@
 
 use crate::{EntityId, Vec2};
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 /// Tipo de routing visual
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -427,9 +427,9 @@ impl ConnectionRouter {
     /// Routing spline
     fn route_spline(&self, start: Vec2, end: Vec2, tension: f32, resolution: u32) -> RoutingResult {
         // Catmull-Rom spline con 4 puntos de control
-        let mid = (start + end) / 2.0;
+        let _mid = (start + end) / 2.0;
         let dir = end - start;
-        let perp = Vec2::new(-dir.y, dir.x).normalize() * dir.length() * tension;
+        let _perp = Vec2::new(-dir.y, dir.x).normalize() * dir.length() * tension;
 
         let p0 = start - dir * tension;
         let p1 = start;
@@ -495,7 +495,7 @@ impl ConnectionRouter {
     }
 
     /// Generar waypoints potenciales alrededor de obstáculos
-    fn generate_waypoints(&self, start: Vec2, end: Vec2, obstacles: &[Obstacle]) -> Vec<Vec2> {
+    fn generate_waypoints(&self, _start: Vec2, _end: Vec2, obstacles: &[Obstacle]) -> Vec<Vec2> {
         let mut waypoints = Vec::new();
         let padding = self.config.obstacle_padding;
 
@@ -516,7 +516,7 @@ impl ConnectionRouter {
         &self,
         start: Vec2,
         end: Vec2,
-        waypoints: &[Vec2],
+        _waypoints: &[Vec2],
         obstacles: &[Obstacle],
         _max_depth: u32,
     ) -> Vec<Vec2> {
