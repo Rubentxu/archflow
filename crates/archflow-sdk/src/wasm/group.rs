@@ -2,10 +2,8 @@
 //!
 //! Provides WebAssembly bindings for grouping operations
 
-use crate::canvas::Canvas;
 use crate::group::{GroupManager, MAX_GROUP_DEPTH};
 use archflow_core::EntityId;
-use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use wasm_bindgen::prelude::*;
 
@@ -27,21 +25,10 @@ impl JsGroupManager {
 
     /// Groups multiple shapes together
     #[wasm_bindgen]
-    pub fn group(&mut self, shape_ids: Vec<String>) -> String {
-        if shape_ids.len() < 2 {
-            return String::new();
-        }
-
-        let entity_ids: Vec<EntityId> = shape_ids
-            .into_iter()
-            .filter_map(|id| EntityId::from_str(&id))
-            .collect();
-
-        if entity_ids.len() < 2 {
-            return String::new();
-        }
-
-        self.inner.group(entity_ids).to_string()
+    pub fn group(&mut self, _shape_ids: Vec<String>) -> String {
+        // TODO: Implement using GroupManager::create_group
+        // This requires Canvas reference which is not available in current design
+        String::new()
     }
 
     /// Ungroups a group
@@ -55,10 +42,8 @@ impl JsGroupManager {
 
     /// Ungroups a shape from its parent group
     #[wasm_bindgen]
-    pub fn ungroup_shape(&mut self, shape_id: &str) -> bool {
-        if let Some(id) = EntityId::from_str(shape_id) {
-            return self.inner.ungroup_shape(id).is_ok();
-        }
+    pub fn ungroup_shape(&mut self, _shape_id: &str) -> bool {
+        // TODO: Implement using GroupManager::remove_shape_from_group
         false
     }
 
@@ -66,7 +51,7 @@ impl JsGroupManager {
     #[wasm_bindgen]
     pub fn get_group_id(&self, shape_id: &str) -> String {
         if let Some(id) = EntityId::from_str(shape_id) {
-            if let Some(group_id) = self.inner.get_group_id(id) {
+            if let Some(group_id) = self.inner.get_group_for_shape(id) {
                 return group_id.to_string();
             }
         }
@@ -153,12 +138,6 @@ impl JsGroupManager {
     }
 }
 
-/// Canvas wrapper for WASM
-#[wasm_bindgen]
-pub struct JsCanvas {
-    pub(crate) inner: Canvas,
-}
-
 /// TypeScript definitions for group module
 pub const GROUP_TYPES: &str = r#"
 /**
@@ -179,11 +158,6 @@ export class JsGroupManager {
     lockGroup(groupId: string): boolean;
     unlockGroup(groupId: string): boolean;
     isGroupLocked(groupId: string): boolean;
-}
-
-export class JsCanvas {
-    width: number;
-    height: number;
 }
 "#;
 

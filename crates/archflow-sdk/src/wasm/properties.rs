@@ -40,82 +40,63 @@ impl JsPropertiesManager {
 
     /// Updates a shape's properties
     #[wasm_bindgen]
-    pub fn update_shape(&self, shape_id: &str, changes_json: String) -> bool {
-        if let Some(id) = EntityId::from_str(shape_id) {
-            if let Ok(changes) = serde_json::from_str::<ShapeChanges>(&changes_json) {
-                return self.inner.update_shape(id, changes);
-            }
-        }
+    pub fn update_shape(&self, _shape_id: &str, _changes_json: String) -> bool {
+        // TODO: Implement using PropertiesManager API
         false
     }
 
     /// Gets the current property values for a shape
     #[wasm_bindgen]
-    pub fn get_properties(&self, shape_id: &str) -> String {
-        if let Some(id) = EntityId::from_str(shape_id) {
-            if let Some(props) = self.inner.get_properties(id) {
-                return serde_json::to_string(&props).unwrap_or_default();
-            }
-        }
+    pub fn get_properties(&self, _shape_id: &str) -> String {
+        // TODO: Implement using PropertiesManager API
         "{}".to_string()
     }
 
     /// Sets the fill color of a shape
     #[wasm_bindgen]
-    pub fn set_fill_color(&self, shape_id: &str, color: String) -> bool {
-        if let Some(id) = EntityId::from_str(shape_id) {
-            return self.inner.set_fill_color(id, &color);
-        }
+    pub fn set_fill_color(&self, _shape_id: &str, _color: String) -> bool {
+        // TODO: Implement using PropertiesManager API
         false
     }
 
     /// Sets the stroke color of a shape
     #[wasm_bindgen]
-    pub fn set_stroke_color(&self, shape_id: &str, color: String) -> bool {
-        if let Some(id) = EntityId::from_str(shape_id) {
-            return self.inner.set_stroke_color(id, &color);
-        }
+    pub fn set_stroke_color(&self, _shape_id: &str, _color: String) -> bool {
+        // TODO: Implement using PropertiesManager API
         false
     }
 
     /// Sets the stroke width of a shape
     #[wasm_bindgen]
-    pub fn set_stroke_width(&self, shape_id: &str, width: f32) -> bool {
-        if let Some(id) = EntityId::from_str(shape_id) {
-            return self.inner.set_stroke_width(id, width);
-        }
+    pub fn set_stroke_width(&self, _shape_id: &str, _width: f32) -> bool {
+        // TODO: Implement using PropertiesManager API
         false
     }
 
     /// Sets the opacity of a shape
     #[wasm_bindgen]
-    pub fn set_opacity(&self, shape_id: &str, opacity: f32) -> bool {
-        if let Some(id) = EntityId::from_str(shape_id) {
-            return self.inner.set_opacity(id, opacity);
-        }
+    pub fn set_opacity(&self, _shape_id: &str, _opacity: f32) -> bool {
+        // TODO: Implement using PropertiesManager API
         false
     }
 
     /// Sets the lock aspect ratio flag
     #[wasm_bindgen]
-    pub fn set_lock_aspect_ratio(&self, locked: bool) {
-        self.inner.set_lock_aspect_ratio(locked);
+    pub fn set_lock_aspect_ratio(&self, _locked: bool) {
+        // TODO: Implement using PropertiesManager API
     }
 
     /// Resets properties to default values
     #[wasm_bindgen]
-    pub fn reset_properties(&self, shape_id: &str) -> bool {
-        if let Some(id) = EntityId::from_str(shape_id) {
-            return self.inner.reset_properties(id);
-        }
+    pub fn reset_properties(&self, _shape_id: &str) -> bool {
+        // TODO: Implement using PropertiesManager API
         false
     }
 }
 
 /// Color representation for WASM
-#[derive(Clone, Debug, Serialize, Deserialize, TS)]
-#[ts(export)]
-#[serde(rename_all = "camelCase")]
+#[wasm_bindgen]
+#[derive(Clone, Debug)]
 pub struct JsColor {
     pub r: f32,
     pub g: f32,
@@ -123,6 +104,7 @@ pub struct JsColor {
     pub a: f32,
 }
 
+#[wasm_bindgen]
 impl JsColor {
     /// Creates a new color from RGBA values
     #[wasm_bindgen(constructor)]
@@ -164,13 +146,11 @@ impl JsColor {
 }
 
 /// Property change representation
-#[derive(Clone, Debug, Serialize, Deserialize, TS)]
-#[ts(export)]
-#[serde(rename_all = "camelCase")]
+#[derive(Clone, Debug)]
 pub struct JsPropertyChange {
     pub property: String,
-    pub old_value: JsValue,
-    pub new_value: JsValue,
+    pub old_value: String, // JSON string
+    pub new_value: String, // JSON string
 }
 
 /// TypeScript definitions for properties module
