@@ -79,23 +79,27 @@ This roadmap details the implementation of a **WASM-first architecture** for Arc
 ---
 
 ### Epic 1: SOA Entity Store
-**File**: [`01-soa-entity-store.md`](./01-soa-entity-store.md)  
-**Duration**: 5 weeks (Weeks 3-7)  
-**Priority**: P0 (Foundation)  
-**Status**: 📋 Planning
+**File**: [`01-soa-entity-store.md`](./01-soa-entity-store.md)
+**Duration**: 5 weeks (Weeks 3-7)
+**Priority**: P0 (Foundation)
+**Status**: ✅ **Complete**
 
 **Goal**: Macro-based SOA entity system with generational indices for type-safe, cache-friendly entity management.
 
 **User Stories**:
-1. US-1.1: Simplified store declaration macro
-2. US-1.2: Spawning with generational IDs
-3. US-1.3: Automatic compaction
-4. US-1.4: Type-safe access
+1. ✅ US-1.1: Simplified store declaration macro
+2. ✅ US-1.2: Spawning with generational IDs
+3. ✅ US-1.3: Automatic compaction
+4. ✅ US-1.4: Type-safe access
 
 **Success Metrics**:
-- 10× faster iteration than Bevy ECS for 10K entities
-- Zero stale pointer bugs with generational indices
-- <5ms for 10,000 entity operations
+- ✅ 29 tests passing (100% success rate)
+- ✅ Zero stale pointer bugs with generational indices
+- ✅ SOA memory layout for cache-friendly WASM performance
+- ⏳ 10× faster iteration than Bevy ECS (benchmark pending)
+- ⏳ <5ms for 10,000 entity operations (benchmark pending)
+
+**Implementation**: `crates/soa-entity/` - 1,136 LOC, commit `666466e`
 
 ---
 
