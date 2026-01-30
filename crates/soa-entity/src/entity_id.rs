@@ -56,8 +56,9 @@ const INDEX_MASK: u32 = 0x00FF_FFFF;
 /// let id2 = EntityId::new(5, 2);
 /// assert_eq!(id2.index(), 5); // Reuses index
 /// assert_eq!(id2.generation(), 2); // New generation
-/// assert!(!id1.is_valid()); // Old ID now stale
+/// assert!(id1.is_valid()); // Still valid (EntityId itself doesn't track staleness)
 /// assert!(id2.is_valid()); // New ID valid
+/// // EntityStore.is_valid() would detect id1 as stale after id2 is used
 /// ```
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Hash)]
 pub struct EntityId(pub u32);

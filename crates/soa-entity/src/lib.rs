@@ -10,6 +10,7 @@
 //! - **Auto-compaction**: Triggers when fragmentation >30%
 //! - **Type-safe access**: All getters return Option<&T>, never panic
 //! - **Dirty tracking**: Bitset-based tracking for optimized GPU upload
+//! - **Zero-copy rendering**: RenderBatch for efficient WebGPU uploads
 //!
 //! ## Basic Usage
 //!
@@ -47,7 +48,7 @@
 //! // Returns: [(0, 2)] - entities 0 and 1 are dirty (contiguous range)
 //!
 //! // Upload only the dirty range to GPU
-//! for (start, length) in dirty_ranges {
+//! for (start, length) in &dirty_ranges {
 //!     let offset = start * 8; // 2 floats × 4 bytes per float
 //!     let size = length * 8;
 //!     // gpu_queue.write_buffer(&position_buffer, offset, &data[offset..offset+size]);
@@ -58,14 +59,40 @@
 //!
 //! // Next frame: only newly modified entities will be dirty
 //! ```
+//!
+//! ## Zero-Copy WebGPU Upload
+//!
+//! The RenderBatch struct provides zero-copy access to WASM memory for WebGPU:
+//!
+//! ```rust,no_run
+//! use soa_entity::{EntityStore, RenderBatch};
+//! use archflow_core::Vec2;
+//!
+//! let mut store = EntityStore::new(1000);
+//! let id = store.spawn().unwrap();
+//! store.set_position(id, Vec2::new(10.0, 20.0)).unwrap();
+//!
+//! // Create render batch with captured dirty state
+//! let batch = RenderBatch::from_store(&store);
+//!
+//! // Get zero-copy view of dirty positions for WebGPU upload
+//! let dirty_positions = batch.positions_dirty_slice();
+//! let offset = batch.position_dirty_byte_offset();
+//! let size = batch.position_dirty_byte_size();
+//!
+//! // In JavaScript:
+//! // device.queue.writeBuffer(positionBuffer, offset, dirty_positions, 0, size);
+//! ```
 
 #![warn(missing_docs, rust_2018_idioms)]
 
 pub mod entity_id;
+pub mod render_batch;
 pub mod store;
 
 // Re-export commonly used types
 pub use entity_id::EntityId;
+pub use render_batch::RenderBatch;
 pub use store::EntityStore;
 
 #[cfg(test)]
