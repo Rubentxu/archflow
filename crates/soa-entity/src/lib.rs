@@ -9,8 +9,9 @@
 //! - **Generational IDs**: EntityId with (index: 24-bit, generation: 8-bit)
 //! - **Auto-compaction**: Triggers when fragmentation >30%
 //! - **Type-safe access**: All getters return Option<&T>, never panic
+//! - **Dirty tracking**: Bitset-based tracking for optimized GPU upload
 //!
-//! ## Example
+//! ## Basic Usage
 //!
 //! ```rust
 //! use soa_entity::EntityStore;
@@ -19,6 +20,43 @@
 //! let mut store = EntityStore::new(100000);
 //! let id = store.spawn().unwrap();
 //! store.set_position(id, Vec2::new(100.0, 200.0)).unwrap();
+//! ```
+//!
+//! ## Dirty Tracking for GPU Upload
+//!
+//! The store automatically tracks which components have been modified, enabling
+//! efficient partial GPU uploads instead of transferring the entire buffer:
+//!
+//! ```rust
+//! use soa_entity::EntityStore;
+//! use archflow_core::Vec2;
+//!
+//! let mut store = EntityStore::new(1000);
+//!
+//! // Spawn some entities
+//! let id1 = store.spawn().unwrap();
+//! let id2 = store.spawn().unwrap();
+//! let id3 = store.spawn().unwrap();
+//!
+//! // Modify only id1 and id2
+//! store.set_position(id1, Vec2::new(10.0, 20.0)).unwrap();
+//! store.set_position(id2, Vec2::new(30.0, 40.0)).unwrap();
+//!
+//! // Calculate dirty ranges for efficient GPU upload
+//! let dirty_ranges = store.calculate_dirty_ranges(store.dirty_positions());
+//! // Returns: [(0, 2)] - entities 0 and 1 are dirty (contiguous range)
+//!
+//! // Upload only the dirty range to GPU
+//! for (start, length) in dirty_ranges {
+//!     let offset = start * 8; // 2 floats × 4 bytes per float
+//!     let size = length * 8;
+//!     // gpu_queue.write_buffer(&position_buffer, offset, &data[offset..offset+size]);
+//! }
+//!
+//! // Mark as clean after successful upload
+//! store.mark_positions_clean(&dirty_ranges);
+//!
+//! // Next frame: only newly modified entities will be dirty
 //! ```
 
 #![warn(missing_docs, rust_2018_idioms)]

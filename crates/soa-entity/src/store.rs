@@ -5,9 +5,11 @@
 //! - Generational EntityId validation
 //! - Automatic compaction when fragmented
 //! - Type-safe component access
+//! - Dirty bitset tracking for optimized GPU upload
 
 use crate::EntityId;
 use archflow_core::{Color, Vec2};
+use fixedbitset::FixedBitSet;
 use std::collections::VecDeque;
 
 /// Error type for entity store operations.
@@ -29,10 +31,10 @@ pub enum EntityStoreError {
 /// Fragmentation threshold for triggering auto-compaction.
 const FRAGMENTATION_THRESHOLD: f32 = 0.3; // 30%
 
-/// SOA Entity Store with generational indices.
+/// SOA Entity Store with generational indices and dirty tracking.
 ///
-/// This is a simplified implementation that stores components contiguously
-/// for cache efficiency. Components are stored as separate arrays (SOA layout).
+/// This implementation stores components contiguously for cache efficiency
+/// (SOA layout) and tracks dirty components for optimized GPU upload.
 ///
 /// # Examples
 ///
@@ -43,7 +45,9 @@ const FRAGMENTATION_THRESHOLD: f32 = 0.3; // 30%
 /// let mut store = EntityStore::new(1000);
 /// let id = store.spawn();
 /// store.set_position(id, Vec2::new(100.0, 200.0));
-/// store.despawn(id);
+///
+/// // Check what's dirty
+/// let dirty_ranges = store.calculate_dirty_ranges(&store.dirty_positions());
 /// ```
 pub struct EntityStore {
     /// Maximum number of entities
@@ -67,6 +71,10 @@ pub struct EntityStore {
     col_g: Vec<f32>,
     col_b: Vec<f32>,
     col_a: Vec<f32>,
+
+    /// Dirty tracking per component type
+    dirty_positions: FixedBitSet,
+    dirty_colors: FixedBitSet,
 }
 
 impl EntityStore {
@@ -105,6 +113,10 @@ impl EntityStore {
             col_g: vec![0.0; capacity],
             col_b: vec![0.0; capacity],
             col_a: vec![1.0; capacity],
+
+            // Initialize dirty tracking
+            dirty_positions: FixedBitSet::with_capacity(capacity),
+            dirty_colors: FixedBitSet::with_capacity(capacity),
         }
     }
 
@@ -345,6 +357,9 @@ impl EntityStore {
         self.pos_x[index] = pos.x;
         self.pos_y[index] = pos.y;
 
+        // Mark position as dirty
+        self.dirty_positions.insert(index);
+
         Ok(())
     }
 
@@ -396,6 +411,9 @@ impl EntityStore {
         self.col_b[index] = col.b;
         self.col_a[index] = col.a;
 
+        // Mark color as dirty
+        self.dirty_colors.insert(index);
+
         Ok(())
     }
 
@@ -440,6 +458,125 @@ impl Default for EntityStore {
     #[inline]
     fn default() -> Self {
         Self::new(1000)
+    }
+}
+
+// ===== Dirty Tracking Methods =====
+
+impl EntityStore {
+    /// Returns the dirty positions bitset.
+    #[inline]
+    pub fn dirty_positions(&self) -> &FixedBitSet {
+        &self.dirty_positions
+    }
+
+    /// Returns the dirty colors bitset.
+    #[inline]
+    pub fn dirty_colors(&self) -> &FixedBitSet {
+        &self.dirty_colors
+    }
+
+    /// Calculates contiguous dirty ranges from a bitset.
+    ///
+    /// Returns a vector of (start, length) tuples representing contiguous
+    /// ranges of dirty entities. This is used for efficient GPU upload batching.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use soa_entity::EntityStore;
+    /// use archflow_core::Vec2;
+    ///
+    /// let mut store = EntityStore::new(100);
+    /// let id1 = store.spawn().unwrap();
+    /// let id2 = store.spawn().unwrap();
+    /// let id3 = store.spawn().unwrap();
+    ///
+    /// store.set_position(id1, Vec2::new(1.0, 2.0));
+    /// store.set_position(id2, Vec2::new(3.0, 4.0));
+    ///
+    /// let ranges = store.calculate_dirty_ranges(&store.dirty_positions());
+    /// // Returns: [(0, 2)] - entities 0 and 1 are dirty (contiguous)
+    /// ```
+    pub fn calculate_dirty_ranges(&self, bitset: &FixedBitSet) -> Vec<(usize, usize)> {
+        let mut ranges = Vec::new();
+        let mut current_start: Option<usize> = None;
+        let mut current_length = 0;
+
+        for idx in bitset.ones() {
+            match current_start {
+                None => {
+                    // Start a new range
+                    current_start = Some(idx);
+                    current_length = 1;
+                }
+                Some(start) => {
+                    if idx == start + current_length {
+                        // Continuation of current range
+                        current_length += 1;
+                    } else {
+                        // End of current range, start new one
+                        ranges.push((start, current_length));
+                        current_start = Some(idx);
+                        current_length = 1;
+                    }
+                }
+            }
+        }
+
+        // Don't forget the last range
+        if let Some(start) = current_start {
+            ranges.push((start, current_length));
+        }
+
+        ranges
+    }
+
+    /// Marks position ranges as clean (not dirty).
+    ///
+    /// This should be called after successful GPU upload to prevent
+    /// re-uploading the same data in the next frame.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use soa_entity::EntityStore;
+    ///
+    /// let mut store = EntityStore::new(100);
+    /// // ... make changes ...
+    ///
+    /// let ranges = store.calculate_dirty_ranges(&store.dirty_positions());
+    /// // ... upload to GPU successfully ...
+    /// store.mark_positions_clean(&ranges);
+    /// ```
+    pub fn mark_positions_clean(&mut self, ranges: &[(usize, usize)]) {
+        for &(start, length) in ranges {
+            for i in start..(start + length) {
+                self.dirty_positions.remove(i);
+            }
+        }
+    }
+
+    /// Marks color ranges as clean (not dirty).
+    ///
+    /// This should be called after successful GPU upload to prevent
+    /// re-uploading the same data in the next frame.
+    pub fn mark_colors_clean(&mut self, ranges: &[(usize, usize)]) {
+        for &(start, length) in ranges {
+            for i in start..(start + length) {
+                self.dirty_colors.remove(i);
+            }
+        }
+    }
+
+    /// Marks all entities as clean (not dirty).
+    ///
+    /// This is useful for forcing a full upload or clearing dirty state
+    /// after a complete buffer refresh.
+    #[inline]
+    pub fn mark_all_clean(&mut self) {
+        self.dirty_positions.clear();
+        self.dirty_colors.clear();
     }
 }
 
@@ -613,5 +750,190 @@ mod tests {
 
         let col = store.color(id).unwrap();
         assert_eq!(col, Color::rgba(1.0, 0.5, 0.25, 0.75));
+    }
+
+    // ===== Dirty Tracking Tests =====
+
+    #[test]
+    fn test_setter_marks_dirty() {
+        let mut store = EntityStore::new(100);
+        let id = store.spawn().unwrap();
+
+        // Initially not dirty
+        assert!(!store.dirty_positions().contains(id.index()));
+
+        store.set_position(id, Vec2::new(10.0, 20.0)).unwrap();
+
+        // Now position is dirty
+        assert!(store.dirty_positions().contains(id.index()));
+    }
+
+    #[test]
+    fn test_setter_doesnt_mark_other_components_dirty() {
+        let mut store = EntityStore::new(100);
+        let id = store.spawn().unwrap();
+
+        store.set_position(id, Vec2::new(10.0, 20.0)).unwrap();
+
+        // Position dirty, colors not
+        assert!(store.dirty_positions().contains(id.index()));
+        assert!(!store.dirty_colors().contains(id.index()));
+    }
+
+    #[test]
+    fn test_set_color_marks_dirty() {
+        let mut store = EntityStore::new(100);
+        let id = store.spawn().unwrap();
+
+        store
+            .set_color(id, Color::rgba(1.0, 0.5, 0.25, 0.75))
+            .unwrap();
+
+        // Color dirty, position not
+        assert!(store.dirty_colors().contains(id.index()));
+        assert!(!store.dirty_positions().contains(id.index()));
+    }
+
+    #[test]
+    fn test_calculate_contiguous_ranges() {
+        let mut store = EntityStore::new(100);
+
+        // Spawn entities and mark some as dirty
+        let ids: Vec<_> = (0..20).map(|_| store.spawn().unwrap()).collect();
+
+        // Mark 0, 1, 2 as dirty (contiguous)
+        store.set_position(ids[0], Vec2::new(0.0, 0.0)).unwrap();
+        store.set_position(ids[1], Vec2::new(1.0, 1.0)).unwrap();
+        store.set_position(ids[2], Vec2::new(2.0, 2.0)).unwrap();
+
+        // Mark 10, 11, 12 as dirty (separate range)
+        store.set_position(ids[10], Vec2::new(10.0, 10.0)).unwrap();
+        store.set_position(ids[11], Vec2::new(11.0, 11.0)).unwrap();
+        store.set_position(ids[12], Vec2::new(12.0, 12.0)).unwrap();
+
+        let ranges = store.calculate_dirty_ranges(store.dirty_positions());
+
+        assert_eq!(ranges.len(), 2);
+        assert_eq!(ranges[0], (0, 3)); // Entities 0, 1, 2
+        assert_eq!(ranges[1], (10, 3)); // Entities 10, 11, 12
+    }
+
+    #[test]
+    fn test_calculate_ranges_single_entity() {
+        let mut store = EntityStore::new(100);
+        let id = store.spawn().unwrap();
+
+        store.set_position(id, Vec2::new(5.0, 10.0)).unwrap();
+
+        let ranges = store.calculate_dirty_ranges(store.dirty_positions());
+
+        assert_eq!(ranges.len(), 1);
+        assert_eq!(ranges[0], (0, 1)); // Single entity at index 0
+    }
+
+    #[test]
+    fn test_calculate_ranges_empty() {
+        let store = EntityStore::new(100);
+
+        let ranges = store.calculate_dirty_ranges(store.dirty_positions());
+
+        assert_eq!(ranges.len(), 0);
+    }
+
+    #[test]
+    fn test_mark_positions_clean() {
+        let mut store = EntityStore::new(100);
+        let id = store.spawn().unwrap();
+
+        store.set_position(id, Vec2::new(10.0, 20.0)).unwrap();
+        assert!(store.dirty_positions().contains(id.index()));
+
+        let ranges = store.calculate_dirty_ranges(store.dirty_positions());
+        store.mark_positions_clean(&ranges);
+
+        assert!(!store.dirty_positions().contains(id.index()));
+    }
+
+    #[test]
+    fn test_mark_colors_clean() {
+        let mut store = EntityStore::new(100);
+        let id = store.spawn().unwrap();
+
+        store
+            .set_color(id, Color::rgba(1.0, 0.5, 0.25, 0.75))
+            .unwrap();
+        assert!(store.dirty_colors().contains(id.index()));
+
+        let ranges = store.calculate_dirty_ranges(store.dirty_colors());
+        store.mark_colors_clean(&ranges);
+
+        assert!(!store.dirty_colors().contains(id.index()));
+    }
+
+    #[test]
+    fn test_mark_all_clean() {
+        let mut store = EntityStore::new(100);
+        let id = store.spawn().unwrap();
+
+        store.set_position(id, Vec2::new(10.0, 20.0)).unwrap();
+        store
+            .set_color(id, Color::rgba(1.0, 0.5, 0.25, 0.75))
+            .unwrap();
+
+        assert!(store.dirty_positions().contains(id.index()));
+        assert!(store.dirty_colors().contains(id.index()));
+
+        store.mark_all_clean();
+
+        assert!(!store.dirty_positions().contains(id.index()));
+        assert!(!store.dirty_colors().contains(id.index()));
+    }
+
+    #[test]
+    fn test_dirty_tracking_across_frames() {
+        let mut store = EntityStore::new(100);
+        let id1 = store.spawn().unwrap();
+        let id2 = store.spawn().unwrap();
+
+        // Frame 1: Change position
+        store.set_position(id1, Vec2::new(10.0, 20.0)).unwrap();
+        let ranges1 = store.calculate_dirty_ranges(store.dirty_positions());
+        assert_eq!(ranges1, vec![(0, 1)]);
+
+        // "Upload to GPU" and clean
+        store.mark_positions_clean(&ranges1);
+        assert!(!store.dirty_positions().contains(id1.index()));
+
+        // Frame 2: Change different entity
+        store.set_position(id2, Vec2::new(30.0, 40.0)).unwrap();
+        let ranges2 = store.calculate_dirty_ranges(store.dirty_positions());
+
+        // Only id2 is dirty, not id1
+        assert_eq!(ranges2, vec![(1, 1)]);
+        assert!(!store.dirty_positions().contains(id1.index()));
+        assert!(store.dirty_positions().contains(id2.index()));
+    }
+
+    #[test]
+    fn test_mixed_dirty_components() {
+        let mut store = EntityStore::new(100);
+        let id1 = store.spawn().unwrap();
+        let id2 = store.spawn().unwrap();
+
+        // Change position of id1
+        store.set_position(id1, Vec2::new(10.0, 20.0)).unwrap();
+
+        // Change color of id2
+        store
+            .set_color(id2, Color::rgba(1.0, 0.5, 0.25, 0.75))
+            .unwrap();
+
+        // Position dirty set contains only id1
+        assert!(store.dirty_positions().contains(id1.index()));
+        assert!(!store.dirty_positions().contains(id2.index()));
+
+        // Color dirty set contains only id2
+        assert!(!store.dirty_colors().contains(id1.index()));
+        assert!(store.dirty_colors().contains(id2.index()));
     }
 }
