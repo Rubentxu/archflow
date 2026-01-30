@@ -29,13 +29,10 @@
 
 use serde::{Deserialize, Serialize};
 use std::fmt;
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 
 /// Maximum number of entities supported (2^24 - 1)
 pub const MAX_ENTITIES: usize = 0x00FF_FFFF;
-
-/// Generation mask for extracting generation from EntityId
-const GENERATION_MASK: u32 = 0xFF00_0000;
 
 /// Index mask for extracting index from EntityId
 const INDEX_MASK: u32 = 0x00FF_FFFF;

@@ -15,15 +15,19 @@ use std::collections::VecDeque;
 /// Error type for entity store operations.
 #[derive(Debug, thiserror::Error)]
 pub enum EntityStoreError {
+    /// Entity capacity reached (maximum: {0})
     #[error("Entity capacity reached (max: {0})")]
     CapacityReached(usize),
 
+    /// Invalid entity ID: {0:?}
     #[error("Invalid entity ID: {0:?}")]
     InvalidEntityId(EntityId),
 
+    /// Entity not found: {0:?}
     #[error("Entity not found: {0:?}")]
     EntityNotFound(EntityId),
 
+    /// Store is empty
     #[error("Store is empty")]
     EmptyStore,
 }
@@ -198,7 +202,7 @@ impl EntityStore {
             return Err(EntityStoreError::CapacityReached(self.capacity));
         }
 
-        let (index, generation) = if let Some(&free_index) = self.free_slots.front() {
+        let (index, generation) = if let Some(&_free_index) = self.free_slots.front() {
             // Reuse free slot - use current generation (already odd from despawn)
             let index = self.free_slots.pop_front().unwrap();
             let generation = self.generations[index];
