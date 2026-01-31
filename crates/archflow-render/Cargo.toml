@@ -8,3 +8,4 @@ archflow-core = { path = "../archflow-core" }
 archflow-engine = { path = "../archflow-engine" }
 wgpu = { workspace = true }
 bytemuck = { workspace = true }
+pollster = "0.3"

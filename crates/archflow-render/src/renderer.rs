@@ -17,7 +17,6 @@
 
 #![allow(dead_code)]
 
-use alloc::vec;
 use alloc::vec::Vec;
 
 use archflow_core::MAX_ENTITIES;
@@ -46,15 +45,21 @@ pub enum RenderPhase {
 ///
 /// Layout designed for WebGPU storage buffer access:
 /// - All transforms in first 16 bytes (pos + size)
-/// - Color data in next 4 bytes
-/// - Shape/texture metadata in final 12 bytes
-/// - Padded to 48 bytes total (3 x 16-byte aligned slots)
+/// - Color and shape data in next 16 bytes
+/// - UV rectangle in final 16 bytes
+/// - Total: 48 bytes (3 x 16-byte aligned slots)
 ///
-/// Note: We use `bytemuck::AnyBitPattern` instead of `Pod` because
-/// the struct has padding bytes between fields which `Pod` forbids.
-/// For GPU transfer we only need safe bit-casting which `AnyBitPattern` provides.
+/// Layout is carefully organized to avoid padding:
+/// - pos: [f32; 2] = 8 bytes
+/// - size: [f32; 2] = 8 bytes (total 16)
+/// - color: u32 = 4 bytes
+/// - shape_type_or_texture_index: u32 = 4 bytes
+/// - _padding: [u32; 2] = 8 bytes (total 16, aligned)
+/// - uv_rect: [f32; 4] = 16 bytes (total 32)
+///
+/// Note: Fields are organized to ensure Pod compliance (no padding bytes).
 #[repr(C, align(16))]
-#[derive(Clone, Copy, Debug, bytemuck::AnyBitPattern)]
+#[derive(Clone, Copy, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct GpuInstance {
     /// Position [x, y] in world coordinates
     pub pos: [f32; 2],
@@ -69,6 +74,9 @@ pub struct GpuInstance {
     /// For shapes: 0=Rect, 1=Circle, 2=Ellipse, 3=Line, etc.
     /// For textures: Index into texture atlas/array
     pub shape_type_or_texture_index: u32,
+
+    /// Padding to align to 16 bytes
+    pub _padding: [u32; 2],
 
     /// UV rectangle for texture sampling [u, v, w, h]
     /// Normalized 0-1 coordinates in texture atlas
@@ -258,6 +266,7 @@ impl GpuRenderer {
                 } else {
                     texture_idx as u32
                 },
+                _padding: [0, 0],
                 uv_rect: store.uv_rects[idx],
             };
 
@@ -404,16 +413,17 @@ mod tests {
 
     #[test]
     fn test_gpu_instance_bytemuck_compatible() {
-        // GpuInstance must be AnyBitPattern for safe bytemuck casting
+        // GpuInstance must be Pod for safe bytemuck casting
         let instance = GpuInstance {
             pos: [1.0, 2.0],
             size: [10.0, 20.0],
             color: 0xFF0000FF,
             shape_type_or_texture_index: 1,
+            _padding: [0, 0],
             uv_rect: [0.0, 0.0, 1.0, 1.0],
         };
 
-        // Verify we can cast bytes to GpuInstance (AnyBitPattern guarantee)
+        // Verify we can cast bytes to GpuInstance (Pod guarantee)
         let bytes: [u8; 48] = unsafe { core::mem::transmute(instance) };
         assert_eq!(bytes.len(), 48);
 
