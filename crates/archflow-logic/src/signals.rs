@@ -226,8 +226,8 @@ impl SignalByte {
     #[inline(always)]
     #[must_use]
     pub fn is_steady_high(&self, ticks: u8) -> bool {
-        // Create mask: for ticks=3, mask = 0b00111111
-        let mask = (1u8.wrapping_sub(1u8 << ticks)) & 0b111111;
+        // Create mask: for ticks=3, mask = 0b00000111
+        let mask = ((1u8 << ticks).wrapping_sub(1)) & 0b111111;
         (self.0 & mask) == mask
     }
 
@@ -248,7 +248,7 @@ impl SignalByte {
     #[inline(always)]
     #[must_use]
     pub fn is_steady_low(&self, ticks: u8) -> bool {
-        let mask = (1u8.wrapping_sub(1u8 << ticks)) & 0b111111;
+        let mask = ((1u8 << ticks).wrapping_sub(1)) & 0b111111;
         (self.0 & mask) == 0
     }
 
@@ -291,14 +291,17 @@ impl SignalByte {
     // ADVANCED PATTERNS (future use)
     // ═══════════════════════════════════════════════════════════════════════════════
 
-    /// Detects double-click pattern: click-pause-click
+    /// Detects double-click pattern: click-pause-pause-click-pause-pause
     ///
-    /// Pattern: `[100101]` reading from oldest to newest (T5 to T0)
-    /// Which is `0b00100101` in our bit layout
+    /// Pattern: `[100100]` reading from oldest to newest (T5 to T0)
+    /// Which is `0b00100100` in our bit layout
     #[inline(always)]
     #[must_use]
     pub fn is_double_click_pattern(&self) -> bool {
-        (self.get_history() & 0b111111) == 0b00100101
+        // Double-click pattern: click - pause - pause - click - pause - pause
+        // Pattern reading from T5 (oldest) to T0 (newest): 100100
+        // Which is 0b00100100 in our bit layout (MSB=T5, LSB=T0)
+        (self.get_history() & 0b111111) == 0b00100100
     }
 
     /// Detects if signal has noise (frequent transitions)
@@ -489,26 +492,26 @@ mod tests {
     #[test]
     fn test_double_click_pattern() {
         let mut signal = SignalByte::default();
-        // Build pattern: click-pause-click
+        // Build pattern: click-pause-pause-click-pause-pause (double-click)
         // After 6 pushes with left-shift:
         // push(true)  → 0b00000001  (T0=1)
         // push(false) → 0b00000010  (T0=0, T1=1)
         // push(false) → 0b00000100  (T0=0, T1=0, T2=1)
         // push(true)  → 0b00001001  (T0=1, T1=0, T2=0, T3=1)
         // push(false) → 0b00010010  (T0=0, T1=1, T2=0, T3=0, T4=1)
-        // push(true)  → 0b00100101  (T0=1, T1=0, T2=1, T3=0, T4=0, T5=1)
+        // push(false) → 0b00100100  (T0=0, T1=0, T2=1, T3=0, T4=0, T5=1)
 
         signal.push(true); // 1
         signal.push(false); // 10
         signal.push(false); // 100
         signal.push(true); // 1001
         signal.push(false); // 10010
-        signal.push(true); // 100101
+        signal.push(false); // 100100
 
-        // Pattern should be: T5=1, T4=0, T3=0, T2=1, T1=0, T0=1 = 0b00100101
-        // Double-click pattern (click-pause-click) = 100101 reading left-to-right
-        // Which is 0b00100101 in our bit layout (MSB=T5, LSB=T0)
-        assert_eq!(signal.get_history(), 0b00100101);
+        // Pattern should be: T5=1, T4=0, T3=0, T2=1, T1=0, T0=0 = 0b00100100
+        // Double-click pattern (click-pause-pause-click-pause-pause) = 100100 reading left-to-right
+        // Which is 0b00100100 in our bit layout (MSB=T5, LSB=T0)
+        assert_eq!(signal.get_history(), 0b00100100);
         assert!(signal.is_double_click_pattern());
     }
 
