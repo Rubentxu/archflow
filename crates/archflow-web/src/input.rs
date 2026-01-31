@@ -174,6 +174,11 @@ impl RawInputEvent {
             _padding: 0,
         }
     }
+
+    /// Get the event type value
+    pub fn event_type_value(&self) -> u8 {
+        self.event_type
+    }
 }
 
 impl Default for RawInputEvent {
@@ -340,8 +345,8 @@ impl InputProcessor {
     }
 
     /// Get a reference to the underlying ring buffer
-    pub fn buffer(&mut self) -> &InputRingBuffer {
-        &self.buffer
+    pub fn buffer(&mut self) -> &mut InputRingBuffer {
+        &mut self.buffer
     }
 
     /// Process all pending events

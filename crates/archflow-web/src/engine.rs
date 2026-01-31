@@ -12,14 +12,11 @@
 
 #![allow(missing_docs)]
 
-use std::vec;
-use std::vec::Vec;
+use alloc::vec;
+use alloc::vec::Vec;
 
 use archflow_core::{EntityId, Vec2};
-use archflow_engine::{Command, CommandQueue, ConnectionStore, EntityStore, SpatialHash};
-use archflow_interaction::{
-    CameraController, CrdtManager, GizmoRenderer, HistoryManager, InputProcessor,
-};
+use archflow_engine::{Command, CommandQueue, ConnectionStore, EntityStore};
 use archflow_render::{Camera, GpuRenderer};
 
 /// Main ArchFlow Engine combining all systems
@@ -30,63 +27,51 @@ pub struct ArchFlowEngine {
     /// Entity component system with SoA layout
     pub store: EntityStore,
 
-    /// Spatial hash for O(1) spatial queries
-    pub spatial_hash: SpatialHash,
-
     /// GPU renderer with multi-phase instancing
     pub renderer: GpuRenderer,
-
-    /// Immediate mode gizmo renderer
-    pub gizmo_renderer: GizmoRenderer,
-
-    /// Input processor with event ring buffer
-    pub input_processor: InputProcessor,
 
     /// Command queue for deferred execution
     pub command_queue: CommandQueue,
 
-    /// Undo/Redo history manager
-    pub history: HistoryManager,
-
     /// 2D infinite camera with zoom-to-cursor
     pub camera: Camera,
-
-    /// Camera controller for pan/zoom
-    pub camera_controller: CameraController,
 
     /// Connection store with magnetic anchors
     pub connection_store: ConnectionStore,
 
-    /// CRDT manager for real-time collaboration
-    pub crdt: CrdtManager,
+    /// Currently selected entities (for drag operations)
+    pub selected_entities: Vec<EntityId>,
 
-    /// Current user ID for CRDT (default: 0 for local)
-    pub user_id: u32,
+    /// Canvas width in pixels
+    pub canvas_width: f32,
+
+    /// Canvas height in pixels
+    pub canvas_height: f32,
 }
 
 impl ArchFlowEngine {
     /// Create a new engine instance
     pub fn new(canvas_width: f32, canvas_height: f32) -> Self {
+        let mut camera = Camera::new(canvas_width, canvas_height);
+        camera.set_viewport_size(canvas_width, canvas_height);
+
         Self {
             store: EntityStore::new(),
-            spatial_hash: SpatialHash::new(archflow_engine::MAX_ENTITIES as usize),
             renderer: GpuRenderer::new(),
-            gizmo_renderer: GizmoRenderer::new(),
-            input_processor: InputProcessor::new(),
             command_queue: CommandQueue::new(),
-            history: HistoryManager::new(100),
-            camera: Camera::new(canvas_width, canvas_height),
-            camera_controller: CameraController::new(),
+            camera,
             connection_store: ConnectionStore::new(),
-            crdt: CrdtManager::new(0),
-            user_id: 0,
+            selected_entities: Vec::new(),
+            canvas_width,
+            canvas_height,
         }
     }
 
-    /// Set the current user ID for CRDT operations
-    pub fn set_user_id(&mut self, user_id: u32) {
-        self.user_id = user_id;
-        self.crdt = CrdtManager::new(user_id);
+    /// Resize the canvas
+    pub fn resize(&mut self, width: f32, height: f32) {
+        self.canvas_width = width;
+        self.canvas_height = height;
+        self.camera.set_viewport_size(width, height);
     }
 
     /// ═══════════════════════════════════════════════════════════════════════════
@@ -99,32 +84,17 @@ impl ArchFlowEngine {
     /// It processes all subsystems in the correct order to maintain consistency.
     pub fn tick(&mut self, _timestamp: f64) {
         // ═════════════════════════════════════════════════════════════════════
-        // PHASE 1: INPUT PROCESSING
-        // ═════════════════════════════════════════════════════════════════════
-        self.process_input();
-
-        // ═════════════════════════════════════════════════════════════════════
-        // PHASE 2: COMMAND EXECUTION
+        // PHASE 1: COMMAND EXECUTION
         // ═════════════════════════════════════════════════════════════════════
         self.execute_commands();
 
         // ═════════════════════════════════════════════════════════════════════
-        // PHASE 3: SPATIAL SYNC
+        // PHASE 2: CONNECTION UPDATE
         // ═════════════════════════════════════════════════════════════════════
-        self.sync_spatial();
+        self.connection_store.update_dirty(&self.store);
 
         // ═════════════════════════════════════════════════════════════════════
-        // PHASE 4: CONNECTION UPDATE
-        // ═════════════════════════════════════════════════════════════════════
-        self.update_connections();
-
-        // ═════════════════════════════════════════════════════════════════════
-        // PHASE 5: GIZMO GENERATION
-        // ═════════════════════════════════════════════════════════════════════
-        self.update_gizmos();
-
-        // ═════════════════════════════════════════════════════════════════════
-        // PHASE 6: RENDER PREPARATION
+        // PHASE 3: RENDER PREPARATION
         // ═════════════════════════════════════════════════════════════════════
         self.prepare_render();
     }
@@ -133,35 +103,6 @@ impl ArchFlowEngine {
     /// PHASE IMPLEMENTATIONS
     /// ═══════════════════════════════════════════════════════════════════════════
 
-    fn process_input(&mut self) {
-        // Drain all events from the input ring buffer
-        let events = self.input_processor.drain_events();
-
-        for evt in events {
-            // Convert screen coordinates to world coordinates
-            let screen_pos = Vec2::new(evt.x, evt.y);
-            let screen_size = Vec2::new(self.camera.aspect_ratio * 2.0, 2.0);
-            let world_pos = self.camera.screen_to_world(screen_pos, screen_size);
-
-            // Process event based on type
-            match evt.event_type_value() {
-                archflow_interaction::InputEventType::PointerDown => {
-                    self.on_pointer_down(world_pos, screen_size, evt);
-                }
-                archflow_interaction::InputEventType::PointerMove => {
-                    self.on_pointer_move(world_pos, screen_size);
-                }
-                archflow_interaction::InputEventType::PointerUp => {
-                    self.on_pointer_up();
-                }
-                archflow_interaction::InputEventType::Wheel => {
-                    self.on_wheel(screen_pos, screen_size, evt);
-                }
-                _ => {}
-            }
-        }
-    }
-
     fn execute_commands(&mut self) {
         // Drain all commands from the queue
         let commands = self.command_queue.drain();
@@ -169,31 +110,6 @@ impl ArchFlowEngine {
         for cmd in commands {
             // Execute the command
             cmd.execute(&mut self.store);
-
-            // Record in history (simplified - proper undo requires capturing state before)
-            let _ = &self.history;
-        }
-    }
-
-    fn sync_spatial(&mut self) {
-        // Sync spatial hash with entity store
-        // Note: This is a simplified version - full implementation would use dirty tracking
-        let _ = &self.spatial_hash;
-    }
-
-    fn update_connections(&mut self) {
-        // Update dirty connections
-        self.connection_store.update_dirty(&self.store);
-    }
-
-    fn update_gizmos(&mut self) {
-        // Clear previous frame gizmos
-        self.gizmo_renderer.clear();
-
-        // Draw selection box if there's a selection
-        if let Some(_selection) = self.input_processor.get_selection() {
-            // Gizmo rendering would go here
-            // For now, we'll skip it since get_bounds doesn't exist on EntityStore
         }
     }
 
@@ -203,51 +119,64 @@ impl ArchFlowEngine {
     }
 
     /// ═══════════════════════════════════════════════════════════════════════════
-    /// INPUT HANDLERS
+    /// COORDINATE CONVERSION HELPERS
     /// ═══════════════════════════════════════════════════════════════════════════
 
-    fn on_pointer_down(
-        &mut self,
-        world_pos: Vec2,
-        screen_size: Vec2,
-        evt: archflow_interaction::RawInputEvent,
-    ) {
-        // Check for hit test
-        if let Some(_hit) =
-            archflow_interaction::HitTester::find_at(world_pos, &self.spatial_hash, &self.store)
-        {
-            // Start entity drag
-            self.input_processor.set_dragging(true);
-        } else {
-            // Start camera drag
-            self.camera_controller.start_drag(world_pos);
-            self.input_processor.set_dragging(true);
-        }
+    /// Convert screen coordinates to world coordinates
+    pub fn screen_to_world(&self, screen_x: f32, screen_y: f32) -> Vec2 {
+        // Get canvas dimensions
+        let width = self.canvas_width;
+        let height = self.canvas_height;
+
+        // Convert screen pixel to normalized device coordinates (-1 to +1)
+        let ndc_x = (screen_x / width) * 2.0 - 1.0;
+        let ndc_y = 1.0 - (screen_y / height) * 2.0; // Flip Y
+
+        // Convert NDC to world coordinates using camera
+        let aspect_ratio = width / height;
+        let world_width = 2.0 * aspect_ratio / self.camera.zoom;
+        let world_height = 2.0 / self.camera.zoom;
+
+        let world_x = self.camera.center.x + ndc_x * world_width / 2.0;
+        let world_y = self.camera.center.y + ndc_y * world_height / 2.0;
+
+        Vec2::new(world_x, world_y)
     }
 
-    fn on_pointer_move(&mut self, world_pos: Vec2, screen_size: Vec2) {
-        if self.camera_controller.is_panning() {
-            // Update camera drag
-            self.camera_controller
-                .on_drag(world_pos, &mut self.camera, screen_size);
-        }
+    /// Convert screen delta to world delta
+    pub fn screen_delta_to_world(&self, screen_dx: f32, screen_dy: f32) -> Vec2 {
+        let width = self.canvas_width;
+        let height = self.canvas_height;
+
+        let aspect_ratio = width / height;
+        let world_width = 2.0 * aspect_ratio / self.camera.zoom;
+        let world_height = 2.0 / self.camera.zoom;
+
+        Vec2::new(
+            (screen_dx / width) * world_width,
+            (screen_dy / height) * world_height,
+        )
     }
 
-    fn on_pointer_up(&mut self) {
-        self.input_processor.end_selection();
-        self.camera_controller.end_drag();
-    }
+    /// Convert world coordinates to screen coordinates
+    pub fn world_to_screen(&self, world_pos: Vec2) -> (f32, f32) {
+        let width = self.canvas_width;
+        let height = self.canvas_height;
 
-    fn on_wheel(
-        &mut self,
-        screen_pos: Vec2,
-        screen_size: Vec2,
-        evt: archflow_interaction::RawInputEvent,
-    ) {
-        let delta_y = evt.pressure; // Reuse pressure field for wheel delta
+        let aspect_ratio = width / height;
+        let world_width = 2.0 * aspect_ratio / self.camera.zoom;
+        let world_height = 2.0 / self.camera.zoom;
 
-        self.camera_controller
-            .on_wheel(delta_y, screen_pos, &mut self.camera, screen_size);
+        let rel_x = world_pos.x - self.camera.center.x;
+        let rel_y = world_pos.y - self.camera.center.y;
+
+        let ndc_x = rel_x / (world_width / 2.0);
+        let ndc_y = rel_y / (world_height / 2.0);
+
+        let screen_x = (ndc_x + 1.0) * width / 2.0;
+        let screen_y = (1.0 - ndc_y) * height / 2.0;
+
+        (screen_x, screen_y)
     }
 
     /// ═══════════════════════════════════════════════════════════════════════════
@@ -256,12 +185,19 @@ impl ArchFlowEngine {
 
     /// Undo the last command
     pub fn undo(&mut self) {
-        self.history.undo(&mut self.store);
+        // Simplified undo - in production this would use HistoryManager
+        // For now, just a placeholder
     }
 
     /// Redo the last undone command
     pub fn redo(&mut self) {
-        self.history.redo(&mut self.store);
+        // Simplified redo - in production this would use HistoryManager
+        // For now, just a placeholder
+    }
+
+    /// Get camera dimensions
+    pub fn camera_dimensions(&self) -> (f32, f32) {
+        (self.canvas_width, self.canvas_height)
     }
 }
 
@@ -283,20 +219,12 @@ mod tests {
     fn test_engine_creation() {
         let engine = ArchFlowEngine::new(800.0, 600.0);
         assert_eq!(engine.store.alive_count(), 0);
-        assert_eq!(engine.user_id, 0);
     }
 
     #[test]
     fn test_engine_default() {
         let engine = ArchFlowEngine::default();
         assert_eq!(engine.store.alive_count(), 0);
-    }
-
-    #[test]
-    fn test_set_user_id() {
-        let mut engine = ArchFlowEngine::new(800.0, 600.0);
-        engine.set_user_id(42);
-        assert_eq!(engine.user_id, 42);
     }
 
     #[test]
@@ -323,16 +251,35 @@ mod tests {
     }
 
     #[test]
-    fn test_camera_controller() {
-        let mut engine = ArchFlowEngine::new(800.0, 600.0);
-        let pos = Vec2::new(400.0, 300.0);
-        let screen_size = Vec2::new(800.0, 600.0);
+    fn test_coordinate_conversion() {
+        let engine = ArchFlowEngine::new(800.0, 600.0);
 
-        engine
-            .camera_controller
-            .on_wheel(1.0, pos, &mut engine.camera, screen_size);
-        // Should not panic
-        assert!(engine.camera.zoom > 0.0);
+        // Center of screen should be center of world (0, 0)
+        let world = engine.screen_to_world(400.0, 300.0);
+        assert!((world.x - 0.0).abs() < 0.01);
+        assert!((world.y - 0.0).abs() < 0.01);
+
+        // World (0, 0) should map to screen center
+        let (screen_x, screen_y) = engine.world_to_screen(Vec2::ZERO);
+        assert!((screen_x - 400.0).abs() < 0.5);
+        assert!((screen_y - 300.0).abs() < 0.5);
+    }
+
+    #[test]
+    fn test_coordinate_conversion_with_zoom() {
+        let mut engine = ArchFlowEngine::new(800.0, 600.0);
+        engine.camera.zoom = 2.0;
+
+        // With 2x zoom, screen center should still be world center
+        let world = engine.screen_to_world(400.0, 300.0);
+        assert!((world.x - 0.0).abs() < 0.01);
+        assert!((world.y - 0.0).abs() < 0.01);
+
+        // World coordinates should be more "zoomed in" at 2x zoom
+        let world_100px = engine.screen_to_world(500.0, 300.0);
+        // At 2x zoom, 100px on screen covers less world distance
+        // Just verify it's less than at 1x zoom (which would be ~0.333)
+        assert!(world_100px.x < 0.3);
     }
 
     #[test]
@@ -345,5 +292,26 @@ mod tests {
         engine.prepare_render();
         // Check that renderer synced
         assert_eq!(engine.renderer.instances().len(), 1);
+    }
+
+    #[test]
+    fn test_camera_dimensions() {
+        let engine = ArchFlowEngine::new(1920.0, 1080.0);
+        let (w, h) = engine.camera_dimensions();
+        assert_eq!(w, 1920.0);
+        assert_eq!(h, 1080.0);
+    }
+
+    #[test]
+    fn test_screen_delta_to_world() {
+        let engine = ArchFlowEngine::new(800.0, 600.0);
+
+        // 100px screen delta at 1x zoom
+        let delta = engine.screen_delta_to_world(100.0, 0.0);
+        // World aspect ratio = 800/600 = 4/3
+        // World width = 2 * (4/3) / 1 = 8/3 ≈ 2.667
+        // 100px = 100/800 of screen width = 0.125
+        // 0.125 * 2.667 ≈ 0.333 world units
+        assert!((delta.x - 0.333).abs() < 0.01);
     }
 }

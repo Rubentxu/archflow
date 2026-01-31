@@ -10,6 +10,12 @@
 // - JS bindings for browser APIs
 // ═══════════════════════════════════════════════════════════════════════════════
 
+#![no_std]
+#![warn(missing_docs)]
+#![warn(clippy::all)]
+
+extern crate alloc;
+
 pub mod bridge;
 pub mod engine;
 pub mod input;
