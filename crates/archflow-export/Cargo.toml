@@ -7,5 +7,6 @@ edition.workspace = true
 archflow-core = { path = "../archflow-core" }
 archflow-diagram = { path = "../archflow-diagram" }
 archflow-engine = { path = "../archflow-engine" }
+bytemuck = { workspace = true }
 flatbuffers = { workspace = true }
 serde = { workspace = true }

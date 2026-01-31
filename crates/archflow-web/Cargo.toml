@@ -10,6 +10,7 @@ crate-type = ["cdylib", "rlib"]
 archflow-core = { path = "../archflow-core" }
 archflow-diagram = { path = "../archflow-diagram" }
 archflow-engine = { path = "../archflow-engine" }
+archflow-export = { path = "../archflow-export" }
 archflow-render = { path = "../archflow-render" }
 archflow-interaction = { path = "../archflow-interaction" }
 wasm-bindgen = { workspace = true }
