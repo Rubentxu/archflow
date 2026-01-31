@@ -1,50 +1,21 @@
-//! ArchFlow Text Rendering Engine
-//!
-//! Professional-grade text rendering foundation using HarfBuzz for shaping and
-//! Signed Distance Fields (SDF) for GPU-accelerated, resolution-independent rendering.
-//!
-//! # Architecture
-//!
-//! ```text
-//! TextShaper (rustybuzz)
-//!     ↓ Glyph positions
-//! SDFAtlas (distance fields)
-//!     ↓ UV coordinates
-//! TextQuadGenerator
-//!     ↓ Vertex quads
-//! WebGPU Renderer (SDF shader)
-//!     ↓ Crisp text
-//! ```
-//!
-//! # Status
-//!
-//! This is a foundation implementation. Full Epic 3 implementation requires:
-//! - Actual font files (Inter.ttf, Amiri.ttf, etc.) for testing
-//! - Complete UnicodeBuffer integration for complex scripts
-//! - SDF generation algorithms
-//! - WebGPU shader implementation
-//!
-//! # Examples
-//!
-//! ```rust,no_run
-//! use archflow_text::{TextShaper, TextRenderer};
-//!
-//! let mut shaper = TextShaper::new();
-//! shaper.load_font("Inter".to_string(), font_data);
-//! let glyphs = shaper.shape("Hello", 16.0);
-//! ```
+// ═══════════════════════════════════════════════════════════════════════════════
+// ArchFlow Text - MTSDF Text Rendering System
+//
+// Architecture Reference: ARQUITECTURA_FINAL_V3.md - Section 12
+//
+// This crate contains the text rendering system:
+// - MTSDF (Multi-channel Signed Distance Field) atlas
+// - Glyph run cache for layout reuse
+// - cosmic-text integration for shaping
+// ═══════════════════════════════════════════════════════════════════════════════
 
-#![warn(missing_docs, rust_2018_idioms)]
+// TODO: Implement MtsdfAtlas, GlyphRunCache, TextLayoutSystem
+// See: ARQUITECTURA_FINAL_V3.md - Section 12
 
-pub mod error;
-pub mod font;
-pub mod renderer;
-pub mod sdf;
-pub mod shaping;
+pub mod cache;
+pub mod layout;
+pub mod mtsdf;
 
-// Re-export commonly used types
-pub use error::{TextError, TextResult};
-pub use font::{FontCache, FontHandle, FontLoader};
-pub use renderer::{TextQuad, TextRenderer};
-pub use sdf::{SDFAtlas, SDFGenerator, SDFTexture};
-pub use shaping::{GlyphId, GlyphPosition, TextShaper};
+pub use cache::GlyphRunCache;
+pub use layout::TextLayoutSystem;
+pub use mtsdf::MtsdfAtlas;
