@@ -2,30 +2,30 @@
 name = "archflow-core"
 version.workspace = true
 edition.workspace = true
-rust-version.workspace = true
 
 [dependencies]
-# Workspace dependencies
-serde = { workspace = true, features = ["derive"] }
-uuid = { workspace = true, features = ["v4", "serde"] }
-thiserror = { workspace = true }
-anyhow = { workspace = true }
-kurbo = { workspace = true }
-rand = "0.8"
+# Math (no_std compatible)
+glam = { workspace = true }
 
-# Web dependencies (for WASM builds)
-web-sys = { version = "0.3", features = [
-    "CanvasRenderingContext2d",
-    "HtmlCanvasElement",
-    "HtmlImageElement",
-    "HtmlVideoElement",
-    "Window",
-], optional = true }
+# Error handling (no_std compatible)
+thiserror = { workspace = true, optional = true }
 
-# Event Sourcing dependencies
-chrono = { version = "0.4", features = ["serde"] }
-serde_json = "1.0"
+# Utilities
+static_assertions = { workspace = true }
 
 [features]
-default = []
-wasm = ["dep:web-sys"]
+default = ["std"]
+std = ["thiserror"]
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ARCHITECTURE NOTES:
+# ═══════════════════════════════════════════════════════════════════════════════
+# This crate MUST be no_std compatible by default.
+# It contains pure, immutable, Copy types that can be used in WASM without std.
+#
+# Modules:
+# - id: EntityId with generational indices (packed u32)
+# - math: Vec2, Rect, Color, Transform (re-exports from glam with custom extensions)
+# - vo: Value Objects (Position, Size, Bounds, etc.)
+# - ports: Trait definitions for Hexagonal Architecture
+# ═══════════════════════════════════════════════════════════════════════════════
