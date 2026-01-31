@@ -1,22 +1,26 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // ArchFlow Render - WebGPU Rendering System
 //
-// Architecture Reference: ARQUITECTURA_FINAL_V3.md - Section 9
+// Architecture Reference: ARQUITECTURA_FINAL_V3.md - Sections 6, 9, 10
 //
 // This crate contains the WebGPU rendering pipeline:
+// - 2D Infinite Camera with zoom-to-cursor
 // - Multi-Phase Instancing renderer
 // - Texture Atlas with Shelf Packing
 // - MTSDF text rendering
 // - Shader pipelines for shapes, icons, images, text
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// TODO: Implement GpuRenderer, AtlasPacker, MtsdfAtlas
-// See: ARQUITECTURA_FINAL_V3.md - Sections 9, 10, 12
+#![no_std]
+#![warn(missing_docs)]
+#![warn(clippy::all)]
+
+extern crate alloc;
 
 pub mod atlas;
 pub mod camera;
 pub mod renderer;
 
 pub use atlas::AtlasPacker;
-pub use camera::Camera;
+pub use camera::{Camera, ZOOM_INTENSITY, ZOOM_MAX, ZOOM_MIN};
 pub use renderer::GpuRenderer;
