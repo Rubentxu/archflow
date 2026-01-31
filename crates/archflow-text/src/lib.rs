@@ -18,7 +18,9 @@ extern crate alloc;
 pub mod cache;
 pub mod layout;
 pub mod mtsdf;
+pub mod sdf;
 
 pub use cache::{FlatGlyphRun, GlyphRunCache};
 pub use layout::{FontId, TextLayoutSystem, DEFAULT_FONT_SIZE};
 pub use mtsdf::{GlyphKey, MtsdfAtlas};
+pub use sdf::{generate_sdf_glyph, SdfConfig, SdfGenerator};
