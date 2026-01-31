@@ -19,11 +19,13 @@
 extern crate alloc;
 
 pub mod actuators; // Epic 3: Actuators
+pub mod mapping; // Epic 4: Logic Mapping
 pub mod sensors; // Epic 2: Sensors
 pub mod signals; // Epic 1: SignalByte Foundation
-                 // pub mod mapping;      // Epic 4: Logic Mapping
+                 // pub mod wasm;         // Epic 5: SDK TypeScript
 
 pub use actuators::{HighlightActuator, MoveActuator, SelectActuator, SelectMode};
+pub use mapping::{Controller, LogicMappingTable, SensorType};
 pub use sensors::mouse_over::MouseOverSensor;
 pub use signals::SignalByte;
 
