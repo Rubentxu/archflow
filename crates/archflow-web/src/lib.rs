@@ -19,10 +19,16 @@ extern crate alloc;
 pub mod bridge;
 pub mod engine;
 pub mod input;
+pub mod logic;
 
 pub use bridge::WasmBridge;
 pub use engine::ArchFlowEngine;
 pub use input::{
     Buttons, InputEventType, InputProcessor, InputRingBuffer, Modifiers, RawInputEvent,
     EVENT_CAPACITY, EVENT_SIZE, MAX_POINTERS,
+};
+
+// Logic Bricks WASM exports (Epic 5)
+pub use logic::{
+    ActuatorType, Controller, ControllerType, LogicMappingTableWasm, SensorType, SignalByteWasm,
 };
