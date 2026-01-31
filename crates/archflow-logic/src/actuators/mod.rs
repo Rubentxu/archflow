@@ -1,10 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // ArchFlow Logic - Actuators Module
 //
-// Epic 3: Actuadores Fundamentales
-//
 // Actuators transform sensor signals into Commands that modify EntityStore state.
-// They follow the TDD approach: RED → GREEN → REFACTOR
 //
 // Architecture:
 // - Sensors (input) → Actuators (transformation) → Commands (output)
@@ -13,9 +10,9 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 pub mod highlight;
-pub mod mov;
+pub mod move_;
 pub mod select;
 
 pub use highlight::HighlightActuator;
-pub use mov::MoveActuator;
+pub use move_::MoveActuator;
 pub use select::{SelectActuator, SelectMode};

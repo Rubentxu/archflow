@@ -18,35 +18,12 @@
 
 extern crate alloc;
 
-pub mod actuators; // Epic 3: Actuators
-pub mod mapping; // Epic 4: Logic Mapping
-pub mod sensors; // Epic 2: Sensors
-pub mod signals; // Epic 1: SignalByte Foundation
-                 // pub mod wasm;         // Epic 5: SDK TypeScript
+pub mod actuators;
+pub mod mapping;
+pub mod sensors;
+pub mod signals;
 
 pub use actuators::{HighlightActuator, MoveActuator, SelectActuator, SelectMode};
 pub use mapping::{Controller, LogicMappingTable, SensorType};
 pub use sensors::mouse_over::MouseOverSensor;
 pub use signals::SignalByte;
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// EPIC 1: SignalByte Foundation
-// Status: IN PROGRESS
-// ═══════════════════════════════════════════════════════════════════════════════
-//
-// [x] User Story 1.1: SignalByte with 6-tick history
-//     [x] RED: Tests written in tests/signal_byte_tests.rs
-//     [ ] GREEN: Implementation in src/signals.rs
-//     [ ] REFACTOR: Optimization and documentation
-//
-// [ ] User Story 1.2: Edge Detection
-//     [ ] RED: Write tests first
-//     [ ] GREEN: Implement is_rising_edge(), is_falling_edge()
-//     [ ] REFACTOR: Optimize bit patterns
-//
-// [ ] User Story 1.3: Pattern Matching
-//     [ ] RED: Write tests first
-//     [ ] GREEN: Implement is_steady(), count_ones(), count_zeros()
-//     [ ] REFACTOR: Add const fn support
-//
-// ═══════════════════════════════════════════════════════════════════════════════

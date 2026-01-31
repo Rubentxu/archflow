@@ -1,9 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // ArchFlow Logic - Move Actuator Implementation
 //
-// Epic 3.3: Move Actuator with Hysteresis
-// TDD Cycle: RED → GREEN → REFACTOR
-//
 // This actuator manages entity drag state with hysteresis:
 // - Initiates drag only after 6 ticks of steady signal (prevents accidental drag)
 // - Requires 6 ticks of 0 to release (prevents accidental release)

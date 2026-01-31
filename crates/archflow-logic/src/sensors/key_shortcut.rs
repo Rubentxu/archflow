@@ -1,9 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // ArchFlow Logic - KeyShortcut Sensor Implementation
 //
-// Epic 2.4: KeyShortcut Sensor
-// TDD Cycle: RED → GREEN → REFACTOR
-//
 // This sensor detects keyboard key presses and combinations with modifiers
 // (Ctrl, Shift, Alt, Meta). It uses bitwise operations for efficient modifier tracking.
 //

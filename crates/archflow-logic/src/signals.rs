@@ -1,9 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // ArchFlow Logic - SignalByte Implementation
 //
-// Epic 1.1: SignalByte with 6-tick history
-// TDD Cycle: RED → GREEN → REFACTOR
-//
 // This file implements the SignalByte type which stores 6 ticks of binary
 // signal history in a single byte using bit-packing for maximum efficiency.
 //
@@ -152,7 +149,7 @@ impl SignalByte {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════════
-    // EDGE DETECTION (Epic 1.2)
+    // EDGE DETECTION
     // ═══════════════════════════════════════════════════════════════════════════════
 
     /// Detects rising edge: 0 in T-1, 1 in T
@@ -203,7 +200,7 @@ impl SignalByte {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════════
-    // PATTERN MATCHING (Epic 1.3)
+    // PATTERN MATCHING
     // ═══════════════════════════════════════════════════════════════════════════════
 
     /// Checks if signal has been steadily high (all 1s) for the last N ticks

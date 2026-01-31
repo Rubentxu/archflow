@@ -1,9 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // ArchFlow Logic - Select Actuator Implementation
 //
-// Epic 3.2: Select Actuator
-// TDD Cycle: RED → GREEN → REFACTOR
-//
 // This actuator manages entity selection state by:
 // - Tracking selected entities in a HashSet
 // - Using EntityStore.set_selected() for visual feedback

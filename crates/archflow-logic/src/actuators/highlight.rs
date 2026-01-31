@@ -1,9 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // ArchFlow Logic - Highlight Actuator Implementation
 //
-// Epic 3.1: Highlight Actuator
-// TDD Cycle: RED → GREEN → REFACTOR
-//
 // This actuator manages entity highlight state by:
 // - Storing original color when highlight is activated
 // - Generating SetColor commands to change appearance

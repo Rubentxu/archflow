@@ -1,8 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // ArchFlow Logic - Sensor Type
 //
-// Epic 4: Logic Mapping Table
-//
 // This module defines the SensorType enum for type-safe sensor identification
 // in LogicMapping connections.
 //

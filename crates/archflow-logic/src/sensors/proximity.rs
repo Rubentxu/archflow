@@ -1,9 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // ArchFlow Logic - Proximity Sensor Implementation
 //
-// Epic 2.3: Proximity Sensor
-// TDD Cycle: RED → GREEN → REFACTOR
-//
 // This sensor detects when entities are within a specified distance of each other
 // using SpatialHash for O(1) spatial queries instead of O(n²) brute force.
 //

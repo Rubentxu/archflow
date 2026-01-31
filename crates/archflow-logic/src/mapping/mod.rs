@@ -1,8 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // ArchFlow Logic - Logic Mapping Module
 //
-// Epic 4: Logic Mapping Table with Controllers
-//
 // This module provides the connection layer between sensors and actuators:
 // - LogicMappingTable: Stores and evaluates sensor→actuator connections
 // - Controller: Boolean logic (AND, OR, NOT) for combining sensor signals

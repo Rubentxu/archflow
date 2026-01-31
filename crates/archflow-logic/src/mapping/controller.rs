@@ -1,8 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // ArchFlow Logic - Controller
 //
-// Epic 4: Logic Mapping Table
-//
 // This module defines the Controller enum for boolean logic operations
 // on sensor signals in LogicMapping connections.
 //

@@ -1,9 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // ArchFlow Logic - MouseClick Sensor Implementation
 //
-// Epic 2.2: MouseClick Sensor
-// TDD Cycle: RED → GREEN → REFACTOR
-//
 // This sensor detects mouse button clicks on entities using:
 // - AABB hit testing (is mouse over entity?)
 // - Button state tracking (which buttons are pressed?)

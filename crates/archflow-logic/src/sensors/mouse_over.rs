@@ -1,9 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // ArchFlow Logic - MouseOver Sensor Implementation
 //
-// Epic 2.1: MouseOver Sensor
-// TDD Cycle: RED → GREEN → REFACTOR
-//
 // This sensor detects when the mouse cursor is over an entity using
 // Axis-Aligned Bounding Box (AABB) hit testing with 6-tick history tracking.
 //
