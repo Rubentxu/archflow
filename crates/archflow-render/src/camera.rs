@@ -10,13 +10,8 @@
 // - Automatic viewport culling with SpatialHash
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#![no_std]
 #![warn(missing_docs)]
 #![warn(clippy::all)]
-
-extern crate alloc;
-
-use alloc::format;
 
 use archflow_core::{Rect, Vec2};
 

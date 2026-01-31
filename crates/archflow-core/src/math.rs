@@ -162,6 +162,18 @@ impl Rect {
             max: Vec2::new(self.max.x.max(other.max.x), self.max.y.max(other.max.y)),
         }
     }
+
+    /// Find the closest point on the rectangle to a given point
+    ///
+    /// If the point is inside the rectangle, returns the point itself.
+    /// Otherwise returns the closest point on the rectangle's boundary.
+    #[inline(always)]
+    pub fn closest_point(&self, point: Vec2) -> Vec2 {
+        Vec2::new(
+            point.x.clamp(self.min.x, self.max.x),
+            point.y.clamp(self.min.y, self.max.y),
+        )
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

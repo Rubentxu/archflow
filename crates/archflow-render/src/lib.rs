@@ -21,6 +21,6 @@ pub mod atlas;
 pub mod camera;
 pub mod renderer;
 
-pub use atlas::AtlasPacker;
+pub use atlas::{AtlasPacker, AtlasRect};
 pub use camera::{Camera, ZOOM_INTENSITY, ZOOM_MAX, ZOOM_MIN};
-pub use renderer::GpuRenderer;
+pub use renderer::{CameraUniforms, GpuInstance, GpuRenderer, RenderPhase};
