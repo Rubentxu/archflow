@@ -4,7 +4,9 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-archflow-core = { path = "../archflow-core" }
+archflow-core = { path = "../archflow-core", features = ["std"] }
 fixedbitset = { workspace = true }
 heapless = { workspace = true }
-hashbrown = { workspace = true }
+
+[dev-dependencies]
+archflow-core = { path = "../archflow-core", features = ["std"] }
