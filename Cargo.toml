@@ -73,7 +73,7 @@ bumpalo = "3.16"
 # ═══════════════════════════════════════════════════════════════════════════════
 # Rendering (WebGPU + rasterization)
 # ═══════════════════════════════════════════════════════════════════════════════
-wgpu = { version = "23", default-features = false, features = ["webgl"] }
+wgpu = { version = "23", default-features = false, features = ["webgl", "webgpu", "wgsl"] }
 bytemuck = { version = "1.20", features = ["derive"] }
 resvg = { version = "0.44", default-features = false, features = ["text"] }
 tiny-skia = "0.11"
