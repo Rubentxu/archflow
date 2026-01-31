@@ -81,3 +81,6 @@ Cargo.lock
 # docs/current/ (Keep documentation updated in repo)
 docs/
 .vite
+-e *.png
+repomix_output.txt
+rust_files.txt
