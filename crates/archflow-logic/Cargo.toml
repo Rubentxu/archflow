@@ -1,0 +1,21 @@
+[package]
+name = "archflow-logic"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+# Core types (EntityId, Vec2, etc.) - no_std compatible
+archflow-core = { path = "../archflow-core" }
+
+# EntityStore and engine types (needed for sensors)
+archflow-engine = { path = "../archflow-engine" }
+
+# Collections optimized for WASM - will be needed for LogicMappingTable (Epic 4)
+hashbrown = { workspace = true }
+
+[dev-dependencies]
+# Tests only - will be needed for integration tests (Epic 2+)
+# archflow-engine = { path = "../archflow-engine" }
+
+[lib]
+doctest = false

@@ -3,6 +3,7 @@ members = [
     "crates/archflow-core",
     "crates/archflow-diagram",
     "crates/archflow-engine",
+    "crates/archflow-logic",        # NEW: Logic Bricks system (Epic 1-5)
     "crates/archflow-render",
     "crates/archflow-interaction",
     "crates/archflow-plugins",
