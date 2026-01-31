@@ -18,11 +18,12 @@
 
 extern crate alloc;
 
+pub mod actuators; // Epic 3: Actuators
 pub mod sensors; // Epic 2: Sensors
 pub mod signals; // Epic 1: SignalByte Foundation
-                 // pub mod actuators;    // Epic 3: Actuators
                  // pub mod mapping;      // Epic 4: Logic Mapping
 
+pub use actuators::{HighlightActuator, MoveActuator, SelectActuator, SelectMode};
 pub use sensors::mouse_over::MouseOverSensor;
 pub use signals::SignalByte;
 
