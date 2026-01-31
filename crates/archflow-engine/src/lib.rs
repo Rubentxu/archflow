@@ -9,13 +9,19 @@
 // - Command queue for action processing
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// TODO: Implement EntityStore, SpatialHash, CommandQueue
-// See: ARQUITECTURA_FINAL_V3.md - Sections 4, 5, 8
+#![no_std]
+#![warn(missing_docs)]
+#![warn(clippy::all)]
+
+extern crate alloc;
 
 pub mod command;
 pub mod spatial;
 pub mod store;
 
-pub use command::CommandQueue;
+pub use command::{Command, CommandQueue};
 pub use spatial::SpatialHash;
-pub use store::EntityStore;
+pub use store::{
+    ArchitectureData, EntityStore, ShapeType, StringPool, MAX_CONNECTIONS, MAX_ENTITIES,
+    MAX_GLYPHS, MAX_TEXT_LENGTH,
+};
