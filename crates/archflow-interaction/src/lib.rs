@@ -10,8 +10,11 @@
 // - Gizmo renderer for UI
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// TODO: Implement HitTester, CameraController, InputProcessor, GizmoRenderer
-// See: ARQUITECTURA_FINAL_V3.md - Sections 6, 7, 13, 15
+#![no_std]
+#![warn(missing_docs)]
+#![warn(clippy::all)]
+
+extern crate alloc;
 
 pub mod camera_controller;
 pub mod gizmos;
