@@ -105,6 +105,29 @@ impl StringPool {
         self.offsets.fill((0, 0));
         self.free_list.clear();
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // SERIALIZATION HELPERS
+    // ═══════════════════════════════════════════════════════════
+
+    /// Get the buffer (for serialization)
+    #[inline(always)]
+    pub fn buffer(&self) -> &[u8] {
+        &self.buffer
+    }
+
+    /// Set the buffer directly (for deserialization)
+    #[inline(always)]
+    pub fn set_buffer(&mut self, data: &[u8]) {
+        self.buffer.clear();
+        self.buffer.extend_from_slice(data);
+    }
+
+    /// Clear the offsets (for deserialization)
+    #[inline(always)]
+    pub fn clear_offsets(&mut self) {
+        self.offsets.fill((0, 0));
+    }
 }
 
 /// EntityStore with Structure of Arrays (SoA) layout
@@ -484,6 +507,190 @@ impl EntityStore {
     #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.alive_count == 0
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // SERIALIZATION HELPERS
+    // ═══════════════════════════════════════════════════════════
+
+    /// Check if an entity index is alive (for serialization)
+    #[inline(always)]
+    pub fn is_alive_index(&self, idx: usize) -> bool {
+        if idx >= MAX_ENTITIES {
+            return false;
+        }
+        // Check if not in free list (an entity is alive if it's in draw_order and not in free_list)
+        if self
+            .free_list
+            .iter()
+            .any(|&free_idx| free_idx as usize == idx)
+        {
+            return false;
+        }
+        // Check if it's in the draw order (has been spawned)
+        self.draw_order.contains(&(idx as u32))
+    }
+
+    /// Get generation for an entity index (for serialization)
+    #[inline(always)]
+    pub fn generation(&self, idx: usize) -> u8 {
+        self.generations[idx]
+    }
+
+    /// Set generation for an entity index (for deserialization)
+    #[inline(always)]
+    pub fn set_generation(&mut self, idx: usize, gen: u8) {
+        self.generations[idx] = gen;
+    }
+
+    /// Set alive count directly (for deserialization)
+    #[inline(always)]
+    pub fn set_alive_count(&mut self, count: usize) {
+        self.alive_count = count;
+    }
+
+    /// Get a reference to transforms array (for serialization)
+    #[inline(always)]
+    pub fn transforms_ref(&self) -> &[[f32; 4]] {
+        &self.transforms
+    }
+
+    /// Get a reference to metadata array (for serialization)
+    #[inline(always)]
+    pub fn metadata_ref(&self) -> &[u32] {
+        &self.metadata
+    }
+
+    /// Get a reference to colors array (for serialization)
+    #[inline(always)]
+    pub fn colors_ref(&self) -> &[u32] {
+        &self.colors
+    }
+
+    /// Set transform directly (for deserialization)
+    #[inline(always)]
+    pub fn set_transform(&mut self, idx: usize, transform: [f32; 4]) {
+        self.transforms[idx] = transform;
+    }
+
+    /// Set local transform directly (for deserialization)
+    #[inline(always)]
+    pub fn set_local_transform(&mut self, idx: usize, transform: [f32; 4]) {
+        self.local_transform[idx] = transform;
+    }
+
+    /// Set world transform directly (for deserialization)
+    #[inline(always)]
+    pub fn set_world_transform(&mut self, idx: usize, transform: [f32; 4]) {
+        self.world_transform[idx] = transform;
+    }
+
+    /// Set metadata directly (for deserialization)
+    #[inline(always)]
+    pub fn set_metadata(&mut self, idx: usize, metadata: u32) {
+        self.metadata[idx] = metadata;
+    }
+
+    /// Set color directly (for deserialization)
+    #[inline(always)]
+    pub fn set_color(&mut self, idx: usize, color: u32) {
+        self.colors[idx] = color;
+    }
+
+    /// Set texture index directly (for deserialization)
+    #[inline(always)]
+    pub fn set_texture_index(&mut self, idx: usize, index: u16) {
+        self.texture_index[idx] = index;
+    }
+
+    /// Set text glyph count directly (for deserialization)
+    #[inline(always)]
+    pub fn set_text_glyph_count(&mut self, idx: usize, count: u16) {
+        self.text_glyph_count[idx] = count;
+    }
+
+    /// Set text glyph start directly (for deserialization)
+    #[inline(always)]
+    pub fn set_text_glyph_start(&mut self, idx: usize, start: u32) {
+        self.text_glyph_start[idx] = start;
+    }
+
+    /// Set text scale directly (for deserialization)
+    #[inline(always)]
+    pub fn set_text_scale(&mut self, idx: usize, scale: f32) {
+        self.text_scale[idx] = scale;
+    }
+
+    /// Set UV rect directly (for deserialization)
+    #[inline(always)]
+    pub fn set_uv_rect(&mut self, idx: usize, uv_rect: [f32; 4]) {
+        self.uv_rects[idx] = uv_rect;
+    }
+
+    /// Set color tint directly (for deserialization)
+    #[inline(always)]
+    pub fn set_color_tint(&mut self, idx: usize, tint: [f32; 4]) {
+        self.color_tints[idx] = tint;
+    }
+
+    /// Get local transform array (for serialization)
+    #[inline(always)]
+    pub fn local_transforms_ref(&self) -> &[[f32; 4]] {
+        &self.local_transform
+    }
+
+    /// Get world transform array (for serialization)
+    #[inline(always)]
+    pub fn world_transforms_ref(&self) -> &[[f32; 4]] {
+        &self.world_transform
+    }
+
+    /// Get texture index array (for serialization)
+    #[inline(always)]
+    pub fn texture_indices_ref(&self) -> &[u16] {
+        &self.texture_index
+    }
+
+    /// Get text glyph count array (for serialization)
+    #[inline(always)]
+    pub fn text_glyph_counts_ref(&self) -> &[u16] {
+        &self.text_glyph_count
+    }
+
+    /// Get text glyph start array (for serialization)
+    #[inline(always)]
+    pub fn text_glyph_starts_ref(&self) -> &[u32] {
+        &self.text_glyph_start
+    }
+
+    /// Get text scale array (for serialization)
+    #[inline(always)]
+    pub fn text_scales_ref(&self) -> &[f32] {
+        &self.text_scale
+    }
+
+    /// Get UV rect array (for serialization)
+    #[inline(always)]
+    pub fn uv_rects_ref(&self) -> &[[f32; 4]] {
+        &self.uv_rects
+    }
+
+    /// Get color tint array (for serialization)
+    #[inline(always)]
+    pub fn color_tints_ref(&self) -> &[[f32; 4]] {
+        &self.color_tints
+    }
+
+    /// Get parent ID array (for serialization)
+    #[inline(always)]
+    pub fn parent_ids_ref(&self) -> &[Option<EntityId>] {
+        &self.parent_id
+    }
+
+    /// Set parent ID directly (for deserialization)
+    #[inline(always)]
+    pub fn set_parent_id(&mut self, idx: usize, parent: Option<EntityId>) {
+        self.parent_id[idx] = parent;
     }
 }
 
