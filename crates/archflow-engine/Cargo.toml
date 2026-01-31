@@ -1,0 +1,10 @@
+[package]
+name = "archflow-engine"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+archflow-core = { path = "../archflow-core" }
+fixedbitset = { workspace = true }
+heapless = { workspace = true }
+hashbrown = { workspace = true }

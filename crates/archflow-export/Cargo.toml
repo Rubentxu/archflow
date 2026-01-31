@@ -1,0 +1,11 @@
+[package]
+name = "archflow-export"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+archflow-core = { path = "../archflow-core" }
+archflow-diagram = { path = "../archflow-diagram" }
+archflow-engine = { path = "../archflow-engine" }
+flatbuffers = { workspace = true }
+serde = { workspace = true }

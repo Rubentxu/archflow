@@ -1,0 +1,28 @@
+[package]
+name = "archflow-diagram"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+# Core types (no_std compatible)
+archflow-core = { path = "../archflow-core" }
+
+# Error handling
+thiserror = { workspace = true }
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ARCHITECTURE NOTES:
+# ═══════════════════════════════════════════════════════════════════════════════
+# Domain Core - Pure business logic, no infrastructure dependencies
+#
+# This crate contains the domain model for C4 architecture diagrams:
+# - C4 Model: System, Container, Component, Code entities
+# - Domain Commands: Intentions to change the domain
+# - Domain Events: Facts that happened in the domain
+# - Aggregates: Consistency boundaries
+# - Value Objects: Domain-specific types
+#
+# This crate MUST NOT depend on:
+# - std (use no_std)
+# - wgpu, web-sys, or any rendering/infrastructure crates
+# ═══════════════════════════════════════════════════════════════════════════════

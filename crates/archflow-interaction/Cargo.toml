@@ -1,0 +1,9 @@
+[package]
+name = "archflow-interaction"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+archflow-core = { path = "../archflow-core" }
+archflow-engine = { path = "../archflow-engine" }
+archflow-render = { path = "../archflow-render" }

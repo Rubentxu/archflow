@@ -1,0 +1,13 @@
+[package]
+name = "archflow-plugins"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+archflow-core = { path = "../archflow-core" }
+quick-xml = { workspace = true }
+flate2 = { workspace = true }
+base64 = { workspace = true }
+percent-encoding = { workspace = true }
+resvg = { workspace = true }
+tiny-skia = { workspace = true }

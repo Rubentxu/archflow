@@ -1,0 +1,9 @@
+[package]
+name = "archflow-render"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+archflow-core = { path = "../archflow-core" }
+wgpu = { workspace = true }
+bytemuck = { workspace = true }
