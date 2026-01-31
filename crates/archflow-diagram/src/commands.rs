@@ -197,11 +197,13 @@ mod tests {
             .entity_id(),
             Some(id)
         );
-        assert_eq!(DiagramCommand::MoveGroup {
-            root_id: id,
-            delta: Vec2::new(1.0, 2.0)
-        }
-        .entity_id()
-        .is_none());
+        assert_eq!(
+            DiagramCommand::MoveGroup {
+                root_id: id,
+                delta: Vec2::new(1.0, 2.0)
+            }
+            .entity_id(),
+            None
+        );
     }
 }

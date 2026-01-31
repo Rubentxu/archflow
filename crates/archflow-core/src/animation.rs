@@ -10,26 +10,32 @@
 //! - Stagger for wave-based animation delays
 //! - Event system for animation lifecycle integration
 
+#[cfg(feature = "std")]
 pub mod builder;
+#[cfg(feature = "std")]
 pub mod events;
+#[cfg(feature = "std")]
 pub mod stagger;
+#[cfg(feature = "std")]
 pub mod timeline;
 
+#[cfg(feature = "std")]
 use crate::EntityId;
-use serde::{Deserialize, Serialize};
+#[cfg(feature = "std")]
 use std::time::Duration;
 
-// Re-export commonly used builder types for convenience
+// Re-export commonly used types when std is available
+#[cfg(feature = "std")]
 pub use builder::{AnimationHandle, AnimatorBuilder, Ease};
-// Re-export commonly used timeline types for convenience
-pub use timeline::{Timeline, TimelineHandle, TimelineLabel, TimelinePosition};
-// Re-export commonly used stagger types for convenience
-pub use stagger::{GridPosition, Stagger, StaggerAxis, StaggerFrom};
-// Re-export event system types
+#[cfg(feature = "std")]
 pub use events::{
     AnimatedPropertyValue, AnimationCanvasAdapter, AnimationEvent, AnimationEventDispatcher,
     AnimationId, AnimationPhase, CanvasAnimationOperation, CanvasAnimationUpdate,
 };
+#[cfg(feature = "std")]
+pub use stagger::{GridPosition, Stagger, StaggerAxis, StaggerFrom};
+#[cfg(feature = "std")]
+pub use timeline::{Timeline, TimelineHandle, TimelineLabel, TimelinePosition};
 
 /// Timing function type for easing
 ///
@@ -60,7 +66,8 @@ pub use events::{
 /// Enum-based dispatch is used instead of dynamic dispatch (Box<dyn>),
 /// providing ~7.5x better performance due to compile-time monomorphization
 /// and better inlining opportunities.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum EasingFunction {
     // ===== LINEAR (1 variant) =====
     /// Linear easing (no acceleration)

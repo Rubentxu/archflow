@@ -9,7 +9,6 @@
 // - Smooth zoom within 0.01x to 100x range
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#![no_std]
 #![warn(missing_docs)]
 #![warn(clippy::all)]
 

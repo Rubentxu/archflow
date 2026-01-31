@@ -51,19 +51,6 @@ impl HitTester {
     /// # Returns
     /// * `Some(EntityId)` - Topmost entity at the position
     /// * `None` - No entity at this position
-    ///
-    /// # Example
-    /// ```rust
-    /// # use archflow_core::Vec2;
-    /// # use archflow_engine::{EntityStore, SpatialHash};
-    /// # use archflow_interaction::HitTester;
-    /// # let store = EntityStore::new();
-    /// # let spatial = SpatialHash::new();
-    /// let mouse_pos = Vec2::new(100.0, 200.0);
-    /// if let Some(entity) = HitTester::find_at(mouse_pos, &spatial, &store) {
-    ///     // User clicked on this entity
-    /// }
-    /// ```
     pub fn find_at(
         cursor_world: Vec2,
         spatial: &SpatialHash,
@@ -128,20 +115,6 @@ impl HitTester {
     ///
     /// # Returns
     /// Vector of all entities intersecting the rectangle
-    ///
-    /// # Example
-    /// ```rust
-    /// # use archflow_core::{Vec2, Rect};
-    /// # use archflow_engine::{EntityStore, SpatialHash};
-    /// # use archflow_interaction::HitTester;
-    /// # let store = EntityStore::new();
-    /// # let spatial = SpatialHash::new();
-    /// let selection = Rect::from_center_size(Vec2::new(100.0, 100.0), Vec2::new(50.0, 50.0));
-    /// let selected = HitTester::find_in_rect(selection, &spatial, &store);
-    /// for entity in selected {
-    ///     // Add to selection set
-    /// }
-    /// ```
     pub fn find_in_rect(
         selection_rect: Rect,
         spatial: &SpatialHash,

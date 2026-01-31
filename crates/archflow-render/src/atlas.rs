@@ -190,15 +190,6 @@ impl AtlasPacker {
     /// # Returns
     /// * `Some(AtlasRect)` - Rectangle with allocated coordinates
     /// * `None` - Atlas is full, or texture has zero size
-    ///
-    /// # Example
-    /// ```rust
-    /// # use archflow_render::AtlasPacker;
-    /// if let Some(rect) = packer.allocate(64, 64) {
-    ///     // Texture allocated at (rect.x, rect.y)
-    ///     // Upload texture data to GPU at this position
-    /// }
-    /// ```
     pub fn allocate(&mut self, w: u32, h: u32) -> Option<AtlasRect> {
         // Reject zero-sized textures
         if w == 0 || h == 0 {

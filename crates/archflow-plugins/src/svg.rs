@@ -1,4 +1,8 @@
-// TODO: Implement SVG rasterizer
-// See: ARQUITECTURA_FINAL_V3.md - Section 14.3
+// ═══════════════════════════════════════════════════════════════════════════════
+// ArchFlow Plugins - SVG Module (Re-exports)
+//
+// SVG rasterizer functionality is now in rasterizer.rs
+// This module re-exports the public API for convenience.
+// ═══════════════════════════════════════════════════════════════════════════════
 
-pub struct SvgRasterizer;
+pub use crate::rasterizer::{AtlasPacker, PackedRect, SvgRasterizer};

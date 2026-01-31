@@ -10,7 +10,9 @@
 // - Command queue with pre-allocated buffer
 // ═══════════════════════════════════════════════════════════════════════════════
 
-use archflow_core::{EntityId, Generation, Index, Vec2};
+use archflow_core::{EntityId, Vec2};
+
+use crate::store::EntityStore;
 
 /// Domain commands (Plain Old Data, Copy)
 ///
@@ -161,6 +163,76 @@ impl Command {
             Command::MoveGroup { .. } | Command::SetParent { .. } | Command::ClearParent(_)
         )
     }
+
+    /// Execute this command on the entity store
+    ///
+    /// This is a simplified execution that directly mutates the store.
+    /// In production, commands would go through the proper command queue processing.
+    pub fn execute(&self, store: &mut EntityStore) {
+        match self {
+            Command::Spawn { pos, size, parent } => {
+                let _id = store.spawn(*pos, *size);
+                // Set parent if provided
+                if let Some(p) = parent {
+                    let idx = _id.index().0 as usize;
+                    store.set_parent(idx, Some(*p));
+                }
+            }
+            Command::Despawn(id) => {
+                store.despawn(*id);
+            }
+            Command::Move { id, delta } => {
+                let idx = id.index().0 as usize;
+                store.move_by(idx, *delta);
+            }
+            Command::Teleport { id, pos } => {
+                let idx = id.index().0 as usize;
+                store.set_pos(idx, *pos);
+            }
+            Command::Resize { id, size } => {
+                let idx = id.index().0 as usize;
+                store.set_size(idx, *size);
+            }
+            Command::MoveGroup { root_id, delta } => {
+                // Move group - simplified implementation that moves just the root
+                // In production, would recursively move all descendants
+                let idx = root_id.index().0 as usize;
+                store.move_by(idx, *delta);
+            }
+            Command::SetColor { id, color } => {
+                let idx = id.index().0 as usize;
+                store.colors[idx] = *color;
+                store.dirty_render.insert(idx);
+            }
+            Command::SetShape { id, shape } => {
+                let idx = id.index().0 as usize;
+                store.set_shape_type(idx, *shape);
+            }
+            Command::SetVisible { id, visible } => {
+                let idx = id.index().0 as usize;
+                store.set_visible(idx, *visible);
+            }
+            Command::SetLayer { id, layer } => {
+                let idx = id.index().0 as usize;
+                store.set_layer(idx, *layer);
+            }
+            // TODO: Implement these methods in EntityStore
+            Command::SetTexture { .. } => {}
+            Command::SetText { .. } => {}
+            Command::SetTextScale { .. } => {}
+            Command::SetC4Level { .. } => {}
+            Command::SetCloudProvider { .. } => {}
+            Command::SetParent { id, parent } => {
+                let idx = id.index().0 as usize;
+                store.set_parent(idx, Some(*parent));
+            }
+            Command::ClearParent(id) => {
+                let idx = id.index().0 as usize;
+                store.set_parent(idx, None);
+            }
+            Command::_Max => {}
+        }
+    }
 }
 
 /// Command queue with pre-allocated buffer
@@ -217,6 +289,7 @@ impl Default for CommandQueue {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use archflow_core::{Generation, Index};
 
     #[test]
     fn test_command_size() {

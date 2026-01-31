@@ -126,14 +126,6 @@ impl GizmoInstance {
 /// - Zero allocation hot path (pre-allocated buffer)
 /// - Simple API: draw commands → submit → render
 ///
-/// **Usage Pattern:**
-/// ```rust
-/// gizmos.clear();
-/// gizmos.draw_selection_box(selection_rect, selection_color);
-/// gizmos.draw_debug_overlay(debug_info);
-/// gizmos.submit(&mut renderer);
-/// ```
-///
 /// **Performance:**
 /// - Pre-allocated buffer of 512 instances
 /// - Zero heap allocations during drawing

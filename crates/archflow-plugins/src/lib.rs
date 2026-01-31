@@ -9,12 +9,15 @@
 // - Library icon loading
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// TODO: Implement Draw.io parser, SVG rasterizer
-// See: ARQUITECTURA_FINAL_V3.md - Section 14
+#![no_std]
+#![warn(missing_docs)]
+#![warn(clippy::all)]
+
+extern crate alloc;
 
 pub mod drawio;
-pub mod svg;
 pub mod rasterizer;
+pub mod svg;
 
-pub use drawio::{parse_library_xml, decode_drawio_data};
-pub use svg::SvgRasterizer;
+pub use drawio::{decode_drawio_data, parse_library_xml, DecodeError, LibraryIcon};
+pub use rasterizer::{AtlasPacker, PackedRect, SvgRasterizer};

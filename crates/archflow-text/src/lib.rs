@@ -9,13 +9,16 @@
 // - cosmic-text integration for shaping
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// TODO: Implement MtsdfAtlas, GlyphRunCache, TextLayoutSystem
-// See: ARQUITECTURA_FINAL_V3.md - Section 12
+#![no_std]
+#![warn(missing_docs)]
+#![warn(clippy::all)]
+
+extern crate alloc;
 
 pub mod cache;
 pub mod layout;
 pub mod mtsdf;
 
-pub use cache::GlyphRunCache;
-pub use layout::TextLayoutSystem;
-pub use mtsdf::MtsdfAtlas;
+pub use cache::{FlatGlyphRun, GlyphRunCache};
+pub use layout::{FontId, TextLayoutSystem, DEFAULT_FONT_SIZE};
+pub use mtsdf::{GlyphKey, MtsdfAtlas};

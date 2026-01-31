@@ -16,12 +16,13 @@
 extern crate alloc;
 
 pub mod command;
+pub mod connection_store;
 pub mod spatial;
 pub mod store;
 
 pub use command::{Command, CommandQueue};
+pub use connection_store::{AnchorSide, ConnectionStore, LineStyle, MAX_CONNECTIONS};
 pub use spatial::SpatialHash;
 pub use store::{
-    ArchitectureData, EntityStore, ShapeType, StringPool, MAX_CONNECTIONS, MAX_ENTITIES,
-    MAX_GLYPHS, MAX_TEXT_LENGTH,
+    ArchitectureData, EntityStore, ShapeType, StringPool, MAX_ENTITIES, MAX_GLYPHS, MAX_TEXT_LENGTH,
 };
