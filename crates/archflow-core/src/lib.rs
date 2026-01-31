@@ -20,6 +20,7 @@ extern crate std;
 
 pub mod id;
 pub mod math;
+pub mod paths;
 pub mod vo;
 
 // Ports module requires std (Box, String, Vec)
@@ -32,6 +33,7 @@ pub mod ports;
 
 pub use id::{EntityId, Generation, Index};
 pub use math::{Color, Rect, Transform, Vec2};
+pub use paths::{Path, PathBuilder, PathCommand};
 pub use vo::{Bounds, Position, Size};
 
 // ═══════════════════════════════════════════════════════════════════════════════

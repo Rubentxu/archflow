@@ -30,4 +30,7 @@ pub use crdt::{ConflictResolution, CrdtManager, RemoteCommand};
 pub use gizmos::GizmoRenderer;
 pub use history::{HistoryCommands, HistoryManager, UndoEntry, DEFAULT_MAX_DEPTH};
 pub use hit_testing::HitTester;
-pub use input::InputProcessor;
+pub use input::{
+    Buttons, InputEventType, InputProcessor, InputRingBuffer, Modifiers, RawInputEvent,
+    SelectionState, EVENT_CAPACITY, EVENT_SIZE, MAX_POINTERS,
+};

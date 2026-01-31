@@ -20,7 +20,9 @@ extern crate alloc;
 pub mod atlas;
 pub mod camera;
 pub mod renderer;
+pub mod shaders;
 
 pub use atlas::{AtlasPacker, AtlasRect};
 pub use camera::{Camera, ZOOM_INTENSITY, ZOOM_MAX, ZOOM_MIN};
 pub use renderer::{CameraUniforms, GpuInstance, GpuRenderer, RenderPhase};
+pub use shaders::{SHADER_ICON_TEXTURE, SHADER_IMAGE_ARRAY, SHADER_MTSDF_TEXT, SHADER_SDF_SHAPES};
