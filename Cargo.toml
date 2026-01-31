@@ -1,63 +1,149 @@
 [workspace]
 members = [
     "crates/archflow-core",
-    "crates/canvas",
-    "crates/a11y",
-    "crates/editing",
-    "crates/collab-new",
-    "crates/render",
-    "crates/soa-entity",
+    "crates/archflow-diagram",
+    "crates/archflow-engine",
+    "crates/archflow-render",
+    "crates/archflow-interaction",
+    "crates/archflow-plugins",
+    "crates/archflow-export",
     "crates/archflow-text",
-    # Legacy crates (to be deprecated)
-    "crates/archflow-ecs-hybrid",
-    "crates/archflow-geometry",
-    "crates/archflow-primitives",
-    "crates/archflow-renderers",
-    "crates/archflow-sdk",
-    "crates/archflow-spatial",
-    "crates/archflow-workspace",
-    "crates/archflow-wasm-collab",
-    "crates/archflow-records",
-    "crates/archflow-collab",
-    "crates/archflow-tests",
     "crates/archflow-web",
-    "crates/demo-server",
+    "crates/archflow-tests",
 ]
 resolver = "2"
 
-# Configuración del workspace
-[workspace.package]
-version = "0.26.0"
-edition = "2024"
-rust-version = "1.85"
+# ═══════════════════════════════════════════════════════════════════════════════
+# ArchFlow Engine v3.0 - Workspace Configuration
+# Based on ARQUITECTURA_FINAL_V3.md
+# Target: WASM32 (WebGPU/WebGL2 fallback) - 100k objects @ 60FPS
+# ═══════════════════════════════════════════════════════════════════════════════
 
+[workspace.package]
+version = "3.0.0"
+edition = "2021"
+rust-version = "1.77"
+authors = ["ArchFlow Team"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/hodei-archFlow/archflow"
+homepage = "https://archflow.dev"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# RELEASE PROFILE - Optimized for WASM size and performance
+# ═══════════════════════════════════════════════════════════════════════════════
+[profile.release]
+lto = true                           # Link Time Optimization
+opt-level = "z"                      # Optimized for size (z) instead of speed (3)
+codegen-units = 1                    # Single codegen unit for better optimization
+panic = "abort"                      # Eliminate unwinding support
+strip = true                         # Remove debug symbols
+overflow-checks = false              # Disable overflow checks in release
+
+# Optimize dependencies for performance even when we optimize for size
+[profile.release.package."*"]
+opt-level = 3
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DEV PROFILE - Faster compilation for development
+# ═══════════════════════════════════════════════════════════════════════════════
+[profile.dev]
+opt-level = 0
+[profile.dev.package."*"]
+opt-level = 1
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DEPENDENCIES - Centralized versions from Architecture V3
+# ═══════════════════════════════════════════════════════════════════════════════
 [workspace.dependencies]
-# Versiones centralizadas
-bevy_ecs = "0.18"
-glam = "0.31"
-euclid = "0.22.13"
-kurbo = "0.13"
-rstar = "0.12"
-serde = { version = "1.0", features = ["derive"] }
-bincode = { version = "2.0", features = ["serde"] }
-zstd = "0.13"
-uuid = { version = "1.11", features = ["v4", "serde", "js"], default-features = false }
-thiserror = "2.0"
-anyhow = "1.0"
-wasm-bindgen = "0.2.108"
-wgpu = { version = "24", features = ["spirv"] }
-bytemuck = { version = "1.21", features = ["derive"] }
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Core (no_std compatible)
+# ═══════════════════════════════════════════════════════════════════════════════
+glam = { version = "0.29", features = ["libm", "scalar-math"] }
+heapless = "0.8"
+micromath = "2.1"
+bitflags = "2.6"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Data Layer (memory management and cache)
+# ═══════════════════════════════════════════════════════════════════════════════
+fixedbitset = "0.5"
+bumpalo = "3.16"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Rendering (WebGPU + rasterization)
+# ═══════════════════════════════════════════════════════════════════════════════
+wgpu = { version = "23", default-features = false, features = ["webgl"] }
+bytemuck = { version = "1.20", features = ["derive"] }
+resvg = { version = "0.44", default-features = false, features = ["text"] }
+tiny-skia = "0.11"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Text (shaping and layout - no runtime allocations)
+# ═══════════════════════════════════════════════════════════════════════════════
+cosmic-text = { version = "0.12", features = ["swash"] }
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Plugins (external integrations)
+# ═══════════════════════════════════════════════════════════════════════════════
+quick-xml = "0.37"
+flate2 = "1.0"
+base64 = "0.22"
+percent-encoding = "2.3"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WASM Bridge (communication with JavaScript)
+# ═══════════════════════════════════════════════════════════════════════════════
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
 web-sys = { version = "0.3", features = [
     "CanvasRenderingContext2d",
     "HtmlCanvasElement",
     "HtmlImageElement",
     "HtmlVideoElement",
+    "PointerEvent",
+    "WheelEvent",
+    "KeyboardEvent",
+    "OffscreenCanvas",
     "Window",
-    "WorkerGlobalScope",
+    "Document",
+    "Element",
+    "Event",
+    "InputEvent",
+    "MouseEvent",
+    "TouchEvent",
     "console",
+    "Performance",
 ] }
-
-# WebSys features para rendering
 js-sys = "0.3"
-fixedbitset = "0.5"
+console_error_panic_hook = "0.1"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Serialization (zero-copy read/write)
+# ═══════════════════════════════════════════════════════════════════════════════
+flatbuffers = "24.3"
+serde = { version = "1.0", features = ["derive"] }
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Collaboration (CRDT - optional future)
+# ═══════════════════════════════════════════════════════════════════════════════
+# loro = "0.1"  # Uncomment when CRDT collaboration is implemented
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Error handling
+# ═══════════════════════════════════════════════════════════════════════════════
+thiserror = "2.0"
+anyhow = "1.0"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Collections optimized for WASM
+# ═══════════════════════════════════════════════════════════════════════════════
+hashbrown = "0.15"
+indexmap = { version = "2.7", features = ["serde"] }
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Utilities
+# ═══════════════════════════════════════════════════════════════════════════════
 getrandom = { version = "0.2", features = ["js"] }
+array-init = "2.1"
+static_assertions = "1.1"
