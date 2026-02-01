@@ -29,6 +29,7 @@ pub mod mapping;
 pub mod pulse;
 pub mod sensors;
 pub mod signals;
+pub mod spatial;
 
 pub use actuators::{
     HighlightActuator, Message, MessageActuator, MessageBus, MessagePayload, MoveActuator,
@@ -44,3 +45,4 @@ pub use sensors::{
     LONG_PRESS_MS, TAP_TIMEOUT_MS,
 };
 pub use signals::SignalByte;
+pub use spatial::{GridCoord, Rect, SpatialHashGrid, DEFAULT_GRID_SIZE};
