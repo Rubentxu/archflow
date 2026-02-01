@@ -24,13 +24,17 @@ extern crate alloc;
 
 pub mod actuators;
 pub mod input;
+pub mod logic_system;
 pub mod mapping;
 pub mod pulse;
 pub mod sensors;
 pub mod signals;
 
-pub use actuators::{HighlightActuator, MoveActuator, SelectActuator, SelectMode};
+pub use actuators::{
+    HighlightActuator, MoveActuator, Property, PropertyActuator, SelectActuator, SelectMode,
+};
 pub use input::{InputEvent, InputSampler, InputSnapshotSAB, MouseButton, MAX_KEYS};
+pub use logic_system::LogicSystem;
 pub use mapping::{Controller, LogicMappingTable, SensorType};
 pub use pulse::{Pulse, PulseBus, SensorState};
 pub use sensors::{

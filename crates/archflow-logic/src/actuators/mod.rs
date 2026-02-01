@@ -11,8 +11,10 @@
 
 pub mod highlight;
 pub mod move_;
+pub mod property;
 pub mod select;
 
 pub use highlight::HighlightActuator;
 pub use move_::MoveActuator;
+pub use property::{Property, PropertyActuator};
 pub use select::{SelectActuator, SelectMode};
