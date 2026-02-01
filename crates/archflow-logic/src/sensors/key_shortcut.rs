@@ -408,6 +408,83 @@ impl KeyShortcutSensor {
 
         true
     }
+
+    /// Detects if ANY key is currently pressed (all_keys mode)
+    ///
+    /// Returns true if at least one key (excluding modifiers) is currently pressed.
+    /// This is useful for implementing global keyboard handlers.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// sensor.sample(KeyEvent { key: KeyCode::Space, pressed: true });
+    /// if sensor.any_key_pressed() {
+    ///     // Some key is pressed
+    /// }
+    /// ```
+    #[inline(always)]
+    #[must_use]
+    pub fn any_key_pressed(&self) -> bool {
+        // Check all keys from KeyA to F12 (indices 0-57)
+        // Exclude modifiers which are handled separately
+        for key_idx in 0..=57 {
+            if self.keys[key_idx].get_current() {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Detects if ANY key was just pressed (rising edge, all_keys mode)
+    ///
+    /// Returns true if at least one key (excluding modifiers) just transitioned
+    /// from not pressed to pressed.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// sensor.sample(KeyEvent { key: KeyCode::Space, pressed: true });
+    /// if sensor.any_key_press() {
+    ///     // Some key was just pressed
+    /// }
+    /// ```
+    #[inline(always)]
+    #[must_use]
+    pub fn any_key_press(&self) -> bool {
+        // Check all keys from KeyA to F12 (indices 0-57)
+        for key_idx in 0..=57 {
+            if self.keys[key_idx].is_rising_edge() {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Gets the first key that is currently pressed (all_keys mode)
+    ///
+    /// Returns `Some(key)` if a key is pressed, `None` otherwise.
+    /// Useful for getting the actual key that triggered `any_key_pressed()`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// sensor.sample(KeyEvent { key: KeyCode::Space, pressed: true });
+    /// if let Some(key) = sensor.get_pressed_key() {
+    ///     // Handle the pressed key
+    /// }
+    /// ```
+    #[inline(always)]
+    #[must_use]
+    pub fn get_pressed_key(&self) -> Option<KeyCode> {
+        // Check all keys from KeyA to F12 (indices 0-57)
+        for key_idx in 0..=57 {
+            if self.keys[key_idx].get_current() {
+                // Safety: key_idx is within valid range
+                return unsafe { Some(core::mem::transmute(key_idx as u8)) };
+            }
+        }
+        None
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -483,5 +560,82 @@ mod tests {
         assert!(!sensor.on_key_press(KeyCode::KeyA));
         assert!(!sensor.on_key_press(KeyCode::Enter));
         assert!(!sensor.on_key_press(KeyCode::Space));
+    }
+
+    #[test]
+    fn test_any_key_pressed() {
+        let mut sensor = KeyShortcutSensor::new();
+
+        // Initially no keys pressed
+        assert!(!sensor.any_key_pressed());
+
+        // Press a key
+        sensor.sample(KeyEvent {
+            key: KeyCode::Space,
+            modifiers: KeyModifiers::EMPTY,
+            pressed: true,
+        });
+
+        // Now should detect a key is pressed
+        assert!(sensor.any_key_pressed());
+    }
+
+    #[test]
+    fn test_any_key_press() {
+        let mut sensor = KeyShortcutSensor::new();
+
+        // Initially no keys pressed
+        assert!(!sensor.any_key_press());
+
+        // Press a key (rising edge)
+        sensor.sample(KeyEvent {
+            key: KeyCode::Space,
+            modifiers: KeyModifiers::EMPTY,
+            pressed: true,
+        });
+
+        // Should detect rising edge
+        assert!(sensor.any_key_press());
+
+        // Next tick should not detect rising edge anymore
+        sensor.sample(KeyEvent {
+            key: KeyCode::Space,
+            modifiers: KeyModifiers::EMPTY,
+            pressed: true,
+        });
+        assert!(!sensor.any_key_press());
+    }
+
+    #[test]
+    fn test_get_pressed_key() {
+        let mut sensor = KeyShortcutSensor::new();
+
+        // No key pressed
+        assert_eq!(sensor.get_pressed_key(), None);
+
+        // Press Space
+        sensor.sample(KeyEvent {
+            key: KeyCode::Space,
+            modifiers: KeyModifiers::EMPTY,
+            pressed: true,
+        });
+
+        // Should return Space
+        assert_eq!(sensor.get_pressed_key(), Some(KeyCode::Space));
+
+        // Release Space and press Enter
+        sensor.sample(KeyEvent {
+            key: KeyCode::Space,
+            modifiers: KeyModifiers::EMPTY,
+            pressed: false,
+        });
+        sensor.sample(KeyEvent {
+            key: KeyCode::Enter,
+            modifiers: KeyModifiers::EMPTY,
+            pressed: true,
+        });
+
+        // Should return Enter (first pressed key)
+        assert_eq!(sensor.get_pressed_key(), Some(KeyCode::Enter));
     }
 }
