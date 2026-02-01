@@ -14,9 +14,14 @@ pub mod message;
 pub mod move_;
 pub mod property;
 pub mod select;
+pub mod state;
 
 pub use highlight::HighlightActuator;
 pub use message::{Message, MessageActuator, MessageBus, MessagePayload};
 pub use move_::MoveActuator;
 pub use property::{Property, PropertyActuator};
 pub use select::{SelectActuator, SelectMode};
+pub use state::{
+    EntityState, StateActuator, StateBitset, StateId, StateMachine, StateManager, StateTransition,
+    StateTransitionTable,
+};

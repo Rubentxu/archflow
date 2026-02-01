@@ -35,8 +35,25 @@ pub mod tween;
 pub mod visibility;
 
 pub use actuators::{
-    HighlightActuator, Message, MessageActuator, MessageBus, MessagePayload, MoveActuator,
-    Property, PropertyActuator, SelectActuator, SelectMode,
+    // State machine types
+    EntityState,
+    HighlightActuator,
+    Message,
+    MessageActuator,
+    MessageBus,
+    MessagePayload,
+    MoveActuator,
+    Property,
+    PropertyActuator,
+    SelectActuator,
+    SelectMode,
+    StateActuator,
+    StateBitset,
+    StateId,
+    StateMachine,
+    StateManager,
+    StateTransition,
+    StateTransitionTable,
 };
 pub use input::{InputEvent, InputSampler, InputSnapshotSAB, MouseButton, MAX_KEYS};
 pub use logic_system::{LogicSystem, SensorId};
