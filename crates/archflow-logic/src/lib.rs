@@ -39,7 +39,7 @@ pub use actuators::{
     Property, PropertyActuator, SelectActuator, SelectMode,
 };
 pub use input::{InputEvent, InputSampler, InputSnapshotSAB, MouseButton, MAX_KEYS};
-pub use logic_system::LogicSystem;
+pub use logic_system::{LogicSystem, SensorId};
 pub use mapping::{Controller, LogicMappingTable, SensorType};
 pub use pulse::{Pulse, PulseBus, SensorState};
 pub use sensors::{

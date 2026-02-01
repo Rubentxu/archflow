@@ -28,6 +28,56 @@ use crate::sensors::{
 use archflow_core::Vec2;
 use archflow_engine::SpatialHash;
 
+/// Unique identifier for each sensor type in the Logic Bricks system
+///
+/// These IDs are used in Pulse events to identify which sensor generated the pulse.
+/// Actuators can filter pulses by sensor ID to respond only to specific sensor types.
+///
+/// # Examples
+///
+/// ```
+/// use archflow_logic::SensorId;
+///
+/// // Create a pulse from a touch sensor
+/// let pulse = Pulse::positive(SensorId::Touch as u32, entity_id, timestamp);
+///
+/// // Filter pulses in an actuator
+/// if pulse.sensor_id == SensorId::Proximity as u32 {
+///     // Respond to proximity detection
+/// }
+/// ```
+#[repr(u32)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum SensorId {
+    /// Mouse movement sensor (hover detection)
+    Mouse = 0,
+
+    /// Touch/collision sensor (AABB collision detection)
+    Touch = 1,
+
+    /// Proximity sensor (near detection with hysteresis)
+    Proximity = 2,
+
+    /// Radar sensor (directional cone detection)
+    Radar = 3,
+
+    /// Keyboard sensor (key press detection)
+    Keyboard = 4,
+
+    /// Mouse click sensor (button press)
+    MouseClick = 5,
+
+    /// Double tap sensor (rapid double click)
+    DoubleTap = 6,
+
+    /// Long press sensor (hold detection)
+    LongPress = 7,
+
+    /// Right click sensor (context menu trigger)
+    RightClick = 8,
+}
+
 /// Main Logic System that evaluates sensors and executes actuators
 ///
 /// This system:
@@ -203,9 +253,17 @@ impl LogicSystem {
             let entity_id = EntityId::from_parts(Index(entity_idx), Generation(generation));
             let signal = self.touch_sensor.signal(entity_id);
             if signal.is_rising_edge() {
-                pulses.push(Pulse::positive(1, entity_idx, self.timestamp));
+                pulses.push(Pulse::positive(
+                    SensorId::Touch as u32,
+                    entity_idx,
+                    self.timestamp,
+                ));
             } else if signal.is_falling_edge() {
-                pulses.push(Pulse::negative(1, entity_idx, self.timestamp));
+                pulses.push(Pulse::negative(
+                    SensorId::Touch as u32,
+                    entity_idx,
+                    self.timestamp,
+                ));
             }
         }
 
@@ -216,7 +274,11 @@ impl LogicSystem {
             let entity_id = EntityId::from_parts(Index(entity_idx), Generation(generation));
             let signal = self.proximity_sensor.signal(entity_id);
             if signal.get_current() {
-                pulses.push(Pulse::positive(2, entity_idx, self.timestamp));
+                pulses.push(Pulse::positive(
+                    SensorId::Proximity as u32,
+                    entity_idx,
+                    self.timestamp,
+                ));
             }
         }
 
@@ -227,7 +289,11 @@ impl LogicSystem {
             let entity_id = EntityId::from_parts(Index(entity_idx), Generation(generation));
             let signal = self.radar_sensor.signal(entity_id);
             if signal.get_current() {
-                pulses.push(Pulse::positive(3, entity_idx, self.timestamp));
+                pulses.push(Pulse::positive(
+                    SensorId::Radar as u32,
+                    entity_idx,
+                    self.timestamp,
+                ));
             }
         }
 
@@ -386,18 +452,71 @@ mod tests {
         // First evaluation should detect rising edges (collision started)
         let pulses1 = system.evaluate_sensors(&store);
 
-        // Filter for TouchSensor pulses (sensor_id = 1)
-        let touch_pulses: Vec<_> = pulses1.iter().filter(|p| p.sensor_id == 1).collect();
+        // Filter for TouchSensor pulses using SensorId enum
+        let touch_pulses: Vec<_> = pulses1
+            .iter()
+            .filter(|p| p.sensor_id == SensorId::Touch as u32)
+            .collect();
         assert!(!touch_pulses.is_empty(), "Should detect collision start");
 
         // Second evaluation should not have rising edges (already colliding)
         let pulses2 = system.evaluate_sensors(&store);
-        let touch_pulses2: Vec<_> = pulses2.iter().filter(|p| p.sensor_id == 1).collect();
+        let touch_pulses2: Vec<_> = pulses2
+            .iter()
+            .filter(|p| p.sensor_id == SensorId::Touch as u32)
+            .collect();
         assert!(
             !touch_pulses2
                 .iter()
                 .any(|p| p.state == SensorState::Positive),
             "Should not have new collision detections"
         );
+    }
+
+    #[test]
+    fn test_sensor_id_values() {
+        // Verify that SensorId enum values match expected u32 values
+        assert_eq!(SensorId::Mouse as u32, 0);
+        assert_eq!(SensorId::Touch as u32, 1);
+        assert_eq!(SensorId::Proximity as u32, 2);
+        assert_eq!(SensorId::Radar as u32, 3);
+        assert_eq!(SensorId::Keyboard as u32, 4);
+        assert_eq!(SensorId::MouseClick as u32, 5);
+        assert_eq!(SensorId::DoubleTap as u32, 6);
+        assert_eq!(SensorId::LongPress as u32, 7);
+        assert_eq!(SensorId::RightClick as u32, 8);
+    }
+
+    #[test]
+    fn test_sensor_id_in_pulse() {
+        // Verify that SensorId can be used in Pulse creation
+        let pulse = Pulse::positive(SensorId::Touch as u32, 42, 1000);
+        assert_eq!(pulse.sensor_id, SensorId::Touch as u32);
+        assert_eq!(pulse.entity_id, 42);
+        assert!(pulse.is_positive());
+    }
+
+    #[test]
+    fn test_physics_sensors_use_correct_ids() {
+        let mut store = EntityStore::new();
+        let mut system = LogicSystem::new();
+        system.set_timestamp(1000);
+
+        // Create overlapping entities to trigger physics sensors
+        let entity1 = store.spawn(Vec2::new(0.0, 0.0), Vec2::new(50.0, 50.0));
+        let entity2 = store.spawn(Vec2::new(25.0, 25.0), Vec2::new(50.0, 50.0));
+
+        let pulses = system.evaluate_sensors(&store);
+
+        // Verify that physics sensors use correct SensorId values
+        let has_touch = pulses.iter().any(|p| p.sensor_id == SensorId::Touch as u32);
+        let has_proximity = pulses
+            .iter()
+            .any(|p| p.sensor_id == SensorId::Proximity as u32);
+        let has_radar = pulses.iter().any(|p| p.sensor_id == SensorId::Radar as u32);
+
+        // At least Touch and Proximity should trigger for overlapping entities
+        assert!(has_touch, "TouchSensor should trigger");
+        assert!(has_proximity, "ProximitySensor should trigger");
     }
 }
