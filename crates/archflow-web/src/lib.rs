@@ -28,6 +28,12 @@ pub use input::{
     EVENT_CAPACITY, EVENT_SIZE, MAX_POINTERS,
 };
 
+// Re-export HU-003 InputSampler from archflow-logic
+pub use archflow_logic::{
+    InputEvent, InputSampler, InputSnapshotSAB, MouseButton as InputMouseButton,
+    MAX_KEYS as INPUT_SAB_MAX_KEYS,
+};
+
 // Logic Bricks WASM exports (Epic 5)
 pub use logic::{
     ActuatorType, Controller, ControllerType, LogicMappingTableWasm, SensorType, SignalByteWasm,

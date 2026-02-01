@@ -2,14 +2,18 @@
 // ArchFlow Logic - Signal Processing Module
 //
 // This crate provides the Logic Bricks system for ArchFlow Engine:
+// - Pulse System: SensorState, Pulse, PulseBus (Blender BGE pattern)
 // - SignalByte: 6-tick history in 1 byte
 // - Sensors: MouseOver, MouseClick, Proximity, KeyShortcut
 // - Actuators: Highlight, Select, Move, etc.
 // - Logic Mapping: Connect sensors to actuators with controllers
 //
 // Architecture Reference:
-// - LOGIC_BRICKS_FEASIBILITY_STUDY.md
-// - LOGIC_BRICKS_EPICS.md
+// - docs/integration/LOGIC_BRICKS_MIGRATION_PLAN.md
+// - Blender Game Engine: KX_ISensor::Evaluate(), SCA_ILogicController
+//
+// Key Pattern: Sensors are PULSE PRODUCERS, not state stores.
+// They emit SensorState::Positive/Negative/None which flows through controllers.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #![no_std]
@@ -19,11 +23,19 @@
 extern crate alloc;
 
 pub mod actuators;
+pub mod input;
 pub mod mapping;
+pub mod pulse;
 pub mod sensors;
 pub mod signals;
 
 pub use actuators::{HighlightActuator, MoveActuator, SelectActuator, SelectMode};
+pub use input::{InputEvent, InputSampler, InputSnapshotSAB, MouseButton, MAX_KEYS};
 pub use mapping::{Controller, LogicMappingTable, SensorType};
-pub use sensors::mouse_over::MouseOverSensor;
+pub use pulse::{Pulse, PulseBus, SensorState};
+pub use sensors::{
+    DoubleTapSensor, KeyShortcutSensor, LongPressSensor, MouseClickSensor, MouseOverSensor,
+    PointerButtons, ProximitySensor, RightClickSensor, DOUBLE_TAP_MS, LONG_PRESS_MS,
+    TAP_TIMEOUT_MS,
+};
 pub use signals::SignalByte;

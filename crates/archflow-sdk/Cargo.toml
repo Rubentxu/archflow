@@ -1,0 +1,38 @@
+[package]
+name = "archflow-sdk"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+
+[lib]
+name = "archflow_sdk"
+path = "src/lib.rs"
+
+[dependencies]
+# Core types (EntityId, Vec2, etc.)
+archflow-core = { path = "../archflow-core" }
+
+# Engine (EntityStore, Command, etc.)
+archflow-engine = { path = "../archflow-engine" }
+
+# Logic (Pulse, SensorState, etc.)
+archflow-logic = { path = "../archflow-logic" }
+
+[features]
+default = []
+
+# Full SDK with all features
+full = []
+
+# Input features
+sab-input = []  # SharedArrayBuffer input (to be implemented in EPIC-001 HU-003)
+sensors-basic = []  # Mouse, Keyboard sensors
+sensors-physics = []  # Proximity, Collision sensors
+
+# Actuator features
+actuators-basic = []  # Move, Highlight actuators
+actuators-tween = []  # Animation actuators
+
+# Networking features (EPIC-004)
+networking = []  # WebSocket networking
+networking-crdt = ["networking"]  # CRDT conflict resolution
