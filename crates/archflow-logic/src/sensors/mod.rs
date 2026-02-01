@@ -38,6 +38,7 @@ pub mod mouse;
 pub mod mouse_click;
 pub mod mouse_over;
 pub mod proximity;
+pub mod radar;
 pub mod right_click;
 pub mod touch;
 
@@ -48,5 +49,6 @@ pub use mouse::{MouseConfig, MouseMode, MouseSensor};
 pub use mouse_click::{MouseClickSensor, PointerButtons};
 pub use mouse_over::MouseOverSensor;
 pub use proximity::ProximitySensor;
+pub use radar::{RadarAxis, RadarSensor};
 pub use right_click::RightClickSensor;
 pub use touch::TouchSensor;
