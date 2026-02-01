@@ -35,6 +35,11 @@ pub mod tween;
 pub mod visibility;
 
 pub use actuators::{
+    // Camera types
+    CameraActuator,
+    CameraActuatorConfig,
+    CameraConstraints,
+    CameraTransform,
     // State machine types
     EntityState,
     HighlightActuator,
@@ -47,6 +52,7 @@ pub use actuators::{
     PropertyActuator,
     SelectActuator,
     SelectMode,
+    Smoother,
     StateActuator,
     StateBitset,
     StateId,

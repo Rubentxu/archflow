@@ -9,6 +9,7 @@
 // - Each actuator generates zero or more commands per update
 // ═══════════════════════════════════════════════════════════════════════════════
 
+pub mod camera;
 pub mod highlight;
 pub mod message;
 pub mod move_;
@@ -16,6 +17,9 @@ pub mod property;
 pub mod select;
 pub mod state;
 
+pub use camera::{
+    CameraActuator, CameraActuatorConfig, CameraConstraints, CameraTransform, Smoother,
+};
 pub use highlight::HighlightActuator;
 pub use message::{Message, MessageActuator, MessageBus, MessagePayload};
 pub use move_::MoveActuator;
