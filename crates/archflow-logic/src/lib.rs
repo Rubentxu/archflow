@@ -31,6 +31,7 @@ pub mod sensors;
 pub mod signals;
 pub mod snap;
 pub mod spatial;
+pub mod tween;
 
 pub use actuators::{
     HighlightActuator, Message, MessageActuator, MessageBus, MessagePayload, MoveActuator,
@@ -51,3 +52,29 @@ pub use snap::{
     DEFAULT_GRID_SIZE as SNAP_DEFAULT_GRID_SIZE, DEFAULT_THRESHOLD as SNAP_DEFAULT_THRESHOLD,
 };
 pub use spatial::{GridCoord, Rect, SpatialHashGrid, DEFAULT_GRID_SIZE};
+pub use tween::{
+    // Easing functions (re-exported for convenience)
+    ease_back_out as tween_ease_back_out,
+    ease_bounce_out as tween_ease_bounce_out,
+    ease_cubic_in as tween_ease_cubic_in,
+    ease_cubic_in_out as tween_ease_cubic_in_out,
+    ease_cubic_out as tween_ease_cubic_out,
+    ease_elastic_out as tween_ease_elastic_out,
+    ease_linear as tween_ease_linear,
+    ease_quad_in as tween_ease_quad_in,
+    ease_quad_in_out as tween_ease_quad_in_out,
+    ease_quad_out as tween_ease_quad_out,
+    ease_sine_in as tween_ease_sine_in,
+    ease_sine_in_out as tween_ease_sine_in_out,
+    ease_sine_out as tween_ease_sine_out,
+    // Convenience functions
+    tween_opacity,
+    tween_position,
+    // Types
+    Easing,
+    Tween,
+    TweenManager,
+    TweenProperty,
+    TweenState,
+    DEFAULT_DURATION_MS as TWEEN_DEFAULT_DURATION_MS,
+};
