@@ -3,16 +3,21 @@ members = [
     "crates/archflow-core",
     "crates/archflow-diagram",
     "crates/archflow-engine",
-    "crates/archflow-logic",        # NEW: Logic Bricks system (Epic 1-5)
+    "crates/archflow-logic",        # Logic Bricks system (Epic 1-5)
+    "crates/archflow-sdk",          # NEW: Public SDK API (EPIC-SDK-API)
     "crates/archflow-render",
     "crates/archflow-interaction",
     "crates/archflow-plugins",
     "crates/archflow-export",
     "crates/archflow-text",
     "crates/archflow-web",
+    "crates/archflow-web-server",   # Axum web server (Epic 6)
     "crates/archflow-tests",
 ]
 resolver = "2"
+
+# Note: archflow-web-ui is a Vite + React project managed separately via npm
+# See: crates/archflow-web-ui/
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # ArchFlow Engine v3.0 - Workspace Configuration
@@ -21,7 +26,7 @@ resolver = "2"
 # ═══════════════════════════════════════════════════════════════════════════════
 
 [workspace.package]
-version = "3.12.0"
+version = "3.13.0"
 edition = "2021"
 rust-version = "1.77"
 authors = ["ArchFlow Team"]
