@@ -19,7 +19,7 @@ use crate::signals::SignalByte;
 use alloc::vec;
 use alloc::vec::Vec;
 use archflow_core::{EntityId, Vec2};
-use archflow_engine::EntityStore;
+use archflow_engine::{EntityStore, MAX_ENTITIES};
 
 /// Sensor that detects when the mouse is over an entity
 ///
@@ -33,7 +33,7 @@ use archflow_engine::EntityStore;
 /// let mut store = EntityStore::new();
 /// let entity = store.spawn(Vec2::new(100.0, 100.0), Vec2::new(50.0, 50.0));
 ///
-/// let mut sensor = MouseOverSensor::new(store.capacity());
+/// let mut sensor = MouseOverSensor::new(archflow_engine::MAX_ENTITIES);
 ///
 /// // Mouse at center of entity
 /// sensor.sample(Vec2::new(100.0, 100.0), &store);
@@ -59,23 +59,18 @@ pub struct MouseOverSensor {
 }
 
 impl MouseOverSensor {
-    /// Creates a new MouseOverSensor with capacity for `capacity` entities
-    ///
-    /// # Arguments
-    ///
-    /// * `capacity` - Maximum number of entities to track (typically `EntityStore::capacity()`)
+    /// Creates a new MouseOverSensor with capacity for MAX_ENTITIES
     ///
     /// # Examples
     ///
     /// ```
-    /// let store = EntityStore::new();
-    /// let sensor = MouseOverSensor::new(store.capacity());
+    /// let sensor = MouseOverSensor::new();
     /// ```
     #[inline(always)]
     #[must_use]
-    pub fn new(capacity: usize) -> Self {
+    pub fn new() -> Self {
         Self {
-            signals: vec![SignalByte::default(); capacity],
+            signals: vec![SignalByte::default(); MAX_ENTITIES],
         }
     }
 
@@ -255,14 +250,14 @@ mod tests {
 
     #[test]
     fn test_capacity() {
-        let sensor = MouseOverSensor::new(1000);
-        assert_eq!(sensor.signals.len(), 1000);
+        let sensor = MouseOverSensor::new();
+        assert_eq!(sensor.signals.len(), MAX_ENTITIES);
     }
 
     #[test]
     fn test_signals_initialized_to_zero() {
-        let sensor = MouseOverSensor::new(100);
-        for signal in &sensor.signals {
+        let sensor = MouseOverSensor::new();
+        for signal in &sensor.signals[..100] {
             assert_eq!(signal.as_u8(), 0);
         }
     }

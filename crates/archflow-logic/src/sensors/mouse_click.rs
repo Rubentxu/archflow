@@ -140,7 +140,7 @@ impl PointerButtons {
 /// let mut store = EntityStore::new();
 /// let entity = store.spawn(Vec2::new(100.0, 100.0), Vec2::new(50.0, 50.0));
 ///
-/// let mut sensor = MouseClickSensor::new(store.capacity());
+/// let mut sensor = MouseClickSensor::new(archflow_engine::MAX_ENTITIES);
 ///
 /// // Mouse at entity position + primary button pressed
 /// sensor.sample(
@@ -176,7 +176,7 @@ impl MouseClickSensor {
     ///
     /// ```
     /// let store = EntityStore::new();
-    /// let sensor = MouseClickSensor::new(store.capacity());
+    /// let sensor = MouseClickSensor::new(archflow_engine::MAX_ENTITIES);
     /// ```
     #[inline(always)]
     #[must_use]

@@ -33,7 +33,7 @@ mod tests {
         let mut store = EntityStore::new();
         let entity = store.spawn(Vec2::new(100.0, 100.0), Vec2::new(50.0, 50.0));
 
-        let mut sensor = MouseOverSensor::new(archflow_engine::MAX_ENTITIES);
+        let mut sensor = MouseOverSensor::new();
 
         // Mouse dentro del rectángulo (100±25, 100±25)
         // AABB: x ∈ [75, 125], y ∈ [75, 125]
@@ -48,7 +48,7 @@ mod tests {
         let mut store = EntityStore::new();
         let entity = store.spawn(Vec2::new(100.0, 100.0), Vec2::new(50.0, 50.0));
 
-        let mut sensor = MouseOverSensor::new(archflow_engine::MAX_ENTITIES);
+        let mut sensor = MouseOverSensor::new();
 
         // Mouse fuera: (200, 200) no está en [75, 125] × [75, 125]
         sensor.sample(Vec2::new(200.0, 200.0), &store);
@@ -62,7 +62,7 @@ mod tests {
         let mut store = EntityStore::new();
         let entity = store.spawn(Vec2::new(100.0, 100.0), Vec2::new(50.0, 50.0));
 
-        let mut sensor = MouseOverSensor::new(archflow_engine::MAX_ENTITIES);
+        let mut sensor = MouseOverSensor::new();
 
         // Esquina superior izquierda del AABB
         sensor.sample(Vec2::new(75.0, 75.0), &store);
@@ -84,7 +84,7 @@ mod tests {
         let mut store = EntityStore::new();
         let entity = store.spawn(Vec2::new(100.0, 100.0), Vec2::new(50.0, 50.0));
 
-        let mut sensor = MouseOverSensor::new(archflow_engine::MAX_ENTITIES);
+        let mut sensor = MouseOverSensor::new();
 
         sensor.sample(Vec2::new(100.0, 100.0), &store);
         assert!(sensor.is_over(entity));
@@ -96,7 +96,7 @@ mod tests {
         let mut store = EntityStore::new();
         let entity = store.spawn(Vec2::new(100.0, 100.0), Vec2::new(50.0, 50.0));
 
-        let mut sensor = MouseOverSensor::new(archflow_engine::MAX_ENTITIES);
+        let mut sensor = MouseOverSensor::new();
 
         // Esquinas: (75,75), (125,75), (75,125), (125,125)
         let corners = [
@@ -126,7 +126,7 @@ mod tests {
         let mut store = EntityStore::new();
         let entity = store.spawn(Vec2::new(100.0, 100.0), Vec2::new(50.0, 50.0));
 
-        let mut sensor = MouseOverSensor::new(archflow_engine::MAX_ENTITIES);
+        let mut sensor = MouseOverSensor::new();
 
         // Frame 1: Fuera
         sensor.sample(Vec2::new(200.0, 200.0), &store);
@@ -143,7 +143,7 @@ mod tests {
         let mut store = EntityStore::new();
         let entity = store.spawn(Vec2::new(100.0, 100.0), Vec2::new(50.0, 50.0));
 
-        let mut sensor = MouseOverSensor::new(archflow_engine::MAX_ENTITIES);
+        let mut sensor = MouseOverSensor::new();
 
         // Establecer mouse dentro por 3 frames
         sensor.sample(Vec2::new(100.0, 100.0), &store);
@@ -161,7 +161,7 @@ mod tests {
         let mut store = EntityStore::new();
         let entity = store.spawn(Vec2::new(100.0, 100.0), Vec2::new(50.0, 50.0));
 
-        let mut sensor = MouseOverSensor::new(archflow_engine::MAX_ENTITIES);
+        let mut sensor = MouseOverSensor::new();
 
         // 3 ticks consecutivos con mouse encima
         sensor.sample(Vec2::new(100.0, 100.0), &store);
@@ -177,7 +177,7 @@ mod tests {
         let mut store = EntityStore::new();
         let entity = store.spawn(Vec2::new(100.0, 100.0), Vec2::new(50.0, 50.0));
 
-        let mut sensor = MouseOverSensor::new(archflow_engine::MAX_ENTITIES);
+        let mut sensor = MouseOverSensor::new();
 
         // Solo 2 ticks
         sensor.sample(Vec2::new(100.0, 100.0), &store);
@@ -198,7 +198,7 @@ mod tests {
         let e2 = store.spawn(Vec2::new(150.0, 50.0), Vec2::new(30.0, 30.0));
         let e3 = store.spawn(Vec2::new(100.0, 150.0), Vec2::new(30.0, 30.0));
 
-        let mut sensor = MouseOverSensor::new(archflow_engine::MAX_ENTITIES);
+        let mut sensor = MouseOverSensor::new();
 
         // Un solo sample actualiza todas las entidades
         sensor.sample(Vec2::new(50.0, 50.0), &store);
@@ -212,8 +212,8 @@ mod tests {
     fn test_zero_entities() {
         // Should handle empty EntityStore gracefully
         // Note: EntityStore pre-allocates MAX_ENTITIES slots, so sensor needs same capacity
-        let mut store = EntityStore::new();
-        let mut sensor = MouseOverSensor::new(archflow_engine::MAX_ENTITIES);
+        let store = EntityStore::new();
+        let mut sensor = MouseOverSensor::new();
 
         // Should not panic
         sensor.sample(Vec2::new(100.0, 100.0), &store);
@@ -229,7 +229,7 @@ mod tests {
         let mut store = EntityStore::new();
         let entity = store.spawn(Vec2::new(100.0, 100.0), Vec2::new(0.0, 0.0));
 
-        let mut sensor = MouseOverSensor::new(archflow_engine::MAX_ENTITIES);
+        let mut sensor = MouseOverSensor::new();
 
         // Exactamente en el punto
         sensor.sample(Vec2::new(100.0, 100.0), &store);
@@ -246,7 +246,7 @@ mod tests {
         let mut store = EntityStore::new();
         let entity = store.spawn(Vec2::new(-50.0, -50.0), Vec2::new(30.0, 30.0));
 
-        let mut sensor = MouseOverSensor::new(archflow_engine::MAX_ENTITIES);
+        let mut sensor = MouseOverSensor::new();
 
         // AABB: x ∈ [-65, -35], y ∈ [-65, -35]
         sensor.sample(Vec2::new(-50.0, -50.0), &store);
@@ -259,7 +259,7 @@ mod tests {
         let mut store = EntityStore::new();
         let entity = store.spawn(Vec2::new(0.0, 0.0), Vec2::new(1000.0, 1000.0));
 
-        let mut sensor = MouseOverSensor::new(archflow_engine::MAX_ENTITIES);
+        let mut sensor = MouseOverSensor::new();
 
         // Casi cualquier punto debería estar dentro
         sensor.sample(Vec2::new(400.0, 400.0), &store);
@@ -287,7 +287,7 @@ mod tests {
             store.spawn(Vec2::new(x, y), Vec2::new(30.0, 30.0));
         }
 
-        let mut sensor = MouseOverSensor::new(archflow_engine::MAX_ENTITIES);
+        let mut sensor = MouseOverSensor::new();
 
         // Sample should complete without errors
         for _ in 0..10 {
