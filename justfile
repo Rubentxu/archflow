@@ -11,7 +11,7 @@ default: help
 # CONFIGURATION
 # =============================================================================
 PROJECT_ROOT := "/home/rubentxu/Proyectos/rust/hodei-archFlow"
-WEB_DIR := PROJECT_ROOT + "/crates/archflow-web"
+WEB_DIR := PROJECT_ROOT + "/crates/archflow-web-ui"
 SDK_DIR := PROJECT_ROOT + "/crates/archflow-sdk"
 PKG_DIR := SDK_DIR + "/pkg"
 
