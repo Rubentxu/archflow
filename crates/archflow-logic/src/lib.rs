@@ -29,6 +29,7 @@ pub mod mapping;
 pub mod pulse;
 pub mod sensors;
 pub mod signals;
+pub mod snap;
 pub mod spatial;
 
 pub use actuators::{
@@ -45,4 +46,8 @@ pub use sensors::{
     LONG_PRESS_MS, TAP_TIMEOUT_MS,
 };
 pub use signals::SignalByte;
+pub use snap::{
+    EntityEdge, SnapConfig, SnapPoint, SnapResult, SnapTarget, Snapper,
+    DEFAULT_GRID_SIZE as SNAP_DEFAULT_GRID_SIZE, DEFAULT_THRESHOLD as SNAP_DEFAULT_THRESHOLD,
+};
 pub use spatial::{GridCoord, Rect, SpatialHashGrid, DEFAULT_GRID_SIZE};
