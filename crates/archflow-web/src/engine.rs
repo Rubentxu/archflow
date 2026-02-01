@@ -17,6 +17,7 @@ use alloc::vec::Vec;
 
 use archflow_core::{EntityId, Vec2};
 use archflow_engine::{Command, CommandQueue, ConnectionStore, EntityStore};
+use archflow_interaction::HistoryManager;
 use archflow_render::{Camera, GpuRenderer};
 
 /// Main ArchFlow Engine combining all systems
@@ -47,6 +48,9 @@ pub struct ArchFlowEngine {
 
     /// Canvas height in pixels
     pub canvas_height: f32,
+
+    /// History manager for undo/redo functionality
+    pub history: HistoryManager,
 }
 
 impl ArchFlowEngine {
@@ -64,6 +68,7 @@ impl ArchFlowEngine {
             selected_entities: Vec::new(),
             canvas_width,
             canvas_height,
+            history: HistoryManager::with_default_depth(),
         }
     }
 
@@ -108,6 +113,13 @@ impl ArchFlowEngine {
         let commands = self.command_queue.drain();
 
         for cmd in commands {
+            // Capture current state for undo BEFORE executing
+            // For reversible commands, store the undo command
+            if let Some(undo_cmd) = cmd.inverse(&self.store) {
+                // Record both the redo (original cmd) and undo in history
+                self.history.record(cmd, undo_cmd);
+            }
+
             // Execute the command
             cmd.execute(&mut self.store);
         }
@@ -184,15 +196,23 @@ impl ArchFlowEngine {
     /// ═══════════════════════════════════════════════════════════════════════════
 
     /// Undo the last command
-    pub fn undo(&mut self) {
-        // Simplified undo - in production this would use HistoryManager
-        // For now, just a placeholder
+    pub fn undo(&mut self) -> bool {
+        self.history.undo(&mut self.store)
     }
 
     /// Redo the last undone command
-    pub fn redo(&mut self) {
-        // Simplified redo - in production this would use HistoryManager
-        // For now, just a placeholder
+    pub fn redo(&mut self) -> bool {
+        self.history.redo(&mut self.store)
+    }
+
+    /// Check if undo is available
+    pub fn can_undo(&self) -> bool {
+        self.history.can_undo()
+    }
+
+    /// Check if redo is available
+    pub fn can_redo(&self) -> bool {
+        self.history.can_redo()
     }
 
     /// Get camera dimensions
@@ -313,5 +333,288 @@ mod tests {
         // 100px = 100/800 of screen width = 0.125
         // 0.125 * 2.667 ≈ 0.333 world units
         assert!((delta.x - 0.333).abs() < 0.01);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // UNDO/REDO TESTS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_history_initially_empty() {
+        let engine = ArchFlowEngine::new(800.0, 600.0);
+        assert!(!engine.can_undo());
+        assert!(!engine.can_redo());
+        assert_eq!(engine.history.undo_count(), 0);
+        assert_eq!(engine.history.redo_count(), 0);
+    }
+
+    #[test]
+    fn test_move_command_records_history() {
+        let mut engine = ArchFlowEngine::new(800.0, 600.0);
+
+        // Spawn an entity first
+        let id = engine
+            .store
+            .spawn(Vec2::new(100.0, 100.0), Vec2::new(50.0, 50.0));
+
+        // Execute a Move command via queue
+        let cmd = Command::Move {
+            id,
+            delta: Vec2::new(10.0, 20.0),
+        };
+        engine.command_queue.push(cmd);
+        engine.execute_commands();
+
+        // Should be recorded in history
+        assert!(engine.can_undo());
+        assert!(!engine.can_redo());
+        assert_eq!(engine.history.undo_count(), 1);
+    }
+
+    #[test]
+    fn test_undo_move_restores_position() {
+        let mut engine = ArchFlowEngine::new(800.0, 600.0);
+
+        // Spawn an entity
+        let id = engine
+            .store
+            .spawn(Vec2::new(100.0, 100.0), Vec2::new(50.0, 50.0));
+        let original_pos = Vec2::new(
+            engine.store.transforms[id.index().0 as usize][0],
+            engine.store.transforms[id.index().0 as usize][1],
+        );
+
+        // Move entity
+        let cmd = Command::Move {
+            id,
+            delta: Vec2::new(10.0, 20.0),
+        };
+        engine.command_queue.push(cmd);
+        engine.execute_commands();
+
+        let moved_pos = Vec2::new(
+            engine.store.transforms[id.index().0 as usize][0],
+            engine.store.transforms[id.index().0 as usize][1],
+        );
+
+        // Undo should restore original position
+        assert!(engine.undo());
+        let undone_pos = Vec2::new(
+            engine.store.transforms[id.index().0 as usize][0],
+            engine.store.transforms[id.index().0 as usize][1],
+        );
+
+        assert!((undone_pos.x - original_pos.x).abs() < 0.01);
+        assert!((undone_pos.y - original_pos.y).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_redo_move_restores_moved_position() {
+        let mut engine = ArchFlowEngine::new(800.0, 600.0);
+
+        // Spawn an entity
+        let id = engine
+            .store
+            .spawn(Vec2::new(100.0, 100.0), Vec2::new(50.0, 50.0));
+
+        // Move entity
+        let cmd = Command::Move {
+            id,
+            delta: Vec2::new(10.0, 20.0),
+        };
+        engine.command_queue.push(cmd);
+        engine.execute_commands();
+
+        let moved_pos = Vec2::new(
+            engine.store.transforms[id.index().0 as usize][0],
+            engine.store.transforms[id.index().0 as usize][1],
+        );
+
+        // Undo
+        engine.undo();
+
+        // Redo should restore moved position
+        assert!(engine.redo());
+        let redone_pos = Vec2::new(
+            engine.store.transforms[id.index().0 as usize][0],
+            engine.store.transforms[id.index().0 as usize][1],
+        );
+
+        assert!((redone_pos.x - moved_pos.x).abs() < 0.01);
+        assert!((redone_pos.y - moved_pos.y).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_set_color_records_history() {
+        let mut engine = ArchFlowEngine::new(800.0, 600.0);
+
+        let id = engine
+            .store
+            .spawn(Vec2::new(0.0, 0.0), Vec2::new(50.0, 50.0));
+        let original_color = engine.store.colors[id.index().0 as usize];
+
+        // Set color
+        let cmd = Command::SetColor {
+            id,
+            color: 0xFF0000FF,
+        };
+        engine.command_queue.push(cmd);
+        engine.execute_commands();
+
+        assert!(engine.can_undo());
+        assert_eq!(engine.history.undo_count(), 1);
+
+        // Undo should restore original color
+        engine.undo();
+        assert_eq!(engine.store.colors[id.index().0 as usize], original_color);
+    }
+
+    #[test]
+    fn test_new_action_clears_redo_stack() {
+        let mut engine = ArchFlowEngine::new(800.0, 600.0);
+
+        let id = engine
+            .store
+            .spawn(Vec2::new(0.0, 0.0), Vec2::new(50.0, 50.0));
+
+        // First action
+        let cmd1 = Command::Move {
+            id,
+            delta: Vec2::new(10.0, 0.0),
+        };
+        engine.command_queue.push(cmd1);
+        engine.execute_commands();
+
+        // Undo
+        engine.undo();
+        assert!(engine.can_redo());
+
+        // New action should clear redo stack
+        let cmd2 = Command::Move {
+            id,
+            delta: Vec2::new(0.0, 10.0),
+        };
+        engine.command_queue.push(cmd2);
+        engine.execute_commands();
+
+        assert!(!engine.can_redo());
+    }
+
+    #[test]
+    fn test_resize_undo_redo() {
+        let mut engine = ArchFlowEngine::new(800.0, 600.0);
+
+        let id = engine
+            .store
+            .spawn(Vec2::new(0.0, 0.0), Vec2::new(50.0, 50.0));
+        let original_size = Vec2::new(
+            engine.store.transforms[id.index().0 as usize][2],
+            engine.store.transforms[id.index().0 as usize][3],
+        );
+
+        // Resize
+        let new_size = Vec2::new(100.0, 80.0);
+        let cmd = Command::Resize { id, size: new_size };
+        engine.command_queue.push(cmd);
+        engine.execute_commands();
+
+        // Undo should restore original size
+        engine.undo();
+        let undone_size = Vec2::new(
+            engine.store.transforms[id.index().0 as usize][2],
+            engine.store.transforms[id.index().0 as usize][3],
+        );
+
+        assert!((undone_size.x - original_size.x).abs() < 0.01);
+        assert!((undone_size.y - original_size.y).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_teleport_undo_redo() {
+        let mut engine = ArchFlowEngine::new(800.0, 600.0);
+
+        let id = engine
+            .store
+            .spawn(Vec2::new(100.0, 100.0), Vec2::new(50.0, 50.0));
+        let original_pos = Vec2::new(
+            engine.store.transforms[id.index().0 as usize][0],
+            engine.store.transforms[id.index().0 as usize][1],
+        );
+
+        // Teleport
+        let new_pos = Vec2::new(500.0, 600.0);
+        let cmd = Command::Teleport { id, pos: new_pos };
+        engine.command_queue.push(cmd);
+        engine.execute_commands();
+
+        // Undo
+        assert!(engine.undo());
+        let undone_pos = Vec2::new(
+            engine.store.transforms[id.index().0 as usize][0],
+            engine.store.transforms[id.index().0 as usize][1],
+        );
+
+        assert!((undone_pos.x - original_pos.x).abs() < 0.01);
+        assert!((undone_pos.y - original_pos.y).abs() < 0.01);
+
+        // Redo
+        assert!(engine.redo());
+        let redone_pos = Vec2::new(
+            engine.store.transforms[id.index().0 as usize][0],
+            engine.store.transforms[id.index().0 as usize][1],
+        );
+
+        assert!((redone_pos.x - new_pos.x).abs() < 0.01);
+        assert!((redone_pos.y - new_pos.y).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_set_visible_undo_redo() {
+        let mut engine = ArchFlowEngine::new(800.0, 600.0);
+
+        let id = engine
+            .store
+            .spawn(Vec2::new(0.0, 0.0), Vec2::new(50.0, 50.0));
+        let idx = id.index().0 as usize;
+
+        // Initially visible
+        assert!(engine.store.is_visible(idx));
+
+        // Hide
+        let cmd = Command::SetVisible { id, visible: false };
+        engine.command_queue.push(cmd);
+        engine.execute_commands();
+
+        assert!(!engine.store.is_visible(idx));
+
+        // Undo should make visible again
+        engine.undo();
+        assert!(engine.store.is_visible(idx));
+
+        // Redo should hide again
+        engine.redo();
+        assert!(!engine.store.is_visible(idx));
+    }
+
+    #[test]
+    fn test_max_depth_enforcement() {
+        let mut engine = ArchFlowEngine::new(800.0, 600.0);
+
+        let id = engine
+            .store
+            .spawn(Vec2::new(0.0, 0.0), Vec2::new(50.0, 50.0));
+
+        // Record more actions than max depth (100)
+        for i in 0..150 {
+            let cmd = Command::Move {
+                id,
+                delta: Vec2::new(1.0, 0.0),
+            };
+            engine.command_queue.push(cmd);
+            engine.execute_commands();
+        }
+
+        // Should be capped at max depth (100)
+        assert_eq!(engine.history.undo_count(), 100);
     }
 }
