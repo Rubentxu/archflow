@@ -32,6 +32,7 @@ pub mod signals;
 pub mod snap;
 pub mod spatial;
 pub mod tween;
+pub mod visibility;
 
 pub use actuators::{
     HighlightActuator, Message, MessageActuator, MessageBus, MessagePayload, MoveActuator,
@@ -78,3 +79,4 @@ pub use tween::{
     TweenState,
     DEFAULT_DURATION_MS as TWEEN_DEFAULT_DURATION_MS,
 };
+pub use visibility::{VisibilityActuator, VisibilityBitset, VisibilityConfig, VisibilityManager};
