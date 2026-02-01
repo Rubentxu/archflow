@@ -581,8 +581,8 @@ mod tests {
         let mut spatial = SpatialHash::new(100);
 
         // Create entities with known indices
-        let idx1 = 0;
-        let idx2 = 1;
+        let _idx1 = 0;
+        let _idx2 = 1;
 
         let id1 = store.spawn(Vec2::new(0.0, 0.0), Vec2::new(10.0, 10.0));
         let id2 = store.spawn(Vec2::new(15.0, 0.0), Vec2::new(10.0, 10.0));

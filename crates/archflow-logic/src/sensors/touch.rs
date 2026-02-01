@@ -297,7 +297,7 @@ impl TouchSensor {
             let candidates = spatial.query_rect(entity_aabb);
 
             // Track previous hit list for exit detection
-            let previous_hits = core::mem::take(&mut self.hit_lists[idx]);
+            let _previous_hits = core::mem::take(&mut self.hit_lists[idx]);
 
             // Test each candidate with AABB (narrow-phase)
             let mut current_hits = BTreeSet::new();
