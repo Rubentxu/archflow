@@ -27,6 +27,19 @@ pub enum Error {
     Internal(String),
 }
 
+// Implement From conversions for common error types
+impl From<serde_json::Error> for Error {
+    fn from(err: serde_json::Error) -> Self {
+        Error::Internal(format!("JSON error: {}", err))
+    }
+}
+
+impl From<anyhow::Error> for Error {
+    fn from(err: anyhow::Error) -> Self {
+        Error::Internal(format!("Error: {}", err))
+    }
+}
+
 impl axum::response::IntoResponse for Error {
     fn into_response(self) -> axum::response::Response {
         let (status, message) = match &self {

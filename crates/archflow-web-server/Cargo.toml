@@ -5,6 +5,7 @@ edition.workspace = true
 
 [dependencies]
 archflow-engine = { path = "../archflow-engine" }
+archflow-interaction = { path = "../archflow-interaction" }
 archflow-logic = { path = "../archflow-logic" }
 
 # Async runtime
@@ -29,6 +30,9 @@ mime_guess = "2.0"
 # Error handling
 thiserror = { workspace = true }
 anyhow = { workspace = true }
+
+# Random ID generation
+fastrand = "2.1"
 
 # Logging
 tracing = "0.1"

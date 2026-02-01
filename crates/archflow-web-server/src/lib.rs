@@ -11,6 +11,7 @@
 #![warn(missing_docs)]
 #![warn(clippy::all)]
 
+pub mod collaboration;
 pub mod error;
 pub mod websocket;
 
