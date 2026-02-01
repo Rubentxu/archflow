@@ -39,6 +39,7 @@ pub mod mouse_click;
 pub mod mouse_over;
 pub mod proximity;
 pub mod right_click;
+pub mod touch;
 
 pub use double_tap::{DoubleTapSensor, DOUBLE_TAP_MS, TAP_TIMEOUT_MS};
 pub use key_shortcut::KeyShortcutSensor;
@@ -48,3 +49,4 @@ pub use mouse_click::{MouseClickSensor, PointerButtons};
 pub use mouse_over::MouseOverSensor;
 pub use proximity::ProximitySensor;
 pub use right_click::RightClickSensor;
+pub use touch::TouchSensor;
