@@ -13,6 +13,7 @@
 use archflow_core::{EntityId, Vec2};
 
 use crate::store::{EntityStore, MAX_ENTITIES};
+use serde::{Deserialize, Serialize};
 
 /// Domain commands (Plain Old Data, Copy)
 ///
@@ -21,7 +22,7 @@ use crate::store::{EntityStore, MAX_ENTITIES};
 /// - No Box, String, or Vec (use u32 indices)
 /// - #[repr(u8)] for predictable layout and correct padding
 #[repr(u8)]
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Command {
     // ═══════════════════════════════════════════════════════════
     // CREATION / DESTRUCTION

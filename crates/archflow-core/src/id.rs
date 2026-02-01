@@ -16,6 +16,9 @@
 
 use static_assertions::const_assert;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// Entity identifier with generational validation
 ///
 /// Layout (bits 0-31):
@@ -24,6 +27,7 @@ use static_assertions::const_assert;
 /// ```
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct EntityId(u32);
 
 // Ensure EntityId is exactly 4 bytes

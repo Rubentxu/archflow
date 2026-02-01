@@ -9,19 +9,24 @@
 // - Command queue for action processing
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#![no_std]
+#![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]
 #![warn(clippy::all)]
 
 extern crate alloc;
 
+#[cfg(feature = "std")]
+extern crate std;
+
 pub mod command;
+pub mod command_log;
 pub mod connection_store;
 pub mod history;
 pub mod spatial;
 pub mod store;
 
 pub use command::{Command, CommandQueue};
+pub use command_log::{CommandError, CommandLog, CommandLogMetadata};
 pub use connection_store::{AnchorSide, ConnectionStore, LineStyle, MAX_CONNECTIONS};
 pub use history::{CommandGroup, CommandGroupBuilder, CommandHistory};
 pub use spatial::SpatialHash;

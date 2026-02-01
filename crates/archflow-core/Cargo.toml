@@ -7,6 +7,9 @@ edition.workspace = true
 # Math (no_std compatible)
 glam = { workspace = true }
 
+# Serialization (with std feature only)
+serde = { workspace = true, optional = true }
+
 # Error handling (no_std compatible)
 thiserror = { workspace = true, optional = true }
 
@@ -15,7 +18,7 @@ static_assertions = { workspace = true }
 
 [features]
 default = ["std"]
-std = ["thiserror"]
+std = ["thiserror", "serde"]
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # ARCHITECTURE NOTES:
