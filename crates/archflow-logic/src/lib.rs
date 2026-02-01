@@ -44,8 +44,8 @@ pub use mapping::{Controller, LogicMappingTable, SensorType};
 pub use pulse::{Pulse, PulseBus, SensorState};
 pub use sensors::{
     DoubleTapSensor, KeyShortcutSensor, LongPressSensor, MouseClickSensor, MouseConfig, MouseMode,
-    MouseOverSensor, MouseSensor, PointerButtons, ProximitySensor, RightClickSensor, DOUBLE_TAP_MS,
-    LONG_PRESS_MS, TAP_TIMEOUT_MS,
+    MouseOverSensor, MouseSensor, PointerButtons, ProximitySensor, RadarSensor, RightClickSensor,
+    TouchSensor, DOUBLE_TAP_MS, LONG_PRESS_MS, TAP_TIMEOUT_MS,
 };
 pub use signals::SignalByte;
 pub use snap::{

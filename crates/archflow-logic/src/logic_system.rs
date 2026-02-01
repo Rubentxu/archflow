@@ -14,7 +14,7 @@
 #![warn(missing_docs)]
 
 use alloc::vec::Vec;
-use archflow_core::EntityId;
+use archflow_core::{EntityId, Generation, Index};
 use archflow_engine::EntityStore;
 
 use crate::input::{InputEvent, InputSampler};
@@ -22,9 +22,11 @@ use crate::mapping::LogicMappingTable;
 use crate::pulse::{Pulse, PulseBus, SensorState};
 use crate::sensors::{
     DoubleTapSensor, KeyShortcutSensor, LongPressSensor, MouseClickSensor, MouseConfig,
-    MouseOverSensor, MouseSensor, RightClickSensor,
+    MouseOverSensor, MouseSensor, ProximitySensor, RadarAxis, RadarSensor, RightClickSensor,
+    TouchSensor,
 };
 use archflow_core::Vec2;
+use archflow_engine::SpatialHash;
 
 /// Main Logic System that evaluates sensors and executes actuators
 ///
@@ -57,6 +59,14 @@ pub struct LogicSystem {
 
     /// Current timestamp in milliseconds
     timestamp: u32,
+
+    /// Spatial hash for broad-phase collision detection
+    spatial_hash: SpatialHash,
+
+    /// Physics sensors for collision/proximity detection
+    touch_sensor: TouchSensor,
+    proximity_sensor: ProximitySensor,
+    radar_sensor: RadarSensor,
 }
 
 impl LogicSystem {
@@ -73,6 +83,16 @@ impl LogicSystem {
             long_press: LongPressSensor::new(),
             right_click: RightClickSensor::new(),
             timestamp: 0,
+            spatial_hash: SpatialHash::new(archflow_engine::MAX_ENTITIES),
+            touch_sensor: TouchSensor::new(archflow_engine::MAX_ENTITIES, 0),
+            proximity_sensor: ProximitySensor::new(archflow_engine::MAX_ENTITIES, 50.0),
+            radar_sensor: RadarSensor::new(
+                archflow_engine::MAX_ENTITIES,
+                RadarAxis::PositiveX,
+                100.0,
+                45.0,
+                0,
+            ),
         }
     }
 
@@ -143,6 +163,74 @@ impl LogicSystem {
         // Note: Keyboard sensor evaluation would go here
         // KeyShortcutSensor needs explicit event sampling (not position-based)
 
+        // Evaluate physics sensors (HU-010)
+        pulses = self.evaluate_physics_sensors(store, pulses);
+
+        pulses
+    }
+
+    /// Evaluate physics sensors and append their pulses
+    ///
+    /// This integrates TouchSensor, ProximitySensor, and RadarSensor with PulseBus
+    /// as specified in HU-010.
+    fn evaluate_physics_sensors(
+        &mut self,
+        store: &EntityStore,
+        mut pulses: Vec<Pulse>,
+    ) -> Vec<Pulse> {
+        // Update spatial hash with current entity positions (only alive entities)
+        // Use draw_order which contains only alive entities
+        for &entity_idx in &store.draw_order {
+            let idx = entity_idx as usize;
+            let transform = store.transforms[idx];
+            let pos = Vec2::new(transform[0], transform[1]);
+            let size = Vec2::new(transform[2], transform[3]);
+            let generation = store.generation(idx);
+            let entity_id = EntityId::from_parts(Index(entity_idx), Generation(generation));
+            let bounds = archflow_core::Rect::from_origin_size(pos, size);
+
+            // Remove old position and insert new position
+            self.spatial_hash.remove(entity_id);
+            self.spatial_hash.insert(entity_id, bounds);
+        }
+
+        let spatial = &self.spatial_hash;
+
+        // Evaluate TouchSensor (collision detection)
+        self.touch_sensor.evaluate(store, spatial);
+        for &entity_idx in &store.draw_order {
+            let generation = store.generation(entity_idx as usize);
+            let entity_id = EntityId::from_parts(Index(entity_idx), Generation(generation));
+            let signal = self.touch_sensor.signal(entity_id);
+            if signal.is_rising_edge() {
+                pulses.push(Pulse::positive(1, entity_idx, self.timestamp));
+            } else if signal.is_falling_edge() {
+                pulses.push(Pulse::negative(1, entity_idx, self.timestamp));
+            }
+        }
+
+        // Evaluate ProximitySensor (near detection)
+        self.proximity_sensor.evaluate(store, spatial);
+        for &entity_idx in &store.draw_order {
+            let generation = store.generation(entity_idx as usize);
+            let entity_id = EntityId::from_parts(Index(entity_idx), Generation(generation));
+            let signal = self.proximity_sensor.signal(entity_id);
+            if signal.get_current() {
+                pulses.push(Pulse::positive(2, entity_idx, self.timestamp));
+            }
+        }
+
+        // Evaluate RadarSensor (directional detection)
+        self.radar_sensor.evaluate(store, spatial);
+        for &entity_idx in &store.draw_order {
+            let generation = store.generation(entity_idx as usize);
+            let entity_id = EntityId::from_parts(Index(entity_idx), Generation(generation));
+            let signal = self.radar_sensor.signal(entity_id);
+            if signal.get_current() {
+                pulses.push(Pulse::positive(3, entity_idx, self.timestamp));
+            }
+        }
+
         pulses
     }
 
@@ -177,6 +265,7 @@ impl Default for LogicSystem {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::pulse::SensorState;
     use archflow_core::Vec2;
 
     #[test]
@@ -263,5 +352,52 @@ mod tests {
 
         // Bus should be empty after drain
         assert_eq!(system.pulse_bus().len(), 0);
+    }
+
+    #[test]
+    fn test_physics_sensors_integration() {
+        let mut store = EntityStore::new();
+        let mut system = LogicSystem::new();
+        system.set_timestamp(1000);
+
+        // Create two entities that will collide
+        let entity1 = store.spawn(Vec2::new(0.0, 0.0), Vec2::new(50.0, 50.0));
+        let entity2 = store.spawn(Vec2::new(25.0, 25.0), Vec2::new(50.0, 50.0));
+
+        // Evaluate sensors - should detect collision
+        let pulses = system.evaluate_sensors(&store);
+
+        // Should have pulses from physics sensors
+        // TouchSensor (sensor_id=1), ProximitySensor (sensor_id=2), RadarSensor (sensor_id=3)
+        // Each entity should generate pulses
+        assert!(!pulses.is_empty());
+    }
+
+    #[test]
+    fn test_physics_sensors_touch_detection() {
+        let mut store = EntityStore::new();
+        let mut system = LogicSystem::new();
+        system.set_timestamp(1000);
+
+        // Create overlapping entities
+        let entity1 = store.spawn(Vec2::new(0.0, 0.0), Vec2::new(50.0, 50.0));
+        let entity2 = store.spawn(Vec2::new(30.0, 30.0), Vec2::new(50.0, 50.0));
+
+        // First evaluation should detect rising edges (collision started)
+        let pulses1 = system.evaluate_sensors(&store);
+
+        // Filter for TouchSensor pulses (sensor_id = 1)
+        let touch_pulses: Vec<_> = pulses1.iter().filter(|p| p.sensor_id == 1).collect();
+        assert!(!touch_pulses.is_empty(), "Should detect collision start");
+
+        // Second evaluation should not have rising edges (already colliding)
+        let pulses2 = system.evaluate_sensors(&store);
+        let touch_pulses2: Vec<_> = pulses2.iter().filter(|p| p.sensor_id == 1).collect();
+        assert!(
+            !touch_pulses2
+                .iter()
+                .any(|p| p.state == SensorState::Positive),
+            "Should not have new collision detections"
+        );
     }
 }
