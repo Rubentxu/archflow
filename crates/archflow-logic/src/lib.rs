@@ -31,7 +31,8 @@ pub mod sensors;
 pub mod signals;
 
 pub use actuators::{
-    HighlightActuator, MoveActuator, Property, PropertyActuator, SelectActuator, SelectMode,
+    HighlightActuator, Message, MessageActuator, MessageBus, MessagePayload, MoveActuator,
+    Property, PropertyActuator, SelectActuator, SelectMode,
 };
 pub use input::{InputEvent, InputSampler, InputSnapshotSAB, MouseButton, MAX_KEYS};
 pub use logic_system::LogicSystem;

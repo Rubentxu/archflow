@@ -10,11 +10,13 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 pub mod highlight;
+pub mod message;
 pub mod move_;
 pub mod property;
 pub mod select;
 
 pub use highlight::HighlightActuator;
+pub use message::{Message, MessageActuator, MessageBus, MessagePayload};
 pub use move_::MoveActuator;
 pub use property::{Property, PropertyActuator};
 pub use select::{SelectActuator, SelectMode};
