@@ -31,6 +31,7 @@
 //! }
 //! ```
 
+pub mod collision;
 pub mod double_tap;
 pub mod key_shortcut;
 pub mod long_press;
@@ -42,6 +43,7 @@ pub mod radar;
 pub mod right_click;
 pub mod touch;
 
+pub use collision::CollisionSensor;
 pub use double_tap::{DoubleTapSensor, DOUBLE_TAP_MS, TAP_TIMEOUT_MS};
 pub use key_shortcut::KeyShortcutSensor;
 pub use long_press::{LongPressSensor, LONG_PRESS_MS};
