@@ -58,9 +58,10 @@ use serde::{Deserialize, Serialize};
 ///
 /// # Examples
 ///
-/// ```no_run
-/// # use archflow_engine::{EntityStore, CommandLog, Command};
-/// # use archflow_core::Vec2;
+/// ```
+/// use archflow_engine::{EntityStore, CommandLog, Command};
+/// use archflow_core::Vec2;
+///
 /// let mut store = EntityStore::new();
 /// let mut log = CommandLog::new();
 ///
@@ -68,15 +69,12 @@ use serde::{Deserialize, Serialize};
 /// let id = store.spawn(Vec2::new(0.0, 0.0), Vec2::new(100.0, 100.0));
 /// let cmd = Command::Move { id, delta: Vec2::new(10.0, 20.0) };
 /// cmd.execute(&mut store);
-/// log.push(cmd);
 ///
-/// // Save document
-/// log.save("document.archflow").unwrap();
+/// // Log the command (store in memory)
+/// let _logged = log.push(cmd);
 ///
-/// // Load document (new store instance)
-/// let mut new_store = EntityStore::new();
-/// let loaded_log = CommandLog::load("document.archflow").unwrap();
-/// loaded_log.replay(&mut new_store).unwrap();
+/// // Verify the log has one entry
+/// assert_eq!(log.len(), 1);
 /// ```
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -204,12 +202,23 @@ impl CommandLog {
     ///
     /// # Examples
     ///
-    /// ```no_run
-    /// # use archflow_engine::{EntityStore, CommandLog};
+    /// ```
+    /// use archflow_engine::{EntityStore, CommandLog, Command};
+    /// use archflow_core::Vec2;
+    ///
     /// let mut store = EntityStore::new();
-    /// let log = CommandLog::load("document.archflow").unwrap();
-    /// log.replay(&mut store).unwrap();
-    /// // store is now in the same state as when saved
+    /// let mut log = CommandLog::new();
+    ///
+    /// // Create and log a command
+    /// let id = store.spawn(Vec2::new(0.0, 0.0), Vec2::new(100.0, 100.0));
+    /// let cmd = Command::Move { id, delta: Vec2::new(10.0, 20.0) };
+    /// cmd.execute(&mut store);
+    /// let _ = log.push(cmd);
+    ///
+    /// // Replay on a new store
+    /// let mut new_store = EntityStore::new();
+    /// let result = log.replay(&mut new_store);
+    /// assert!(result.is_ok());
     /// ```
     pub fn replay(&self, store: &mut EntityStore) -> Result<(), CommandError> {
         for (timestamp, command) in &self.commands {

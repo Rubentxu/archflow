@@ -152,5 +152,7 @@ indexmap = { version = "2.7", features = ["serde"] }
 # Utilities
 # ═══════════════════════════════════════════════════════════════════════════════
 getrandom = { version = "0.2", features = ["js"] }
+sha2 = "0.10"
+constant_time_eq = "0.3"
 array-init = "2.1"
 static_assertions = "1.1"

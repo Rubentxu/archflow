@@ -9,6 +9,10 @@ fixedbitset = { workspace = true }
 heapless = { workspace = true }
 serde = { workspace = true }
 bincode = { workspace = true }
+sha2 = "0.10"
+getrandom = { version = "0.2", features = ["js"] }
+constant_time_eq = "0.3"
+hmac = "0.12"
 
 [features]
 default = []

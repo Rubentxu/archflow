@@ -20,15 +20,23 @@ extern crate std;
 
 pub mod command;
 pub mod command_log;
+pub mod compression;
 pub mod connection_store;
 pub mod history;
+pub mod security;
 pub mod spatial;
 pub mod store;
 
 pub use command::{Command, CommandQueue};
 pub use command_log::{CommandError, CommandLog, CommandLogMetadata};
+pub use compression::{BatchBuilder, CompressedBatch, CompressionResult, CompressionSettings};
 pub use connection_store::{AnchorSide, ConnectionStore, LineStyle, MAX_CONNECTIONS};
 pub use history::{CommandGroup, CommandGroupBuilder, CommandHistory};
+pub use security::{
+    AuditEntry, AuditEventType, AuditLog, HmacSigner, ParameterSanitizer, Permission,
+    PermissionChecker, SecuredCommand, SecurityError, SecurityResult, SecurityService, TokenBucket,
+    UserRateLimiter,
+};
 pub use spatial::SpatialHash;
 pub use store::{
     ArchitectureData, EntityStore, ShapeType, StringPool, MAX_ENTITIES, MAX_GLYPHS, MAX_TEXT_LENGTH,
