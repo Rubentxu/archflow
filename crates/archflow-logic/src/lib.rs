@@ -23,6 +23,7 @@
 extern crate alloc;
 
 pub mod actuators;
+pub mod command;
 pub mod input;
 pub mod logic_system;
 pub mod mapping;
@@ -62,6 +63,7 @@ pub use actuators::{
     StateTransition,
     StateTransitionTable,
 };
+pub use command::{AnyCommand, Command, CommandHistory, DEFAULT_MAX_HISTORY};
 pub use input::{InputEvent, InputSampler, InputSnapshotSAB, MouseButton, MAX_KEYS};
 pub use logic_system::{LogicSystem, SensorId};
 pub use mapping::{Controller, LogicMappingTable, SensorType};
