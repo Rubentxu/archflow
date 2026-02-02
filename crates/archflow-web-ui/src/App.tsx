@@ -12,7 +12,7 @@ import Header from "./components/Header";
 import Toolbar from "./components/Toolbar";
 import Sidebar from "./components/Sidebar";
 import Canvas from "./components/Canvas";
-import PropertiesPanel from "./components/PropertiesPanel";
+import { PropertiesPanel } from "./components/Properties";
 import StatusBar from "./components/StatusBar";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 
@@ -21,7 +21,6 @@ import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
  */
 export default function App() {
   const [isSidebarOpen] = useState(true);
-  const [isPropertiesPanelOpen] = useState(true);
 
   // Initialize keyboard shortcuts
   const { shortcuts } = useKeyboardShortcuts();
@@ -76,7 +75,7 @@ export default function App() {
         </div>
 
         {/* Properties Panel */}
-        <PropertiesPanel isOpen={isPropertiesPanelOpen} />
+        <PropertiesPanel />
       </div>
     </div>
   );
