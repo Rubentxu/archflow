@@ -7,17 +7,37 @@
  * Architecture Reference: ARQUITECTURA_FINAL_V3.md - Section 7
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "./components/Header";
 import Toolbar from "./components/Toolbar";
 import Sidebar from "./components/Sidebar";
 import Canvas from "./components/Canvas";
 import PropertiesPanel from "./components/PropertiesPanel";
 import StatusBar from "./components/StatusBar";
+import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 
+/**
+ * Main application component
+ */
 export default function App() {
   const [isSidebarOpen] = useState(true);
   const [isPropertiesPanelOpen] = useState(true);
+
+  // Initialize keyboard shortcuts
+  const { shortcuts } = useKeyboardShortcuts();
+
+  // Log shortcuts info in development
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.log(
+        "Keyboard shortcuts available:",
+        shortcuts.map(
+          (s) =>
+            `${s.ctrl ? "Ctrl+" : ""}${s.shift ? "Shift+" : ""}${s.key}: ${s.description}`,
+        ),
+      );
+    }
+  }, [shortcuts]);
 
   return (
     <div className="w-screen h-screen flex flex-col bg-background-dark text-white overflow-hidden">

@@ -1,12 +1,21 @@
 /**
  * Canvas Component - WebGPU Wrapper with Interaction Handling
+ *
+ * Main canvas component with drag & drop support via @dnd-kit.
+ * Handles pointer events, wheel events, and renders entities.
+ *
+ * Architecture Reference: ARQUITECTURA_FINAL_V3.md - Section 7
  */
 
 import { useRef, useEffect, useState, useCallback } from "react";
 import { useCanvasStore } from "../store/useCanvasStore";
 import { useUIStore } from "../store/useUIStore";
+import { useDragAndDrop } from "../hooks/useDragAndDrop";
 import { cn } from "../utils/cn";
 
+/**
+ * Canvas component props
+ */
 interface CanvasProps {
   className?: string;
   onPointerDown?: (position: { x: number; y: number }, buttons: number) => void;
@@ -15,6 +24,9 @@ interface CanvasProps {
   onWheel?: (position: { x: number; y: number }, delta: number) => void;
 }
 
+/**
+ * Canvas component with WebGPU rendering and drag & drop support
+ */
 export default function Canvas({
   className,
   onPointerDown,
@@ -28,8 +40,105 @@ export default function Canvas({
 
   const { camera, showGrid, zoomIn, pan } = useCanvasStore();
   const { activeTool } = useUIStore();
+  const { CanvasDroppable, DragOverlayContent, dragState } = useDragAndDrop();
 
-  // Resize observer
+  /**
+   * Get canvas position from pointer or wheel event
+   */
+  const getCanvasPosition = useCallback(
+    (event: React.PointerEvent | React.WheelEvent) => {
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return { x: 0, y: 0 };
+
+      const dpr = window.devicePixelRatio || 1;
+      return {
+        x: (event.clientX - rect.left) * dpr,
+        y: (event.clientY - rect.top) * dpr,
+      };
+    },
+    [],
+  );
+
+  /**
+   * Handle pointer down event
+   */
+  const handlePointerDown = useCallback(
+    (event: React.PointerEvent) => {
+      event.preventDefault();
+      const position = getCanvasPosition(event);
+      onPointerDown?.(position, event.buttons);
+    },
+    [getCanvasPosition, onPointerDown],
+  );
+
+  /**
+   * Handle pointer move event
+   */
+  const handlePointerMove = useCallback(
+    (event: React.PointerEvent) => {
+      const position = getCanvasPosition(event);
+      onPointerMove?.(position, event.buttons);
+    },
+    [getCanvasPosition, onPointerMove],
+  );
+
+  /**
+   * Handle pointer up event
+   */
+  const handlePointerUp = useCallback(
+    (event: React.PointerEvent) => {
+      const position = getCanvasPosition(event);
+      onPointerUp?.(position, event.buttons);
+    },
+    [getCanvasPosition, onPointerUp],
+  );
+
+  /**
+   * Handle wheel event for zoom and pan
+   */
+  const handleWheel = useCallback(
+    (event: React.WheelEvent) => {
+      event.preventDefault();
+      const position = getCanvasPosition(event);
+
+      if (event.ctrlKey || event.metaKey) {
+        const factor = event.deltaY > 0 ? 0.9 : 1.1;
+        zoomIn(factor);
+      } else {
+        pan(event.deltaX, event.deltaY);
+      }
+
+      onWheel?.(position, Math.abs(event.deltaY));
+    },
+    [getCanvasPosition, zoomIn, pan, onWheel],
+  );
+
+  /**
+   * Get cursor style based on active tool
+   */
+  const getCursor = useCallback(() => {
+    if (camera.zoom !== 1) return "grab";
+    switch (activeTool) {
+      case "select":
+        return "default";
+      case "pan":
+        return "grab";
+      case "rectangle":
+      case "circle":
+      case "triangle":
+      case "diamond":
+      case "connection":
+        return "crosshair";
+      case "text":
+        return "text";
+      case "delete":
+        return "not-allowed";
+      default:
+        return "default";
+    }
+  }, [camera.zoom, activeTool]);
+
+  // Resize observer for responsive canvas
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -51,7 +160,7 @@ export default function Canvas({
     return () => resizeObserver.disconnect();
   }, []);
 
-  // Initialize
+  // Initialize renderer
   useEffect(() => {
     setIsInitialized(true);
   }, []);
@@ -71,6 +180,7 @@ export default function Canvas({
     let animationId: number;
 
     const render = () => {
+      // Clear canvas
       ctx.clearRect(0, 0, width, height);
       ctx.fillStyle = "#101d22";
       ctx.fillRect(0, 0, width, height);
@@ -95,6 +205,23 @@ export default function Canvas({
           ctx.lineTo(width, y);
           ctx.stroke();
         }
+      }
+
+      // Draw drop preview if dragging
+      if (dragState.isDragging && dragState.dropPosition) {
+        ctx.fillStyle = "rgba(19, 182, 236, 0.1)";
+        ctx.strokeStyle = "rgba(19, 182, 236, 0.5)";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+
+        const previewX = (dragState.dropPosition.x + camera.x) * camera.zoom;
+        const previewY = (dragState.dropPosition.y + camera.y) * camera.zoom;
+        const previewW = 120 * camera.zoom;
+        const previewH = 80 * camera.zoom;
+
+        ctx.fillRect(previewX, previewY, previewW, previewH);
+        ctx.strokeRect(previewX, previewY, previewW, previewH);
+        ctx.setLineDash([]);
       }
 
       // Draw sample entities
@@ -125,109 +252,47 @@ export default function Canvas({
     return () => {
       if (animationId) cancelAnimationFrame(animationId);
     };
-  }, [camera, showGrid]);
-
-  // Get canvas position from event
-  const getCanvasPosition = (event: React.PointerEvent | React.WheelEvent) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-
-    const rect = canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-
-    return {
-      x: (event.clientX - rect.left) * dpr,
-      y: (event.clientY - rect.top) * dpr,
-    };
-  };
-
-  const handlePointerDown = useCallback(
-    (event: React.PointerEvent) => {
-      event.preventDefault();
-      const position = getCanvasPosition(event);
-      onPointerDown?.(position, event.buttons);
-    },
-    [onPointerDown],
-  );
-
-  const handlePointerMove = useCallback(
-    (event: React.PointerEvent) => {
-      const position = getCanvasPosition(event);
-      onPointerMove?.(position, event.buttons);
-    },
-    [onPointerMove],
-  );
-
-  const handlePointerUp = useCallback(
-    (event: React.PointerEvent) => {
-      const position = getCanvasPosition(event);
-      onPointerUp?.(position, event.buttons);
-    },
-    [onPointerUp],
-  );
-
-  const handleWheel = useCallback(
-    (event: React.WheelEvent) => {
-      event.preventDefault();
-      const position = getCanvasPosition(event);
-
-      if (event.ctrlKey || event.metaKey) {
-        const factor = event.deltaY > 0 ? 0.9 : 1.1;
-        zoomIn(factor);
-      } else {
-        pan(event.deltaX, event.deltaY);
-      }
-
-      onWheel?.(position, Math.abs(event.deltaY));
-    },
-    [zoomIn, pan, onWheel],
-  );
-
-  const getCursor = () => {
-    if (camera.zoom !== 1) return "grab";
-    switch (activeTool) {
-      case "select":
-        return "default";
-      case "pan":
-        return "grab";
-      case "rectangle":
-      case "circle":
-      case "triangle":
-      case "diamond":
-      case "connection":
-        return "crosshair";
-      case "text":
-        return "text";
-      case "delete":
-        return "not-allowed";
-      default:
-        return "default";
-    }
-  };
+  }, [camera, showGrid, dragState]);
 
   return (
-    <div ref={containerRef} className={cn("w-full h-full relative", className)}>
-      <canvas
-        ref={canvasRef}
-        className="touch-none block"
-        style={{ cursor: getCursor(), touchAction: "none" }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
-        onWheel={handleWheel}
-      />
-
-      {!isInitialized && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background-dark/80">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm text-text-secondary">
-              Initializing renderer...
-            </span>
+    <CanvasDroppable>
+      {({ isOver, setNodeRef }) => (
+        <div
+          ref={setNodeRef}
+          className={cn(
+            "w-full h-full relative",
+            isOver && "ring-2 ring-primary/50",
+            className,
+          )}
+        >
+          <div ref={containerRef} className="w-full h-full absolute inset-0">
+            <canvas
+              ref={canvasRef}
+              className="touch-none block"
+              style={{ cursor: getCursor(), touchAction: "none" }}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerLeave={handlePointerUp}
+              onWheel={handleWheel}
+            />
           </div>
+
+          {!isInitialized && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background-dark/80">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm text-text-secondary">
+                  Initializing renderer...
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Drag overlay for visual feedback */}
+          <DragOverlayContent />
         </div>
       )}
-    </div>
+    </CanvasDroppable>
   );
 }
