@@ -1,10 +1,11 @@
 /**
- * Canvas Component - WebGPU Wrapper with Interaction Handling
+ * Canvas Component - Canvas 2D Rendering
  *
  * Main canvas component with drag & drop support via @dnd-kit.
- * Handles pointer events, wheel events, and renders entities.
+ * Handles pointer events, wheel events, and renders entities using Canvas 2D.
+ * Note: WebGPU rendering not yet implemented.
  *
- * Architecture Reference: ARQUITECTURA_FINAL_V3.md - Section 7
+ * Architecture Reference: EPIC-WEB-003
  */
 
 import { useRef, useEffect, useState, useCallback } from "react";
