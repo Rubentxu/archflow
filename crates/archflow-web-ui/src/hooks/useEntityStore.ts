@@ -247,10 +247,9 @@ export function useEntityStore(): EntityStoreReturn {
   };
 }
 
-const DEFAULT_WIDTH = 100;
-const DEFAULT_HEIGHT = 60;
-
-export function useEntityStore(_bridge: unknown = null): EntityStoreReturn {
+// Deprecated mock version - kept for backward compatibility
+// Use useEntityStore() above instead
+export function useEntityStoreMock(_bridge: unknown = null): EntityStoreReturn {
   const [entities, setEntities] = useState<Map<EntityId, EntityData>>(
     new Map(),
   );
