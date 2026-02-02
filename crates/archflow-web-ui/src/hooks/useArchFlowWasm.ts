@@ -29,7 +29,6 @@ export function useArchFlowWasm(): UseWasmBridgeReturn {
 
     const loadWasm = async () => {
       try {
-        // Dynamic import - Vite will handle this at runtime
         const wasmModule = await import("@archflow/web");
         wasmBridgeClass = wasmModule.WasmBridge;
 
@@ -38,13 +37,19 @@ export function useArchFlowWasm(): UseWasmBridgeReturn {
         const newBridge = new (wasmBridgeClass as new () => unknown)();
         setBridge(newBridge);
         setIsLoaded(true);
+        setError(null);
       } catch (err) {
-        // WASM not built yet - this is expected during initial setup
         if (mounted) {
-          console.debug(
-            "WASM module not loaded. Build WASM first with: cargo build -p archflow-web && wasm-pack build --target web",
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          setError(
+            new Error(
+              `Failed to load WASM module: ${errorMessage}\n\n` +
+              `Please build WASM first:\n` +
+              `  cargo build -p archflow-web\n` +
+              `  wasm-pack build --target web\n\n` +
+              `Ensure COOP/COEP headers are configured for SharedArrayBuffer support.`
+            ),
           );
-          setError(null);
         }
       }
     };
@@ -59,8 +64,9 @@ export function useArchFlowWasm(): UseWasmBridgeReturn {
   const initialize = useCallback(
     async (width: number, height: number) => {
       if (!bridge || !wasmBridgeClass) {
-        setError(new Error("WASM bridge not loaded"));
-        return;
+        throw new Error(
+          "WASM bridge not loaded. Cannot initialize."
+        );
       }
 
       if (initRef.current) {
@@ -109,7 +115,9 @@ export function useInputBuffer(bridge: unknown) {
   const [bufferSize, setBufferSize] = useState<number>(0);
 
   useEffect(() => {
-    if (!bridge) return;
+    if (!bridge) {
+      throw new Error("WASM bridge is required but not loaded for input buffer access");
+    }
 
     try {
       const ptr = (
@@ -121,7 +129,8 @@ export function useInputBuffer(bridge: unknown) {
       setBufferPtr(ptr);
       setBufferSize(size);
     } catch (err) {
-      console.error("Failed to get input buffer:", err);
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      throw new Error(`Failed to get input buffer from WASM: ${errorMsg}`);
     }
   }, [bridge]);
 
@@ -133,7 +142,9 @@ export function useInputBuffer(bridge: unknown) {
       buttons: number,
       modifiers: number,
     ) => {
-      if (!bridge) return false;
+      if (!bridge) {
+        throw new Error("WASM bridge is required but not loaded for input event writing");
+      }
 
       try {
         (
@@ -147,10 +158,9 @@ export function useInputBuffer(bridge: unknown) {
             ) => void;
           }
         ).pushInputEvent(eventType, x, y, buttons, modifiers);
-        return true;
       } catch (err) {
-        console.error("Failed to write input event:", err);
-        return false;
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        throw new Error(`Failed to write input event to WASM: ${errorMsg}`);
       }
     },
     [bridge],
@@ -173,7 +183,9 @@ export function useAnimationLoop(bridge: unknown, enabled: boolean = true) {
 
   const tick = useCallback(
     (timestamp: number) => {
-      if (!bridge) return;
+      if (!bridge) {
+        throw new Error("WASM bridge is required for animation loop but not loaded");
+      }
 
       try {
         (bridge as { tick: (t: number) => void }).tick(timestamp);
@@ -189,14 +201,20 @@ export function useAnimationLoop(bridge: unknown, enabled: boolean = true) {
         setFrameTime(delta);
         lastTimeRef.current = timestamp;
       } catch (err) {
-        console.error("Tick failed:", err);
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        throw new Error(`Animation loop tick failed: ${errorMsg}`);
       }
     },
     [bridge],
   );
 
   const start = useCallback(() => {
-    if (isRunning || !bridge) return;
+    if (isRunning || !bridge) {
+      if (!bridge) {
+        throw new Error("Cannot start animation loop: WASM bridge not loaded");
+      }
+      return;
+    }
 
     setIsRunning(true);
     lastTimeRef.current = performance.now();
