@@ -5,6 +5,7 @@
 
 import { useCallback } from "react";
 import { useArchFlowWasm } from "./useArchFlowWasm";
+import { getTypedBridge } from "./wasm-bridge";
 
 // Input event types as numbers (matching Rust)
 const INPUT_DOWN = 0;
@@ -30,9 +31,11 @@ export function useInput(): UseInputReturn {
       buttons: number,
       modifiers: number,
     ) => {
-      if (!bridge || !isLoaded) return;
+      if (!isLoaded) return;
+      const typedBridge = getTypedBridge(bridge);
+      if (!typedBridge) return;
       try {
-        bridge.pushInputEvent(eventType, x, y, buttons, modifiers);
+        typedBridge.pushInputEvent(eventType, x, y, buttons, modifiers);
       } catch {
         // Silent fail for input events
       }
@@ -76,7 +79,6 @@ export function useKeyboardShortcuts(
   shortcuts: { key: string; ctrl?: boolean; action: () => void }[],
 ) {
   const handleKeyDown = (event: KeyboardEvent) => {
-    // Ignore if typing in input
     if (
       event.target instanceof HTMLInputElement ||
       event.target instanceof HTMLTextAreaElement

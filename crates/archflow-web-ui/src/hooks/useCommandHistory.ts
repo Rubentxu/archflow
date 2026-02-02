@@ -9,6 +9,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useArchFlowWasm } from "./useArchFlowWasm";
+import { getTypedBridge } from "./wasm-bridge";
 
 interface UseCommandHistoryReturn {
   canUndo: boolean;
@@ -40,32 +41,36 @@ export function useCommandHistory(): UseCommandHistoryReturn {
     }
 
     try {
-      setCanUndo(bridge.canUndo());
-      setCanRedo(bridge.canRedo());
+      const typed = getTypedBridge(bridge);
+      if (!typed) return;
+      setCanUndo(typed.canUndo());
+      setCanRedo(typed.canRedo());
     } catch (err) {
       console.warn("Failed to sync command history state:", err);
     }
   }, [bridge, isLoaded]);
 
   const undo = useCallback(() => {
-    if (!bridge || !canUndoState) return;
+    const typed = getTypedBridge(bridge);
+    if (!typed || !canUndoState) return;
 
     try {
-      bridge.undo();
-      setCanUndo(bridge.canUndo());
-      setCanRedo(bridge.canRedo());
+      typed.undo();
+      setCanUndo(typed.canUndo());
+      setCanRedo(typed.canRedo());
     } catch (err) {
       console.error("Undo failed:", err);
     }
   }, [bridge, canUndoState]);
 
   const redo = useCallback(() => {
-    if (!bridge || !canRedoState) return;
+    const typed = getTypedBridge(bridge);
+    if (!typed || !canRedoState) return;
 
     try {
-      bridge.redo();
-      setCanUndo(bridge.canUndo());
-      setCanRedo(bridge.canRedo());
+      typed.redo();
+      setCanUndo(typed.canUndo());
+      setCanRedo(typed.canRedo());
     } catch (err) {
       console.error("Redo failed:", err);
     }
@@ -73,14 +78,15 @@ export function useCommandHistory(): UseCommandHistoryReturn {
 
   const execute = useCallback(
     (command: Command) => {
-      if (!bridge) return;
+      const typed = getTypedBridge(bridge);
+      if (!typed) return;
 
       try {
         command.execute();
         // Push command to WASM history
         // In a real implementation, we'd serialize the command
-        setCanUndo(bridge.canUndo());
-        setCanRedo(bridge.canRedo());
+        setCanUndo(typed.canUndo());
+        setCanRedo(typed.canRedo());
       } catch (err) {
         console.error("Command execution failed:", err);
       }
@@ -89,10 +95,11 @@ export function useCommandHistory(): UseCommandHistoryReturn {
   );
 
   const getHistoryState = useCallback(() => {
-    if (!bridge) return { undoCount: 0, redoCount: 0 };
+    const typed = getTypedBridge(bridge);
+    if (!typed) return { undoCount: 0, redoCount: 0 };
 
     try {
-      const state = bridge.getHistoryState();
+      const state = typed.getHistoryState();
       // Parse state format: "undo:N,redo:M"
       const parts = state.split(",");
       return {
@@ -123,10 +130,11 @@ export function useSelectionCommands() {
 
   const duplicate = useCallback(
     (entityId: number) => {
-      if (!bridge || !isLoaded) return null;
+      const typed = getTypedBridge(bridge);
+      if (!typed || !isLoaded) return null;
 
       try {
-        const newId = bridge.duplicateEntity(entityId);
+        const newId = typed.duplicateEntity(entityId);
         return newId >= 0 ? newId : null;
       } catch (err) {
         console.error("Duplicate failed:", err);
@@ -137,21 +145,23 @@ export function useSelectionCommands() {
   );
 
   const deleteSelected = useCallback(() => {
-    if (!bridge || !isLoaded) return;
+    const typed = getTypedBridge(bridge);
+    if (!typed || !isLoaded) return;
 
     try {
-      bridge.deleteSelected();
+      typed.deleteSelected();
     } catch (err) {
       console.error("Delete failed:", err);
     }
   }, [bridge, isLoaded]);
 
   const selectAll = useCallback(() => {
-    if (!bridge || !isLoaded) return;
+    const typed = getTypedBridge(bridge);
+    if (!typed || !isLoaded) return;
 
     try {
-      const entities = bridge.getAliveEntities();
-      entities.forEach((id) => bridge.setEntitySelected(id, true));
+      const entities = typed.getAliveEntities();
+      entities.forEach((id) => typed.setEntitySelected(id, true));
       setSelectedCount(entities.length);
     } catch (err) {
       console.error("Select all failed:", err);

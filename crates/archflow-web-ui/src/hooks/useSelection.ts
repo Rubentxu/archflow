@@ -10,6 +10,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { useArchFlowWasm } from "./useArchFlowWasm";
 import { useSelectionStore } from "../store/useSelectionStore";
+import { getTypedBridge } from "./wasm-bridge";
 import type { EntityId, Vec2, EntityData } from "../types/wasm";
 
 interface UseSelectionReturn {
@@ -126,16 +127,17 @@ export function useSelection(): UseSelectionReturn {
   // Select all entities within a rectangle (marquee selection)
   const selectRect = useCallback(
     (rect: { x: number; y: number; width: number; height: number }) => {
-      if (!canSelect || !bridge) return;
+      const typed = getTypedBridge(bridge);
+      if (!canSelect || !typed) return;
 
       try {
-        const aliveEntities = bridge.getAliveEntities();
+        const aliveEntities = typed.getAliveEntities();
         const entitiesInRect: EntityId[] = [];
 
         for (const id of aliveEntities) {
           try {
-            const [ex, ey] = bridge.getEntityPositionScreen(id);
-            const [ew, eh] = bridge.getEntitySizeScreen(id);
+            const [ex, ey] = typed.getEntityPositionScreen(id);
+            const [ew, eh] = typed.getEntitySizeScreen(id);
 
             // Check if entity center is within the rectangle
             const centerX = ex + ew / 2;
@@ -165,10 +167,11 @@ export function useSelection(): UseSelectionReturn {
 
   // Select all entities
   const selectAll = useCallback(() => {
-    if (!canSelect || !bridge) return;
+    const typed = getTypedBridge(bridge);
+    if (!canSelect || !typed) return;
 
     try {
-      const allIds = bridge.getAliveEntities();
+      const allIds = typed.getAliveEntities();
       store.setSelectedIds(allIds);
       setSelectionCount(allIds.length);
     } catch (err) {
@@ -184,10 +187,11 @@ export function useSelection(): UseSelectionReturn {
 
   // Delete selected entities
   const deleteSelected = useCallback(() => {
-    if (!canSelect || selectedIds.length === 0) return;
+    const typed = getTypedBridge(bridge);
+    if (!canSelect || !typed || selectedIds.length === 0) return;
 
     try {
-      bridge?.deleteSelected();
+      typed.deleteSelected();
       clearSelection();
     } catch (err) {
       console.error("Delete failed:", err);
@@ -196,13 +200,14 @@ export function useSelection(): UseSelectionReturn {
 
   // Duplicate selected entities
   const duplicateSelected = useCallback((): EntityId[] => {
-    if (!canSelect || selectedIds.length === 0) return [];
+    const typed = getTypedBridge(bridge);
+    if (!canSelect || !typed || selectedIds.length === 0) return [];
 
     const newIds: EntityId[] = [];
 
     try {
       for (const id of selectedIds) {
-        const newId = bridge?.duplicateEntity(id);
+        const newId = typed.duplicateEntity(id);
         if (newId && newId >= 0) {
           newIds.push(newId);
         }
