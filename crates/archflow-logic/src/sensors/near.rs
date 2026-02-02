@@ -26,9 +26,10 @@ use alloc::vec;
 use alloc::vec::Vec;
 use archflow_core::{EntityId, Rect, Vec2};
 use archflow_engine::{EntityStore, SpatialHash};
+use core::sync::atomic::{AtomicU32, Ordering};
 
 /// Global counter for generating unique sensor IDs
-static mut NEAR_SENSOR_ID_COUNTER: u32 = 100;
+static NEAR_SENSOR_ID_COUNTER: AtomicU32 = AtomicU32::new(100);
 
 /// Sensor that detects entities within a circular radius with hysteresis
 ///
@@ -82,11 +83,7 @@ impl NearSensor {
             distance
         );
 
-        let sensor_id = unsafe {
-            let id = NEAR_SENSOR_ID_COUNTER;
-            NEAR_SENSOR_ID_COUNTER = NEAR_SENSOR_ID_COUNTER.wrapping_add(1);
-            id
-        };
+        let sensor_id = NEAR_SENSOR_ID_COUNTER.fetch_add(1, Ordering::Relaxed);
 
         Self {
             signals: vec![SignalByte::default(); capacity],

@@ -22,10 +22,11 @@ use alloc::vec;
 use alloc::vec::Vec;
 use archflow_core::{EntityId, Rect, Vec2};
 use archflow_engine::{EntityStore, SpatialHash};
+use core::sync::atomic::{AtomicU32, Ordering};
 
 /// Global counter for generating unique sensor IDs
-/// Using u32 with manual increment (thread-safety not needed in single-threaded context)
-static mut COLLISION_SENSOR_ID_COUNTER: u32 = 1;
+/// Using atomic u32 for thread-safety
+static COLLISION_SENSOR_ID_COUNTER: AtomicU32 = AtomicU32::new(1);
 
 /// Sensor that detects collisions between entities using AABB intersection
 ///
@@ -109,13 +110,8 @@ impl CollisionSensor {
     #[inline(always)]
     #[must_use]
     pub fn new(capacity: usize) -> Self {
-        // Safety: This is safe in single-threaded context
-        // For multi-threaded use, would need atomic operations or Mutex
-        let sensor_id = unsafe {
-            let id = COLLISION_SENSOR_ID_COUNTER;
-            COLLISION_SENSOR_ID_COUNTER = COLLISION_SENSOR_ID_COUNTER.wrapping_add(1);
-            id
-        };
+        // Use atomic fetch_add for thread-safe ID generation
+        let sensor_id = COLLISION_SENSOR_ID_COUNTER.fetch_add(1, Ordering::Relaxed);
 
         Self {
             signals: vec![SignalByte::default(); capacity],

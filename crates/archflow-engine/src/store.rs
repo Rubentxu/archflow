@@ -539,8 +539,8 @@ impl EntityStore {
 
     /// Set generation for an entity index (for deserialization)
     #[inline(always)]
-    pub fn set_generation(&mut self, idx: usize, gen: u8) {
-        self.generations[idx] = gen;
+    pub fn set_generation(&mut self, idx: usize, gen_val: u8) {
+        self.generations[idx] = gen_val;
     }
 
     /// Set alive count directly (for deserialization)

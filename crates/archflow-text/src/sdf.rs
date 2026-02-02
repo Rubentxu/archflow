@@ -301,8 +301,8 @@ mod tests {
 
     #[test]
     fn test_generator_creation() {
-        let gen = SdfGenerator::new();
-        assert_eq!(gen.config.texture_size, 32);
+        let generator = SdfGenerator::new();
+        assert_eq!(generator.config.texture_size, 32);
 
         let config = SdfConfig {
             texture_size: 64,
@@ -310,25 +310,25 @@ mod tests {
             padding: 4,
             msdf: false,
         };
-        let gen2 = SdfGenerator::with_config(config);
-        assert_eq!(gen2.config.texture_size, 64);
-        assert!(!gen2.config.msdf);
+        let generator2 = SdfGenerator::with_config(config);
+        assert_eq!(generator2.config.texture_size, 64);
+        assert!(!generator2.config.msdf);
     }
 
     #[test]
     fn test_generator_default() {
-        let gen = SdfGenerator::default();
-        assert_eq!(gen.config.texture_size, 32);
+        let generator = SdfGenerator::default();
+        assert_eq!(generator.config.texture_size, 32);
     }
 
     #[test]
     fn test_generate_sdf_simple() {
-        let gen = SdfGenerator::new();
+        let generator = SdfGenerator::new();
 
         // Simple 4x4 bitmap with a square in the middle
         let bitmap = [0, 0, 0, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 0, 0, 0];
 
-        let output = gen.generate_sdf(&bitmap, 4, 4);
+        let output = generator.generate_sdf(&bitmap, 4, 4);
 
         // Output should be 32x32 RGBA = 4096 bytes
         assert_eq!(output.len(), 32 * 32 * 4);
@@ -343,10 +343,10 @@ mod tests {
 
     #[test]
     fn test_generate_sdf_empty() {
-        let gen = SdfGenerator::new();
+        let generator = SdfGenerator::new();
         let bitmap = [0u8; 16]; // 4x4 empty bitmap
 
-        let output = gen.generate_sdf(&bitmap, 4, 4);
+        let output = generator.generate_sdf(&bitmap, 4, 4);
 
         assert_eq!(output.len(), 32 * 32 * 4);
 
@@ -361,10 +361,10 @@ mod tests {
 
     #[test]
     fn test_generate_sdf_full() {
-        let gen = SdfGenerator::new();
+        let generator = SdfGenerator::new();
         let bitmap = [255u8; 16]; // 4x4 full bitmap
 
-        let output = gen.generate_sdf(&bitmap, 4, 4);
+        let output = generator.generate_sdf(&bitmap, 4, 4);
 
         // Center pixels should be light (inside)
         let center_idx = (16 * 32 + 16) * 4;
@@ -379,11 +379,11 @@ mod tests {
             padding: 2,
             msdf: true,
         };
-        let gen = SdfGenerator::with_config(config);
+        let generator = SdfGenerator::with_config(config);
 
         let bitmap = [0, 0, 0, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 0, 0, 0];
 
-        let output = gen.generate_msdf(&bitmap, 4, 4);
+        let output = generator.generate_msdf(&bitmap, 4, 4);
 
         assert_eq!(output.len(), 32 * 32 * 4);
 
@@ -414,37 +414,37 @@ mod tests {
 
     #[test]
     fn test_compute_signed_distance_inside() {
-        let gen = SdfGenerator::new();
+        let generator = SdfGenerator::new();
 
         let bitmap = [
             255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
         ];
 
         // Center of filled bitmap should have positive distance
-        let dist = gen.compute_signed_distance(&bitmap, 4, 4, 2, 2);
+        let dist = generator.compute_signed_distance(&bitmap, 4, 4, 2, 2);
         assert!(dist > 0.0);
     }
 
     #[test]
     fn test_compute_signed_distance_outside() {
-        let gen = SdfGenerator::new();
+        let generator = SdfGenerator::new();
 
         let bitmap = [
             255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
         ];
 
         // Position outside bitmap should have negative distance
-        let dist = gen.compute_signed_distance(&bitmap, 4, 4, -1, -1);
+        let dist = generator.compute_signed_distance(&bitmap, 4, 4, -1, -1);
         assert!(dist < 0.0);
     }
 
     #[test]
     fn test_sdf_values_clamped() {
-        let gen = SdfGenerator::new();
+        let generator = SdfGenerator::new();
 
         let bitmap = [0u8; 4]; // Empty 2x2 bitmap
 
-        let output = gen.generate_sdf(&bitmap, 2, 2);
+        let output = generator.generate_sdf(&bitmap, 2, 2);
 
         // All values should be in [0, 255] range
         for &byte in &output {
@@ -465,11 +465,11 @@ mod tests {
             padding: 1,
             msdf: true,
         };
-        let gen = SdfGenerator::with_config(config);
+        let generator = SdfGenerator::with_config(config);
 
         let bitmap = [0, 0, 0, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 0, 0, 0];
 
-        let output = gen.generate_msdf(&bitmap, 4, 4);
+        let output = generator.generate_msdf(&bitmap, 4, 4);
 
         // For simple MSDF, RGB should be equal
         for i in (0..output.len()).step_by(4) {
@@ -487,10 +487,10 @@ mod tests {
                 padding: 2,
                 msdf: false,
             };
-            let gen = SdfGenerator::with_config(config);
+            let generator = SdfGenerator::with_config(config);
             let bitmap = [255u8; 16];
 
-            let output = gen.generate_sdf(&bitmap, 4, 4);
+            let output = generator.generate_sdf(&bitmap, 4, 4);
             assert_eq!(output.len(), (size * size * 4) as usize);
         }
     }

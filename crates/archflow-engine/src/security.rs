@@ -19,11 +19,15 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::hash::{Hash, Hasher};
+use core::sync::atomic::{AtomicU64, Ordering};
 use core::time::Duration;
 use hmac::digest::KeyInit;
 use hmac::{Hmac, Mac};
 use sha2::Digest;
 use sha2::Sha256;
+
+/// Atomic counter for no_std timestamp fallback.
+static NOSTD_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 /// Returns the current timestamp in milliseconds.
 ///
@@ -40,13 +44,8 @@ pub fn now_ms() -> u64 {
     }
     #[cfg(not(feature = "std"))]
     {
-        // For no_std, use a simple counter-based approach
-        // In production, this should be replaced with actual hardware timer access
-        static mut COUNTER: u64 = 0;
-        unsafe {
-            COUNTER = COUNTER.wrapping_add(1);
-            COUNTER
-        }
+        // For no_std, use atomic counter for thread-safety
+        NOSTD_COUNTER.fetch_add(1, Ordering::Relaxed)
     }
 }
 
@@ -1355,9 +1354,11 @@ mod tests {
         let signature = signer.sign(data, 1, 1000, 1, &[2u8; 16]);
 
         assert_eq!(signature.len(), 32);
-        assert!(signer
-            .verify(data, 1, 1000, 1, &[2u8; 16], &signature)
-            .is_ok());
+        assert!(
+            signer
+                .verify(data, 1, 1000, 1, &[2u8; 16], &signature)
+                .is_ok()
+        );
     }
 
     #[test]
@@ -1366,9 +1367,11 @@ mod tests {
         let data = b"test data";
         let wrong_signature = vec![0u8; 32];
 
-        assert!(signer
-            .verify(data, 1, 1000, 1, &[2u8; 16], &wrong_signature)
-            .is_err());
+        assert!(
+            signer
+                .verify(data, 1, 1000, 1, &[2u8; 16], &wrong_signature)
+                .is_err()
+        );
     }
 
     #[test]
