@@ -1,46 +1,63 @@
-import { useState, useCallback } from "react";
+/**
+ * Main App Component
+ *
+ * Main application component with full layout including
+ * Header, Sidebar, Canvas, PropertiesPanel, and StatusBar.
+ *
+ * Architecture Reference: ARQUITECTURA_FINAL_V3.md - Section 7
+ */
+
+import { useState } from "react";
 import Header from "./components/Header";
 import Toolbar from "./components/Toolbar";
-import Canvas from "./components/Canvas";
 import Sidebar from "./components/Sidebar";
+import Canvas from "./components/Canvas";
 import PropertiesPanel from "./components/PropertiesPanel";
-import { useUIStore } from "./store/useUIStore";
+import StatusBar from "./components/StatusBar";
 
-function App() {
-  const [darkMode, setDarkMode] = useState(false);
-  const [activeTool, setActiveTool] = useState("select");
-  const { isSidebarOpen, isPropertiesPanelOpen } = useUIStore();
-
-  const toggleDarkMode = useCallback(() => {
-    setDarkMode(!darkMode);
-    document.documentElement.classList.toggle("dark");
-  }, [darkMode]);
+export default function App() {
+  const [isSidebarOpen] = useState(true);
+  const [isPropertiesPanelOpen] = useState(true);
 
   return (
-    <div
-      className={`
-        bg-background-light dark:bg-background-dark
-        text-[#0d181b] dark:text-[#e0e0e0]
-        font-display h-screen flex flex-col overflow-hidden
-        ${darkMode ? "dark" : ""}
-      `}
-    >
-      <Header darkMode={darkMode} onToggleDarkMode={toggleDarkMode} />
+    <div className="w-screen h-screen flex flex-col bg-background-dark text-white overflow-hidden">
+      {/* Header */}
+      <Header
+        projectName="AWS Architecture Diagram"
+        onSave={() => console.log("Save")}
+        onExport={() => console.log("Export")}
+      />
 
-      <div className="flex flex-1 overflow-hidden">
-        {isSidebarOpen && <Sidebar />}
+      {/* Main content area */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar */}
+        <Sidebar isOpen={isSidebarOpen} />
 
-        <main className="flex-1 relative overflow-hidden dot_grid">
-          <Toolbar activeTool={activeTool} onToolChange={setActiveTool} />
-          <Canvas />
-        </main>
+        {/* Center area */}
+        <div className="flex-1 flex flex-col relative">
+          {/* Toolbar */}
+          <Toolbar position="top" />
 
-        {isPropertiesPanelOpen && (
-          <PropertiesPanel selectedEntity={null} onEntityUpdate={() => {}} />
-        )}
+          {/* Canvas */}
+          <div className="flex-1 relative">
+            <Canvas
+              className="absolute inset-0"
+              onPointerDown={(pos, buttons) => {
+                console.log("Pointer down at", pos, "buttons", buttons);
+              }}
+            />
+
+            {/* Floating toolbar on canvas */}
+            <Toolbar position="floating" />
+          </div>
+
+          {/* Status Bar */}
+          <StatusBar />
+        </div>
+
+        {/* Properties Panel */}
+        <PropertiesPanel isOpen={isPropertiesPanelOpen} />
       </div>
     </div>
   );
 }
-
-export default App;
