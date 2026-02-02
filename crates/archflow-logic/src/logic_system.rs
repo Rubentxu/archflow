@@ -503,9 +503,8 @@ mod tests {
         system.set_timestamp(1000);
 
         // Create overlapping entities to trigger physics sensors
-        let entity1 = store.spawn(Vec2::new(0.0, 0.0), Vec2::new(50.0, 50.0));
-        let entity2 = store.spawn(Vec2::new(25.0, 25.0), Vec2::new(50.0, 50.0));
-
+        let _entity1 = store.spawn(Vec2::new(0.0, 0.0), Vec2::new(50.0, 50.0));
+        let _entity2 = store.spawn(Vec2::new(25.0, 25.0), Vec2::new(50.0, 50.0));
         let pulses = system.evaluate_sensors(&store);
 
         // Verify that physics sensors use correct SensorId values

@@ -1,30 +1,53 @@
+/// <reference types="vitest" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 
-// https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
-  // WASM support
+  plugins: [react(), tailwindcss()],
+
   assetsInclude: ["**/*.wasm"],
+
   server: {
     headers: {
-      // Enable SharedArrayBuffer for cross-origin isolation
       "Cross-Origin-Opener-Policy": "same-origin",
       "Cross-Origin-Embedder-Policy": "require-corp",
     },
     fs: {
-      // Allow serving files from workspace root and archflow-web pkg
       allow: ["..", "../../archflow-web/pkg"],
     },
   },
+
   optimizeDeps: {
-    // Exclude WASM from optimization
     exclude: ["archflow_web"],
   },
+
   resolve: {
     alias: {
-      // Map archflow_web to the compiled WASM package
       "@archflow/web": "../../archflow-web/pkg",
+      "@components": "./src/components",
+      "@hooks": "./src/hooks",
+      "@utils": "./src/utils",
+      "@types": "./src/types",
+      "@store": "./src/store",
+    },
+  },
+
+  test: {
+    globals: true,
+    environment: "jsdom",
+    setupFiles: ["./src/test/setup.ts"],
+    include: ["src/**/*.test.{ts,tsx}"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json", "html"],
+      exclude: [
+        "node_modules/",
+        "src/test/",
+        "**/*.d.ts",
+        "**/*.test.ts",
+        "**/*.test.tsx",
+      ],
     },
   },
 });

@@ -1,197 +1,277 @@
 /**
- * React hook for loading ArchFlow WASM module
+ * Hook for loading and initializing the ArchFlow WASM bridge
  *
- * This hook handles the asynchronous loading of the WebAssembly module
- * and provides the initialized WASM bridge and logic mapping table.
+ * This hook manages the lifecycle of the WASM module and provides
+ * access to the WasmBridge instance for all other hooks.
+ *
+ * Architecture Reference: ARQUITECTURA_FINAL_V3.md - Section 7
  */
 
-import { useEffect, useState } from "react";
-
-// Use a global variable approach for WASM loading
-declare global {
-  interface Window {
-    ArchFlowWasm?: {
-      WasmBridge: any;
-      LogicMappingTableWasm: any;
-      SensorType: any;
-      ActuatorType: any;
-      Controller: any;
-      ControllerType: any;
-      SignalByteWasm: any;
-    };
-  }
-}
-
-export interface UseArchFlowWasmResult {
-  /** Whether WASM is currently loading */
-  isLoading: boolean;
-  /** Error that occurred during loading, if any */
-  error: Error | null;
-  /** Whether WASM is loaded and ready */
-  isReady: boolean;
-  /** Initialize the engine with canvas dimensions */
-  initializeEngine: (width: number, height: number) => Promise<void>;
-  /** Get WASM module from window */
-  getWasm: () => any;
-  /** Create a new LogicMappingTable */
-  createLogicMappingTable: () => any;
-  /** Get the LogicMappingTable constructor */
-  getLogicMappingTable: () => any;
-  /** Get SensorType enum */
-  getSensorType: () => any;
-  /** Get ActuatorType enum */
-  getActuatorType: () => any;
-  /** Get Controller class */
-  getController: () => any;
-}
+import { useState, useEffect, useCallback, useRef } from "react";
+import type { WasmBridge, UseWasmBridgeReturn } from "../types/wasm";
 
 /**
- * Hook to load and initialize ArchFlow WASM module
+ * Hook to load and initialize the ArchFlow WASM bridge
+ *
+ * @returns Object containing bridge instance, loading state, and initialization function
  *
  * @example
- * ```tsx
- * function App() {
- *   const { isLoading, error, isReady, initializeEngine } = useArchFlowWasm()
+ * ```typescript
+ * const { bridge, isLoaded, isInitialized, error, initialize } = useArchFlowWasm();
  *
- *   if (isLoading) return <div>Loading...</div>
- *   if (error) return <div>Error: {error.message}</div>
- *
- *   return (
- *     <Canvas onReady={(canvas) => {
- *       initializeEngine(canvas.width, canvas.height)
- *     }} />
- *   )
- * }
+ * useEffect(() => {
+ *   if (isLoaded && !isInitialized) {
+ *     initialize(800, 600);
+ *   }
+ * }, [isLoaded, isInitialized]);
  * ```
  */
-export function useArchFlowWasm(): UseArchFlowWasmResult {
-  const [isLoading, setIsLoading] = useState(true);
+export function useArchFlowWasm(): UseWasmBridgeReturn {
+  const [bridge, setBridge] = useState<WasmBridge | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [isReady, setIsReady] = useState(false);
+  const initRef = useRef<Promise<void> | null>(null);
 
+  // Load WASM module on mount
   useEffect(() => {
-    let cancelled = false;
+    let mounted = true;
 
-    async function loadWasm() {
+    const loadWasm = async () => {
       try {
-        setIsLoading(true);
-        setError(null);
+        // Dynamically import the WASM module
+        // The wasm-bindgen creates a JS module that loads the WASM file
+        // @ts-ignore - Dynamic import for WASM module
+        const wasmModule = await import("@archflow/web");
 
-        // Load the WASM module script directly
-        const script = document.createElement("script");
-        script.src = "/crates/archflow-web/pkg/archflow_web.js";
-        script.type = "module";
+        if (!mounted) return;
 
-        script.onload = () => {
-          if (!cancelled) {
-            setIsReady(true);
-            setIsLoading(false);
-          }
-        };
-
-        script.onerror = () => {
-          if (!cancelled) {
-            setError(new Error("Failed to load WASM script"));
-            setIsLoading(false);
-          }
-        };
-
-        document.head.appendChild(script);
+        // Create bridge instance
+        const newBridge = new wasmModule.WasmBridge();
+        setBridge(newBridge);
+        setIsLoaded(true);
       } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err : new Error(String(err)));
-          setIsLoading(false);
+        // WASM module not yet built - this is expected during development
+        if (mounted) {
+          console.debug("WASM module not loaded yet:", err);
+          setError(null); // Don't set error for missing WASM during dev
         }
       }
-    }
+    };
 
     loadWasm();
 
     return () => {
-      cancelled = true;
+      mounted = false;
     };
   }, []);
 
-  /**
-   * Initialize the ArchFlow engine with the given canvas dimensions
-   */
-  const initializeEngine = async (
-    width: number,
-    height: number,
-  ): Promise<void> => {
-    if (!window.ArchFlowWasm) {
-      throw new Error("WASM not loaded yet");
-    }
+  // Initialize the engine
+  const initialize = useCallback(
+    async (width: number, height: number) => {
+      if (!bridge) {
+        setError(new Error("WASM bridge not loaded"));
+        return;
+      }
 
-    const bridge = new window.ArchFlowWasm.WasmBridge();
-    await bridge.initialize(width, height);
-  };
+      // Prevent multiple simultaneous initializations
+      if (initRef.current) {
+        return initRef.current;
+      }
 
-  /**
-   * Get the WASM module from window
-   */
-  const getWasm = () => window.ArchFlowWasm;
+      const initPromise = (async () => {
+        try {
+          bridge.initialize(width, height);
+          setIsInitialized(true);
+          setError(null);
+        } catch (err) {
+          setError(err instanceof Error ? err : new Error(String(err)));
+          throw err;
+        }
+      })();
 
-  /**
-   * Create a new LogicMappingTable instance
-   */
-  const createLogicMappingTable = () => {
-    if (!window.ArchFlowWasm) {
-      throw new Error("WASM not loaded yet");
-    }
-    return new window.ArchFlowWasm.LogicMappingTableWasm();
-  };
+      initRef.current = initPromise;
 
-  /**
-   * Get the LogicMappingTable constructor
-   */
-  const getLogicMappingTable = () => {
-    if (!window.ArchFlowWasm) {
-      return undefined;
-    }
-    return window.ArchFlowWasm.LogicMappingTableWasm;
-  };
-
-  /**
-   * Get SensorType enum
-   */
-  const getSensorType = () => {
-    if (!window.ArchFlowWasm) {
-      return undefined;
-    }
-    return window.ArchFlowWasm.SensorType;
-  };
-
-  /**
-   * Get ActuatorType enum
-   */
-  const getActuatorType = () => {
-    if (!window.ArchFlowWasm) {
-      return undefined;
-    }
-    return window.ArchFlowWasm.ActuatorType;
-  };
-
-  /**
-   * Get Controller class
-   */
-  const getController = () => {
-    if (!window.ArchFlowWasm) {
-      return undefined;
-    }
-    return window.ArchFlowWasm.Controller;
-  };
+      try {
+        await initPromise;
+      } finally {
+        initRef.current = null;
+      }
+    },
+    [bridge],
+  );
 
   return {
-    isLoading,
+    bridge,
+    isLoaded,
+    isInitialized,
     error,
-    isReady,
-    initializeEngine,
-    getWasm,
-    createLogicMappingTable,
-    getLogicMappingTable,
-    getSensorType,
-    getActuatorType,
-    getController,
+    initialize,
+  };
+}
+
+/**
+ * Hook to get the input buffer pointer for SharedArrayBuffer communication
+ *
+ * This provides direct access to the SharedArrayBuffer for high-performance
+ * input handling without marshalling overhead.
+ *
+ * @returns Object with input buffer pointer and utilities
+ *
+ * @example
+ * ```typescript
+ * const { bufferPtr, bufferSize, writeEvent } = useInputBuffer(bridge);
+ * ```
+ */
+export function useInputBuffer(bridge: WasmBridge | null) {
+  const [bufferPtr, setBufferPtr] = useState<number>(0);
+  const [bufferSize, setBufferSize] = useState<number>(0);
+
+  useEffect(() => {
+    if (!bridge) return;
+
+    try {
+      const ptr = bridge.getInputBufferPtr();
+      const size = bridge.getInputBufferSize();
+      setBufferPtr(ptr);
+      setBufferSize(size);
+    } catch (err) {
+      console.error("Failed to get input buffer:", err);
+    }
+  }, [bridge]);
+
+  // Write event directly to SharedArrayBuffer
+  const writeEvent = useCallback(
+    (
+      eventType: number,
+      x: number,
+      y: number,
+      buttons: number,
+      modifiers: number,
+    ) => {
+      if (!bridge) return false;
+
+      try {
+        bridge.pushInputEvent(eventType, x, y, buttons, modifiers);
+        return true;
+      } catch (err) {
+        console.error("Failed to write input event:", err);
+        return false;
+      }
+    },
+    [bridge],
+  );
+
+  return {
+    bufferPtr,
+    bufferSize,
+    writeEvent,
+  };
+}
+
+/**
+ * Hook for the main animation loop
+ *
+ * Manages the requestAnimationFrame loop and ticks the engine.
+ *
+ * @param bridge - The WASM bridge instance
+ * @param enabled - Whether to run the loop
+ * @returns Frame timing information
+ *
+ * @example
+ * ```typescript
+ * const { fps, frameTime, isRunning, start, stop } = useAnimationLoop(bridge);
+ * ```
+ */
+export function useAnimationLoop(
+  bridge: WasmBridge | null,
+  enabled: boolean = true,
+) {
+  const [isRunning, setIsRunning] = useState(false);
+  const [fps, setFps] = useState(0);
+  const [frameTime, setFrameTime] = useState(0);
+  const animationRef = useRef<number>(0);
+  const lastTimeRef = useRef<number>(0);
+  const frameCountRef = useRef(0);
+  const lastFpsUpdateRef = useRef(0);
+
+  const tick = useCallback(
+    (timestamp: number) => {
+      if (!bridge) return;
+
+      try {
+        bridge.tick(timestamp);
+
+        // Calculate FPS every second
+        frameCountRef.current++;
+        if (timestamp - lastFpsUpdateRef.current >= 1000) {
+          setFps(frameCountRef.current);
+          frameCountRef.current = 0;
+          lastFpsUpdateRef.current = timestamp;
+        }
+
+        // Calculate frame time
+        const delta = timestamp - lastTimeRef.current;
+        setFrameTime(delta);
+        lastTimeRef.current = timestamp;
+      } catch (err) {
+        console.error("Tick failed:", err);
+      }
+    },
+    [bridge],
+  );
+
+  const start = useCallback(() => {
+    if (isRunning || !bridge) return;
+
+    setIsRunning(true);
+    lastTimeRef.current = performance.now();
+    lastFpsUpdateRef.current = performance.now();
+    frameCountRef.current = 0;
+
+    const loop = (timestamp: number) => {
+      if (!isRunning) return;
+      tick(timestamp);
+      animationRef.current = requestAnimationFrame(loop);
+    };
+
+    animationRef.current = requestAnimationFrame(loop);
+  }, [bridge, isRunning, tick]);
+
+  const stop = useCallback(() => {
+    if (!isRunning) return;
+
+    setIsRunning(false);
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+      animationRef.current = 0;
+    }
+  }, [isRunning]);
+
+  // Auto-start/stop based on enabled flag
+  useEffect(() => {
+    if (enabled && bridge && !isRunning) {
+      start();
+    } else if (!enabled && isRunning) {
+      stop();
+    }
+  }, [enabled, bridge, isRunning, start, stop]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, []);
+
+  return {
+    isRunning,
+    fps,
+    frameTime,
+    start,
+    stop,
+    tick,
   };
 }

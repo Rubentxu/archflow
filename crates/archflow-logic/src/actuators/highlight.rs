@@ -43,7 +43,7 @@ struct HighlightState {
 /// let mut store = EntityStore::new();
 /// let entity = store.spawn(Vec2::new(100.0, 100.0), Vec2::new(50.0, 50.0));
 ///
-/// let mut actuator = HighlightActuator::new();
+/// let actuator = HighlightActuator::new();
 ///
 /// // Activate highlight (generates SetColor command)
 /// let commands = actuator.update(&mut store, entity, true, 0x00FF00FF);

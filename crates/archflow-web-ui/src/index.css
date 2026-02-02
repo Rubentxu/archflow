@@ -1,13 +1,38 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-.dot-grid {
+@theme {
+    --color-primary: #13b6ec;
+    --color-background-light: #f6f8f8;
+    --color-background-dark: #101d22;
+    --color-surface-light: #ffffff;
+    --color-surface-dark: #1a2c32;
+    --color-border-light: #e7f0f3;
+    --color-border-dark: #2a3e45;
+
+    --font-display: "Space Grotesk", sans-serif;
+    --font-body: "Noto Sans", sans-serif;
+
+    --radius-default: 0.25rem;
+    --radius-lg: 0.5rem;
+    --radius-xl: 0.75rem;
+    --radius-full: 9999px;
+}
+
+@utility dot-grid {
     background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
     background-size: 20px 20px;
 }
 
 .dark .dot-grid {
+    background-image: radial-gradient(#2a3e45 1px, transparent 1px);
+}
+
+@utility dot_grid {
+    background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+.dark .dot_grid {
     background-image: radial-gradient(#2a3e45 1px, transparent 1px);
 }
 

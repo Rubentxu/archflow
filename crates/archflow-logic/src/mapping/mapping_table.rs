@@ -383,7 +383,7 @@ impl LogicMappingTable {
         // In a real implementation, they would be passed in or registered
         let mut highlight = HighlightActuator::new();
         let mut select = SelectActuator::new();
-        let mut move_actuator = MoveActuator::new();
+        let _move_actuator = MoveActuator::new();
 
         let mut executed_count = 0;
 

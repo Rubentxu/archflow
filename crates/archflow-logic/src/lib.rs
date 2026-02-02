@@ -59,29 +59,27 @@ pub use actuators::{
     StateBitset,
     StateId,
     StateMachine,
-    StateManager,
     StateTransition,
     StateTransitionTable,
 };
 pub use command::{AnyCommand, Command, CommandHistory, DEFAULT_MAX_HISTORY};
-pub use input::{InputEvent, InputSampler, InputSnapshotSAB, MouseButton, MAX_KEYS};
+pub use input::{InputEvent, InputSampler, InputSnapshotSAB, MAX_KEYS, MouseButton};
 pub use logic_system::{LogicSystem, SensorId};
 pub use mapping::{Controller, LogicMappingTable, SensorType};
-pub use physics_pulse::{PhysicsMetadata, PhysicsPulse, PhysicsPulseBus};
-pub use pulse::{Pulse, PulseBus, SensorState};
-pub use sensors::{
-    CollisionSensor, DoubleTapSensor, KeyShortcutSensor, LongPressSensor, MouseClickSensor,
-    MouseConfig, MouseMode, MouseOverSensor, MouseSensor, NearSensor, PointerButtons,
-    ProximitySensor, RadarSensor, RightClickSensor, TouchSensor, DOUBLE_TAP_MS, LONG_PRESS_MS,
-    TAP_TIMEOUT_MS,
-};
 pub use signals::SignalByte;
 pub use snap::{
-    EntityEdge, SnapConfig, SnapPoint, SnapResult, SnapTarget, Snapper,
     DEFAULT_GRID_SIZE as SNAP_DEFAULT_GRID_SIZE, DEFAULT_THRESHOLD as SNAP_DEFAULT_THRESHOLD,
+    EntityEdge, SnapConfig, SnapPoint, SnapResult, SnapTarget, Snapper,
 };
-pub use spatial::{GridCoord, Rect, SpatialHashGrid, DEFAULT_GRID_SIZE};
+pub use spatial::{DEFAULT_GRID_SIZE, GridCoord, Rect, SpatialHashGrid};
 pub use tween::{
+    DEFAULT_DURATION_MS as TWEEN_DEFAULT_DURATION_MS,
+    // Types
+    Easing,
+    Tween,
+    TweenManager,
+    TweenProperty,
+    TweenState,
     // Easing functions (re-exported for convenience)
     ease_back_out as tween_ease_back_out,
     ease_bounce_out as tween_ease_bounce_out,
@@ -99,12 +97,5 @@ pub use tween::{
     // Convenience functions
     tween_opacity,
     tween_position,
-    // Types
-    Easing,
-    Tween,
-    TweenManager,
-    TweenProperty,
-    TweenState,
-    DEFAULT_DURATION_MS as TWEEN_DEFAULT_DURATION_MS,
 };
 pub use visibility::{VisibilityActuator, VisibilityBitset, VisibilityConfig, VisibilityManager};
