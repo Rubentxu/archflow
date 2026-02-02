@@ -123,6 +123,51 @@ export const elbPropertiesSchema = basePropertySchema.extend({
 });
 
 /**
+ * AWS VPC properties schema
+ */
+export const vpcPropertiesSchema = basePropertySchema.extend({
+  cidr: z.string().regex(/^([0-9]{1,3}\.){3}[0-9]{1,3}\/([0-9]|[1-2][0-9]|3[0-2])$/).default("10.0.0.0/16"),
+  instanceTenancy: z.enum(["default", "dedicated"]).default("default"),
+  enableDnsHostnames: z.boolean().default(true),
+  enableDnsSupport: z.boolean().default(true),
+  availabilityZones: z.array(z.string()).min(1).max(6).default(["us-east-1a", "us-east-1b", "us-east-1c"]),
+});
+
+/**
+ * AWS DynamoDB properties schema
+ */
+export const dynamodbPropertiesSchema = basePropertySchema.extend({
+  tableName: z.string().min(3).max(255).regex(/^[a-zA-Z0-9_\-\.]+$/).optional(),
+  partitionKey: z.string().min(1),
+  sortKey: z.string().optional(),
+  billingMode: z.enum(["PROVISIONED", "PAY_PER_REQUEST"]).default("PAY_PER_REQUEST"),
+  readCapacity: z.number().min(1).max(40000).optional(),
+  writeCapacity: z.number().min(1).max(40000).optional(),
+  attributeDefinitions: z.array(z.object({
+    attributeName: z.string(),
+    attributeType: z.enum(["S", "N", "B"]),
+  })).optional(),
+  globalSecondaryIndexes: z.array(z.object({
+    indexName: z.string(),
+    partitionKey: z.string(),
+    sortKey: z.string().optional(),
+  })).optional(),
+  streamSpecification: z.object({
+    streamEnabled: z.boolean(),
+    streamViewType: z.enum(["NEW_IMAGE", "OLD_IMAGE", "NEW_AND_OLD_IMAGES", "KEYS_ONLY"]).optional(),
+  }).optional(),
+  timeToLiveSpecification: z.object({
+    enabled: z.boolean(),
+    attributeName: z.string().optional(),
+  }).optional(),
+  sseSpecification: z.object({
+    enabled: z.boolean(),
+    sseType: z.enum(["AES256", "KMS"]).optional(),
+    kmsMasterKeyArn: z.string().optional(),
+  }).optional(),
+});
+
+/**
  * Generic container/actor properties
  */
 export const containerPropertiesSchema = basePropertySchema.extend({
@@ -141,6 +186,8 @@ export type EntityPropertySchema =
   | typeof s3PropertiesSchema
   | typeof apiGatewayPropertiesSchema
   | typeof elbPropertiesSchema
+  | typeof vpcPropertiesSchema
+  | typeof dynamodbPropertiesSchema
   | typeof containerPropertiesSchema;
 
 /**
@@ -153,6 +200,8 @@ export const entitySchemas: Record<string, EntityPropertySchema> = {
   "aws-s3": s3PropertiesSchema,
   "aws-api-gateway": apiGatewayPropertiesSchema,
   "aws-elb": elbPropertiesSchema,
+  "aws-vpc": vpcPropertiesSchema,
+  "aws-dynamodb": dynamodbPropertiesSchema,
   "container": containerPropertiesSchema,
   "actor": containerPropertiesSchema,
   "database": containerPropertiesSchema,
