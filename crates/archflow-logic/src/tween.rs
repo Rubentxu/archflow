@@ -78,21 +78,21 @@ pub const fn ease_cubic_in_out(t: f32) -> f32 {
 /// Sine ease in
 #[inline]
 pub fn ease_sine_in(t: f32) -> f32 {
-    let pi = 3.141592653589793238;
+    let pi = core::f32::consts::PI;
     1.0 - (t * pi / 2.0).cos()
 }
 
 /// Sine ease out
 #[inline]
 pub fn ease_sine_out(t: f32) -> f32 {
-    let pi = 3.141592653589793238;
+    let pi = core::f32::consts::PI;
     (t * pi / 2.0).sin()
 }
 
 /// Sine ease in and out
 #[inline]
 pub fn ease_sine_in_out(t: f32) -> f32 {
-    let pi = 3.141592653589793238;
+    let pi = core::f32::consts::PI;
     -(pi * t).cos() / 2.0 + 0.5
 }
 
@@ -106,7 +106,7 @@ pub fn ease_elastic_out(t: f32) -> f32 {
     } else if t == 1.0 {
         1.0
     } else {
-        let pi = 3.141592653589793238;
+        let pi = core::f32::consts::PI;
         2.0_f32.powf(-10.0 * t) * ((t - s) * (2.0 * pi) / p).sin() + 1.0
     }
 }

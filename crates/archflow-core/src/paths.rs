@@ -9,13 +9,11 @@
 // - Efficient bounding box calculation for culling
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#![no_std]
 #![warn(missing_docs)]
 #![warn(clippy::all)]
 
 extern crate alloc;
 
-use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::math::{Color, Vec2};
@@ -239,30 +237,25 @@ impl Path {
 
         let mut min = Vec2::new(f32::MAX, f32::MAX);
         let mut max = Vec2::new(f32::MIN, f32::MIN);
-        let mut current = Vec2::new(0.0, 0.0);
 
         for cmd in &self.commands {
             match cmd {
                 PathCommand::MoveTo(p) => {
-                    current = *p;
                     self.update_bounds(&mut min, &mut max, *p);
                 }
                 PathCommand::LineTo(p) => {
                     self.update_bounds(&mut min, &mut max, *p);
-                    current = *p;
                 }
                 PathCommand::QuadTo { control, end } => {
                     // For quadratic curves, the bounding box includes the control point
                     self.update_bounds(&mut min, &mut max, *control);
                     self.update_bounds(&mut min, &mut max, *end);
-                    current = *end;
                 }
                 PathCommand::CubicTo { ctrl1, ctrl2, end } => {
                     // For cubic curves, include both control points
                     self.update_bounds(&mut min, &mut max, *ctrl1);
                     self.update_bounds(&mut min, &mut max, *ctrl2);
                     self.update_bounds(&mut min, &mut max, *end);
-                    current = *end;
                 }
                 PathCommand::Close => {
                     // Close doesn't extend the bounding box
@@ -343,10 +336,10 @@ impl PathBuilder {
     /// Build a circle path using cubic Bézier curves
     ///
     /// Uses 4 cubic curves to approximate a circle with minimal error.
-    /// The control point offset is 4/3 * tan(π/8) ≈ 0.55228475 for smooth corners.
+    /// The control point offset is 4/3 * tan(π/8) ≈ 0.5522848 for smooth corners.
     #[must_use]
     pub fn circle(cx: f32, cy: f32, r: f32) -> Path {
-        let k = 0.55228475; // 4/3 * tan(π/8)
+        let k = 0.5522848; // 4/3 * tan(π/8)
         let r_x = r * k;
         let r_y = r * k;
 
@@ -363,10 +356,10 @@ impl PathBuilder {
     /// Build an ellipse path using cubic Bézier curves
     #[must_use]
     pub fn ellipse(cx: f32, cy: f32, rx: f32, ry: f32) -> Path {
-        let k = 0.55228475;
+        let k = 0.5522848;
         let rx_x = rx * k;
-        let ry_x = ry * k;
-        let rx_y = rx * k;
+        let rx_y = ry * k;
+        let ry_x = rx * k;
         let ry_y = ry * k;
 
         let mut path = Path::new();
@@ -382,7 +375,7 @@ impl PathBuilder {
     /// Build a rounded rectangle path
     #[must_use]
     pub fn rounded_rect(x: f32, y: f32, w: f32, h: f32, r: f32) -> Path {
-        let k = 0.55228475;
+        let k = 0.5522848;
         let r_x = r * k;
         let r_y = r * k;
 
