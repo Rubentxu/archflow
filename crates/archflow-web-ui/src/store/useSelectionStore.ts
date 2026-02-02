@@ -12,6 +12,7 @@ interface SelectionState {
   addToSelection: (id: EntityId) => void;
   removeFromSelection: (id: EntityId) => void;
   clear: () => void;
+  clearSelection: () => void;
 
   // Queries
   isSelected: (id: EntityId) => boolean;
@@ -45,6 +46,7 @@ export const useSelectionStore = create<SelectionState>((set, get) => ({
     })),
 
   clear: () => set({ selectedIds: [], lastSelectedId: null }),
+  clearSelection: () => set({ selectedIds: [], lastSelectedId: null }),
 
   isSelected: (id: EntityId) => get().selectedIds.includes(id),
 
