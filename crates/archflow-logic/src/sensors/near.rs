@@ -1,25 +1,9 @@
-// ═══════════════════════════════════════════════════════════════════════════════
 // ArchFlow Logic - Near Sensor (Proximity Sensor with Hysteresis)
 //
 // This sensor detects when entities are within a circular radius of another
 // entity using hysteresis to prevent flickering at the detection boundary.
 //
 // Reference: docs/epics/EPIC-002-physics-sensors.md - HU-007
-//
-// Hysteresis (Schmitt Trigger):
-// - ENTER: Triggered when distance < distance_threshold
-// - EXIT: Only when distance > reset_distance (which is > distance_threshold)
-//
-// Performance Characteristics:
-// - O(k) where k = number of entities in nearby spatial cells
-// - Uses SpatialHash for broad-phase radius query
-// - Uses squared distance to avoid expensive sqrt operations
-// - 6-tick history for edge detection (enter/exit)
-//
-// Memory Impact:
-// - 1 byte per entity (SignalByte for proximity state)
-// - 100KB for 100,000 entities
-// ═══════════════════════════════════════════════════════════════════════════════
 
 use crate::signals::SignalByte;
 use alloc::vec;
@@ -28,51 +12,20 @@ use archflow_core::{EntityId, Rect, Vec2};
 use archflow_engine::{EntityStore, SpatialHash};
 use core::sync::atomic::{AtomicU32, Ordering};
 
-/// Global counter for generating unique sensor IDs
 static NEAR_SENSOR_ID_COUNTER: AtomicU32 = AtomicU32::new(100);
 
-/// Sensor that detects entities within a circular radius with hysteresis
-///
-/// This sensor uses the Schmitt Trigger pattern to avoid flickering when
-/// the detected entity is near the detection boundary.
 pub struct NearSensor {
-    /// Signal history for each entity
     signals: Vec<SignalByte>,
-
-    /// Distance threshold for detection (smaller threshold for entering)
     distance: f32,
-
-    /// Reset distance threshold (larger, for hysteresis to prevent flickering)
     reset_distance: f32,
-
-    /// Squared distance threshold (cached for performance)
     distance_sq: f32,
-
-    /// Squared reset distance (cached for performance)
     reset_distance_sq: f32,
-
-    /// Optional tag filter - only detect entities with this tag
     target_tag: u32,
-
-    /// Invert sensor behavior (detect when NOT near)
     invert: bool,
-
-    /// Unique sensor ID for pulse routing
     sensor_id: u32,
 }
 
 impl NearSensor {
-    /// Creates a new NearSensor with hysteresis support
-    ///
-    /// # Arguments
-    ///
-    /// * `capacity` - Maximum number of entities to track
-    /// * `distance` - Distance threshold for detection (enter condition)
-    /// * `reset_distance` - Distance threshold for exit (must be >= distance)
-    ///
-    /// # Panics
-    ///
-    /// Panics if `reset_distance < distance` (hysteresis requires reset_distance >= distance)
     #[inline(always)]
     #[must_use]
     pub fn new(capacity: usize, distance: f32, reset_distance: f32) -> Self {
@@ -91,13 +44,12 @@ impl NearSensor {
             reset_distance,
             distance_sq: distance * distance,
             reset_distance_sq: reset_distance * reset_distance,
-            target_tag: 0, // 0 = no filter, detect all
+            target_tag: 0,
             invert: false,
             sensor_id,
         }
     }
 
-    /// Creates a NearSensor with tag filtering
     #[inline(always)]
     #[must_use]
     pub fn with_tag(capacity: usize, distance: f32, reset_distance: f32, target_tag: u32) -> Self {
@@ -106,93 +58,83 @@ impl NearSensor {
         sensor
     }
 
-    /// Get the unique sensor ID
     #[inline(always)]
     #[must_use]
     pub const fn sensor_id(&self) -> u32 {
         self.sensor_id
     }
 
-    /// Get the detection distance threshold
     #[inline(always)]
     #[must_use]
     pub const fn distance(&self) -> f32 {
         self.distance
     }
 
-    /// Get the reset distance threshold
     #[inline(always)]
     #[must_use]
     pub const fn reset_distance(&self) -> f32 {
         self.reset_distance
     }
 
-    /// Set the invert flag
     #[inline(always)]
     pub fn set_invert(&mut self, invert: bool) {
         self.invert = invert;
     }
 
-    /// Evaluates proximity state for a single entity against all nearby entities
     #[inline(never)]
     pub fn evaluate(&mut self, entity: EntityId, store: &EntityStore, spatial: &SpatialHash) {
         let entity_idx = entity.index().0 as usize;
 
-        // Bounds check for safety
         if entity_idx >= self.signals.len() {
             return;
         }
 
-        // Get entity position
         let pos = store.pos(entity_idx);
+        let currently_near = self.signals[entity_idx].get_current();
 
         // Broad-phase: query spatial hash with reset_radius (larger for hysteresis)
-        let half_reset = self.reset_distance / 2.0;
-        let query_rect = Rect::new(
-            pos.x - half_reset,
-            pos.y - half_reset,
-            self.reset_distance,
-            self.reset_distance,
+        // Query rect is centered on entity, with side length = reset_distance * 2
+        // to ensure we catch entities up to reset_distance away
+        let query_side = self.reset_distance * 2.0;
+        let half_side = self.reset_distance;
+        let query_rect = Rect::from_origin_size(
+            Vec2::new(pos.x - half_side, pos.y - half_side),
+            Vec2::new(query_side, query_side),
         );
         let nearby = spatial.query_rect(query_rect);
 
-        // Narrow-phase: check squared distance with all nearby entities
+        let threshold_sq = if currently_near {
+            self.reset_distance_sq
+        } else {
+            self.distance_sq
+        };
+
         let mut is_near_any = false;
 
         for &other in &nearby {
-            // Skip self
             if other.index().0 as usize == entity_idx {
                 continue;
             }
 
-            // Get other entity position
-            let other_idx = other.index().0 as usize;
-            let other_pos = store.pos(other_idx);
-
-            // Squared distance check (avoid expensive sqrt)
+            let other_pos = store.pos(other.index().0 as usize);
             let dx = pos.x - other_pos.x;
             let dy = pos.y - other_pos.y;
             let dist_sq = dx * dx + dy * dy;
 
-            // Check if within detection radius
-            if dist_sq <= self.distance_sq {
+            if dist_sq <= threshold_sq {
                 is_near_any = true;
                 break;
             }
         }
 
-        // Apply inversion if configured
         let result = if self.invert {
             !is_near_any
         } else {
             is_near_any
         };
-
-        // Update signal history
         self.signals[entity_idx].push(result);
     }
 
-    /// Checks if the entity is currently being detected (near any target)
     #[inline(always)]
     #[must_use]
     pub fn is_near(&self, entity: EntityId) -> bool {
@@ -203,7 +145,6 @@ impl NearSensor {
         self.signals[idx].get_current()
     }
 
-    /// Checks if proximity was just entered this frame (rising edge)
     #[inline(always)]
     #[must_use]
     pub fn on_proximity_enter(&self, entity: EntityId) -> bool {
@@ -214,7 +155,6 @@ impl NearSensor {
         self.signals[idx].is_rising_edge()
     }
 
-    /// Checks if proximity was just exited this frame (falling edge)
     #[inline(always)]
     #[must_use]
     pub fn on_proximity_exit(&self, entity: EntityId) -> bool {
@@ -225,14 +165,12 @@ impl NearSensor {
         self.signals[idx].is_falling_edge()
     }
 
-    /// Returns the number of entities currently being tracked
     #[inline(always)]
     #[must_use]
     pub fn len(&self) -> usize {
         self.signals.len()
     }
 
-    /// Returns true if no entities are being tracked
     #[inline(always)]
     #[must_use]
     pub fn is_empty(&self) -> bool {
@@ -243,12 +181,11 @@ impl NearSensor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use archflow_core::Vec2;
+    use archflow_core::{Rect, Vec2};
     use archflow_engine::MAX_ENTITIES;
 
     #[test]
     fn test_new_validates_hysteresis() {
-        // reset_distance >= distance should not panic
         let _sensor = NearSensor::new(MAX_ENTITIES, 50.0, 60.0);
         let _sensor = NearSensor::new(MAX_ENTITIES, 50.0, 50.0);
     }
@@ -273,7 +210,6 @@ mod tests {
         let entity = store.spawn(Vec2::new(100.0, 100.0), Vec2::new(50.0, 50.0));
 
         let sensor = NearSensor::new(MAX_ENTITIES, 50.0, 70.0);
-        // Cannot call evaluate without mutable sensor, but we can check is_near
         assert!(!sensor.is_near(entity));
     }
 
@@ -289,5 +225,121 @@ mod tests {
         let sensor = NearSensor::new(MAX_ENTITIES, 50.0, 70.0);
         assert_eq!(sensor.distance(), 50.0);
         assert_eq!(sensor.reset_distance(), 70.0);
+    }
+
+    /// Integration test that uses the full SpatialHash correctly
+    #[test]
+    fn test_near_sensor_integration() {
+        use archflow_core::Vec2;
+
+        let mut store = EntityStore::new();
+        let mut spatial = SpatialHash::new(MAX_ENTITIES);
+
+        // Create entities at positions aligned with spatial cells
+        // SpatialHash uses 64x64 cells (CELL_SIZE = 64.0)
+        // Position (200, 200) is at cell (3, 3): 200/64 = 3.125 → floor = 3
+        let entity_a = store.spawn(Vec2::new(200.0, 200.0), Vec2::new(10.0, 10.0));
+        let bounds_a = Rect::from_origin_size(Vec2::new(195.0, 195.0), Vec2::new(10.0, 10.0));
+        spatial.insert(entity_a, bounds_a);
+
+        // Entity B at 50 units: (250, 200) - same row of cells (row 3)
+        // 250/64 = 3.9 → floor = 3, so both entities in cell (3, 3)
+        let entity_b = store.spawn(Vec2::new(250.0, 200.0), Vec2::new(10.0, 10.0));
+        let bounds_b = Rect::from_origin_size(Vec2::new(245.0, 195.0), Vec2::new(10.0, 10.0));
+        spatial.insert(entity_b, bounds_b);
+
+        let mut sensor = NearSensor::new(MAX_ENTITIES, 60.0, 80.0);
+
+        // Entity B is 50 units away from entity A, which is < 60, so should be detected
+        sensor.evaluate(entity_a, &store, &spatial);
+        assert!(
+            sensor.is_near(entity_a),
+            "Entity at 50 units should be detected"
+        );
+
+        // Now test hysteresis by moving entity B
+        spatial.remove(entity_b);
+        store.set_pos(entity_b.index().0 as usize, Vec2::new(270.0, 200.0)); // 70 units away
+        let bounds_b = Rect::from_origin_size(Vec2::new(265.0, 195.0), Vec2::new(10.0, 10.0));
+        spatial.insert(entity_b, bounds_b);
+
+        sensor.evaluate(entity_a, &store, &spatial);
+        assert!(
+            sensor.is_near(entity_a),
+            "Entity at 70 units should still be detected (hysteresis)"
+        );
+
+        // Move beyond hysteresis band
+        spatial.remove(entity_b);
+        store.set_pos(entity_b.index().0 as usize, Vec2::new(300.0, 200.0)); // 100 units away
+        let bounds_b = Rect::from_origin_size(Vec2::new(295.0, 195.0), Vec2::new(10.0, 10.0));
+        spatial.insert(entity_b, bounds_b);
+
+        sensor.evaluate(entity_a, &store, &spatial);
+        assert!(
+            !sensor.is_near(entity_a),
+            "Entity at 100 units should not be detected"
+        );
+    }
+
+    /// Test that verifies rising and falling edges work correctly
+    #[test]
+    fn test_hysteresis_edges_with_proper_spatial() {
+        use archflow_core::Vec2;
+
+        let mut store = EntityStore::new();
+        let mut spatial = SpatialHash::new(MAX_ENTITIES);
+
+        let entity_a = store.spawn(Vec2::new(200.0, 200.0), Vec2::new(10.0, 10.0));
+        let bounds_a = Rect::from_origin_size(Vec2::new(195.0, 195.0), Vec2::new(10.0, 10.0));
+        spatial.insert(entity_a, bounds_a);
+
+        let entity_b = store.spawn(Vec2::new(200.0, 200.0), Vec2::new(10.0, 10.0));
+        let bounds_b = Rect::from_origin_size(Vec2::new(195.0, 195.0), Vec2::new(10.0, 10.0));
+        spatial.insert(entity_b, bounds_b);
+
+        let mut sensor = NearSensor::new(MAX_ENTITIES, 60.0, 80.0);
+
+        assert!(!sensor.is_near(entity_a));
+        assert!(!sensor.on_proximity_enter(entity_a));
+
+        // Move B close (50 units < 60)
+        spatial.remove(entity_b);
+        store.set_pos(entity_b.index().0 as usize, Vec2::new(250.0, 200.0));
+        let bounds_b = Rect::from_origin_size(Vec2::new(245.0, 195.0), Vec2::new(10.0, 10.0));
+        spatial.insert(entity_b, bounds_b);
+
+        sensor.evaluate(entity_a, &store, &spatial);
+        assert!(sensor.is_near(entity_a));
+        assert!(
+            sensor.on_proximity_enter(entity_a),
+            "Should detect enter edge"
+        );
+
+        // Move to hysteresis band (70 units, between 60 and 80)
+        spatial.remove(entity_b);
+        store.set_pos(entity_b.index().0 as usize, Vec2::new(270.0, 200.0));
+        let bounds_b = Rect::from_origin_size(Vec2::new(265.0, 195.0), Vec2::new(10.0, 10.0));
+        spatial.insert(entity_b, bounds_b);
+
+        sensor.evaluate(entity_a, &store, &spatial);
+        assert!(sensor.is_near(entity_a));
+        assert!(
+            !sensor.on_proximity_enter(entity_a),
+            "No enter edge in hysteresis band"
+        );
+
+        // Move far (100 units > 80)
+        spatial.remove(entity_b);
+        store.set_pos(entity_b.index().0 as usize, Vec2::new(300.0, 200.0));
+        let bounds_b = Rect::from_origin_size(Vec2::new(295.0, 195.0), Vec2::new(10.0, 10.0));
+        spatial.insert(entity_b, bounds_b);
+
+        sensor.evaluate(entity_a, &store, &spatial);
+        assert!(!sensor.is_near(entity_a));
+        assert!(
+            sensor.on_proximity_exit(entity_a),
+            "Should detect exit edge"
+        );
     }
 }

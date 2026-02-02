@@ -356,4 +356,38 @@ mod tests {
         assert!(hash.query_point(Vec2::new(70.0, 70.0)).contains(&id));
         assert!(hash.query_point(Vec2::new(150.0, 150.0)).contains(&id));
     }
+
+    #[test]
+    fn test_near_sensor_scenario() {
+        // Simulate the exact scenario from NearSensor test
+        let mut hash = SpatialHash::new(100_000);
+
+        let id_a = make_id(0);
+        let id_b = make_id(1);
+
+        // Entity A at (200, 200) with bounds (195, 195) to (205, 205)
+        let bounds_a = Rect::from_origin_size(Vec2::new(195.0, 195.0), Vec2::new(10.0, 10.0));
+        hash.insert(id_a, bounds_a);
+
+        // Entity B at (250, 200) with bounds (245, 195) to (255, 205)
+        let bounds_b = Rect::from_origin_size(Vec2::new(245.0, 195.0), Vec2::new(10.0, 10.0));
+        hash.insert(id_b, bounds_b);
+
+        // Query rect centered at (200, 200) with side 160 (reset_distance * 2 = 80 * 2)
+        // This should cover from (120, 120) to (280, 280)
+        let query_rect = Rect::from_origin_size(Vec2::new(120.0, 120.0), Vec2::new(160.0, 160.0));
+
+        let results = hash.query_rect(query_rect);
+
+        // Both entities should be found
+        assert!(
+            results.contains(&id_a),
+            "Entity A should be in query results"
+        );
+        assert!(
+            results.contains(&id_b),
+            "Entity B should be in query results (50 units away)"
+        );
+        assert_eq!(results.len(), 2, "Should find exactly 2 entities");
+    }
 }
