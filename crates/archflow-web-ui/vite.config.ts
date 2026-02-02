@@ -24,7 +24,7 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      "@archflow/web": "../../archflow-web/pkg",
+      "@archflow/web": "./src/wasm/archflow_web.js",
       "@components": "./src/components",
       "@hooks": "./src/hooks",
       "@utils": "./src/utils",
