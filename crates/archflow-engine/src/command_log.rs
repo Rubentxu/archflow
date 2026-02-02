@@ -766,6 +766,7 @@ mod tests {
         assert!(msg.contains("not implemented"));
     }
 
+    #[cfg(feature = "std")]
     #[test]
     fn test_save_not_implemented() {
         let mut store = EntityStore::new();
@@ -788,6 +789,7 @@ mod tests {
         let _ = std::fs::remove_file("test_save.archflow");
     }
 
+    #[cfg(feature = "std")]
     #[test]
     fn test_load_not_implemented() {
         let mut store = EntityStore::new();
