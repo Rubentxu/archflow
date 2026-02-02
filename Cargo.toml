@@ -27,7 +27,7 @@ resolver = "2"
 
 [workspace.package]
 version = "3.15.0"
-edition = "2021"
+edition = "2024"
 rust-version = "1.77"
 authors = ["ArchFlow Team"]
 license = "MIT OR Apache-2.0"
