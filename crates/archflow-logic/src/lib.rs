@@ -71,8 +71,9 @@ pub use physics_pulse::{PhysicsMetadata, PhysicsPulse, PhysicsPulseBus};
 pub use pulse::{Pulse, PulseBus, SensorState};
 pub use sensors::{
     CollisionSensor, DoubleTapSensor, KeyShortcutSensor, LongPressSensor, MouseClickSensor,
-    MouseConfig, MouseMode, MouseOverSensor, MouseSensor, PointerButtons, ProximitySensor,
-    RadarSensor, RightClickSensor, TouchSensor, DOUBLE_TAP_MS, LONG_PRESS_MS, TAP_TIMEOUT_MS,
+    MouseConfig, MouseMode, MouseOverSensor, MouseSensor, NearSensor, PointerButtons,
+    ProximitySensor, RadarSensor, RightClickSensor, TouchSensor, DOUBLE_TAP_MS, LONG_PRESS_MS,
+    TAP_TIMEOUT_MS,
 };
 pub use signals::SignalByte;
 pub use snap::{
