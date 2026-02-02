@@ -254,7 +254,7 @@ export interface WasmBridge {
  * Hook return type for WASM bridge
  */
 export interface UseWasmBridgeReturn {
-  bridge: WasmBridge | null;
+  bridge: unknown;
   isLoaded: boolean;
   isInitialized: boolean;
   error: Error | null;
