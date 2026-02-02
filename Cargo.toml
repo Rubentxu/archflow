@@ -20,13 +20,13 @@ resolver = "2"
 # See: crates/archflow-web-ui/
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ArchFlow Engine v3.0 - Workspace Configuration
+# ArchFlow Engine v0.30 - Workspace Configuration
 # Based on ARQUITECTURA_FINAL_V3.md
 # Target: WASM32 (WebGPU/WebGL2 fallback) - 100k objects @ 60FPS
 # ═══════════════════════════════════════════════════════════════════════════════
 
 [workspace.package]
-version = "3.16.1"
+version = "0.30.0"
 edition = "2024"
 rust-version = "1.77"
 authors = ["ArchFlow Team"]
