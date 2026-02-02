@@ -26,6 +26,7 @@ pub mod actuators;
 pub mod input;
 pub mod logic_system;
 pub mod mapping;
+pub mod physics_pulse;
 pub mod pulse;
 pub mod sensors;
 pub mod signals;
@@ -64,11 +65,12 @@ pub use actuators::{
 pub use input::{InputEvent, InputSampler, InputSnapshotSAB, MouseButton, MAX_KEYS};
 pub use logic_system::{LogicSystem, SensorId};
 pub use mapping::{Controller, LogicMappingTable, SensorType};
+pub use physics_pulse::{PhysicsMetadata, PhysicsPulse, PhysicsPulseBus};
 pub use pulse::{Pulse, PulseBus, SensorState};
 pub use sensors::{
-    DoubleTapSensor, KeyShortcutSensor, LongPressSensor, MouseClickSensor, MouseConfig, MouseMode,
-    MouseOverSensor, MouseSensor, PointerButtons, ProximitySensor, RadarSensor, RightClickSensor,
-    TouchSensor, DOUBLE_TAP_MS, LONG_PRESS_MS, TAP_TIMEOUT_MS,
+    CollisionSensor, DoubleTapSensor, KeyShortcutSensor, LongPressSensor, MouseClickSensor,
+    MouseConfig, MouseMode, MouseOverSensor, MouseSensor, PointerButtons, ProximitySensor,
+    RadarSensor, RightClickSensor, TouchSensor, DOUBLE_TAP_MS, LONG_PRESS_MS, TAP_TIMEOUT_MS,
 };
 pub use signals::SignalByte;
 pub use snap::{

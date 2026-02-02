@@ -196,6 +196,13 @@ impl PulseBus {
         self.timestamp = timestamp;
     }
 
+    /// Get the current timestamp
+    #[inline(always)]
+    #[must_use]
+    pub fn timestamp(&self) -> u32 {
+        self.timestamp
+    }
+
     /// Push a pulse onto the bus
     ///
     /// This is called by sensors during evaluation.
