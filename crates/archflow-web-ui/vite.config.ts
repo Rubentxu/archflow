@@ -33,6 +33,42 @@ export default defineConfig({
     },
   },
 
+  // Bundle optimization
+  build: {
+    // Enable CSS code splitting
+    cssCodeSplit: true,
+    // Minimize rollup output
+    minify: "esbuild",
+    // Generate source maps only for production builds
+    sourcemap: false,
+    // Rollup options for code splitting
+    rollupOptions: {
+      // Output configuration
+      output: {
+        // Manual chunks for better tree-shaking
+        manualChunks: {
+          // Separate vendor chunks
+          "vendor-react": ["react", "react-dom"],
+          "vendor-animation": ["framer-motion"],
+          "vendor-utils": ["zustand", "clsx", "tailwind-merge"],
+          "vendor-forms": ["react-hook-form", "zod", "@hookform/resolvers"],
+          "vendor-dnd": [
+            "@dnd-kit/core",
+            "@dnd-kit/utilities",
+            "@dnd-kit/modifiers",
+          ],
+          "vendor-icons": ["lucide-react"],
+        },
+        // Optimize chunk names
+        chunkFileNames: "assets/chunk-[name]-[hash].js",
+        entryFileNames: "assets/index-[hash].js",
+        assetFileNames: "assets/[name]-[hash].[ext]",
+      },
+    },
+    // Threshold for chunking (in bytes)
+    chunkSizeWarningLimit: 500,
+  },
+
   test: {
     globals: true,
     environment: "jsdom",
