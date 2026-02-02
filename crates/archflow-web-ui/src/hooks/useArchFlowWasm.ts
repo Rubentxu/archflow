@@ -8,26 +8,16 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { WasmBridge, UseWasmBridgeReturn } from "../types/wasm";
+import type { UseWasmBridgeReturn } from "../types/wasm";
+
+// Lazy load WASM to avoid build issues
+let wasmBridgeClass: unknown = null;
 
 /**
  * Hook to load and initialize the ArchFlow WASM bridge
- *
- * @returns Object containing bridge instance, loading state, and initialization function
- *
- * @example
- * ```typescript
- * const { bridge, isLoaded, isInitialized, error, initialize } = useArchFlowWasm();
- *
- * useEffect(() => {
- *   if (isLoaded && !isInitialized) {
- *     initialize(800, 600);
- *   }
- * }, [isLoaded, isInitialized]);
- * ```
  */
 export function useArchFlowWasm(): UseWasmBridgeReturn {
-  const [bridge, setBridge] = useState<WasmBridge | null>(null);
+  const [bridge, setBridge] = useState<unknown>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -39,22 +29,22 @@ export function useArchFlowWasm(): UseWasmBridgeReturn {
 
     const loadWasm = async () => {
       try {
-        // Dynamically import the WASM module
-        // The wasm-bindgen creates a JS module that loads the WASM file
-        // @ts-ignore - Dynamic import for WASM module
+        // Dynamic import - Vite will handle this at runtime
         const wasmModule = await import("@archflow/web");
+        wasmBridgeClass = wasmModule.WasmBridge;
 
         if (!mounted) return;
 
-        // Create bridge instance
-        const newBridge = new wasmModule.WasmBridge();
+        const newBridge = new (wasmBridgeClass as new () => unknown)();
         setBridge(newBridge);
         setIsLoaded(true);
       } catch (err) {
-        // WASM module not yet built - this is expected during development
+        // WASM not built yet - this is expected during initial setup
         if (mounted) {
-          console.debug("WASM module not loaded yet:", err);
-          setError(null); // Don't set error for missing WASM during dev
+          console.debug(
+            "WASM module not loaded. Build WASM first with: cargo build -p archflow-web && wasm-pack build --target web",
+          );
+          setError(null);
         }
       }
     };
@@ -66,22 +56,23 @@ export function useArchFlowWasm(): UseWasmBridgeReturn {
     };
   }, []);
 
-  // Initialize the engine
   const initialize = useCallback(
     async (width: number, height: number) => {
-      if (!bridge) {
+      if (!bridge || !wasmBridgeClass) {
         setError(new Error("WASM bridge not loaded"));
         return;
       }
 
-      // Prevent multiple simultaneous initializations
       if (initRef.current) {
         return initRef.current;
       }
 
       const initPromise = (async () => {
         try {
-          bridge.initialize(width, height);
+          (bridge as { initialize: (w: number, h: number) => void }).initialize(
+            width,
+            height,
+          );
           setIsInitialized(true);
           setError(null);
         } catch (err) {
@@ -112,18 +103,8 @@ export function useArchFlowWasm(): UseWasmBridgeReturn {
 
 /**
  * Hook to get the input buffer pointer for SharedArrayBuffer communication
- *
- * This provides direct access to the SharedArrayBuffer for high-performance
- * input handling without marshalling overhead.
- *
- * @returns Object with input buffer pointer and utilities
- *
- * @example
- * ```typescript
- * const { bufferPtr, bufferSize, writeEvent } = useInputBuffer(bridge);
- * ```
  */
-export function useInputBuffer(bridge: WasmBridge | null) {
+export function useInputBuffer(bridge: unknown) {
   const [bufferPtr, setBufferPtr] = useState<number>(0);
   const [bufferSize, setBufferSize] = useState<number>(0);
 
@@ -131,8 +112,12 @@ export function useInputBuffer(bridge: WasmBridge | null) {
     if (!bridge) return;
 
     try {
-      const ptr = bridge.getInputBufferPtr();
-      const size = bridge.getInputBufferSize();
+      const ptr = (
+        bridge as { getInputBufferPtr: () => number }
+      ).getInputBufferPtr();
+      const size = (
+        bridge as { getInputBufferSize: () => number }
+      ).getInputBufferSize();
       setBufferPtr(ptr);
       setBufferSize(size);
     } catch (err) {
@@ -140,7 +125,6 @@ export function useInputBuffer(bridge: WasmBridge | null) {
     }
   }, [bridge]);
 
-  // Write event directly to SharedArrayBuffer
   const writeEvent = useCallback(
     (
       eventType: number,
@@ -152,7 +136,17 @@ export function useInputBuffer(bridge: WasmBridge | null) {
       if (!bridge) return false;
 
       try {
-        bridge.pushInputEvent(eventType, x, y, buttons, modifiers);
+        (
+          bridge as {
+            pushInputEvent: (
+              e: number,
+              x: number,
+              y: number,
+              b: number,
+              m: number,
+            ) => void;
+          }
+        ).pushInputEvent(eventType, x, y, buttons, modifiers);
         return true;
       } catch (err) {
         console.error("Failed to write input event:", err);
@@ -162,31 +156,13 @@ export function useInputBuffer(bridge: WasmBridge | null) {
     [bridge],
   );
 
-  return {
-    bufferPtr,
-    bufferSize,
-    writeEvent,
-  };
+  return { bufferPtr, bufferSize, writeEvent };
 }
 
 /**
  * Hook for the main animation loop
- *
- * Manages the requestAnimationFrame loop and ticks the engine.
- *
- * @param bridge - The WASM bridge instance
- * @param enabled - Whether to run the loop
- * @returns Frame timing information
- *
- * @example
- * ```typescript
- * const { fps, frameTime, isRunning, start, stop } = useAnimationLoop(bridge);
- * ```
  */
-export function useAnimationLoop(
-  bridge: WasmBridge | null,
-  enabled: boolean = true,
-) {
+export function useAnimationLoop(bridge: unknown, enabled: boolean = true) {
   const [isRunning, setIsRunning] = useState(false);
   const [fps, setFps] = useState(0);
   const [frameTime, setFrameTime] = useState(0);
@@ -200,9 +176,8 @@ export function useAnimationLoop(
       if (!bridge) return;
 
       try {
-        bridge.tick(timestamp);
+        (bridge as { tick: (t: number) => void }).tick(timestamp);
 
-        // Calculate FPS every second
         frameCountRef.current++;
         if (timestamp - lastFpsUpdateRef.current >= 1000) {
           setFps(frameCountRef.current);
@@ -210,7 +185,6 @@ export function useAnimationLoop(
           lastFpsUpdateRef.current = timestamp;
         }
 
-        // Calculate frame time
         const delta = timestamp - lastTimeRef.current;
         setFrameTime(delta);
         lastTimeRef.current = timestamp;
@@ -248,7 +222,6 @@ export function useAnimationLoop(
     }
   }, [isRunning]);
 
-  // Auto-start/stop based on enabled flag
   useEffect(() => {
     if (enabled && bridge && !isRunning) {
       start();
@@ -257,7 +230,6 @@ export function useAnimationLoop(
     }
   }, [enabled, bridge, isRunning, start, stop]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (animationRef.current) {
@@ -266,12 +238,5 @@ export function useAnimationLoop(
     };
   }, []);
 
-  return {
-    isRunning,
-    fps,
-    frameTime,
-    start,
-    stop,
-    tick,
-  };
+  return { isRunning, fps, frameTime, start, stop, tick };
 }

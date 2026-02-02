@@ -61,6 +61,10 @@ export interface EntityData {
   label: string;
   isVisible: boolean;
   isSelected: boolean;
+  /** Entity type for C4 diagram elements (aws-ec2, aws-lambda, etc.) */
+  type?: string;
+  /** Properties for the entity (used by PropertiesPanel) */
+  properties?: Record<string, unknown>;
 }
 
 /**

@@ -19,6 +19,7 @@ interface EntityStoreReturn {
   deleteEntity: (id: EntityId) => void;
   duplicateEntity: (id: EntityId) => EntityId | null;
   updateEntity: (id: EntityId, updates: Partial<EntityData>) => void;
+  updateProperty: <T = unknown>(id: EntityId, key: string, value: T) => void;
   getEntity: (id: EntityId) => EntityData | null;
   refreshEntities: () => void;
 }
@@ -105,6 +106,24 @@ export function useEntityStore(_bridge: unknown = null): EntityStoreReturn {
     [],
   );
 
+  const updateProperty = useCallback(
+    <T = unknown>(id: EntityId, key: string, value: T) => {
+      setEntities((prev) => {
+        const entity = prev.get(id);
+        if (!entity) return prev;
+
+        const next = new Map(prev);
+        const currentProperties = entity.properties || {};
+        next.set(id, {
+          ...entity,
+          properties: { ...currentProperties, [key]: value },
+        });
+        return next;
+      });
+    },
+    [],
+  );
+
   const getEntity = useCallback(
     (id: EntityId): EntityData | null => {
       return entities.get(id) || null;
@@ -124,6 +143,7 @@ export function useEntityStore(_bridge: unknown = null): EntityStoreReturn {
     deleteEntity,
     duplicateEntity,
     updateEntity,
+    updateProperty,
     getEntity,
     refreshEntities,
   };
