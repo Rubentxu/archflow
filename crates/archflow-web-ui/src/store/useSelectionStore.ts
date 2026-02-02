@@ -1,39 +1,54 @@
 import { create } from "zustand";
 
-// EntityId será definido en types/wasm.ts
-type EntityId = string;
+// EntityId as number to match WASM bridge API
+export type EntityId = number;
 
 interface SelectionState {
   selectedIds: EntityId[];
   lastSelectedId: EntityId | null;
 
-  select: (id: EntityId, additive?: boolean) => void;
-  deselect: (id: EntityId) => void;
-  selectMultiple: (ids: EntityId[]) => void;
-  clearSelection: () => void;
+  // Actions
+  setSelectedIds: (ids: EntityId[]) => void;
+  addToSelection: (id: EntityId) => void;
+  removeFromSelection: (id: EntityId) => void;
+  clear: () => void;
+
+  // Queries
   isSelected: (id: EntityId) => boolean;
+  getSelectedIds: () => EntityId[];
+  getCount: () => number;
 }
 
 export const useSelectionStore = create<SelectionState>((set, get) => ({
   selectedIds: [],
   lastSelectedId: null,
 
-  select: (id, additive = false) => set((state) => ({
-    selectedIds: additive ? [...state.selectedIds, id] : [id],
-    lastSelectedId: id,
-  })),
+  setSelectedIds: (ids: EntityId[]) =>
+    set({
+      selectedIds: ids,
+      lastSelectedId: ids.length > 0 ? ids[ids.length - 1] : null,
+    }),
 
-  deselect: (id) => set((state) => ({
-    selectedIds: state.selectedIds.filter((i) => i !== id),
-    lastSelectedId: state.lastSelectedId === id ? null : state.lastSelectedId,
-  })),
+  addToSelection: (id: EntityId) =>
+    set((state) => {
+      if (state.selectedIds.includes(id)) return state;
+      return {
+        selectedIds: [...state.selectedIds, id],
+        lastSelectedId: id,
+      };
+    }),
 
-  selectMultiple: (ids) => set({
-    selectedIds: ids,
-    lastSelectedId: ids.length > 0 ? ids[ids.length - 1] : null,
-  }),
+  removeFromSelection: (id: EntityId) =>
+    set((state) => ({
+      selectedIds: state.selectedIds.filter((i) => i !== id),
+      lastSelectedId: state.lastSelectedId === id ? null : state.lastSelectedId,
+    })),
 
-  clearSelection: () => set({ selectedIds: [], lastSelectedId: null }),
+  clear: () => set({ selectedIds: [], lastSelectedId: null }),
 
-  isSelected: (id) => get().selectedIds.includes(id),
+  isSelected: (id: EntityId) => get().selectedIds.includes(id),
+
+  getSelectedIds: () => get().selectedIds,
+
+  getCount: () => get().selectedIds.length,
 }));

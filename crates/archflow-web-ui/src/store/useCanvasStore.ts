@@ -18,6 +18,7 @@ interface CanvasState {
   zoomIn: (factor?: number) => void;
   zoomOut: (factor?: number) => void;
   pan: (deltaX: number, deltaY: number) => void;
+  setShowGrid: (show: boolean) => void;
   toggleGrid: () => void;
   toggleSnapToGrid: () => void;
   toggleSnapToEntities: () => void;
@@ -64,6 +65,7 @@ export const useCanvasStore = create<CanvasState>((set) => ({
       },
     })),
 
+  setShowGrid: (show: boolean) => set({ showGrid: show }),
   toggleGrid: () => set((state) => ({ showGrid: !state.showGrid })),
   toggleSnapToGrid: () => set((state) => ({ snapToGrid: !state.snapToGrid })),
   toggleSnapToEntities: () =>

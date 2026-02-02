@@ -1,6 +1,16 @@
 import { create } from "zustand";
 
-type ToolType = "select" | "pan" | "rectangle" | "circle" | "text" | "connection";
+// Tool types matching Rust ActuatorType and frontend tools
+export type ToolType =
+  | "select"
+  | "pan"
+  | "rectangle"
+  | "circle"
+  | "triangle"
+  | "diamond"
+  | "text"
+  | "connection"
+  | "delete";
 
 interface UIState {
   theme: "light" | "dark";
@@ -26,13 +36,16 @@ export const useUIStore = create<UIState>((set) => ({
     document.documentElement.classList.toggle("dark", theme === "dark");
   },
 
-  toggleTheme: () => set((state) => {
-    const newTheme = state.theme === "light" ? "dark" : "light";
-    document.documentElement.classList.toggle("dark", newTheme === "dark");
-    return { theme: newTheme };
-  }),
+  toggleTheme: () =>
+    set((state) => {
+      const newTheme = state.theme === "light" ? "dark" : "light";
+      document.documentElement.classList.toggle("dark", newTheme === "dark");
+      return { theme: newTheme };
+    }),
 
-  toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
-  togglePropertiesPanel: () => set((state) => ({ isPropertiesPanelOpen: !state.isPropertiesPanelOpen })),
+  toggleSidebar: () =>
+    set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
+  togglePropertiesPanel: () =>
+    set((state) => ({ isPropertiesPanelOpen: !state.isPropertiesPanelOpen })),
   setActiveTool: (tool) => set({ activeTool: tool }),
 }));
