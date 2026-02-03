@@ -14,6 +14,7 @@ PROJECT_ROOT := "/home/rubentxu/Proyectos/rust/hodei-archFlow"
 WEB_DIR := PROJECT_ROOT + "/crates/archflow-web-ui"
 SDK_DIR := PROJECT_ROOT + "/crates/archflow-sdk"
 PKG_DIR := SDK_DIR + "/pkg"
+WEB_PKG_DIR := PROJECT_ROOT + "/crates/archflow-web/pkg"
 
 # =============================================================================
 # HELP & INFO
@@ -124,8 +125,8 @@ build:
     @echo "Building Rust workspace..."
     @cargo build -p archflow-sdk -p archflow-core -p archflow-geometry -p archflow-spatial -p archflow-primitives -p archflow-renderers -p archflow-records -p archflow-collab -p archflow-workspace
     @echo ""
-    @echo "Building WASM..."
-    @cd {{SDK_DIR}} && wasm-pack build --target web --debug
+    @echo "Building and syncing WASM..."
+    @just build-wasm
     @echo ""
     @echo "Build complete!"
     @echo ""
@@ -141,10 +142,17 @@ build-release:
 
 # Build WASM only
 [doc("Build WASM module only")]
-build-wasm:
+build-wasm: sync-wasm-types
     @echo "Building WASM..."
-    @cd {{SDK_DIR}} && wasm-pack build --target web --debug
+    @cd {{WEB_PKG_DIR}} && wasm-pack build --target web --debug
     @echo "WASM built!"
+
+# Sync WASM types to frontend
+[doc("Sync WASM types from Rust to TypeScript frontend")]
+sync-wasm-types:
+    @echo "Sincronizando tipos WASM..."
+    @./scripts/sync-wasm-types.sh
+    @echo "Tipos sincronizados!"
 
 # Build Rust only
 [doc("Build Rust workspace only")]
