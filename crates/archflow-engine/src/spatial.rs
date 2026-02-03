@@ -15,6 +15,10 @@ use alloc::vec::Vec;
 
 use archflow_core::{EntityId, Rect, Vec2};
 
+// Tracing support (conditionally compiled)
+#[cfg(feature = "tracing")]
+use tracing::{debug, info, trace, warn};
+
 /// Size of each spatial hash cell in world units
 /// Smaller = more precision but more memory overhead
 const CELL_SIZE: f32 = 64.0;
@@ -101,24 +105,66 @@ impl SpatialHash {
     pub fn insert(&mut self, id: EntityId, bounds: Rect) {
         let index = id.index().0 as usize;
         if index >= self.max_entities {
+            #[cfg(feature = "tracing")]
+            warn!(
+                target: "archflow::engine::spatial",
+                entity_id = ?id,
+                index,
+                max_entities = self.max_entities,
+                "Insert failed: index exceeds max_entities"
+            );
             return;
         }
+
+        #[cfg(feature = "tracing")]
+        debug!(
+            target: "archflow::engine::spatial",
+            entity_id = ?id,
+            bounds = ?bounds,
+            "Spatial insert requested"
+        );
 
         // Clear previous cell associations
         self.remove(id);
 
         // Get all cells this entity covers
         let covered_cells = self.cells_covered(bounds);
+
+        #[cfg(feature = "tracing")]
+        trace!(
+            target: "archflow::engine::spatial",
+            entity_id = ?id,
+            cells_count = covered_cells.len(),
+            "Entity covers cells"
+        );
+
         let mut cell_vec = Vec::with_capacity(covered_cells.len());
 
         for coord in covered_cells {
             let key = (coord.x, coord.y);
             let cell = self.cells.entry(key).or_insert_with(Cell::new);
+
+            #[cfg(feature = "tracing")]
+            trace!(
+                target: "archflow::engine::spatial",
+                entity_id = ?id,
+                cell = ?coord,
+                "Added to cell"
+            );
+
             cell.insert(id, bounds);
             cell_vec.push(coord);
         }
 
         self.entity_to_cell[index] = Some(cell_vec);
+
+        #[cfg(feature = "tracing")]
+        trace!(
+            target: "archflow::engine::spatial",
+            entity_id = ?id,
+            total_cells = self.cells.len(),
+            "Spatial insert completed"
+        );
     }
 
     /// Remove an entity from the spatial hash
@@ -168,35 +214,87 @@ impl SpatialHash {
         let coord = CellCoord::from_world(point);
         let key = (coord.x, coord.y);
 
+        #[cfg(feature = "tracing")]
+        debug!(
+            target: "archflow::engine::spatial",
+            point = ?point,
+            cell = ?coord,
+            "Spatial point query initiated"
+        );
+
         let mut results = Vec::new();
         if let Some(cell) = self.cells.get(&key) {
             for &(id, bounds) in &cell.entities {
                 if bounds.contains(point) {
+                    #[cfg(feature = "tracing")]
+                    trace!(
+                        target: "archflow::engine::spatial",
+                        entity_id = ?id,
+                        "Point query matched entity"
+                    );
                     results.push(id);
                 }
             }
         }
+
+        #[cfg(feature = "tracing")]
+        debug!(
+            target: "archflow::engine::spatial",
+            results_count = results.len(),
+            "Spatial point query completed"
+        );
+
         results
     }
 
     /// Query entities in a rectangular region
     /// Returns all entities whose bounds intersect the query rect
     pub fn query_rect(&self, query_bounds: Rect) -> Vec<EntityId> {
+        #[cfg(feature = "tracing")]
+        debug!(
+            target: "archflow::engine::spatial",
+            query_bounds = ?query_bounds,
+            "Spatial rect query initiated"
+        );
+
         let mut results = Vec::new();
         let mut seen = alloc::collections::BTreeSet::new();
 
         // Get all cells intersected by query rect
-        for coord in self.cells_covered(query_bounds) {
+        let covered_cells = self.cells_covered(query_bounds);
+
+        #[cfg(feature = "tracing")]
+        trace!(
+            target: "archflow::engine::spatial",
+            cells_to_scan = covered_cells.len(),
+            "Cells to scan for query"
+        );
+
+        for coord in covered_cells {
             let key = (coord.x, coord.y);
             if let Some(cell) = self.cells.get(&key) {
                 for &(id, bounds) in &cell.entities {
                     // Avoid duplicates (entities may span multiple cells)
                     if seen.insert(id) && bounds.intersects(&query_bounds) {
+                        #[cfg(feature = "tracing")]
+                        trace!(
+                            target: "archflow::engine::spatial",
+                            entity_id = ?id,
+                            "Rect query matched entity"
+                        );
                         results.push(id);
                     }
                 }
             }
         }
+
+        #[cfg(feature = "tracing")]
+        info!(
+            target: "archflow::engine::spatial",
+            results_count = results.len(),
+            "Spatial rect query completed"
+        );
+
         results
     }
 

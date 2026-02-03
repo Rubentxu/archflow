@@ -21,12 +21,15 @@ use crate::input::{InputEvent, InputSampler};
 use crate::mapping::LogicMappingTable;
 use crate::pulse::{Pulse, PulseBus};
 use crate::sensors::{
-    DoubleTapSensor, LongPressSensor, MouseClickSensor, MouseConfig,
-    MouseOverSensor, MouseSensor, ProximitySensor, RadarAxis, RadarSensor, RightClickSensor,
-    TouchSensor,
+    DoubleTapSensor, LongPressSensor, MouseClickSensor, MouseConfig, MouseOverSensor, MouseSensor,
+    ProximitySensor, RadarAxis, RadarSensor, RightClickSensor, TouchSensor,
 };
 use archflow_core::Vec2;
 use archflow_engine::SpatialHash;
+
+// Tracing support (conditionally compiled)
+#[cfg(feature = "tracing")]
+use tracing::{debug, info, trace, warn};
 
 /// Unique identifier for each sensor type in the Logic Bricks system
 ///
@@ -184,6 +187,14 @@ impl LogicSystem {
     ///
     /// All pulses generated this frame
     pub fn evaluate_sensors(&mut self, store: &EntityStore) -> Vec<Pulse> {
+        #[cfg(feature = "tracing")]
+        debug!(
+            target: "archflow::logic::sensors",
+            timestamp = self.timestamp,
+            alive_entities = store.alive_count(),
+            "Sensor evaluation started"
+        );
+
         let snapshot = self.input_sampler.take_snapshot();
         let mouse_pos = snapshot.mouse_position();
         let buttons = snapshot.buttons;
@@ -204,8 +215,24 @@ impl LogicSystem {
             // Check if mouse is over entity (rising/falling edge)
             let signal = mouse_sensor.signal(entity_idx);
             if signal.is_rising_edge() {
+                #[cfg(feature = "tracing")]
+                trace!(
+                    target: "archflow::logic::sensors",
+                    entity_id,
+                    sensor = "mouse",
+                    state = "rising",
+                    "Mouse sensor triggered"
+                );
                 pulses.push(Pulse::positive(0, entity_id, self.timestamp));
             } else if signal.is_falling_edge() {
+                #[cfg(feature = "tracing")]
+                trace!(
+                    target: "archflow::logic::sensors",
+                    entity_id,
+                    sensor = "mouse",
+                    state = "falling",
+                    "Mouse sensor triggered"
+                );
                 pulses.push(Pulse::negative(0, entity_id, self.timestamp));
             }
         }
@@ -215,6 +242,13 @@ impl LogicSystem {
 
         // Evaluate physics sensors (HU-010)
         pulses = self.evaluate_physics_sensors(store, pulses);
+
+        #[cfg(feature = "tracing")]
+        info!(
+            target: "archflow::logic::sensors",
+            pulses_generated = pulses.len(),
+            "Sensor evaluation completed"
+        );
 
         pulses
     }
@@ -304,21 +338,58 @@ impl LogicSystem {
     ///
     /// This processes all pulses and executes the connected actuators
     pub fn execute_actuators(&mut self, _store: &mut EntityStore, pulses: &[Pulse]) {
-        for _pulse in pulses {
+        #[cfg(feature = "tracing")]
+        debug!(
+            target: "archflow::logic::actuators",
+            pulse_count = pulses.len(),
+            "Actuator execution started"
+        );
+
+        for pulse in pulses {
+            #[cfg(feature = "tracing")]
+            trace!(
+                target: "archflow::logic::actuators",
+                pulse = ?pulse,
+                "Processing pulse"
+            );
             // Process each pulse through the wiring table
             // This will be implemented when we have the full wiring table
         }
+
+        #[cfg(feature = "tracing")]
+        debug!(
+            target: "archflow::logic::actuators",
+            "Actuator execution completed"
+        );
     }
 
     /// Main update loop - evaluates sensors and executes actuators
     ///
     /// This is the primary method called each frame
     pub fn update(&mut self, store: &mut EntityStore) {
+        #[cfg(feature = "tracing")]
+        info!(
+            target: "archflow::logic",
+            timestamp = self.timestamp,
+            alive_entities = store.alive_count(),
+            "LogicSystem update started"
+        );
+
         // Step 1: Evaluate sensors and generate pulses
         let pulses = self.evaluate_sensors(store);
 
         // Step 2: Execute actuators based on pulses
         self.execute_actuators(store, &pulses);
+
+        // Increment timestamp
+        self.timestamp += 1;
+
+        #[cfg(feature = "tracing")]
+        debug!(
+            target: "archflow::logic",
+            timestamp = self.timestamp,
+            "LogicSystem update completed"
+        );
     }
 }
 

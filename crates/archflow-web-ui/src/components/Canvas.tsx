@@ -92,10 +92,27 @@ export default memo(function Canvas({
 
       // Forward to WASM if available
       if (bridge && wasmLoaded) {
-        // WASM will handle the actual rendering and interaction
-        // This is a placeholder for the WASM integration
-        // The actual WASM bridge should have a method like:
-        // bridge.handlePointerDown(position.x, position.y, event.buttons);
+        try {
+          (
+            bridge as {
+              push_input_event: (
+                e: number,
+                x: number,
+                y: number,
+                b: number,
+                m: number,
+              ) => void;
+            }
+          ).push_input_event(
+            0, // event_type: 0 = pointer down
+            position.x,
+            position.y,
+            event.buttons,
+            0, // modifiers: none
+          );
+        } catch (err) {
+          console.error("Failed to send pointer down to WASM:", err);
+        }
       }
     },
     [getCanvasPosition, onPointerDown, bridge, wasmLoaded],
@@ -111,7 +128,27 @@ export default memo(function Canvas({
 
       // Forward to WASM if available
       if (bridge && wasmLoaded) {
-        // bridge.handlePointerMove(position.x, position.y, event.buttons);
+        try {
+          (
+            bridge as {
+              push_input_event: (
+                e: number,
+                x: number,
+                y: number,
+                b: number,
+                m: number,
+              ) => void;
+            }
+          ).push_input_event(
+            1, // event_type: 1 = pointer move
+            position.x,
+            position.y,
+            event.buttons,
+            0, // modifiers: none
+          );
+        } catch (err) {
+          console.error("Failed to send pointer move to WASM:", err);
+        }
       }
     },
     [getCanvasPosition, onPointerMove, bridge, wasmLoaded],
@@ -127,7 +164,27 @@ export default memo(function Canvas({
 
       // Forward to WASM if available
       if (bridge && wasmLoaded) {
-        // bridge.handlePointerUp(position.x, position.y, event.buttons);
+        try {
+          (
+            bridge as {
+              push_input_event: (
+                e: number,
+                x: number,
+                y: number,
+                b: number,
+                m: number,
+              ) => void;
+            }
+          ).push_input_event(
+            2, // event_type: 2 = pointer up
+            position.x,
+            position.y,
+            event.buttons,
+            0, // modifiers: none
+          );
+        } catch (err) {
+          console.error("Failed to send pointer up to WASM:", err);
+        }
       }
     },
     [getCanvasPosition, onPointerUp, bridge, wasmLoaded],
@@ -153,7 +210,27 @@ export default memo(function Canvas({
 
       // Forward to WASM if available
       if (bridge && wasmLoaded) {
-        // bridge.handleWheel(position.x, position.y, event.deltaX, event.deltaY);
+        try {
+          (
+            bridge as {
+              push_input_event: (
+                e: number,
+                x: number,
+                y: number,
+                b: number,
+                m: number,
+              ) => void;
+            }
+          ).push_input_event(
+            3, // event_type: 3 = wheel
+            position.x,
+            position.y,
+            event.deltaY,
+            event.ctrlKey || event.metaKey ? 1 : 0, // modifiers: ctrl/meta
+          );
+        } catch (err) {
+          console.error("Failed to send wheel to WASM:", err);
+        }
       }
     },
     [getCanvasPosition, zoomIn, pan, onWheel, bridge, wasmLoaded],
@@ -210,34 +287,64 @@ export default memo(function Canvas({
   useEffect(() => {
     if (!canvasRef.current || !bridge || !wasmLoaded) return;
 
-    // The WASM engine should handle all rendering
-    // For now, we just initialize - the actual render loop
-    // will be driven by WASM through requestAnimationFrame
-    // bridge.initCanvas(canvasRef.current);
+    // Initialize the WASM engine with canvas dimensions
+    try {
+      const canvas = canvasRef.current;
+      const dpr = window.devicePixelRatio || 1;
 
-    setIsInitialized(true);
+      (
+        bridge as {
+          initialize: (w: number, h: number) => void;
+        }
+      ).initialize(canvas.width * dpr, canvas.height * dpr);
+
+      setIsInitialized(true);
+    } catch (err) {
+      console.error("Failed to initialize WASM bridge:", err);
+    }
   }, [bridge, wasmLoaded]);
+
+  // Sync active tool with WASM bridge
+  useEffect(() => {
+    if (!bridge || !wasmLoaded || !isInitialized) return;
+
+    try {
+      (
+        bridge as {
+          set_tool: (tool: string) => void;
+        }
+      ).set_tool(activeTool);
+    } catch (err) {
+      console.error("Failed to set tool in WASM:", err);
+    }
+  }, [bridge, wasmLoaded, isInitialized, activeTool]);
 
   // WASM-driven render loop
   useEffect(() => {
     if (!canvasRef.current || !bridge || !wasmLoaded || !isInitialized) return;
 
     let animationId: number;
+    let lastTime = performance.now();
 
-    const render = () => {
-      // WASM handles all rendering
-      // bridge.render() should:
-      // 1. Clear canvas
-      // 2. Draw grid
-      // 3. Draw all entities from WASM EntityStore
-      // 4. Draw selection highlights
-      // 5. Draw drag previews
-      // This is a placeholder - actual implementation depends on WASM API
+    const render = (timestamp: number) => {
+      try {
+        // Call WASM tick function to process input and render
+        (
+          bridge as {
+            tick: (t: number) => void;
+          }
+        ).tick(timestamp);
 
-      animationId = requestAnimationFrame(render);
+        lastTime = timestamp;
+        animationId = requestAnimationFrame(render);
+      } catch (err) {
+        console.error("WASM render tick failed:", err);
+        // Continue animation loop even if tick fails
+        animationId = requestAnimationFrame(render);
+      }
     };
 
-    render();
+    animationId = requestAnimationFrame(render);
 
     return () => {
       if (animationId) cancelAnimationFrame(animationId);

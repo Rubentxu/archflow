@@ -43,8 +43,8 @@ export function useCommandHistory(): UseCommandHistoryReturn {
     try {
       const typed = getTypedBridge(bridge);
       if (!typed) return;
-      setCanUndo(typed.canUndo());
-      setCanRedo(typed.canRedo());
+      setCanUndo(typed.can_undo());
+      setCanRedo(typed.can_redo());
     } catch (err) {
       console.warn("Failed to sync command history state:", err);
     }
@@ -56,8 +56,8 @@ export function useCommandHistory(): UseCommandHistoryReturn {
 
     try {
       typed.undo();
-      setCanUndo(typed.canUndo());
-      setCanRedo(typed.canRedo());
+      setCanUndo(typed.can_undo());
+      setCanRedo(typed.can_redo());
     } catch (err) {
       console.error("Undo failed:", err);
     }
@@ -69,8 +69,8 @@ export function useCommandHistory(): UseCommandHistoryReturn {
 
     try {
       typed.redo();
-      setCanUndo(typed.canUndo());
-      setCanRedo(typed.canRedo());
+      setCanUndo(typed.can_undo());
+      setCanRedo(typed.can_redo());
     } catch (err) {
       console.error("Redo failed:", err);
     }
@@ -85,8 +85,8 @@ export function useCommandHistory(): UseCommandHistoryReturn {
         command.execute();
         // Push command to WASM history
         // In a real implementation, we'd serialize the command
-        setCanUndo(typed.canUndo());
-        setCanRedo(typed.canRedo());
+        setCanUndo(typed.can_undo());
+        setCanRedo(typed.can_redo());
       } catch (err) {
         console.error("Command execution failed:", err);
       }
@@ -99,7 +99,7 @@ export function useCommandHistory(): UseCommandHistoryReturn {
     if (!typed) return { undoCount: 0, redoCount: 0 };
 
     try {
-      const state = typed.getHistoryState();
+      const state = typed.get_history_state();
       // Parse state format: "undo:N,redo:M"
       const parts = state.split(",");
       return {
@@ -134,7 +134,7 @@ export function useSelectionCommands() {
       if (!typed || !isLoaded) return null;
 
       try {
-        const newId = typed.duplicateEntity(entityId);
+        const newId = typed.duplicate_entity(entityId);
         return newId >= 0 ? newId : null;
       } catch (err) {
         console.error("Duplicate failed:", err);
@@ -149,7 +149,7 @@ export function useSelectionCommands() {
     if (!typed || !isLoaded) return;
 
     try {
-      typed.deleteSelected();
+      typed.delete_selected();
     } catch (err) {
       console.error("Delete failed:", err);
     }
@@ -160,8 +160,8 @@ export function useSelectionCommands() {
     if (!typed || !isLoaded) return;
 
     try {
-      const entities = typed.getAliveEntities();
-      entities.forEach((id) => typed.setEntitySelected(id, true));
+      const entities = typed.get_alive_entities();
+      entities.forEach((id) => typed.set_entity_selected(id, true));
       setSelectedCount(entities.length);
     } catch (err) {
       console.error("Select all failed:", err);

@@ -21,6 +21,10 @@ use heapless::Vec as HeaplessVec;
 
 use crate::command::Command;
 
+// Tracing support (conditionally compiled)
+#[cfg(feature = "tracing")]
+use tracing::{debug, error, info, trace, warn};
+
 /// Maximum number of entities supported in the store
 pub const MAX_ENTITIES: usize = 100_000;
 
@@ -307,10 +311,30 @@ impl EntityStore {
     /// Spawn a new entity at the given position with size
     /// Returns the EntityId with generation counter
     pub fn spawn(&mut self, pos: Vec2, size: Vec2) -> EntityId {
+        #[cfg(feature = "tracing")]
+        debug!(
+            target: "archflow::engine::store",
+            pos = ?pos,
+            size = ?size,
+            alive_count = self.alive_count,
+            "Entity spawn requested"
+        );
+
         let index = if let Some(idx) = self.free_list.pop() {
-            idx as usize
+            let idx_usize = idx as usize;
+            #[cfg(feature = "tracing")]
+            trace!(target: "archflow::engine::store", reuse_index = idx_usize, "Reusing free slot");
+
+            idx_usize
         } else {
             if self.alive_count >= MAX_ENTITIES {
+                #[cfg(feature = "tracing")]
+                error!(
+                    target: "archflow::engine::store",
+                    alive_count = self.alive_count,
+                    max = MAX_ENTITIES,
+                    "EntityStore at maximum capacity"
+                );
                 panic!("EntityStore at maximum capacity (MAX_ENTITIES)");
             }
             self.alive_count
@@ -318,6 +342,15 @@ impl EntityStore {
 
         let generation = self.generations[index];
         let id = EntityId::from_parts(Index(index as u32), Generation(generation));
+
+        #[cfg(feature = "tracing")]
+        trace!(
+            target: "archflow::engine::store",
+            entity_id = ?id,
+            index,
+            generation = generation,
+            "Generated new EntityId"
+        );
 
         // Initialize transform
         self.transforms[index] = [pos.x, pos.y, size.x, size.y];
@@ -338,16 +371,54 @@ impl EntityStore {
         self.draw_order.push(index as u32);
 
         self.alive_count += 1;
+
+        #[cfg(feature = "tracing")]
+        {
+            let usage_percent = (self.alive_count as f32 / MAX_ENTITIES as f32) * 100.0;
+            if usage_percent > 90.0 {
+                warn!(
+                    target: "archflow::engine::store",
+                    alive_count = self.alive_count,
+                    usage_pct = usage_percent,
+                    "EntityStore approaching capacity"
+                );
+            }
+            info!(
+                target: "archflow::engine::store",
+                entity_id = ?id,
+                total_entities = self.alive_count,
+                "Entity spawned successfully"
+            );
+        }
+
         id
     }
 
     /// Despawn an entity, marking its slot as free
     pub fn despawn(&mut self, id: EntityId) -> bool {
+        #[cfg(feature = "tracing")]
+        debug!(target: "archflow::engine::store", entity_id = ?id, "Entity despawn requested");
+
         let index = id.index().0 as usize;
 
         if index >= MAX_ENTITIES || self.generations[index] != id.generation().0 {
+            #[cfg(feature = "tracing")]
+            warn!(
+                target: "archflow::engine::store",
+                entity_id = ?id,
+                index,
+                "Despawn failed: invalid or stale EntityId"
+            );
             return false; // Invalid or stale EntityId
         }
+
+        #[cfg(feature = "tracing")]
+        trace!(
+            target: "archflow::engine::store",
+            index,
+            old_generation = self.generations[index],
+            "Invalidating EntityId"
+        );
 
         // Increment generation to invalidate existing EntityIds
         self.generations[index] = self.generations[index].wrapping_add(1);
@@ -366,6 +437,15 @@ impl EntityStore {
         self.dirty_hierarchy.remove(index);
 
         self.alive_count -= 1;
+
+        #[cfg(feature = "tracing")]
+        info!(
+            target: "archflow::engine::store",
+            entity_id = ?id,
+            total_entities = self.alive_count,
+            "Entity despawned successfully"
+        );
+
         true
     }
 
