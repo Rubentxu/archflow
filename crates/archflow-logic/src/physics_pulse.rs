@@ -12,11 +12,6 @@
 // - Physics-specific pulse types (Collision, Proximity, Radar)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#![no_std]
-
-extern crate alloc;
-
-use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::pulse::{Pulse, PulseBus, SensorState};

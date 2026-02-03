@@ -21,7 +21,9 @@ use archflow_core::EntityId;
 use archflow_engine::EntityStore;
 
 use crate::actuators::{HighlightActuator, MoveActuator, SelectActuator, SelectMode};
-use crate::mapping::controller::Controller;
+use crate::mapping::controller::{
+    Controller, ControllerContext, CustomPropertyMap, HysteresisStateMap,
+};
 use crate::mapping::sensor_type::SensorType;
 use crate::signals::SignalByte;
 
@@ -385,12 +387,25 @@ impl LogicMappingTable {
         let mut select = SelectActuator::new();
         let _move_actuator = MoveActuator::new();
 
+        // Prepare controller context (for stateful controllers like Hysteresis)
+        let mut hysteresis_states = HysteresisStateMap::new();
+        let mut custom_properties = CustomPropertyMap::new();
+        let mut ctx = ControllerContext::new(
+            0,                // timestamp - would be passed in real implementation
+            entity.index().0, // Use the index portion as entity_id
+            &mut hysteresis_states,
+            &mut custom_properties,
+        );
+
         let mut executed_count = 0;
 
         if let Some(connections) = self.connections.get(&entity) {
             for connection in connections {
                 // Evaluate controller
-                if !connection.controller.evaluate(connection.sensor, signals) {
+                if !connection
+                    .controller
+                    .evaluate(connection.sensor, signals, &mut ctx)
+                {
                     continue;
                 }
 

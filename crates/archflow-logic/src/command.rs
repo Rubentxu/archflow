@@ -17,11 +17,6 @@
 // - O(1) undo/redo operations
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#![no_std]
-
-extern crate alloc;
-
-use alloc::vec;
 use alloc::vec::Vec;
 use archflow_core::Vec2;
 use archflow_engine::EntityStore;

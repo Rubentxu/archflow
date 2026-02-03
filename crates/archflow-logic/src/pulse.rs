@@ -15,13 +15,7 @@
 //
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#![no_std]
-
-extern crate alloc;
-
-use alloc::vec;
 use alloc::vec::Vec;
-use archflow_core::EntityId;
 
 /// Represents the output of a sensor evaluation
 ///
@@ -70,11 +64,7 @@ impl SensorState {
     /// Converts a bool to a SensorState (for simple sensors)
     #[must_use]
     pub const fn from_bool(value: bool) -> Self {
-        if value {
-            Self::Positive
-        } else {
-            Self::None
-        }
+        if value { Self::Positive } else { Self::None }
     }
 }
 
