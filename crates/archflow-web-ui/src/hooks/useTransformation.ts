@@ -5,7 +5,7 @@
  * Architecture Reference: EPIC-WEB-004
  */
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import type { EntityId, Vec2 } from "../types/wasm";
 import { useEntityStore } from "./useEntityStore";
 
@@ -24,7 +24,11 @@ type TransformMode =
 interface UseTransformationReturn {
   isTransforming: boolean;
   transformMode: TransformMode | null;
-  startTransform: (mode: TransformMode, entityId: EntityId, startPos: Vec2) => void;
+  startTransform: (
+    mode: TransformMode,
+    entityId: EntityId,
+    startPos: Vec2,
+  ) => void;
   updateTransform: (currentPos: Vec2) => void;
   endTransform: () => void;
 }
@@ -37,11 +41,15 @@ function snapToGrid(value: number): number {
 
 export function useTransformation(): UseTransformationReturn {
   const [isTransforming, setIsTransforming] = useState(false);
-  const [transformMode, setTransformMode] = useState<TransformMode | null>(null);
-  const [transformingEntityId, setTransformingEntityId] = useState<EntityId | null>(null);
+  const [transformMode, setTransformMode] = useState<TransformMode | null>(
+    null,
+  );
+  const [transformingEntityId, setTransformingEntityId] =
+    useState<EntityId | null>(null);
   const [startPosition, setStartPosition] = useState<Vec2 | null>(null);
-  const [startSize, setStartSize] = useState<{ w: number; h: number } | null>(null);
-  const [startAngle, setStartAngle] = useState<number>(0);
+  const [startSize, setStartSize] = useState<{ w: number; h: number } | null>(
+    null,
+  );
 
   const { updateEntity, getEntity } = useEntityStore();
 
@@ -54,7 +62,6 @@ export function useTransformation(): UseTransformationReturn {
       setTransformingEntityId(entityId);
       setStartPosition(startPos);
       setStartSize({ w: entity.size.w, h: entity.size.h });
-      setStartAngle(0);
       setIsTransforming(true);
     },
     [getEntity],
@@ -62,7 +69,12 @@ export function useTransformation(): UseTransformationReturn {
 
   const updateTransform = useCallback(
     (currentPos: Vec2) => {
-      if (!isTransforming || !transformingEntityId || !startPosition || !transformMode) {
+      if (
+        !isTransforming ||
+        !transformingEntityId ||
+        !startPosition ||
+        !transformMode
+      ) {
         return;
       }
 
@@ -135,7 +147,6 @@ export function useTransformation(): UseTransformationReturn {
     setTransformingEntityId(null);
     setStartPosition(null);
     setStartSize(null);
-    setStartAngle(0);
   }, []);
 
   return {

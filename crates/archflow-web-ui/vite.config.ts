@@ -37,36 +37,89 @@ export default defineConfig({
   build: {
     // Enable CSS code splitting
     cssCodeSplit: true,
-    // Minimize rollup output
-    minify: "esbuild",
-    // Generate source maps only for production builds
+    // Use terser for better minification in production
+    minify: "terser",
+    terserOptions: {
+      compress: {
+        // Remove console logs in production
+        drop_console: true,
+        drop_debugger: true,
+        pure_funcs: ["console.log", "console.info", "console.debug"],
+        // Optimize for size
+        passes: 2,
+        // Enable advanced optimizations
+        unsafe: true,
+      },
+      mangle: {
+        // Mangle property names starting with underscore
+        properties: {
+          regex: /^_/,
+        },
+        // Mangle top-level names
+        toplevel: true,
+      },
+      format: {
+        // Remove comments
+        comments: false,
+      },
+    },
+    // Generate source maps only for development
     sourcemap: false,
+    // Report compressed size for better bundle size tracking
+    reportCompressedSize: true,
     // Rollup options for code splitting
     rollupOptions: {
-      // Output configuration
       output: {
-        // Manual chunks for better tree-shaking
-        manualChunks: {
-          // Separate vendor chunks
-          "vendor-react": ["react", "react-dom"],
-          "vendor-animation": ["framer-motion"],
-          "vendor-utils": ["zustand", "clsx", "tailwind-merge"],
-          "vendor-forms": ["react-hook-form", "zod", "@hookform/resolvers"],
-          "vendor-dnd": [
-            "@dnd-kit/core",
-            "@dnd-kit/utilities",
-            "@dnd-kit/modifiers",
-          ],
-          "vendor-icons": ["lucide-react"],
+        // Manual chunks for better tree-shaking and caching
+        manualChunks: (id) => {
+          // React and React DOM - most stable, rarely changes
+          if (
+            id.includes("node_modules/react/") ||
+            id.includes("node_modules/react-dom/")
+          ) {
+            return "vendor-react";
+          }
+          // Animation library - changes infrequently
+          if (id.includes("node_modules/framer-motion/")) {
+            return "vendor-animation";
+          }
+          // State management and utilities
+          if (
+            id.includes("node_modules/zustand/") ||
+            id.includes("node_modules/clsx/") ||
+            id.includes("node_modules/tailwind-merge/")
+          ) {
+            return "vendor-utils";
+          }
+          // Form handling
+          if (
+            id.includes("node_modules/react-hook-form/") ||
+            id.includes("node_modules/zod/") ||
+            id.includes("@hookform/resolvers")
+          ) {
+            return "vendor-forms";
+          }
+          // Drag and drop
+          if (id.includes("node_modules/@dnd-kit/")) {
+            return "vendor-dnd";
+          }
+          // Icons - frequently updated
+          if (id.includes("node_modules/lucide-react/")) {
+            return "vendor-icons";
+          }
+          // Other vendor code
+          if (id.includes("node_modules/")) {
+            return "vendor-other";
+          }
         },
-        // Optimize chunk names
+        // Optimize chunk names for better caching
         chunkFileNames: "assets/chunk-[name]-[hash].js",
         entryFileNames: "assets/index-[hash].js",
         assetFileNames: "assets/[name]-[hash].[ext]",
       },
     },
-    // Threshold for chunking (in bytes)
-    chunkSizeWarningLimit: 500,
+    // Threshold for chunking (in KB) - warn if chunks are too large
+    chunkSizeWarningLimit: 200,
   },
 
   test: {

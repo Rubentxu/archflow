@@ -5,17 +5,14 @@
  * Architecture Reference: EPIC-WEB-007
  */
 
-import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useToastStore, ToastType } from "../store/useToastStore";
-import { cn } from "../utils/cn";
 import {
-  CheckCircle,
-  AlertCircle,
-  AlertTriangle,
-  Info,
-  X,
-} from "lucide-react";
+  useToastStore,
+  type ToastType,
+  type Toast,
+} from "../store/useToastStore";
+import { cn } from "../utils/cn";
+import { CheckCircle, AlertCircle, AlertTriangle, Info, X } from "lucide-react";
 
 const toastIcons: Record<ToastType, React.ReactNode> = {
   success: <CheckCircle className="w-5 h-5 text-green-500" />,

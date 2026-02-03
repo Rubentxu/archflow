@@ -224,11 +224,40 @@ export function useSelection(): UseSelectionReturn {
     }
   }, [canSelect, bridge, selectedIds, store]);
 
-  // Selected entities data (placeholder - would query WASM)
+  // Selected entities data - fetch from WASM for each selected entity
   const selectedEntities = useMemo((): EntityData[] => {
-    // In a real implementation, we'd fetch entity data from the WASM store
-    return [];
-  }, [selectedIds]);
+    if (!bridge || selectedIds.length === 0) return [];
+
+    const typed = getTypedBridge(bridge);
+    if (!typed) return [];
+
+    const entities: EntityData[] = [];
+    for (const id of selectedIds) {
+      try {
+        const position = typed.getEntityPositionScreen(id);
+        const size = typed.getEntitySizeScreen(id);
+        const color = typed.getEntityColorHex(id);
+        const shape = typed.getEntityShape(id);
+        const label = typed.getEntityLabel(id);
+        const isVisible = typed.isEntityVisible(id);
+        const isSelected = typed.isEntitySelected(id);
+
+        entities.push({
+          id,
+          position: { x: position[0], y: position[1] },
+          size: { w: size[0], h: size[1] },
+          color,
+          shape,
+          label,
+          isVisible,
+          isSelected,
+        });
+      } catch {
+        // Entity might have been deleted, skip it
+      }
+    }
+    return entities;
+  }, [bridge, selectedIds]);
 
   return {
     selectedIds,

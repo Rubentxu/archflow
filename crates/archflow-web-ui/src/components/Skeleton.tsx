@@ -5,7 +5,6 @@
  * Architecture Reference: EPIC-WEB-007
  */
 
-import React from "react";
 import { cn } from "../utils/cn";
 
 interface SkeletonProps {
