@@ -186,7 +186,7 @@ export interface EngineOptions {
  */
 export interface WasmBridge {
   // Lifecycle
-  new(): WasmBridge;
+  new (): WasmBridge;
   initialize(canvasWidth: number, canvasHeight: number): void;
 
   // Input
@@ -338,4 +338,37 @@ export interface EngineConfig {
   showGrid: boolean;
   enableSnapping: boolean;
   snapThreshold: number;
+}
+
+/**
+ * Graphics backend types for rendering selection
+ */
+export type GraphicsBackend = "webgl2" | "webgpu";
+
+/**
+ * Performance characteristics for each backend
+ */
+export interface BackendPerformance {
+  webgl2: string;
+  webgpu: string;
+}
+
+/**
+ * Backend detection result from Rust
+ */
+export interface BackendInfo {
+  webgl2: boolean;
+  webgpu: boolean;
+  preferred: GraphicsBackend;
+  performance: BackendPerformance;
+}
+
+/**
+ * Backend selection state
+ */
+export interface BackendState {
+  availableBackends: BackendInfo | null;
+  selectedBackend: GraphicsBackend;
+  isInitialized: boolean;
+  error: string | null;
 }
