@@ -32,6 +32,21 @@ pub enum SensorType {
 
     /// KeyShortcut sensor - detects keyboard shortcuts
     KeyShortcut = 3,
+
+    /// Touch sensor - detects AABB collision between entities
+    Touch = 4,
+
+    /// Radar sensor - detects entities in a directional cone
+    Radar = 5,
+
+    /// DoubleTap sensor - detects rapid double-click pattern
+    DoubleTap = 6,
+
+    /// LongPress sensor - detects mouse button held down
+    LongPress = 7,
+
+    /// RightClick sensor - detects right mouse button click
+    RightClick = 8,
 }
 
 impl SensorType {
@@ -40,5 +55,23 @@ impl SensorType {
     #[must_use]
     pub const fn index(self) -> u8 {
         self as u8
+    }
+
+    /// Returns the SensorType from a u8 index
+    #[inline(always)]
+    #[must_use]
+    pub fn from_index(index: u8) -> Option<Self> {
+        match index {
+            0 => Some(Self::MouseOver),
+            1 => Some(Self::MouseClick),
+            2 => Some(Self::Proximity),
+            3 => Some(Self::KeyShortcut),
+            4 => Some(Self::Touch),
+            5 => Some(Self::Radar),
+            6 => Some(Self::DoubleTap),
+            7 => Some(Self::LongPress),
+            8 => Some(Self::RightClick),
+            _ => None,
+        }
     }
 }

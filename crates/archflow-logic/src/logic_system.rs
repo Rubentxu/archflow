@@ -19,9 +19,9 @@ use archflow_engine::EntityStore;
 
 use crate::input::{InputEvent, InputSampler};
 use crate::mapping::LogicMappingTable;
-use crate::pulse::{Pulse, PulseBus, SensorState};
+use crate::pulse::{Pulse, PulseBus};
 use crate::sensors::{
-    DoubleTapSensor, KeyShortcutSensor, LongPressSensor, MouseClickSensor, MouseConfig,
+    DoubleTapSensor, LongPressSensor, MouseClickSensor, MouseConfig,
     MouseOverSensor, MouseSensor, ProximitySensor, RadarAxis, RadarSensor, RightClickSensor,
     TouchSensor,
 };
@@ -303,7 +303,7 @@ impl LogicSystem {
     /// Execute actuators based on pulses
     ///
     /// This processes all pulses and executes the connected actuators
-    pub fn execute_actuators(&mut self, store: &mut EntityStore, pulses: &[Pulse]) {
+    pub fn execute_actuators(&mut self, _store: &mut EntityStore, pulses: &[Pulse]) {
         for _pulse in pulses {
             // Process each pulse through the wiring table
             // This will be implemented when we have the full wiring table

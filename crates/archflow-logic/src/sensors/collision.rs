@@ -20,7 +20,7 @@
 use crate::signals::SignalByte;
 use alloc::vec;
 use alloc::vec::Vec;
-use archflow_core::{EntityId, Rect, Vec2};
+use archflow_core::{EntityId, Rect};
 use archflow_engine::{EntityStore, SpatialHash};
 use core::sync::atomic::{AtomicU32, Ordering};
 

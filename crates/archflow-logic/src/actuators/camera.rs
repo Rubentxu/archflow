@@ -21,8 +21,6 @@
 
 #![warn(missing_docs)]
 
-use alloc::vec;
-use alloc::vec::Vec;
 use archflow_core::{EntityId, Vec2};
 use archflow_engine::EntityStore;
 

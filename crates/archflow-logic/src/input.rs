@@ -9,7 +9,6 @@
 
 #![warn(missing_docs)]
 
-use alloc::vec::Vec;
 use archflow_core::Vec2;
 
 /// Maximum number of keys tracked in the key bitmask

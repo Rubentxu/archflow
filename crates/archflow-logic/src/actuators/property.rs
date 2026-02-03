@@ -229,7 +229,7 @@ impl PropertyActuator {
             },
 
             Property::Size => {
-                let current = store.size(idx);
+                let _current = store.size(idx);
                 let target = Vec2::new(
                     f32::from_bits(self.target_value[0]),
                     f32::from_bits(self.target_value[1]),
