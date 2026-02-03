@@ -9,13 +9,9 @@ import {
   Hand,
   Square,
   Circle,
-  Triangle,
-  Diamond,
   Type,
   Link,
-  Trash2,
-  Undo2,
-  Redo2,
+  PlayCircle
 } from "lucide-react";
 import { useUIStore } from "../store/useUIStore";
 import type { ToolType } from "../store/useUIStore";
@@ -33,38 +29,25 @@ const tools: Tool[] = [
   { id: "pan", icon: Hand, label: "Pan", shortcut: "H" },
   { id: "rectangle", icon: Square, label: "Rectangle", shortcut: "R" },
   { id: "circle", icon: Circle, label: "Circle", shortcut: "C" },
-  { id: "triangle", icon: Triangle, label: "Triangle", shortcut: "T" },
-  { id: "diamond", icon: Diamond, label: "Diamond", shortcut: "D" },
   { id: "text", icon: Type, label: "Text", shortcut: "X" },
   { id: "connection", icon: Link, label: "Connection", shortcut: "L" },
 ];
 
 interface ToolbarProps {
   className?: string;
-  position?: "left" | "top" | "floating";
+  position?: "left" | "top" | "floating"; // Kept for interface compatibility but unused log removed
 }
 
 export default function Toolbar({
   className,
-  position = "floating",
 }: ToolbarProps) {
   const { activeTool, setActiveTool } = useUIStore();
-
-  const positionClasses = {
-    left: "left-4 top-1/2 -translate-y-1/2 flex-col",
-    top: "top-4 left-1/2 -translate-x-1/2 flex-row",
-    floating: "left-4 top-4 flex-col",
-  };
-
-  const handleDelete = () => {
-    // Delete logic handled elsewhere
-  };
 
   return (
     <div
       className={cn(
-        "flex gap-1 p-2 bg-surface-dark/95 rounded-lg shadow-xl backdrop-blur-sm border border-white/5",
-        positionClasses[position],
+        "flex items-center gap-1 p-1 bg-white dark:bg-surface-dark rounded-full shadow-lg border border-border-light dark:border-border-dark",
+        "z-40",
         className,
       )}
     >
@@ -72,10 +55,10 @@ export default function Toolbar({
         <button
           key={id}
           className={cn(
-            "group relative p-2.5 rounded-lg transition-all hover:bg-white/10 active:scale-95",
+            "p-2 rounded-full transition-colors tooltip",
             activeTool === id
-              ? "bg-primary text-white shadow-lg shadow-primary/20"
-              : "text-gray-400 hover:text-white",
+              ? "bg-primary/10 text-primary dark:text-primary"
+              : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800",
           )}
           title={`${label} (${shortcut})`}
           onClick={() => setActiveTool(id)}
@@ -84,49 +67,14 @@ export default function Toolbar({
         </button>
       ))}
 
-      <div
-        className={cn(
-          "border-white/10",
-          position === "left" || position === "floating"
-            ? "border-t my-1"
-            : "border-r mx-1",
-        )}
-      />
+      <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1"></div>
 
       <button
-        className={cn(
-          "p-2.5 rounded-lg transition-all hover:bg-red-500/20 hover:text-red-400 active:scale-95",
-          activeTool === "delete" && "bg-red-500 text-white",
-        )}
-        title="Delete (Del)"
-        onClick={() => {
-          setActiveTool("delete");
-          handleDelete();
-        }}
+        className="p-2 pr-3 pl-3 rounded-full bg-slate-50 dark:bg-slate-800 hover:bg-green-50 dark:hover:bg-green-900/30 text-green-600 dark:text-green-400 transition-colors flex items-center gap-1.5"
+        title="Simulate"
       >
-        <Trash2 className="w-5 h-5" />
-      </button>
-
-      <div
-        className={cn(
-          "border-white/10",
-          position === "left" || position === "floating"
-            ? "border-t my-1"
-            : "border-r mx-1",
-        )}
-      />
-
-      <button
-        className="p-2.5 rounded-lg text-gray-600 cursor-not-allowed"
-        title="Undo (Ctrl+Z)"
-      >
-        <Undo2 className="w-5 h-5" />
-      </button>
-      <button
-        className="p-2.5 rounded-lg text-gray-600 cursor-not-allowed"
-        title="Redo (Ctrl+Y)"
-      >
-        <Redo2 className="w-5 h-5" />
+        <PlayCircle className="w-5 h-5" />
+        <span className="text-xs font-bold uppercase tracking-wide">Simulate</span>
       </button>
     </div>
   );

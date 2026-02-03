@@ -113,7 +113,7 @@ export function useDragAndDrop(): UseDragAndDropReturn {
         return Date.now() + Math.floor(Math.random() * 1000);
       }
       try {
-        const entityId = typed.spawnEntity(
+        const entityId = typed.spawn_entity(
           position.x,
           position.y,
           template.defaultSize.width,

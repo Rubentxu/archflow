@@ -51,6 +51,15 @@ pub struct ArchFlowEngine {
 
     /// History manager for undo/redo functionality
     pub history: HistoryManager,
+
+    /// Current active tool (select, rectangle, circle, etc.)
+    pub active_tool: alloc::string::String,
+
+    /// Flag indicating if we are currently creating a new entity (drag-to-create)
+    pub is_creating: bool,
+
+    /// Starting world position of the drag operation
+    pub drag_start: Option<Vec2>,
 }
 
 impl ArchFlowEngine {
@@ -69,6 +78,9 @@ impl ArchFlowEngine {
             canvas_width,
             canvas_height,
             history: HistoryManager::with_default_depth(),
+            active_tool: alloc::string::String::from("select"),
+            is_creating: false,
+            drag_start: None,
         }
     }
 

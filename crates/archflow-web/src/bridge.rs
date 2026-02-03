@@ -24,6 +24,53 @@ use crate::input::{InputProcessor, InputRingBuffer, MAX_POINTERS};
 
 use archflow_engine::store::MAX_ENTITIES;
 
+// Tracing support (conditionally compiled)
+#[cfg(feature = "tracing-logging")]
+use tracing::{debug, error, info, trace, warn};
+
+/// Initialize tracing for WASM
+///
+/// This function sets up the tracing subscriber with wasm-tracing
+/// for console output and performance timing.
+///
+/// Configures the subscriber to capture TRACE level and above from:
+/// - archflow::wasm (bridge layer)
+/// - archflow::engine (entity store, spatial hash)
+/// - archflow::logic (sensors, actuators)
+/// - archflow::render (rendering)
+/// - archflow::interaction (user input handling)
+#[cfg(feature = "tracing-logging")]
+fn init_tracing() {
+    use console_error_panic_hook::set_once;
+
+    static mut TRACING_INIT: bool = false;
+    unsafe {
+        if TRACING_INIT {
+            return;
+        }
+        TRACING_INIT = true;
+    }
+
+    // Set up panic hook to get better error messages
+    set_once();
+
+    // Initialize wasm-tracing as the global default subscriber
+    // This sends all tracing events to the browser console
+    // Note: wasm-tracing doesn't support filters like tracing-subscriber,
+    // so it will capture ALL events regardless of level
+    wasm_tracing::set_as_global_default();
+
+    info!(target: "archflow::wasm", "ArchFlow WASM tracing initialized");
+    debug!(target: "archflow::wasm", "Debug mode: detailed traces enabled");
+    trace!(target: "archflow::wasm", "Trace level: all events from all crates will be logged");
+}
+
+/// No-op tracing stub when tracing feature is disabled
+#[cfg(not(feature = "tracing-logging"))]
+fn init_tracing() {
+    // Tracing disabled, do nothing
+}
+
 // WASM Bridge for JavaScript/WebAssembly communication
 //
 // This struct provides the interface between JavaScript and the Rust engine.
@@ -40,6 +87,12 @@ impl WasmBridge {
     /// Create a new WASM bridge
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
+        // Initialize tracing on first bridge creation
+        init_tracing();
+
+        #[cfg(feature = "tracing-logging")]
+        debug!(target: "archflow::wasm", "WasmBridge created");
+
         Self {
             engine: RefCell::new(None),
             input_processor: RefCell::new(None),
@@ -51,12 +104,19 @@ impl WasmBridge {
     /// This should be called once when the application starts.
     #[wasm_bindgen]
     pub fn initialize(&self, canvas_width: f32, canvas_height: f32) -> Result<(), JsValue> {
+        #[cfg(feature = "tracing-logging")]
+        info!(target: "archflow::wasm", canvas_width = canvas_width, canvas_height = canvas_height, "Initializing engine");
+
         self.engine
             .borrow_mut()
             .replace(ArchFlowEngine::new(canvas_width, canvas_height));
         self.input_processor
             .borrow_mut()
             .replace(InputProcessor::new());
+
+        #[cfg(feature = "tracing-logging")]
+        debug!(target: "archflow::wasm", "Engine initialized successfully");
+
         Ok(())
     }
 
@@ -104,6 +164,17 @@ impl WasmBridge {
             _ => InputEventType::Move,
         };
 
+        // Only log important input events, not every mouse movement
+        #[cfg(feature = "tracing-logging")]
+        if !matches!(input_event_type, InputEventType::Move) {
+            debug!(
+                target: "archflow::wasm::input",
+                event_type = ?input_event_type,
+                x, y, buttons, modifiers,
+                "Input event"
+            );
+        }
+
         let button_flags = Buttons(buttons);
         let modifier_flags = Modifiers(modifiers);
 
@@ -113,9 +184,13 @@ impl WasmBridge {
             if processor.buffer().push_event(event) {
                 Ok(())
             } else {
+                #[cfg(feature = "tracing-logging")]
+                warn!(target: "archflow::wasm::input", "Input buffer full - event dropped");
                 Err(JsError::new("Input buffer full").into())
             }
         } else {
+            #[cfg(feature = "tracing-logging")]
+            error!(target: "archflow::wasm", "Input processor not initialized");
             Err(JsError::new("Input processor not initialized").into())
         }
     }
@@ -141,6 +216,7 @@ impl WasmBridge {
     fn process_input_event(engine: &mut ArchFlowEngine, event: &crate::input::RawInputEvent) {
         use crate::input::InputEventType;
         use archflow_core::Vec2;
+        use archflow_engine::store::ShapeType;
 
         let event_type: InputEventType = match event.event_type {
             0 => InputEventType::Down,
@@ -154,31 +230,99 @@ impl WasmBridge {
 
         match event_type {
             InputEventType::Down => {
+                let tool = engine.active_tool.clone();
                 let world_pos = engine.screen_to_world(event.x, event.y);
-                for &entity_idx in &engine.store.draw_order[..engine.store.alive_count()] {
-                    let idx = entity_idx as usize;
-                    if !engine.store.is_visible(idx) {
-                        continue;
+
+                #[cfg(feature = "tracing-logging")]
+                info!(target: "archflow::wasm::input", world_pos = ?world_pos, tool = %tool, "Input: Down");
+
+                if tool == "select" {
+                    // Standard selection logic
+                    for &entity_idx in &engine.store.draw_order[..engine.store.alive_count()] {
+                        let idx = entity_idx as usize;
+                        if !engine.store.is_visible(idx) {
+                            continue;
+                        }
+                        let pos = engine.store.pos(idx);
+                        let size = engine.store.size(idx);
+                        let half_size = size / 2.0;
+                        let min = pos - half_size;
+                        let max = pos + half_size;
+                        if world_pos.x >= min.x
+                            && world_pos.x <= max.x
+                            && world_pos.y >= min.y
+                            && world_pos.y <= max.y
+                        {
+                            let entity_id = archflow_core::EntityId::new(entity_idx);
+                            engine.selected_entities.clear();
+                            engine.selected_entities.push(entity_id);
+                            engine.store.set_selected(idx, true);
+                            #[cfg(feature = "tracing-logging")]
+                            debug!(target: "archflow::wasm::input", entity_idx, "Selected entity");
+                            break;
+                        }
                     }
-                    let pos = engine.store.pos(idx);
-                    let size = engine.store.size(idx);
-                    let half_size = size / 2.0;
-                    let min = pos - half_size;
-                    let max = pos + half_size;
-                    if world_pos.x >= min.x
-                        && world_pos.x <= max.x
-                        && world_pos.y >= min.y
-                        && world_pos.y <= max.y
-                    {
-                        let entity_id = archflow_core::EntityId::new(entity_idx);
-                        engine.selected_entities.clear();
-                        engine.selected_entities.push(entity_id);
-                        break;
-                    }
+                } else if tool == "rectangle" || tool == "circle" || tool == "square" {
+                    // Creation logic
+                    #[cfg(feature = "tracing-logging")]
+                    info!(target: "archflow::wasm::input", tool = %tool, "Creating shape");
+
+                    let default_size = Vec2::new(1.0, 1.0);
+                    let id = engine.store.spawn(world_pos, default_size);
+                    let idx = id.index().0 as usize;
+
+                    // Set shape type
+                    let shape = if tool == "circle" {
+                        ShapeType::Circle
+                    } else {
+                        ShapeType::Rectangle
+                    };
+                    engine.store.set_shape_type(idx, shape as u8);
+
+                    // Set random color
+                    let color = archflow_core::Color::rgb(
+                        (js_sys::Math::random() * 255.0) as u8,
+                        (js_sys::Math::random() * 255.0) as u8,
+                        (js_sys::Math::random() * 255.0) as u8,
+                    );
+                    engine.store.colors[idx] = color.0;
+
+                    // Select and start creating
+                    engine.selected_entities.clear();
+                    engine.selected_entities.push(id);
+                    engine.store.set_selected(idx, true);
+                    engine.is_creating = true;
+                    engine.drag_start = Some(world_pos);
+
+                    #[cfg(feature = "tracing-logging")]
+                    info!(target: "archflow::wasm::input", entity_idx = idx, shape = ?shape, "Spawned entity");
                 }
             }
             InputEventType::Move => {
-                if !engine.selected_entities.is_empty() {
+                if engine.is_creating {
+                    // Resize interactively while creating
+                    if !engine.selected_entities.is_empty() {
+                        if let Some(start_pos) = engine.drag_start {
+                            let current_pos = engine.screen_to_world(event.x, event.y);
+                            let id = engine.selected_entities[0];
+                            let idx = id.index().0 as usize;
+
+                            let min_x = start_pos.x.min(current_pos.x);
+                            let min_y = start_pos.y.min(current_pos.y);
+                            let max_x = start_pos.x.max(current_pos.x);
+                            let max_y = start_pos.y.max(current_pos.y);
+
+                            let width = (max_x - min_x).max(10.0);
+                            let height = (max_y - min_y).max(10.0);
+                            let center_x = min_x + width / 2.0;
+                            let center_y = min_y + height / 2.0;
+
+                            engine.store.set_pos(idx, Vec2::new(center_x, center_y));
+                            engine.store.set_size(idx, Vec2::new(width, height));
+                        }
+                    }
+                } else if !engine.selected_entities.is_empty() {
+                    // Standard move logic
                     let world_delta = engine.screen_delta_to_world(event.x, event.y);
                     for entity_id in &engine.selected_entities {
                         let idx = archflow_core::EntityId::index(*entity_id);
@@ -187,6 +331,17 @@ impl WasmBridge {
                             .store
                             .set_pos(idx.0 as usize, current_pos + world_delta);
                     }
+                }
+            }
+            InputEventType::Up => {
+                if engine.is_creating {
+                    #[cfg(feature = "tracing-logging")]
+                    info!(target: "archflow::wasm::input", "Finished creating shape");
+                    engine.is_creating = false;
+                    engine.drag_start = None;
+                    // Reset tool to select after creation?
+                    // engine.active_tool = alloc::string::String::from("select");
+                    // Actually, keep it active for multiple shapes is better for "tool" paradigm
                 }
             }
             _ => {}
@@ -520,14 +675,26 @@ impl WasmBridge {
 
     /// Set the current tool type
     #[wasm_bindgen]
-    pub fn set_tool(&self, _tool: &str) -> Result<(), JsValue> {
-        Ok(())
+    pub fn set_tool(&self, tool: &str) -> Result<(), JsValue> {
+        #[cfg(feature = "tracing-logging")]
+        info!(target: "archflow::wasm", tool = %tool, "Setting tool");
+
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            engine.active_tool = alloc::string::String::from(tool);
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
     }
 
     /// Get the current tool type
     #[wasm_bindgen]
     pub fn get_tool(&self) -> Result<String, JsValue> {
-        Ok(alloc::string::String::from("select"))
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            Ok(engine.active_tool.clone())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
     }
 
     /// Clear all selected entities

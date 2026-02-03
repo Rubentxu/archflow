@@ -14,10 +14,10 @@ import {
   Database,
   Globe,
   Zap,
-  Shield,
-  Cpu,
   Search,
   ChevronRight,
+  Box,
+  Lightbulb
 } from "lucide-react";
 import { cn } from "../utils/cn";
 import { useDragAndDrop, type EntityTemplate } from "../hooks/useDragAndDrop";
@@ -34,28 +34,13 @@ type EntityCategory =
   | "integration";
 
 /**
- * Category icons mapping
- */
-const categoryIcons: Record<
-  EntityCategory,
-  React.ComponentType<{ className?: string }>
-> = {
-  compute: Cpu,
-  storage: HardDrive,
-  database: Database,
-  network: Globe,
-  security: Shield,
-  integration: Zap,
-};
-
-/**
  * Category labels for display
  */
 const categoryLabels: Record<EntityCategory, string> = {
   compute: "Compute",
   storage: "Storage",
   database: "Database",
-  network: "Network",
+  network: "Networking",
   security: "Security",
   integration: "Integration",
 };
@@ -66,7 +51,7 @@ const categoryLabels: Record<EntityCategory, string> = {
 const entityTemplates: EntityTemplate[] = [
   {
     type: "aws-ec2",
-    name: "EC2 Instance",
+    name: "EC2",
     icon: Server,
     category: "compute",
     defaultSize: { width: 120, height: 80 },
@@ -74,11 +59,27 @@ const entityTemplates: EntityTemplate[] = [
   },
   {
     type: "aws-lambda",
-    name: "Lambda Function",
-    icon: Cpu,
+    name: "Lambda",
+    icon: Zap,
     category: "compute",
     defaultSize: { width: 100, height: 60 },
     description: "Serverless function",
+  },
+  {
+    type: "aws-eks",
+    name: "EKS",
+    icon: Box,
+    category: "compute",
+    defaultSize: { width: 120, height: 80 },
+    description: "Kubernetes Service",
+  },
+  {
+    type: "aws-lightsail",
+    name: "Lightsail",
+    icon: Lightbulb,
+    category: "compute",
+    defaultSize: { width: 120, height: 80 },
+    description: "Virtual Private Server",
   },
   {
     type: "aws-s3",
@@ -103,22 +104,6 @@ const entityTemplates: EntityTemplate[] = [
     category: "network",
     defaultSize: { width: 150, height: 100 },
     description: "Isolated network",
-  },
-  {
-    type: "aws-api-gateway",
-    name: "API Gateway",
-    icon: Zap,
-    category: "network",
-    defaultSize: { width: 100, height: 70 },
-    description: "API management",
-  },
-  {
-    type: "aws-iam",
-    name: "IAM Role",
-    icon: Shield,
-    category: "security",
-    defaultSize: { width: 100, height: 60 },
-    description: "Identity management",
   },
 ];
 
@@ -157,8 +142,8 @@ export default function Sidebar({ className, isOpen = true }: SidebarProps) {
     () =>
       searchQuery
         ? entityTemplates.filter((t) =>
-            t.name.toLowerCase().includes(searchQuery.toLowerCase()),
-          )
+          t.name.toLowerCase().includes(searchQuery.toLowerCase()),
+        )
         : entityTemplates,
     [searchQuery],
   );
@@ -186,83 +171,110 @@ export default function Sidebar({ className, isOpen = true }: SidebarProps) {
     <DndProvider>
       <aside
         className={cn(
-          "w-64 h-full flex flex-col bg-surface-dark/95 border-r border-white/5",
+          "w-64 bg-surface-light dark:bg-surface-dark border-r border-border-light dark:border-border-dark flex flex-col shrink-0 z-20 shadow-sm",
           className,
         )}
       >
-        <div className="p-3 border-b border-white/5">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+        {/* Search */}
+        <div className="p-3 border-b border-border-light dark:border-border-dark">
+          <div className="relative group">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 group-focus-within:text-primary transition-colors">
+              <Search className="w-5 h-5" />
+            </span>
             <input
+              className="w-full bg-background-light dark:bg-background-dark border-transparent focus:border-primary/50 focus:ring-0 rounded-md py-2 pl-9 pr-3 text-sm placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white transition-all outline-none"
+              placeholder="Search resources..."
               type="text"
-              placeholder="Search components..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300 placeholder-gray-500 focus:outline-none focus:border-primary/50"
             />
+            <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+              <kbd className="hidden sm:inline-block border border-slate-200 dark:border-slate-700 rounded px-1 text-[10px] font-mono font-medium text-slate-400">
+                ⌘K
+              </kbd>
+            </div>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-2">
+        {/* Library Content */}
+        <div className="flex-1 overflow-y-auto p-2 space-y-1">
           {(searchQuery
             ? Object.keys(groupedTemplates)
-            : Object.keys(categoryLabels)
+            : Object.keys(groupedTemplates) // Iterate only over categories with items or all if desired
           ).map((category) => {
             const cat = category as EntityCategory;
             const templates = groupedTemplates[cat] || [];
-            const isExpanded = expandedCategories.has(cat);
-            const CategoryIcon = categoryIcons[cat];
+            if (!searchQuery && templates.length === 0) return null;
 
-            if (searchQuery && templates.length === 0) return null;
+            const isExpanded = expandedCategories.has(cat);
+            // const CategoryIcon = categoryIcons[cat]; // Unused in reference design for header
 
             return (
-              <div key={cat} className="mb-1">
+              <div key={cat} className="group">
                 <button
-                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs font-medium text-gray-400 uppercase tracking-wider hover:bg-white/5 hover:text-white transition-colors"
+                  className="flex items-center justify-between w-full p-2 text-left text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-md transition-colors"
                   onClick={() => !searchQuery && toggleCategory(cat)}
                 >
-                  {searchQuery ? null : isExpanded ? null : (
-                    <ChevronRight className="w-3 h-3" />
-                  )}
-                  <CategoryIcon className="w-4 h-4" />
-                  <span>
-                    {searchQuery
-                      ? `${templates.length} results`
-                      : categoryLabels[cat]}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={cn(
+                      "material-symbols-outlined text-[18px] text-slate-400 transition-transform duration-200",
+                      isExpanded ? "rotate-90" : ""
+                    )}>
+                      <ChevronRight className="w-4 h-4" />
+                    </span>
+                    <span>{categoryLabels[cat]}</span>
+                  </div>
+                  <span className="text-xs text-slate-400 font-mono">{templates.length}</span>
                 </button>
 
                 {(isExpanded || searchQuery) && (
-                  <div className="mt-1 space-y-1 ml-4">
+                  <div className={cn(
+                    "pl-4 pr-1 pb-2 pt-1 gap-2",
+                    cat === 'compute' ? "grid grid-cols-2" : "flex flex-col space-y-1"
+                  )}>
                     {templates.map((template) => {
                       const Icon = template.icon;
+
+                      // Render as Grid Item (Card) for Compute
+                      if (cat === 'compute') {
+                        return (
+                          <DraggableItem key={template.type} template={template}>
+                            {({ setNodeRef, listeners, attributes }) => (
+                              <div
+                                ref={setNodeRef}
+                                {...listeners}
+                                {...attributes}
+                                className="flex flex-col items-center justify-center p-2 rounded border border-transparent hover:border-primary/30 hover:bg-primary/5 cursor-grab active:cursor-grabbing group/item transition-all"
+                              >
+                                <div className="size-8 mb-1 flex items-center justify-center text-primary bg-primary/10 rounded">
+                                  <Icon className="w-5 h-5" />
+                                </div>
+                                <span className="text-[10px] text-center font-medium text-slate-600 dark:text-slate-400 group-hover/item:text-primary">
+                                  {template.name}
+                                </span>
+                              </div>
+                            )}
+                          </DraggableItem>
+                        );
+                      }
+
+                      // Render as List Item for others
                       return (
                         <DraggableItem key={template.type} template={template}>
-                          {({
-                            isDragging,
-                            listeners,
-                            setNodeRef,
-                            transform,
-                          }) => (
-                            <button
+                          {({ setNodeRef, listeners, attributes }) => (
+                            <div
                               ref={setNodeRef}
                               {...listeners}
-                              className={cn(
-                                "w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-colors cursor-grab",
-                                isDragging
-                                  ? "bg-primary/20 text-primary"
-                                  : "text-gray-300 hover:bg-white/10 hover:text-white",
-                              )}
-                              title={template.description}
-                              style={{
-                                transform: transform
-                                  ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
-                                  : undefined,
-                              }}
+                              {...attributes}
+                              className="flex items-center gap-3 p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 cursor-grab active:cursor-grabbing group/item transition-all"
                             >
-                              <Icon className="w-4 h-4 text-primary/80" />
-                              <span>{template.name}</span>
-                            </button>
+                              <div className="size-6 flex items-center justify-center text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded group-hover/item:text-primary group-hover/item:bg-primary/10">
+                                <Icon className="w-4 h-4" />
+                              </div>
+                              <span className="text-xs font-medium text-slate-600 dark:text-slate-300 group-hover/item:text-primary">
+                                {template.name}
+                              </span>
+                            </div>
                           )}
                         </DraggableItem>
                       );
@@ -272,6 +284,17 @@ export default function Sidebar({ className, isOpen = true }: SidebarProps) {
               </div>
             );
           })}
+        </div>
+
+        {/* User Status Footer */}
+        <div className="p-3 border-t border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark/50">
+          <div className="flex items-center justify-between text-xs text-slate-500">
+            <span className="flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-green-500"></span>
+              AWS Connected
+            </span>
+            <span className="font-mono">v2.4.0</span>
+          </div>
         </div>
       </aside>
     </DndProvider>

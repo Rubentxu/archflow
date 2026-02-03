@@ -8,6 +8,11 @@
  */
 
 /**
+ * Import WasmBridge type from src/wasm directory
+ */
+import type { WasmBridge } from "../wasm/archflow_web.js";
+
+/**
  * Entity identifier type used throughout the system
  * Corresponds to Rust's EntityId in archflow-core
  */
@@ -181,13 +186,13 @@ export interface EngineOptions {
  */
 export interface WasmBridge {
   // Lifecycle
-  new (): WasmBridge;
+  new(): WasmBridge;
   initialize(canvasWidth: number, canvasHeight: number): void;
 
   // Input
-  getInputBufferPtr(): number;
-  getInputBufferSize(): number;
-  pushInputEvent(
+  get_input_buffer_ptr(): number;
+  get_input_buffer_size(): number;
+  push_input_event(
     eventType: number,
     x: number,
     y: number,
@@ -199,66 +204,66 @@ export interface WasmBridge {
   tick(timestamp: number): void;
 
   // Entity operations
-  spawnEntity(x: number, y: number, width: number, height: number): EntityId;
-  moveEntity(entityIndex: EntityId, dx: number, dy: number): void;
-  setColor(
+  spawn_entity(x: number, y: number, width: number, height: number): EntityId;
+  move_entity(entityIndex: EntityId, dx: number, dy: number): void;
+  set_color(
     entityIndex: EntityId,
     r: number,
     g: number,
     b: number,
     a: number,
   ): void;
-  setShape(entityIndex: EntityId, shape: number): void;
-  setLabel(entityIndex: EntityId, label: string): void;
-  setSize(entityIndex: EntityId, width: number, height: number): void;
-  setPosition(entityIndex: EntityId, x: number, y: number): void;
-  entityCount(): number;
+  set_shape(entityIndex: EntityId, shape: number): void;
+  set_label(entityIndex: EntityId, label: string): void;
+  set_size(entityIndex: EntityId, width: number, height: number): void;
+  set_position(entityIndex: EntityId, x: number, y: number): void;
+  entity_count(): number;
   clear(): void;
-  deleteSelected(): void;
-  duplicateEntity(entityIndex: EntityId): EntityId;
+  delete_selected(): void;
+  duplicate_entity(entityIndex: EntityId): EntityId;
 
   // Query operations
-  getAliveEntities(): EntityId[];
-  getEntityPositionScreen(entityIndex: EntityId): [number, number];
-  getEntitySizeScreen(entityIndex: EntityId): [number, number];
-  getEntityColorHex(entityIndex: EntityId): string;
-  getEntityShape(entityIndex: EntityId): number;
-  getEntityLabel(entityIndex: EntityId): string;
-  isEntityVisible(entityIndex: EntityId): boolean;
-  isEntitySelected(entityIndex: EntityId): boolean;
+  get_alive_entities(): EntityId[];
+  get_entity_position_screen(entityIndex: EntityId): [number, number];
+  get_entity_size_screen(entityIndex: EntityId): [number, number];
+  get_entity_color_hex(entityIndex: EntityId): string;
+  get_entity_shape(entityIndex: EntityId): number;
+  get_entity_label(entityIndex: EntityId): string;
+  is_entity_visible(entityIndex: EntityId): boolean;
+  is_entity_selected(entityIndex: EntityId): boolean;
 
   // Selection
-  selectEntity(entityIndex: EntityId): void;
-  clearSelection(): void;
-  getSelection(): EntityId[];
-  setEntitySelected(entityIndex: EntityId, selected: boolean): void;
+  select_entity(entityIndex: EntityId): void;
+  clear_selection(): void;
+  get_selection(): EntityId[];
+  set_entity_selected(entityIndex: EntityId, selected: boolean): void;
 
   // Camera
-  setZoom(zoom: number): void;
-  getZoom(): number;
-  setCameraCenter(x: number, y: number): void;
-  getCameraCenter(): [number, number];
+  set_zoom(zoom: number): void;
+  get_zoom(): number;
+  set_camera_center(x: number, y: number): void;
+  get_camera_center(): [number, number];
 
   // History
   undo(): void;
   redo(): void;
-  canUndo(): boolean;
-  canRedo(): boolean;
-  getHistoryState(): string;
+  can_undo(): boolean;
+  can_redo(): boolean;
+  get_history_state(): string;
 
   // Serialization
-  serializeProject(): Uint8Array;
+  serialize_project(): Uint8Array;
 
   // Tools
-  setTool(tool: string): void;
-  getTool(): string;
+  set_tool(tool: string): void;
+  get_tool(): string;
 }
 
 /**
  * Hook return type for WASM bridge
  */
 export interface UseWasmBridgeReturn {
-  bridge: unknown;
+  bridge: WasmBridge | null;
   isLoaded: boolean;
   isInitialized: boolean;
   error: Error | null;

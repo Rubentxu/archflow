@@ -18,13 +18,13 @@ declare module "@archflow/web" {
     get_engine(): unknown;
 
     /** Get the input buffer pointer for SharedArrayBuffer communication */
-    getInputBufferPtr(): number;
+    get_input_buffer_ptr(): number;
 
     /** Get the input buffer size */
-    getInputBufferSize(): number;
+    static get_input_buffer_size(): number;
 
     /** Push an input event to the WASM input processor */
-    pushInputEvent(
+    push_input_event(
       eventType: number,
       x: number,
       y: number,
@@ -36,52 +36,52 @@ declare module "@archflow/web" {
     tick(timestamp: number): void;
 
     // Entity operations
-    spawnEntity(x: number, y: number, width: number, height: number): number;
-    moveEntity(entityIndex: number, dx: number, dy: number): void;
-    setColor(entityIndex: number, r: number, g: number, b: number, a: number): void;
-    setShape(entityIndex: number, shape: number): void;
-    setLabel(entityIndex: number, label: string): void;
-    setSize(entityIndex: number, width: number, height: number): void;
-    setPosition(entityIndex: number, x: number, y: number): void;
-    entityCount(): number;
+    spawn_entity(x: number, y: number, width: number, height: number): number;
+    move_entity(entityIndex: number, dx: number, dy: number): void;
+    set_color(entityIndex: number, r: number, g: number, b: number, a: number): void;
+    set_shape(entityIndex: number, shape: number): void;
+    set_label(entityIndex: number, label: string): void;
+    set_size(entityIndex: number, width: number, height: number): void;
+    set_position(entityIndex: number, x: number, y: number): void;
+    entity_count(): number;
     clear(): void;
-    deleteSelected(): void;
-    duplicateEntity(entityIndex: number): number;
+    delete_selected(): void;
+    duplicate_entity(entityIndex: number): number;
 
     // Query operations
-    getAliveEntities(): number[];
-    getEntityPositionScreen(entityIndex: number): [number, number];
-    getEntitySizeScreen(entityIndex: number): [number, number];
-    getEntityColorHex(entityIndex: number): string;
-    getEntityShape(entityIndex: number): number;
-    getEntityLabel(entityIndex: number): string;
-    isEntityVisible(entityIndex: number): boolean;
-    isEntitySelected(entityIndex: number): boolean;
+    get_alive_entities(): number[];
+    get_entity_position_screen(entityIndex: number): [number, number];
+    get_entity_size_screen(entityIndex: number): [number, number];
+    get_entity_color_hex(entityIndex: number): string;
+    get_entity_shape(entityIndex: number): number;
+    get_entity_label(entityIndex: number): string;
+    is_entity_visible(entityIndex: number): boolean;
+    is_entity_selected(entityIndex: number): boolean;
 
     // Selection
-    selectEntity(entityIndex: number): void;
-    clearSelection(): void;
-    getSelection(): number[];
-    setEntitySelected(entityIndex: number, selected: boolean): void;
+    select_entity(entityIndex: number): void;
+    clear_selection(): void;
+    get_selection(): number[];
+    set_entity_selected(entityIndex: number, selected: boolean): void;
 
     // Camera
-    setZoom(zoom: number): void;
-    getZoom(): number;
-    setCameraCenter(x: number, y: number): void;
-    getCameraCenter(): [number, number];
+    set_zoom(zoom: number): void;
+    get_zoom(): number;
+    set_camera_center(x: number, y: number): void;
+    get_camera_center(): [number, number];
 
     // History
     undo(): void;
     redo(): void;
-    canUndo(): boolean;
-    canRedo(): boolean;
-    getHistoryState(): string;
+    can_undo(): boolean;
+    can_redo(): boolean;
+    get_history_state(): string;
 
     // Serialization
-    serializeProject(): Uint8Array;
+    serialize_project(): Uint8Array;
 
     // Tools
-    setTool(tool: string): void;
-    getTool(): string;
+    set_tool(tool: string): void;
+    get_tool(): string;
   }
 }

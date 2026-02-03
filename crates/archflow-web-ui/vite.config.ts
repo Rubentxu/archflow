@@ -2,29 +2,32 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import wasm from "vite-plugin-wasm";
+import topLevelAwait from "vite-plugin-top-level-await";
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), wasm(), topLevelAwait(), tailwindcss()],
 
   assetsInclude: ["**/*.wasm"],
 
   server: {
-    headers: {
-      "Cross-Origin-Opener-Policy": "same-origin",
-      "Cross-Origin-Embedder-Policy": "require-corp",
-    },
+    // Note: COOP/COEP headers disabled for development.
+    // Re-enable for production if SharedArrayBuffer is needed.
+    // headers: {
+    //   "Cross-Origin-Opener-Policy": "same-origin",
+    //   "Cross-Origin-Embedder-Policy": "require-corp",
+    // },
     fs: {
-      allow: ["..", "../../archflow-web/pkg"],
+      allow: ["..", "../.."],
     },
   },
 
   optimizeDeps: {
-    exclude: ["archflow_web"],
+    exclude: [],
   },
 
   resolve: {
     alias: {
-      "@archflow/web": "./src/wasm/archflow_web.js",
       "@components": "./src/components",
       "@hooks": "./src/hooks",
       "@utils": "./src/utils",

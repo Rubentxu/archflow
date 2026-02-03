@@ -1,8 +1,8 @@
 /**
- * PropertiesPanel - Editor de propiedades para entidades
+ * PropertiesPanel - Entity Properties Editor
  *
- * Panel lateral derecho que permite editar las propiedades de las entidades
- * seleccionadas usando React Hook Form + Zod para validación.
+ * Right sidebar allowing property editing for selected entities.
+ * Includes Identity header and Motion/Particles footer.
  *
  * Architecture Reference: ARQUITECTURA_FINAL_V3.md - Section 7
  */
@@ -11,14 +11,14 @@ import React, { useCallback, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  X,
-  RotateCcw,
   Database,
   Server,
-  FunctionSquare,
+  Code2,
   Globe,
   HardDrive,
-  Zap,
+  MoreHorizontal,
+  Activity,
+  Box,
   AlertCircle,
   CheckCircle2,
 } from "lucide-react";
@@ -57,7 +57,7 @@ const entityTypeConfig: Record<
     schema: ec2PropertiesSchema,
   },
   "aws-lambda": {
-    icon: FunctionSquare,
+    icon: Code2,
     label: "Lambda Function",
     schema: lambdaPropertiesSchema,
   },
@@ -77,19 +77,9 @@ const entityTypeConfig: Record<
     schema: apiGatewayPropertiesSchema,
   },
   container: {
-    icon: Zap,
+    icon: Box,
     label: "Container",
     schema: containerPropertiesSchema,
-  },
-  actor: {
-    icon: Zap,
-    label: "Actor",
-    schema: containerPropertiesSchema,
-  },
-  database: {
-    icon: Database,
-    label: "Database",
-    schema: rdsPropertiesSchema,
   },
 };
 
@@ -609,11 +599,18 @@ function ContainerPropertiesForm({
 /**
  * Main PropertiesPanel component
  */
+import { LogicPanel } from "./LogicPanel";
+import { HistoryPanel } from "./HistoryPanel";
+
 export function PropertiesPanel({ className }: PropertiesPanelProps) {
   const { selectedIds } = useSelectionStore();
   const { updateProperty, getEntity } = useEntityStore();
-  const [isOpen, setIsOpen] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState<"properties" | "logic" | "history">("properties");
+
+  // Motion & Particles state
+  const [throughput, setThroughput] = React.useState(500);
+  const [packetSize, setPacketSize] = React.useState(24);
 
   // Get selected entity
   const selectedId = selectedIds[0] ?? null;
@@ -637,7 +634,7 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
     if (entity?.properties) {
       form.reset(entity.properties);
     }
-  }, [entity, form]);
+  }, [entity, form, selectedId]);
 
   // Handle form submission
   const onSubmit = useCallback(
@@ -691,14 +688,12 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
   };
 
   // Empty state when no entity is selected
-  if (!entity) {
+  if (!entity || !selectedId) {
     return (
-      <div
-        className={cn(
-          "w-80 h-full bg-surface-dark border-l border-white/5 flex flex-col items-center justify-center p-6",
-          className,
-        )}
-      >
+      <aside className={cn(
+        "w-80 bg-surface-dark border-l border-white/5 flex flex-col items-center justify-center p-6 transition-all duration-300",
+        className
+      )}>
         <div className="text-center text-gray-500">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/5 flex items-center justify-center">
             <AlertCircle className="w-8 h-8" />
@@ -708,95 +703,201 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
             Select an entity to view its properties
           </p>
         </div>
-      </div>
+      </aside>
     );
   }
 
   return (
-    <motion.aside
-      initial={{ width: 0, opacity: 0 }}
-      animate={{ width: isOpen ? 320 : 0, opacity: isOpen ? 1 : 0 }}
-      exit={{ width: 0, opacity: 0 }}
+    <aside
       className={cn(
-        "h-full bg-surface-dark border-l border-white/5 flex flex-col overflow-hidden",
+        "w-80 bg-surface-light dark:bg-surface-dark border-l border-border-light dark:border-border-dark flex flex-col shrink-0 z-20 shadow-sm transition-all duration-300",
         className,
       )}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-        <div className="flex items-center gap-2">
-          <Icon className="w-5 h-5 text-primary" />
-          <span className="text-sm font-medium text-gray-200">
-            {config.label}
-          </span>
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={handleReset}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
-            title="Reset changes"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setIsOpen(false)}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
-            title="Close panel"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Form */}
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="flex-1 overflow-y-auto p-4"
-      >
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={entityType}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            className="space-y-4"
-          >
-            {renderForm()}
-          </motion.div>
-        </AnimatePresence>
-      </form>
-
-      {/* Footer */}
-      <div className="px-4 py-3 border-t border-white/5">
+      {/* Header with Tabs */}
+      <div className="flex items-center border-b border-border-light dark:border-border-dark bg-slate-50 dark:bg-black/20">
         <button
-          onClick={form.handleSubmit(onSubmit)}
-          disabled={isSaving || !form.formState.isDirty}
+          onClick={() => setActiveTab("properties")}
           className={cn(
-            "w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
-            "focus:outline-none focus:ring-2 focus:ring-primary/50",
-            form.formState.isDirty
-              ? "bg-primary text-white hover:bg-primary/90"
-              : "bg-white/5 text-gray-500 cursor-not-allowed",
+            "flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2",
+            activeTab === "properties"
+              ? "border-primary text-primary bg-white dark:bg-transparent"
+              : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
           )}
         >
-          {isSaving ? (
-            <>
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                className="w-4 h-4 border-2 border-current border-t-transparent rounded-full"
-              />
-              <span>Saving...</span>
-            </>
-          ) : (
-            <>
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Apply Changes</span>
-            </>
+          Properties
+        </button>
+        <button
+          onClick={() => setActiveTab("logic")}
+          className={cn(
+            "flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2",
+            activeTab === "logic"
+              ? "border-primary text-primary bg-white dark:bg-transparent"
+              : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
           )}
+        >
+          Logic
+        </button>
+        <button
+          onClick={() => setActiveTab("history")}
+          className={cn(
+            "flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2",
+            activeTab === "history"
+              ? "border-primary text-primary bg-white dark:bg-transparent"
+              : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+          )}
+        >
+          History
         </button>
       </div>
-    </motion.aside>
+
+      {/* Main Content Area */}
+      <div className="flex-1 overflow-hidden relative flex flex-col">
+        {/* PROPERTIES TAB */}
+        {activeTab === "properties" && (
+          <div className="flex flex-col h-full">
+            <div className="p-4 border-b border-border-light dark:border-border-dark bg-slate-50/50 dark:bg-slate-900/20 flex justify-between items-center">
+              <h3 className="font-bold text-sm text-slate-800 dark:text-white uppercase tracking-wider">
+                PROPERTIES
+              </h3>
+              <button className="text-slate-400 hover:text-primary transition-colors">
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+              {/* Identity Section */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="size-10 rounded bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 shrink-0">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div className="overflow-hidden">
+                    <h4 className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                      {entity.label || config.label}
+                    </h4>
+                    <p className="text-xs text-slate-500 font-mono">
+                      {selectedId.toString().substring(0, 12)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Form */}
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-4"
+              >
+                {renderForm()}
+              </form>
+
+              {/* Apply Changes Button - Inside scrollable area */}
+              <button
+                onClick={form.handleSubmit(onSubmit)}
+                disabled={isSaving || !form.formState.isDirty}
+                className={cn(
+                  "w-full flex items-center justify-center gap-2 px-4 py-2 mt-4 rounded-lg text-sm font-medium transition-all",
+                  "focus:outline-none focus:ring-2 focus:ring-primary/50",
+                  form.formState.isDirty
+                    ? "bg-primary text-white hover:bg-primary/90 shadow-md shadow-primary/20"
+                    : "bg-slate-100 dark:bg-white/5 text-gray-400 dark:text-gray-500 cursor-not-allowed",
+                )}
+              >
+                {isSaving ? (
+                  <>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      className="w-4 h-4 border-2 border-current border-t-transparent rounded-full"
+                    />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Apply Changes</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Motion & Particles Footer */}
+            <div className="bg-background-light dark:bg-[#152329] flex flex-col border-t-4 border-double border-border-light dark:border-border-dark shrink-0">
+              <div className="p-3 border-b border-border-light dark:border-border-dark flex justify-between items-center bg-surface-light dark:bg-surface-dark">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-primary" />
+                  <h3 className="font-bold text-sm text-slate-800 dark:text-white">
+                    Motion & Particles
+                  </h3>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="size-2 bg-primary rounded-full animate-pulse"></span>
+                  <span className="text-[10px] font-bold text-primary tracking-wider">LIVE</span>
+                </div>
+              </div>
+
+              <div className="p-4 space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-500">Throughput Speed</span>
+                    <span className="text-primary font-mono">{throughput} req/s</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1000"
+                    value={throughput}
+                    onChange={(e) => setThroughput(Number(e.target.value))}
+                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-500">Packet Size</span>
+                    <span className="text-gray-200 font-mono">{packetSize}kb</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="100"
+                    value={packetSize}
+                    onChange={(e) => setPacketSize(Number(e.target.value))}
+                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-slate-400"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Flow Color</span>
+                    <div className="flex gap-1.5">
+                      <button className="w-5 h-5 rounded-full bg-primary ring-2 ring-offset-1 ring-offset-[#0d1117] ring-primary"></button>
+                      <button className="w-5 h-5 rounded-full bg-orange-500 hover:ring-2 ring-orange-500/50"></button>
+                      <button className="w-5 h-5 rounded-full bg-green-500 hover:ring-2 ring-green-500/50"></button>
+                      <button className="w-5 h-5 rounded-full bg-purple-500 hover:ring-2 ring-purple-500/50"></button>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Effect Style</span>
+                    <select className="w-full text-xs bg-surface-dark border border-white/10 rounded px-2 py-1 text-gray-300 focus:outline-none">
+                      <option>Pulse</option>
+                      <option>Stream</option>
+                      <option>Particles</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* LOGIC TAB */}
+        {activeTab === "logic" && <LogicPanel entityId={selectedId} />}
+
+        {/* HISTORY TAB */}
+        {activeTab === "history" && <HistoryPanel entityId={selectedId} />}
+      </div>
+    </aside>
   );
 }
 

@@ -7,20 +7,22 @@
  * Architecture Reference: ARQUITECTURA_FINAL_V3.md - Section 7
  */
 
-import { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import Header from "./components/Header";
 import Toolbar from "./components/Toolbar";
 import Sidebar from "./components/Sidebar";
 import Canvas from "./components/Canvas";
-import { PropertiesPanel } from "./components/Properties";
-import StatusBar from "./components/StatusBar";
+import { PropertiesPanel } from "./components/Properties/PropertiesPanel";
+import ZoomControls from "./components/ZoomControls";
+
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
+import { useUIStore } from "./store/useUIStore";
 
 /**
  * Main application component
  */
 export default function App() {
-  const [isSidebarOpen] = useState(true);
+  const { isSidebarOpen } = useUIStore();
 
   // Initialize keyboard shortcuts
   const { shortcuts } = useKeyboardShortcuts();
@@ -39,26 +41,18 @@ export default function App() {
   }, [shortcuts]);
 
   return (
-    <div className="w-screen h-screen flex flex-col bg-background-dark text-white overflow-hidden">
-      {/* Header */}
-      <Header
-        projectName="AWS Architecture Diagram"
-        onSave={() => console.log("Save")}
-        onExport={() => console.log("Export")}
-      />
+    <div className="h-screen w-screen flex flex-col overflow-hidden bg-background-light dark:bg-background-dark font-sans text-slate-900 dark:text-gray-100 transition-colors duration-300">
+      <Header />
 
-      {/* Main content area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar */}
         <Sidebar isOpen={isSidebarOpen} />
 
         {/* Center area */}
-        <div className="flex-1 flex flex-col relative">
-          {/* Toolbar */}
-          <Toolbar position="top" />
-
+        <div className="flex-1 flex flex-col relative bg-white dark:bg-black/20">
           {/* Canvas */}
-          <div className="flex-1 relative">
+          <div className="flex-1 relative overflow-hidden">
+            {/* Background Grid handled by Canvas component but ensuring container structure */}
             <Canvas
               className="absolute inset-0"
               onPointerDown={(pos, buttons) => {
@@ -66,12 +60,12 @@ export default function App() {
               }}
             />
 
-            {/* Floating toolbar on canvas */}
-            <Toolbar position="floating" />
-          </div>
+            {/* Floating toolbar on canvas - Centered Top */}
+            <Toolbar position="floating" className="absolute top-4 left-1/2 -translate-x-1/2" />
 
-          {/* Status Bar */}
-          <StatusBar />
+            {/* Zoom Controls - Bottom Left */}
+            <ZoomControls className="absolute bottom-4 left-4" />
+          </div>
         </div>
 
         {/* Properties Panel */}

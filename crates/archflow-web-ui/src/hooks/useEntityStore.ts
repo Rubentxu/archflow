@@ -10,7 +10,7 @@
 import { useState, useCallback, useEffect } from "react";
 import type { EntityId, EntityData } from "../types/wasm";
 import { useArchFlowWasm } from "./useArchFlowWasm";
-import { getTypedBridge } from "./wasm-bridge";
+import type { WasmBridge } from "../wasm/archflow_web.js";
 
 interface EntityStoreReturn {
   entities: Map<EntityId, EntityData>;
@@ -35,7 +35,7 @@ const DEFAULT_HEIGHT = 60;
 function requireWasmBridge(): never {
   throw new Error(
     "WASM bridge is required but not loaded. " +
-      "Please build the WASM module first: cargo build -p archflow-web && wasm-pack build --target web",
+    "Please build the WASM module first: cd crates/archflow-web && wasm-pack build --target web",
   );
 }
 
@@ -46,27 +46,29 @@ export function useEntityStore(): EntityStoreReturn {
   );
   const [entityCount, setEntityCount] = useState(0);
 
-  const typedBridge = getTypedBridge(bridge);
-
-  if (!isLoaded || !isInitialized || !typedBridge) {
-    requireWasmBridge();
-  }
+  // Lazy check: only validate bridge when actually needed
+  const ensureBridge = useCallback((): WasmBridge => {
+    if (!isLoaded || !isInitialized || !bridge) {
+      requireWasmBridge();
+    }
+    return bridge;
+  }, [isLoaded, isInitialized, bridge]);
 
   const syncEntitiesFromWasm = useCallback(() => {
-    if (!typedBridge || !isInitialized) return;
+    if (!bridge || !isInitialized) return;
 
     try {
-      const aliveIds = typedBridge.getAliveEntities();
+      const aliveIds = bridge.get_alive_entities();
       const entitiesMap = new Map<EntityId, EntityData>();
 
       for (const id of aliveIds) {
-        const position = typedBridge.getEntityPositionScreen(id);
-        const size = typedBridge.getEntitySizeScreen(id);
-        const color = typedBridge.getEntityColorHex(id);
-        const shape = typedBridge.getEntityShape(id);
-        const label = typedBridge.getEntityLabel(id);
-        const isVisible = typedBridge.isEntityVisible(id);
-        const isSelected = typedBridge.isEntitySelected(id);
+        const position = bridge.get_entity_position_screen(id);
+        const size = bridge.get_entity_size_screen(id);
+        const color = bridge.get_entity_color_hex(id);
+        const shape = bridge.get_entity_shape(id);
+        const label = bridge.get_entity_label(id);
+        const isVisible = bridge.is_entity_visible(id);
+        const isSelected = bridge.is_entity_selected(id);
 
         entitiesMap.set(id, {
           id,
@@ -86,13 +88,13 @@ export function useEntityStore(): EntityStoreReturn {
       console.error("Failed to sync entities from WASM:", err);
       throw err;
     }
-  }, [typedBridge, isInitialized]);
+  }, [bridge, isInitialized]);
 
   useEffect(() => {
-    if (isLoaded && isInitialized) {
+    if (isLoaded && isInitialized && bridge) {
       syncEntitiesFromWasm();
     }
-  }, [isLoaded, isInitialized, syncEntitiesFromWasm]);
+  }, [isLoaded, isInitialized, bridge, syncEntitiesFromWasm]);
 
   const spawnEntity = useCallback(
     (
@@ -101,38 +103,30 @@ export function useEntityStore(): EntityStoreReturn {
       width = DEFAULT_WIDTH,
       height = DEFAULT_HEIGHT,
     ): EntityId => {
-      if (!typedBridge) {
-        requireWasmBridge();
-      }
-
-      const newId = typedBridge.spawnEntity(x, y, width, height);
+      const wasmBridge = ensureBridge();
+      const newId = wasmBridge.spawn_entity(x, y, width, height);
       syncEntitiesFromWasm();
       return newId;
     },
-    [typedBridge, syncEntitiesFromWasm],
+    [ensureBridge, syncEntitiesFromWasm],
   );
 
   const deleteEntity = useCallback(
     (id: EntityId) => {
-      if (!typedBridge) {
-        requireWasmBridge();
-      }
-
-      typedBridge.selectEntity(id);
-      typedBridge.deleteSelected();
+      const wasmBridge = ensureBridge();
+      wasmBridge.select_entity(id);
+      wasmBridge.delete_selected();
       syncEntitiesFromWasm();
     },
-    [typedBridge, syncEntitiesFromWasm],
+    [ensureBridge, syncEntitiesFromWasm],
   );
 
   const duplicateEntity = useCallback(
     (id: EntityId): EntityId | null => {
-      if (!typedBridge) {
-        requireWasmBridge();
-      }
+      const wasmBridge = ensureBridge();
 
       try {
-        const newId = typedBridge.duplicateEntity(id);
+        const newId = wasmBridge.duplicate_entity(id);
         syncEntitiesFromWasm();
         return newId;
       } catch (err) {
@@ -140,47 +134,43 @@ export function useEntityStore(): EntityStoreReturn {
         throw err;
       }
     },
-    [typedBridge, syncEntitiesFromWasm],
+    [ensureBridge, syncEntitiesFromWasm],
   );
 
   const updateEntity = useCallback(
     (id: EntityId, updates: Partial<EntityData>) => {
-      if (!typedBridge) {
-        requireWasmBridge();
-      }
+      const wasmBridge = ensureBridge();
 
       if (updates.position) {
-        typedBridge.setPosition(id, updates.position.x, updates.position.y);
+        wasmBridge.set_position(id, updates.position.x, updates.position.y);
       }
       if (updates.size) {
-        typedBridge.setSize(id, updates.size.w, updates.size.h);
+        wasmBridge.set_size(id, updates.size.w, updates.size.h);
       }
       if (updates.color) {
         const hex = updates.color.replace("#", "");
         const r = parseInt(hex.substring(0, 2), 16);
         const g = parseInt(hex.substring(2, 4), 16);
         const b = parseInt(hex.substring(4, 6), 16);
-        typedBridge.setColor(id, r, g, b, 255);
+        wasmBridge.set_color(id, r, g, b, 255);
       }
       if (updates.shape !== undefined) {
-        typedBridge.setShape(id, updates.shape);
+        wasmBridge.set_shape(id, updates.shape);
       }
       if (updates.label !== undefined) {
-        typedBridge.setLabel(id, updates.label);
+        wasmBridge.set_label(id, updates.label);
       }
       syncEntitiesFromWasm();
     },
-    [typedBridge, syncEntitiesFromWasm],
+    [ensureBridge, syncEntitiesFromWasm],
   );
 
   const updateProperty = useCallback(
     <T = unknown>(id: EntityId, key: string, value: T) => {
-      if (!typedBridge) {
-        requireWasmBridge();
-      }
+      const wasmBridge = ensureBridge();
 
       if (key === "label" && typeof value === "string") {
-        typedBridge.setLabel(id, value);
+        wasmBridge.set_label(id, value);
       }
 
       const entity = entities.get(id);
@@ -194,23 +184,21 @@ export function useEntityStore(): EntityStoreReturn {
       });
       setEntities(next);
     },
-    [typedBridge, entities],
+    [ensureBridge, entities],
   );
 
   const getEntity = useCallback(
     (id: EntityId): EntityData | null => {
-      if (!typedBridge) {
-        requireWasmBridge();
-      }
+      const wasmBridge = ensureBridge();
 
       try {
-        const position = typedBridge.getEntityPositionScreen(id);
-        const size = typedBridge.getEntitySizeScreen(id);
-        const color = typedBridge.getEntityColorHex(id);
-        const shape = typedBridge.getEntityShape(id);
-        const label = typedBridge.getEntityLabel(id);
-        const isVisible = typedBridge.isEntityVisible(id);
-        const isSelected = typedBridge.isEntitySelected(id);
+        const position = wasmBridge.get_entity_position_screen(id);
+        const size = wasmBridge.get_entity_size_screen(id);
+        const color = wasmBridge.get_entity_color_hex(id);
+        const shape = wasmBridge.get_entity_shape(id);
+        const label = wasmBridge.get_entity_label(id);
+        const isVisible = wasmBridge.is_entity_visible(id);
+        const isSelected = wasmBridge.is_entity_selected(id);
 
         return {
           id,
@@ -227,7 +215,7 @@ export function useEntityStore(): EntityStoreReturn {
         throw err;
       }
     },
-    [typedBridge],
+    [ensureBridge],
   );
 
   const refreshEntities = useCallback(() => {

@@ -5,19 +5,52 @@
  * access to the WasmBridge instance for all other hooks.
  *
  * Architecture Reference: ARQUITECTURA_FINAL_V3.md - Section 7
+ *
+ * Updated to use vite-plugin-wasm for proper WASM integration with Vite.
+ * The WASM module is imported statically from the pkg directory generated
+ * by wasm-pack with --target web.
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { UseWasmBridgeReturn } from "../types/wasm";
 
-// Lazy load WASM to avoid build issues
-let wasmBridgeClass: unknown = null;
+// Static import from src/wasm directory (Vite processes files in src as modules)
+import init, { WasmBridge } from "../wasm/archflow_web.js";
+
+// Track if WASM has been initialized
+let isWasmInitialized = false;
+let initPromise: Promise<void> | null = null;
+
+/**
+ * Initialize WASM module (singleton pattern)
+ */
+async function initializeWasm(): Promise<void> {
+  if (isWasmInitialized) {
+    return;
+  }
+
+  if (initPromise) {
+    return initPromise;
+  }
+
+  initPromise = (async () => {
+    try {
+      await init();
+      isWasmInitialized = true;
+    } catch (err) {
+      initPromise = null;
+      throw err;
+    }
+  })();
+
+  return initPromise;
+}
 
 /**
  * Hook to load and initialize the ArchFlow WASM bridge
  */
 export function useArchFlowWasm(): UseWasmBridgeReturn {
-  const [bridge, setBridge] = useState<unknown>(null);
+  const [bridge, setBridge] = useState<WasmBridge | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -29,12 +62,13 @@ export function useArchFlowWasm(): UseWasmBridgeReturn {
 
     const loadWasm = async () => {
       try {
-        const wasmModule = await import("@archflow/web");
-        wasmBridgeClass = wasmModule.WasmBridge;
+        // Initialize the WASM module
+        await initializeWasm();
 
         if (!mounted) return;
 
-        const newBridge = new (wasmBridgeClass as new () => unknown)();
+        // Create a new WasmBridge instance
+        const newBridge = new WasmBridge();
         setBridge(newBridge);
         setIsLoaded(true);
         setError(null);
@@ -45,9 +79,8 @@ export function useArchFlowWasm(): UseWasmBridgeReturn {
             new Error(
               `Failed to load WASM module: ${errorMessage}\n\n` +
               `Please build WASM first:\n` +
-              `  cargo build -p archflow-web\n` +
-              `  wasm-pack build --target web\n\n` +
-              `Ensure COOP/COEP headers are configured for SharedArrayBuffer support.`
+              `  cd crates/archflow-web && wasm-pack build --target web\n\n` +
+              `Ensure COOP/COEP headers are configured for SharedArrayBuffer support.`,
             ),
           );
         }
@@ -63,10 +96,8 @@ export function useArchFlowWasm(): UseWasmBridgeReturn {
 
   const initialize = useCallback(
     async (width: number, height: number) => {
-      if (!bridge || !wasmBridgeClass) {
-        throw new Error(
-          "WASM bridge not loaded. Cannot initialize."
-        );
+      if (!bridge) {
+        throw new Error("WASM bridge not loaded. Cannot initialize.");
       }
 
       if (initRef.current) {
@@ -75,10 +106,8 @@ export function useArchFlowWasm(): UseWasmBridgeReturn {
 
       const initPromise = (async () => {
         try {
-          (bridge as { initialize: (w: number, h: number) => void }).initialize(
-            width,
-            height,
-          );
+          // Note: initialize is synchronous, not async
+          bridge.initialize(width, height);
           setIsInitialized(true);
           setError(null);
         } catch (err) {
@@ -110,22 +139,20 @@ export function useArchFlowWasm(): UseWasmBridgeReturn {
 /**
  * Hook to get the input buffer pointer for SharedArrayBuffer communication
  */
-export function useInputBuffer(bridge: unknown) {
+export function useInputBuffer(bridge: WasmBridge | null) {
   const [bufferPtr, setBufferPtr] = useState<number>(0);
   const [bufferSize, setBufferSize] = useState<number>(0);
 
   useEffect(() => {
     if (!bridge) {
-      throw new Error("WASM bridge is required but not loaded for input buffer access");
+      throw new Error(
+        "WASM bridge is required but not loaded for input buffer access",
+      );
     }
 
     try {
-      const ptr = (
-        bridge as { getInputBufferPtr: () => number }
-      ).getInputBufferPtr();
-      const size = (
-        bridge as { getInputBufferSize: () => number }
-      ).getInputBufferSize();
+      const ptr = bridge.get_input_buffer_ptr();
+      const size = WasmBridge.get_input_buffer_size();
       setBufferPtr(ptr);
       setBufferSize(size);
     } catch (err) {
@@ -143,21 +170,13 @@ export function useInputBuffer(bridge: unknown) {
       modifiers: number,
     ) => {
       if (!bridge) {
-        throw new Error("WASM bridge is required but not loaded for input event writing");
+        throw new Error(
+          "WASM bridge is required but not loaded for input event writing",
+        );
       }
 
       try {
-        (
-          bridge as {
-            pushInputEvent: (
-              e: number,
-              x: number,
-              y: number,
-              b: number,
-              m: number,
-            ) => void;
-          }
-        ).pushInputEvent(eventType, x, y, buttons, modifiers);
+        bridge.push_input_event(eventType, x, y, buttons, modifiers);
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err);
         throw new Error(`Failed to write input event to WASM: ${errorMsg}`);
@@ -172,7 +191,10 @@ export function useInputBuffer(bridge: unknown) {
 /**
  * Hook for the main animation loop
  */
-export function useAnimationLoop(bridge: unknown, enabled: boolean = true) {
+export function useAnimationLoop(
+  bridge: WasmBridge | null,
+  enabled: boolean = true,
+) {
   const [isRunning, setIsRunning] = useState(false);
   const [fps, setFps] = useState(0);
   const [frameTime, setFrameTime] = useState(0);
@@ -184,11 +206,13 @@ export function useAnimationLoop(bridge: unknown, enabled: boolean = true) {
   const tick = useCallback(
     (timestamp: number) => {
       if (!bridge) {
-        throw new Error("WASM bridge is required for animation loop but not loaded");
+        throw new Error(
+          "WASM bridge is required for animation loop but not loaded",
+        );
       }
 
       try {
-        (bridge as { tick: (t: number) => void }).tick(timestamp);
+        bridge.tick(timestamp);
 
         frameCountRef.current++;
         if (timestamp - lastFpsUpdateRef.current >= 1000) {
