@@ -24,17 +24,31 @@ pub mod logic;
 pub use bridge::WasmBridge;
 pub use engine::ArchFlowEngine;
 pub use input::{
-    Buttons, InputEventType, InputProcessor, InputRingBuffer, Modifiers, RawInputEvent,
-    EVENT_CAPACITY, EVENT_SIZE, MAX_POINTERS,
+    Buttons, EVENT_CAPACITY, EVENT_SIZE, InputEventType, InputProcessor, InputRingBuffer,
+    MAX_POINTERS, Modifiers, RawInputEvent,
 };
 
 // Re-export HU-003 InputSampler from archflow-logic
 pub use archflow_logic::{
-    InputEvent, InputSampler, InputSnapshotSAB, MouseButton as InputMouseButton,
-    MAX_KEYS as INPUT_SAB_MAX_KEYS,
+    InputEvent, InputSampler, InputSnapshotSAB, MAX_KEYS as INPUT_SAB_MAX_KEYS,
+    MouseButton as InputMouseButton,
 };
 
 // Logic Bricks WASM exports (Epic 5)
 pub use logic::{
-    ActuatorType, Controller, ControllerType, LogicMappingTableWasm, SensorType, SignalByteWasm,
+    // Re-export core types
+    ActuatorType,
+    CameraConfig,
+    Controller,
+    ControllerType,
+    ExtendedActuatorType,
+    HighlightConfig,
+    LogicMappingTableWasm,
+    LogicSystemWasm,
+    MoveConfig,
+    PropertyConfig,
+    PropertyValue,
+    SelectModeWasm,
+    SensorType,
+    SignalByteWasm,
 };

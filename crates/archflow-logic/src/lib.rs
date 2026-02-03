@@ -66,6 +66,7 @@ pub use command::{AnyCommand, Command, CommandHistory, DEFAULT_MAX_HISTORY};
 pub use input::{InputEvent, InputSampler, InputSnapshotSAB, MAX_KEYS, MouseButton};
 pub use logic_system::{LogicSystem, SensorId};
 pub use mapping::{Controller, LogicMappingTable, SensorType};
+pub use pulse::Pulse;
 pub use signals::SignalByte;
 pub use snap::{
     DEFAULT_GRID_SIZE as SNAP_DEFAULT_GRID_SIZE, DEFAULT_THRESHOLD as SNAP_DEFAULT_THRESHOLD,

@@ -14,12 +14,19 @@
 
 #![allow(missing_docs)]
 
+pub mod actuator;
 pub mod controller;
+pub mod logic_system;
 pub mod mapping_table;
 pub mod sensor_type;
 pub mod signal_byte;
 
+pub use actuator::{
+    CameraConfig, ExtendedActuatorType, HighlightConfig, MoveConfig, PropertyConfig, PropertyValue,
+    SelectModeWasm,
+};
 pub use controller::{Controller, ControllerType};
+pub use logic_system::{LogicSystemWasm, PulseWasm};
 pub use mapping_table::{ActuatorType, LogicMappingTableWasm};
 pub use sensor_type::SensorType;
 pub use signal_byte::SignalByteWasm;

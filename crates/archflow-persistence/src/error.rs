@@ -39,6 +39,8 @@ pub enum PersistenceError {
     SpatialHash(String),
     /// Logic bricks error
     LogicBricks(String),
+    /// Migration error
+    MigrationError(String),
 }
 
 impl fmt::Display for PersistenceError {
@@ -57,6 +59,7 @@ impl fmt::Display for PersistenceError {
             Self::EntityStore(msg) => write!(f, "Entity store error: {msg}"),
             Self::SpatialHash(msg) => write!(f, "Spatial hash error: {msg}"),
             Self::LogicBricks(msg) => write!(f, "Logic bricks error: {msg}"),
+            Self::MigrationError(msg) => write!(f, "Migration error: {msg}"),
         }
     }
 }

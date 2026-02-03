@@ -26,6 +26,7 @@ pub mod document;
 pub mod error;
 pub mod format;
 pub mod logic;
+pub mod migration;
 pub mod spatial;
 pub mod store;
 
@@ -37,6 +38,7 @@ pub use document::{
 pub use error::{PersistenceError, PersistenceResult};
 pub use format::{CompressionOption, Format, SerializationFormat};
 pub use logic::{LogicWiringSerializer, SerializableWiring};
+pub use migration::{CURRENT_SCHEMA_VERSION, MigrationEngine};
 pub use spatial::SpatialHashBuilder;
 pub use store::EntityMapper;
 

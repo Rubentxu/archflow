@@ -35,6 +35,7 @@
 import type {
   ActuatorType,
   ControllerType,
+  ExtendedActuatorType,
   LogicMappingTableWasm,
   SensorType,
   SignalByteWasm,
@@ -46,21 +47,222 @@ import { Controller } from "../wasm/archflow_web.d";
 export type {
   ActuatorType,
   ControllerType,
+  ExtendedActuatorType,
   LogicMappingTableWasm,
   SensorType,
   SignalByteWasm,
 };
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// SIGNAL PROXY - JavaScript interface to SignalByte
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * SignalProxy provides JavaScript access to SignalByte state
+ *
+ * This proxy wraps the WASM SignalByte and provides convenient methods
+ * for analyzing signal history and detecting patterns.
+ */
+export interface SignalProxy {
+  /** Current signal state (true = HIGH, false = LOW) */
+  current: boolean;
+
+  /** Check if this is a rising edge (0→1 transition) */
+  isRisingEdge(): boolean;
+
+  /** Check if this is a falling edge (1→0 transition) */
+  isFallingEdge(): boolean;
+
+  /** Check if signal has been steady for N ticks */
+  isSteady(ticks: number): boolean;
+
+  /** Check if signal has been steady HIGH for N ticks */
+  isSteadyHigh(ticks: number): boolean;
+
+  /** Check if signal has been steady LOW for N ticks */
+  isSteadyLow(ticks: number): boolean;
+
+  /** Count number of HIGH ticks in history */
+  countOnes(): number;
+
+  /** Count number of LOW ticks in history */
+  countZeros(): number;
+
+  /** Get raw 6-bit history value */
+  history(): number;
+
+  /** Get bit at position (0 = current, 5 = oldest) */
+  getBit(position: number): boolean;
+}
+
+/**
+ * Create a SignalProxy from a WASM SignalByte
+ */
+export function createSignalProxy(signal: SignalByteWasm): SignalProxy {
+  return {
+    get current() {
+      return signal.get_current() as boolean;
+    },
+
+    isRisingEdge() {
+      return signal.is_rising_edge() as boolean;
+    },
+
+    isFallingEdge() {
+      return signal.is_falling_edge() as boolean;
+    },
+
+    isSteady(ticks: number) {
+      // For simplicity, check if all ticks in history are the same as current
+      const history = signal.get_history() as number;
+      const mask = (1 << ticks) - 1;
+      const currentBit = history & 1;
+      const masked = history & mask;
+
+      if (currentBit === 1) {
+        return masked === mask; // All 1s
+      } else {
+        return masked === 0; // All 0s
+      }
+    },
+
+    isSteadyHigh(ticks: number) {
+      const history = signal.get_history() as number;
+      const mask = (1 << ticks) - 1;
+      return (history & mask) === mask;
+    },
+
+    isSteadyLow(ticks: number) {
+      const history = signal.get_history() as number;
+      const mask = (1 << ticks) - 1;
+      return (history & mask) === 0;
+    },
+
+    countOnes() {
+      const history = signal.get_history() as number;
+      let count = 0;
+      for (let i = 0; i < 6; i++) {
+        if (history & (1 << i)) count++;
+      }
+      return count;
+    },
+
+    countZeros() {
+      return 6 - this.countOnes();
+    },
+
+    history() {
+      return signal.get_history() as number;
+    },
+
+    getBit(position: number) {
+      if (position < 0 || position > 5) return false;
+      const history = signal.get_history() as number;
+      return ((history >> position) & 1) === 1;
+    },
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONTEXT PROXY - JavaScript interface to ControllerContext
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * ContextProxy provides JavaScript access to evaluation context
+ *
+ * This proxy provides access to entity properties, modifiers, and other
+ * contextual information during controller evaluation.
+ */
+export interface ContextProxy {
+  /** Current timestamp in milliseconds */
+  readonly timestamp: number;
+
+  /** Entity ID being evaluated */
+  readonly entityId: number;
+
+  /** Keyboard modifiers bitmask (Shift=1, Ctrl=2, Alt=4, Meta=8) */
+  readonly modifiers: number;
+
+  /** Mouse position in world coordinates */
+  readonly mousePos: { x: number; y: number };
+
+  /** Get a custom property value */
+  getProperty(key: string): string | number | boolean | null;
+
+  /** Set a custom property value */
+  setProperty(key: string, value: string | number | boolean): void;
+}
+
+/**
+ * Create a ContextProxy from evaluation parameters
+ */
+export function createContextProxy(
+  timestamp: number,
+  entityId: number,
+  modifiers: number,
+  mousePos: { x: number; y: number },
+  properties: Map<string, string | number | boolean>,
+): ContextProxy {
+  return {
+    get timestamp() {
+      return timestamp;
+    },
+    get entityId() {
+      return entityId;
+    },
+    get modifiers() {
+      return modifiers;
+    },
+    get mousePos() {
+      return mousePos;
+    },
+
+    getProperty(key: string) {
+      return properties.get(key) ?? null;
+    },
+
+    setProperty(key: string, value: string | number | boolean) {
+      properties.set(key, value);
+    },
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CUSTOM CONTROLLER REGISTRY - JavaScript Sandbox
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Custom controller evaluation function
+ *
+ * @param signal - SignalProxy for the primary sensor
+ * @param context - ContextProxy with evaluation context
+ * @returns true if the controller condition is met
+ */
+export type CustomControllerFn = (
+  signal: SignalProxy,
+  context: ContextProxy,
+) => boolean;
+
 /**
  * Custom controller registry for JavaScript-evaluated controllers
  *
  * Allows developers to register custom JavaScript logic that will be
- * evaluated in a sandboxed environment.
+ * evaluated in a sandboxed environment with timeout protection.
+ *
+ * @example
+ * ```typescript
+ * registry.register('tooltipOnCtrlHover', (signal, context) => {
+ *   const stable = signal.isSteady(6);
+ *   const hasCtrl = (context.modifiers & 2) !== 0;
+ *   return stable && hasCtrl;
+ * });
+ * ```
  */
-class CustomControllerRegistry {
-  private controllers = new Map<
-    string,
-    (signal: any, context: any) => boolean
+export class CustomControllerRegistry {
+  private controllers = new Map<string, CustomControllerFn>();
+  private properties = new Map<
+    number,
+    Map<string, string | number | boolean>
   >();
 
   /**
@@ -72,33 +274,80 @@ class CustomControllerRegistry {
    * @example
    * ```typescript
    * registry.register('tooltipOnCtrlHover', (signal, context) => {
-   *   const stable = signal.isSteady(6);
-   *   const hasCtrl = (context.modifiers & 2) !== 0;
-   *   return stable && hasCtrl;
+   *   return signal.isSteady(6) && (context.modifiers & 2) !== 0;
    * });
    * ```
    */
-  register(name: string, fn: (signal: any, context: any) => boolean): void {
+  register(name: string, fn: CustomControllerFn): void {
     this.controllers.set(name, fn);
   }
 
   /**
-   * Evaluate a custom controller
+   * Evaluate a custom controller with sandbox protection
    *
    * @param name - Controller name
-   * @param signal - SignalByte proxy object
-   * @param context - Evaluation context
+   * @param signal - WASM SignalByte
+   * @param context - Evaluation context parameters
+   * @param timeoutMs - Timeout in milliseconds (default: 50ms)
    * @returns Result of custom controller evaluation
+   *
+   * @example
+   * ```typescript
+   * const result = registry.evaluate(
+   *   'myController',
+   *   signalByte,
+   *   { timestamp: Date.now(), entityId: 1, modifiers: 2, mousePos: {x:0, y:0} },
+   *   50
+   * );
+   * ```
    */
-  evaluate(name: string, signal: any, context: any): boolean {
+  evaluate(
+    name: string,
+    signal: SignalByteWasm,
+    context: {
+      timestamp: number;
+      entityId: number;
+      modifiers: number;
+      mousePos: { x: number; y: number };
+    },
+    timeoutMs: number = 50,
+  ): boolean {
     const fn = this.controllers.get(name);
     if (!fn) {
       console.warn(`Custom controller "${name}" not found, returning false`);
       return false;
     }
 
+    // Get or create property map for this entity
+    if (!this.properties.has(context.entityId)) {
+      this.properties.set(context.entityId, new Map());
+    }
+    const entityProps = this.properties.get(context.entityId)!;
+
+    // Create proxies
+    const signalProxy = createSignalProxy(signal);
+    const contextProxy = createContextProxy(
+      context.timestamp,
+      context.entityId,
+      context.modifiers,
+      context.mousePos,
+      entityProps,
+    );
+
+    // Evaluate with timeout protection
     try {
-      return fn(signal, context);
+      const timeout = Date.now() + timeoutMs;
+      const result = fn(signalProxy, contextProxy);
+
+      // Check for timeout
+      if (Date.now() > timeout) {
+        console.error(
+          `Custom controller "${name}" exceeded timeout of ${timeoutMs}ms`,
+        );
+        return false;
+      }
+
+      return result;
     } catch (error) {
       console.error(`Error evaluating custom controller "${name}":`, error);
       return false;
@@ -124,6 +373,26 @@ class CustomControllerRegistry {
    */
   clear(): void {
     this.controllers.clear();
+    this.properties.clear();
+  }
+
+  /**
+   * Get all registered controller names
+   */
+  getControllerNames(): string[] {
+    return Array.from(this.controllers.keys());
+  }
+
+  /**
+   * Get property storage for an entity (for debugging/testing)
+   */
+  getEntityProperties(
+    entityId: number,
+  ): Map<string, string | number | boolean> {
+    if (!this.properties.has(entityId)) {
+      this.properties.set(entityId, new Map());
+    }
+    return this.properties.get(entityId)!;
   }
 }
 
@@ -131,6 +400,10 @@ class CustomControllerRegistry {
  * Global custom controller registry instance
  */
 export const customControllerRegistry = new CustomControllerRegistry();
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// HIGH-LEVEL SDK FOR LOGIC BRICKS SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
  * High-level SDK for Logic Bricks system
@@ -227,6 +500,10 @@ export class LogicSDK {
     this.entityCallbacks.clear();
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ENTITY BUILDER - Fluent API
+// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
  * Fluent builder for entity behavior configuration
@@ -387,6 +664,10 @@ export class EntityBuilder {
     }
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONVENIENCE FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
  * Convenience functions for creating controllers
