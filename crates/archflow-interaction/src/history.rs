@@ -10,7 +10,6 @@
 extern crate alloc;
 
 use alloc::collections::VecDeque;
-use alloc::vec::Vec;
 
 use archflow_core::{EntityId, Vec2};
 use archflow_engine::{Command, EntityStore};

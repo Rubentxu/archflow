@@ -10,8 +10,6 @@
 // - Optimized for real-time glyph generation
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#![no_std]
-
 extern crate alloc;
 
 use alloc::vec;
@@ -228,11 +226,7 @@ impl SdfGenerator {
             };
         }
 
-        if inside {
-            min_dist
-        } else {
-            -min_dist
-        }
+        if inside { min_dist } else { -min_dist }
     }
 
     /// Compute multi-channel SDF values

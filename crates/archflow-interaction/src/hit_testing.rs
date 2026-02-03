@@ -12,7 +12,6 @@
 
 #![allow(dead_code)]
 
-use alloc::vec;
 use alloc::vec::Vec;
 
 use archflow_core::{EntityId, Rect, Vec2};
@@ -292,7 +291,7 @@ impl HitTester {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use archflow_core::{Rect, MAX_ENTITIES};
+    use archflow_core::{MAX_ENTITIES, Rect};
     use archflow_engine::EntityStore;
 
     #[test]

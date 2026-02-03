@@ -17,7 +17,6 @@
 #![allow(dead_code)]
 
 use alloc::string::String;
-use alloc::string::ToString;
 
 use crate::shaders;
 use crate::webgpu_context::WebGpuContext;

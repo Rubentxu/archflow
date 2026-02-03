@@ -15,7 +15,6 @@
 
 #![allow(dead_code)]
 
-use alloc::format;
 use alloc::string::String;
 
 use archflow_core::MAX_ENTITIES;

@@ -14,7 +14,6 @@
 
 extern crate alloc;
 
-use alloc::vec;
 use alloc::vec::Vec;
 
 use archflow_core::{EntityId, Generation, Index};
@@ -28,7 +27,14 @@ pub enum SerializeError {
     /// Data corruption detected
     CorruptedData,
     /// Version mismatch
-    VersionMismatch { expected: u32, found: u32 },
+    ///
+    /// Contains the expected and found version numbers
+    VersionMismatch {
+        /// Expected format version
+        expected: u32,
+        /// Found format version
+        found: u32,
+    },
     /// IO error (when applicable)
     IoError,
 }
@@ -76,7 +82,7 @@ impl ProjectHeader {
     }
 
     /// Convert to bytes (manual serialization)
-    fn to_bytes(&self) -> [u8; 40] {
+    fn to_bytes(self) -> [u8; 40] {
         let mut bytes = [0u8; 40];
         bytes[0..8].copy_from_slice(&self.magic);
         bytes[8..12].copy_from_slice(&self.version.to_le_bytes());
@@ -215,7 +221,7 @@ impl ProjectSerializer {
         buffer.extend_from_slice(&header.to_bytes());
 
         // Write entity data (only alive entities)
-        let mut entities_written = 0u32;
+        let entities_written = 0u32;
         for i in 0..MAX_ENTITIES {
             if !store.is_alive_index(i) {
                 continue;
@@ -257,7 +263,7 @@ impl ProjectSerializer {
                 )
             };
             buffer.extend_from_slice(bytes);
-            entities_written += 1;
+            let _ = entities_written.wrapping_add(1);
         }
 
         // Write connection data (compact format: 16 bytes)
@@ -290,7 +296,7 @@ impl ProjectSerializer {
         const HEADER_SIZE: usize = 40;
         const CONN_SIZE: usize = 16; // Fixed compact connection size
 
-        let entity_count = store.alive_count() as usize;
+        let entity_count = store.alive_count();
         let connection_count = connections.len();
 
         let entity_chunk_size = size_of::<EntityChunk>();
@@ -318,7 +324,7 @@ impl ProjectDeserializer {
         // Header is always 40 bytes (fixed size for compatibility)
         const HEADER_SIZE: usize = 40;
         let entity_chunk_size = size_of::<EntityChunk>();
-        const CONN_CHUNK_SIZE: usize = 16;
+        let _conn_chunk_size = 16;
 
         // Validate minimum size
         if data.len() < HEADER_SIZE {
@@ -511,8 +517,6 @@ impl ProjectDeserializer {
 
     /// Validate a project file without fully deserializing it
     pub fn validate(data: &[u8]) -> Result<ProjectMetadata, SerializeError> {
-        use core::mem::size_of;
-
         const HEADER_SIZE: usize = 40;
 
         if data.len() < HEADER_SIZE {

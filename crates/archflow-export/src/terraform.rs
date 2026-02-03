@@ -15,9 +15,6 @@
 
 use archflow_diagram::{C4EntityType, CloudProvider};
 use archflow_engine::{ArchitectureData as EngineArchData, ConnectionStore, EntityStore};
-use std::format;
-use std::string::{String, ToString};
-use std::vec::Vec;
 
 /// Helper to convert engine ArchitectureData to diagram types
 struct ArchDataHelper<'a> {
@@ -60,10 +57,12 @@ impl<'a> ArchDataHelper<'a> {
         &self.data.technology
     }
 
+    #[allow(dead_code)]
     fn description(&self) -> &str {
         &self.data.description
     }
 
+    #[allow(dead_code)]
     fn c4_level(&self) -> u8 {
         self.data.c4_level
     }
@@ -161,6 +160,7 @@ impl TerraformExporter {
         hcl.push_str(&self.generate_terraform_block());
 
         // Provider block
+        #[allow(clippy::collapsible_if)]
         if self.include_provider {
             if let Some(provider) = self.detect_cloud_provider(store) {
                 hcl.push_str(&self.generate_provider_block(provider));
@@ -515,8 +515,8 @@ resource "aws_ecs_service" "{}" {{
     /// Generate AWS security group rules from connections
     fn generate_aws_security_groups(
         &self,
-        store: &EntityStore,
-        connections: &ConnectionStore,
+        _store: &EntityStore,
+        _connections: &ConnectionStore,
         project_name: &str,
     ) -> String {
         let mut rules = String::new();
@@ -625,7 +625,7 @@ resource "random_password" "main_password" {
         _connections: &ConnectionStore,
         project_name: &str,
     ) -> String {
-        String::from(format!(
+        format!(
             r#"resource "google_compute_network" "{}" {{
   name                    = "{}-vpc"
   auto_create_subnetworks = false
@@ -640,7 +640,7 @@ resource "google_compute_subnetwork" "main" {{
 
 "#,
             project_name, project_name, project_name, project_name
-        ))
+        )
     }
 
     /// Generate Azure-specific resources
@@ -650,7 +650,7 @@ resource "google_compute_subnetwork" "main" {{
         _connections: &ConnectionStore,
         project_name: &str,
     ) -> String {
-        String::from(format!(
+        format!(
             r#"resource "azurerm_container_app_environment" "main" {{
   name                = "{}-env"
   location            = azurerm_resource_group.main.location
@@ -667,11 +667,11 @@ resource "azurerm_log_analytics_workspace" "main" {{
 
 "#,
             project_name, project_name
-        ))
+        )
     }
 
     /// Generate output blocks
-    fn generate_outputs(&self, store: &EntityStore, project_name: &str) -> String {
+    fn generate_outputs(&self, store: &EntityStore, _project_name: &str) -> String {
         let mut outputs =
             String::from("output \"project_name\" {\n  value = var.project_name\n}\n\n");
 

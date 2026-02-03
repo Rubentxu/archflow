@@ -4,6 +4,7 @@ members = [
     "crates/archflow-diagram",
     "crates/archflow-engine",
     "crates/archflow-logic",        # Logic Bricks system (Epic 1-5)
+    "crates/archflow-persistence",  # Document persistence layer (EPIC-WEB-012)
     "crates/archflow-sdk",          # NEW: Public SDK API (EPIC-SDK-API)
     "crates/archflow-render",
     "crates/archflow-interaction",

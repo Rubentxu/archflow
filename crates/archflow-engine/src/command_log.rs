@@ -19,7 +19,6 @@
 
 #![warn(missing_docs)]
 
-use alloc::format;
 use alloc::vec::Vec;
 use archflow_core::EntityId;
 
@@ -182,8 +181,7 @@ impl CommandLog {
     }
 
     /// Get iterator over commands (with timestamps)
-    #[must_use]
-    pub fn iter(&self) -> core::slice::Iter<(u64, Command)> {
+    pub fn iter(&self) -> core::slice::Iter<'_, (u64, Command)> {
         self.commands.iter()
     }
 
@@ -499,6 +497,7 @@ fn current_timestamp_ms() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::format; // For format! macro in no_std
     use archflow_core::{Generation, Index, Vec2};
 
     /// Helper to create a test command
@@ -752,7 +751,7 @@ mod tests {
         let err = CommandError::Io {
             message: alloc::string::String::from("File not found"),
         };
-        let msg = format!("{}", err);
+        let msg = alloc::format!("{}", err);
         assert!(msg.contains("File not found"));
     }
 
@@ -761,7 +760,7 @@ mod tests {
         let err = CommandError::Serialization {
             message: alloc::string::String::from("Invalid data"),
         };
-        let msg = format!("{}", err);
+        let msg = alloc::format!("{}", err);
         assert!(msg.contains("Invalid data"));
     }
 
@@ -770,7 +769,7 @@ mod tests {
         let err = CommandError::NotImplemented {
             operation: alloc::string::String::from("save"),
         };
-        let msg = format!("{}", err);
+        let msg = alloc::format!("{}", err);
         assert!(msg.contains("save"));
         assert!(msg.contains("not implemented"));
     }

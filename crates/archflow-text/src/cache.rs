@@ -7,14 +7,10 @@
 // Uses LRU eviction policy to manage memory usage.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#![no_std]
-
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::format;
 use alloc::string::String;
-use alloc::vec;
 use alloc::vec::Vec;
 
 use archflow_core::Vec2;
@@ -255,6 +251,9 @@ impl Default for GlyphRunCache {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::format; // For format! macro in no_std
+    use alloc::string::String;
+    use alloc::vec; // For vec! macro in no_std
     use archflow_core::Vec2;
 
     fn dummy_compute(text: &str, _font_size: f32) -> FlatGlyphRun {

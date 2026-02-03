@@ -7,12 +7,10 @@
 // Supports different anchor points and line styles.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-extern crate alloc;
-
 use alloc::vec;
 use alloc::vec::Vec;
 
-use archflow_core::{EntityId, Vec2, MAX_ENTITIES};
+use archflow_core::{EntityId, MAX_ENTITIES, Vec2};
 use fixedbitset::FixedBitSet;
 
 use crate::store::EntityStore;

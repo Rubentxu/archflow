@@ -7,8 +7,6 @@
 // Manages the FontSystem and provides layout computation.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#![no_std]
-
 extern crate alloc;
 
 use archflow_core::Vec2;

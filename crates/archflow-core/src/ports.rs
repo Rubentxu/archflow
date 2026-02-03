@@ -202,52 +202,82 @@ pub trait AssetLoader {
 #[derive(Clone, Debug, PartialEq)]
 pub enum DomainEvent {
     /// An entity was spawned
-    EntitySpawned { id: EntityId },
+    EntitySpawned {
+        /// The unique identifier of the spawned entity
+        id: EntityId,
+    },
 
     /// An entity was despawned
-    EntityDespawned { id: EntityId },
+    EntityDespawned {
+        /// The unique identifier of the despawned entity
+        id: EntityId,
+    },
 
     /// An entity was moved
     EntityMoved {
+        /// The unique identifier of the moved entity
         id: EntityId,
+        /// The previous position before the move
         old_position: crate::math::Vec2,
+        /// The new position after the move
         new_position: crate::math::Vec2,
     },
 
     /// An entity was resized
     EntityResized {
+        /// The unique identifier of the resized entity
         id: EntityId,
+        /// The previous size before the resize
         old_size: crate::math::Vec2,
+        /// The new size after the resize
         new_size: crate::math::Vec2,
     },
 
     /// An entity's color was changed
     EntityColorChanged {
+        /// The unique identifier of the entity whose color changed
         id: EntityId,
+        /// The previous color before the change
         old_color: crate::math::Color,
+        /// The new color after the change
         new_color: crate::math::Color,
     },
 
     /// An entity was selected
-    EntitySelected { id: EntityId },
+    EntitySelected {
+        /// The unique identifier of the selected entity
+        id: EntityId,
+    },
 
     /// An entity was deselected
-    EntityDeselected { id: EntityId },
+    EntityDeselected {
+        /// The unique identifier of the deselected entity
+        id: EntityId,
+    },
 
     /// A connection was created
     ConnectionCreated {
+        /// The unique identifier of the connection entity
         id: EntityId,
+        /// The source entity of the connection
         source: EntityId,
+        /// The target entity of the connection
         target: EntityId,
     },
 
     /// A connection was deleted
-    ConnectionDeleted { id: EntityId },
+    ConnectionDeleted {
+        /// The unique identifier of the deleted connection
+        id: EntityId,
+    },
 
     /// Text was changed
     TextChanged {
+        /// The unique identifier of the entity whose text changed
         id: EntityId,
+        /// The previous text content before the change
         old_text: String,
+        /// The new text content after the change
         new_text: String,
     },
 }
@@ -266,37 +296,59 @@ pub enum DomainEvent {
 pub enum Command {
     /// Spawn a new entity
     Spawn {
+        /// The position at which to spawn the entity
         pos: crate::math::Vec2,
+        /// The size of the entity to spawn
         size: crate::math::Vec2,
+        /// Optional parent entity for hierarchical organization
         parent: Option<EntityId>,
     },
 
     /// Despawn an entity
-    Despawn(EntityId),
+    Despawn(
+        /// The unique identifier of the entity to despawn
+        EntityId,
+    ),
 
     /// Move an entity by a delta
     Move {
+        /// The unique identifier of the entity to move
         id: EntityId,
+        /// The delta vector by which to move the entity
         delta: crate::math::Vec2,
     },
 
     /// Teleport an entity to a position
     Teleport {
+        /// The unique identifier of the entity to teleport
         id: EntityId,
+        /// The absolute position to teleport the entity to
         pos: crate::math::Vec2,
     },
 
     /// Resize an entity
     Resize {
+        /// The unique identifier of the entity to resize
         id: EntityId,
+        /// The new size for the entity
         size: crate::math::Vec2,
     },
 
     /// Set the color of an entity
-    SetColor { id: EntityId, color: u32 },
+    SetColor {
+        /// The unique identifier of the entity whose color to set
+        id: EntityId,
+        /// The new color value (ARGB format)
+        color: u32,
+    },
 
     /// Set the shape type of an entity
-    SetShape { id: EntityId, shape: u8 },
+    SetShape {
+        /// The unique identifier of the entity whose shape to set
+        id: EntityId,
+        /// The shape type identifier
+        shape: u8,
+    },
 }
 
 /// Result of executing a command

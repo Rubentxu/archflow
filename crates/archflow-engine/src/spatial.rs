@@ -38,11 +38,6 @@ impl CellCoord {
             y: (pos.y / CELL_SIZE).floor() as i32,
         }
     }
-
-    /// Convert cell coordinate to world origin
-    fn to_world_origin(self) -> Vec2 {
-        Vec2::new(self.x as f32 * CELL_SIZE, self.y as f32 * CELL_SIZE)
-    }
 }
 
 /// Single cell in the spatial grid

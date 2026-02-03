@@ -30,7 +30,7 @@ use crate::signals::SignalByte;
 /// Types of actuators that can be triggered
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum ActuatorType {
+pub enum ActuatorType {
     Highlight = 0,
     Select = 1,
     Move = 2,

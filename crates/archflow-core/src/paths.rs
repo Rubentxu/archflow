@@ -354,12 +354,16 @@ impl PathBuilder {
     }
 
     /// Build an ellipse path using cubic Bézier curves
+    ///
+    /// Uses the magic constant k = 0.5522848 to approximate an ellipse
+    /// with cubic Bézier curves. This constant provides the best fit
+    /// for a quarter-circle/ellipse arc.
     #[must_use]
     pub fn ellipse(cx: f32, cy: f32, rx: f32, ry: f32) -> Path {
         let k = 0.5522848;
+        let _rx_y = ry * k; // Control point distance for horizontal tangent (prefix with _ to silence unused warning)
+        let _ry_x = rx * k; // Control point distance for vertical tangent (prefix with _ to silence unused warning)
         let rx_x = rx * k;
-        let rx_y = ry * k;
-        let ry_x = rx * k;
         let ry_y = ry * k;
 
         let mut path = Path::new();

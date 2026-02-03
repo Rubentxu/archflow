@@ -91,7 +91,6 @@ impl EntityState {
             EntityState::Disabled => false,
             EntityState::Hidden => false,
             EntityState::Locked => false,
-            _ => false,
         }
     }
 

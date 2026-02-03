@@ -38,15 +38,25 @@ pub const MAX_TEXT_LENGTH: usize = 50_000;
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ShapeType {
+    /// Standard rectangle shape
     Rectangle = 0,
+    /// Circle/ellipse shape
     Circle = 1,
+    /// Ellipse shape (different aspect ratio)
     Ellipse = 2,
+    /// Straight line
     Line = 3,
+    /// Triangle shape
     Triangle = 4,
+    /// Diamond/rhombus shape
     Diamond = 5,
-    Cylinder = 6, // Database shape
-    Person = 7,   // User/Actor icon
+    /// Cylinder shape (typically for databases)
+    Cylinder = 6,
+    /// Person/user actor icon
+    Person = 7,
+    /// Rectangle with rounded corners
     RoundedRect = 8,
+    /// Rectangle with dashed border
     DashedRect = 9,
 }
 
@@ -54,11 +64,17 @@ pub enum ShapeType {
 /// Stored separately as "cold data" - only accessed on selection/inspection
 #[derive(Clone, Debug)]
 pub struct ArchitectureData {
+    /// Name of the entity
     pub name: String,
+    /// C4 level (0=System, 1=Container, 2=Component, 3=Code)
     pub c4_level: u8,
+    /// Entity type identifier
     pub entity_type: u8,
+    /// Cloud provider (0=None, 1=AWS, 2=GCP, 3=Azure)
     pub cloud_provider: u8,
+    /// Technology stack description
     pub technology: String,
+    /// Detailed description of the entity
     pub description: String,
 }
 
@@ -79,6 +95,12 @@ pub struct StringPool {
 }
 
 impl StringPool {
+    /// Create a new StringPool with the given capacity.
+    ///
+    /// # Arguments
+    /// * `entities` - Maximum number of entities to store strings for
+    /// * `total_chars` - Total character capacity for the buffer
+    #[must_use]
     pub fn with_capacity(entities: usize, total_chars: usize) -> Self {
         Self {
             buffer: Vec::with_capacity(total_chars),
@@ -87,6 +109,11 @@ impl StringPool {
         }
     }
 
+    /// Set the text for an entity.
+    ///
+    /// # Arguments
+    /// * `entity_idx` - Index of the entity
+    /// * `text` - Text content to store
     pub fn set(&mut self, entity_idx: usize, text: &str) {
         let bytes = text.as_bytes();
         let start = self.buffer.len();
@@ -94,12 +121,21 @@ impl StringPool {
         self.offsets[entity_idx] = (start, bytes.len());
     }
 
+    /// Get the text for an entity.
+    ///
+    /// # Arguments
+    /// * `entity_idx` - Index of the entity
+    ///
+    /// # Returns
+    /// The text content
     #[inline(always)]
+    #[must_use]
     pub fn get(&self, entity_idx: usize) -> &str {
         let (start, len) = self.offsets[entity_idx];
         unsafe { core::str::from_utf8_unchecked(&self.buffer[start..start + len]) }
     }
 
+    /// Clear all strings from the pool.
     pub fn clear(&mut self) {
         self.buffer.clear();
         self.offsets.fill((0, 0));

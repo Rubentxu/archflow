@@ -12,7 +12,6 @@
 
 #![allow(dead_code)]
 
-use alloc::vec;
 use alloc::vec::Vec;
 
 use archflow_core::{Color, Rect, Vec2};
@@ -44,14 +43,21 @@ pub enum GizmoCursor {
     Arrow = 0,
     /// Move cursor (4-directional arrows)
     Move = 1,
-    /// Resize cursors (8 directions)
+    /// Northwest resize cursor
     ResizeNW = 2,
+    /// North resize cursor
     ResizeN = 3,
+    /// Northeast resize cursor
     ResizeNE = 4,
+    /// East resize cursor
     ResizeE = 5,
+    /// Southeast resize cursor
     ResizeSE = 6,
+    /// South resize cursor
     ResizeS = 7,
+    /// Southwest resize cursor
     ResizeSW = 8,
+    /// West resize cursor
     ResizeW = 9,
     /// Rotation cursor (circular arrow)
     Rotate = 10,

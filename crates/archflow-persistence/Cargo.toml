@@ -1,0 +1,41 @@
+[package]
+name = "archflow-persistence"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+# Core types (EntityId, Vec2, etc.)
+archflow-core = { path = "../archflow-core" }
+
+# EntityStore with SoA layout
+archflow-engine = { path = "../archflow-engine" }
+
+# Logic Bricks system (sensor→controller→actuator wiring)
+archflow-logic = { path = "../archflow-logic" }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { version = "1.0", default-features = false, features = ["std"] }
+bincode = { workspace = true }
+
+# Binary I/O
+byteorder = "1.5"
+
+# Compression
+flate2 = { workspace = true }
+
+# Collections
+hashbrown = { workspace = true }
+indexmap = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Time handling
+time = { version = "0.3", default-features = false, features = ["std", "formatting"] }
+
+[dev-dependencies]
+# For testing
+
+[lib]
+doctest = false

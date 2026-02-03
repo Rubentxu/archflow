@@ -7,8 +7,6 @@
 // The atlas caches glyph textures for GPU rendering.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#![no_std]
-
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
@@ -68,7 +66,7 @@ impl MtsdfAtlas {
     ///
     /// # Returns
     /// `true` if the glyph was inserted, `false` if the key already exists
-    pub fn insert_glyph(&mut self, key: GlyphKey, uv_rect: Rect, glyph_pixels: &[u8]) -> bool {
+    pub fn insert_glyph(&mut self, key: GlyphKey, uv_rect: Rect, _glyph_pixels: &[u8]) -> bool {
         if self.glyph_cache.contains_key(&key) {
             return false;
         }
@@ -163,7 +161,8 @@ impl Default for MtsdfAtlas {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use archflow_core::Vec2;
+    use alloc::format; // For format! macro in no_std
+    use alloc::vec; // For vec! macro in no_std
 
     #[test]
     fn test_atlas_creation() {

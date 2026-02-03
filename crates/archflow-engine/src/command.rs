@@ -27,59 +27,87 @@ pub enum Command {
     // ═══════════════════════════════════════════════════════════
     // CREATION / DESTRUCTION
     // ═══════════════════════════════════════════════════════════
+    /// Spawn a new entity at the given position and size
     Spawn {
-        pos: Vec2,                // 8 bytes
-        size: Vec2,               // 8 bytes
-        parent: Option<EntityId>, // 4 bytes
+        /// Position where to spawn the entity
+        pos: Vec2,
+        /// Size of the entity
+        size: Vec2,
+        /// Optional parent entity
+        parent: Option<EntityId>,
     } = 0,
 
-    Despawn(EntityId) = 1, // 4 bytes
+    /// Despawn (remove) an entity
+    Despawn(EntityId) = 1,
 
     // ═══════════════════════════════════════════════════════════
     // TRANSFORMATION (Hot Path)
     // ═══════════════════════════════════════════════════════════
+    /// Move an entity by a delta vector
     Move {
-        id: EntityId, // 4 bytes
-        delta: Vec2,  // 8 bytes
+        /// Entity to move
+        id: EntityId,
+        /// Delta to move by
+        delta: Vec2,
     } = 2,
 
+    /// Teleport an entity to an absolute position
     Teleport {
-        id: EntityId, // 4 bytes
-        pos: Vec2,    // 8 bytes
+        /// Entity to teleport
+        id: EntityId,
+        /// Absolute position
+        pos: Vec2,
     } = 3,
 
+    /// Resize an entity
     Resize {
-        id: EntityId, // 4 bytes
-        size: Vec2,   // 8 bytes
+        /// Entity to resize
+        id: EntityId,
+        /// New size
+        size: Vec2,
     } = 4,
 
     /// Move entire group (hierarchy-aware)
     MoveGroup {
-        root_id: EntityId, // 4 bytes - move this and all descendants
-        delta: Vec2,       // 8 bytes
+        /// Root entity - move this and all descendants
+        root_id: EntityId,
+        /// Delta to move by
+        delta: Vec2,
     } = 5,
 
     // ═══════════════════════════════════════════════════════════
     // APPEARANCE
     // ═══════════════════════════════════════════════════════════
+    /// Set the color of an entity
     SetColor {
-        id: EntityId, // 4 bytes
-        color: u32,   // 4 bytes (0xRRGGBBAA)
+        /// Entity to modify
+        id: EntityId,
+        /// Color in ARGB format (0xRRGGBBAA)
+        color: u32,
     } = 6,
 
+    /// Set the shape type of an entity
     SetShape {
-        id: EntityId, // 4 bytes
-        shape: u8,    // 1 byte
+        /// Entity to modify
+        id: EntityId,
+        /// Shape type
+        shape: u8,
     } = 7,
 
+    /// Set the visibility of an entity
     SetVisible {
-        id: EntityId,  // 4 bytes
-        visible: bool, // 1 byte
+        /// Entity to modify
+        id: EntityId,
+        /// Visibility state
+        visible: bool,
     } = 8,
 
+    /// Set the render layer of an entity
     SetLayer {
-        id: EntityId, // 4 bytes
-        layer: u8,    // 1 byte
+        /// Entity to modify
+        id: EntityId,
+        /// Layer index
+        layer: u8,
     } = 9,
 
     // ═══════════════════════════════════════════════════════════
@@ -88,47 +116,65 @@ pub enum Command {
     /// Set texture from atlas
     /// UV rects are pre-defined in the atlas, accessed by texture_index
     SetTexture {
-        id: EntityId,       // 4 bytes
-        texture_index: u16, // 2 bytes (index into atlas with pre-defined UVs)
+        /// Entity to modify
+        id: EntityId,
+        /// Index into atlas with pre-defined UVs
+        texture_index: u16,
     } = 10,
 
     // ═══════════════════════════════════════════════════════════
     // TEXT (indices to string pool)
     // ═══════════════════════════════════════════════════════════
+    /// Set the text content of an entity
     SetText {
-        id: EntityId,   // 4 bytes
-        text_hash: u32, // 4 bytes - hash to look up in string pool
+        /// Entity to modify
+        id: EntityId,
+        /// Hash to look up in string pool
+        text_hash: u32,
     } = 11,
 
+    /// Set the text scale of an entity
     SetTextScale {
-        id: EntityId, // 4 bytes
-        scale: f32,   // 4 bytes
+        /// Entity to modify
+        id: EntityId,
+        /// Scale factor
+        scale: f32,
     } = 12,
 
     // ═══════════════════════════════════════════════════════════
     // C4 MODEL SPECIFIC
     // ═══════════════════════════════════════════════════════════
+    /// Set the C4 level of an entity
     SetC4Level {
-        id: EntityId, // 4 bytes
-        level: u8,    // 1 byte (0=System, 1=Container, 2=Component, 3=Code)
+        /// Entity to modify
+        id: EntityId,
+        /// C4 level (0=System, 1=Container, 2=Component, 3=Code)
+        level: u8,
     } = 13,
 
+    /// Set the cloud provider of an entity
     SetCloudProvider {
-        id: EntityId, // 4 bytes
-        provider: u8, // 1 byte (0=None, 1=AWS, 2=GCP, 3=Azure)
+        /// Entity to modify
+        id: EntityId,
+        /// Cloud provider (0=None, 1=AWS, 2=GCP, 3=Azure)
+        provider: u8,
     } = 14,
 
     // ═══════════════════════════════════════════════════════════
     // HIERARCHY
     // ═══════════════════════════════════════════════════════════
+    /// Set the parent of an entity
     SetParent {
-        id: EntityId,     // 4 bytes
-        parent: EntityId, // 4 bytes
+        /// Entity to modify
+        id: EntityId,
+        /// New parent entity
+        parent: EntityId,
     } = 15,
 
+    /// Clear the parent of an entity
     ClearParent(EntityId) = 16,
 
-    // Ensure discriminant fits in u8
+    /// Maximum discriminant value (ensures enum fits in u8)
     _Max = 255,
 }
 
@@ -314,10 +360,7 @@ impl Command {
             Command::ClearParent(id) => {
                 let idx = id.index().0 as usize;
                 let old_parent = store.parent_id[idx];
-                match old_parent {
-                    Some(parent) => Some(Command::SetParent { id: *id, parent }),
-                    None => None, // Was already None, cannot restore
-                }
+                old_parent.map(|parent| Command::SetParent { id: *id, parent })
             }
 
             Command::_Max => None,
@@ -505,17 +548,21 @@ mod tests {
     fn test_affects_hierarchy() {
         let id = EntityId::from_parts(Index(1), Generation(1));
 
-        assert!(Command::MoveGroup {
-            root_id: id,
-            delta: Vec2::ZERO
-        }
-        .affects_hierarchy());
+        assert!(
+            Command::MoveGroup {
+                root_id: id,
+                delta: Vec2::ZERO
+            }
+            .affects_hierarchy()
+        );
         assert!(Command::SetParent { id, parent: id }.affects_hierarchy());
-        assert!(!Command::Move {
-            id,
-            delta: Vec2::ZERO
-        }
-        .affects_hierarchy());
+        assert!(
+            !Command::Move {
+                id,
+                delta: Vec2::ZERO
+            }
+            .affects_hierarchy()
+        );
     }
 
     // ═══════════════════════════════════════════════════════════

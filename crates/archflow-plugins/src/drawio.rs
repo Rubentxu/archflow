@@ -168,8 +168,11 @@ fn inflate_deflate(_compressed: &[u8]) -> Result<String, DecodeError> {
 /// Library icon from Draw.io
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LibraryIcon {
+    /// Unique identifier for the icon
     pub id: String,
+    /// Display name of the icon
     pub name: String,
+    /// SVG data for the icon
     pub svg_data: String,
 }
 

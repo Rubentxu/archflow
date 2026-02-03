@@ -3,6 +3,10 @@ name = "archflow-diagram"
 version.workspace = true
 edition.workspace = true
 
+[features]
+default = ["std"]
+std = []
+
 [dependencies]
 # Core types (no_std compatible)
 archflow-core = { path = "../archflow-core" }

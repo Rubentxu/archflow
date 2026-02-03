@@ -11,7 +11,6 @@
 
 #![allow(dead_code)]
 
-use alloc::vec;
 use alloc::vec::Vec;
 
 /// Rectangle in the texture atlas

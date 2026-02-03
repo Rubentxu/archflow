@@ -13,17 +13,12 @@
 //! - Rate limiting prevents abuse and DoS attacks
 //! - Command signing ensures message integrity and authenticity
 
-use alloc::format;
 use alloc::string::String;
 use alloc::string::ToString;
-use alloc::vec;
 use alloc::vec::Vec;
-use core::hash::{Hash, Hasher};
+use core::hash::Hash;
 use core::sync::atomic::{AtomicU64, Ordering};
-use core::time::Duration;
-use hmac::digest::KeyInit;
 use hmac::{Hmac, Mac};
-use sha2::Digest;
 use sha2::Sha256;
 
 /// Atomic counter for no_std timestamp fallback.
@@ -386,7 +381,7 @@ impl TokenBucket {
         }
         // Tokens are added at refill_rate per second
         // So we need to wait 1000ms / refill_rate per token
-        core::cmp::max(1, 1000 / self.refill_rate as u64)
+        core::cmp::max(1, 1000 / self.refill_rate)
     }
 }
 
@@ -659,19 +654,19 @@ impl Default for HmacSigner {
 #[derive(Debug, Clone)]
 pub struct AuditEntry {
     /// Timestamp of the event.
-    timestamp: u64,
+    pub timestamp: u64,
     /// Type of event.
-    event_type: AuditEventType,
+    pub event_type: AuditEventType,
     /// User ID involved.
-    user_id: Option<u32>,
+    pub user_id: Option<u32>,
     /// Command or action performed.
-    action: String,
+    pub action: String,
     /// Whether the action was allowed.
-    success: bool,
+    pub success: bool,
     /// Additional details.
-    details: Option<String>,
+    pub details: Option<String>,
     /// Client IP (if available).
-    client_ip: Option<String>,
+    pub client_ip: Option<String>,
 }
 
 impl AuditEntry {
@@ -827,7 +822,7 @@ impl AuditLog {
             Some(user_id),
             action.to_string(),
             false,
-            Some(format!("Permission denied: {:?}", permission)),
+            Some(alloc::format!("Permission denied: {:?}", permission)),
             None,
         ));
     }
@@ -900,7 +895,7 @@ impl PermissionChecker {
     pub fn grant_permission(&mut self, user_id: u32, permission: Permission) {
         self.permissions
             .entry(user_id)
-            .or_insert_with(alloc::vec::Vec::new)
+            .or_default()
             .push(permission);
     }
 
@@ -1019,7 +1014,7 @@ impl ParameterSanitizer {
         if value < min || value > max {
             Err(SecurityError::InvalidParameter {
                 parameter: name.to_string(),
-                reason: format!("Value {} out of bounds [{}, {}]", value, min, max),
+                reason: alloc::format!("Value {} out of bounds [{}, {}]", value, min, max),
             })
         } else {
             Ok(())
@@ -1136,13 +1131,12 @@ impl SecurityService {
         // Check rate limiting
         self.rate_limiter
             .try_consume(command.user_id())
-            .map_err(|e| {
+            .inspect_err(|_| {
                 self.audit.log_security_violation(
                     "rate_limit",
                     Some(command.user_id()),
-                    &format!("Rate limit exceeded for user {}", command.user_id()),
+                    &alloc::format!("Rate limit exceeded for user {}", command.user_id()),
                 );
-                e
             })?;
 
         // Verify signature if required
@@ -1156,13 +1150,12 @@ impl SecurityService {
                     command.nonce(),
                     command.signature(),
                 )
-                .map_err(|e| {
+                .inspect_err(|_| {
                     self.audit.log_security_violation(
                         "invalid_signature",
                         Some(command.user_id()),
                         "Command signature verification failed",
                     );
-                    e
                 })?;
         }
 
@@ -1187,7 +1180,7 @@ impl SecurityService {
             command.user_id(),
             "command_execution",
             true,
-            Some(&format!("Sequence: {}", command.sequence())),
+            Some(&alloc::format!("Sequence: {}", command.sequence())),
         );
 
         Ok(command.command_data().to_vec())
@@ -1295,7 +1288,8 @@ impl Default for SecurityService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::alloc::string::ToString;
+    use alloc::string::ToString;
+    use alloc::vec; // For vec! macro
 
     fn create_test_secured_command(
         user_id: u32,

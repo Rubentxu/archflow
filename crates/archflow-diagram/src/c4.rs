@@ -195,7 +195,7 @@ impl CloudProvider {
     }
 
     /// Create from string
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn from_str_name(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
             "none" | "" => Some(CloudProvider::None),
             "aws" | "amazon" => Some(CloudProvider::AWS),
@@ -341,11 +341,26 @@ mod tests {
 
     #[test]
     fn test_cloud_provider_from_str() {
-        assert_eq!(CloudProvider::from_str("aws"), Some(CloudProvider::AWS));
-        assert_eq!(CloudProvider::from_str("AWS"), Some(CloudProvider::AWS));
-        assert_eq!(CloudProvider::from_str("gcp"), Some(CloudProvider::GCP));
-        assert_eq!(CloudProvider::from_str("azure"), Some(CloudProvider::Azure));
-        assert_eq!(CloudProvider::from_str("none"), Some(CloudProvider::None));
+        assert_eq!(
+            CloudProvider::from_str_name("aws"),
+            Some(CloudProvider::AWS)
+        );
+        assert_eq!(
+            CloudProvider::from_str_name("AWS"),
+            Some(CloudProvider::AWS)
+        );
+        assert_eq!(
+            CloudProvider::from_str_name("gcp"),
+            Some(CloudProvider::GCP)
+        );
+        assert_eq!(
+            CloudProvider::from_str_name("azure"),
+            Some(CloudProvider::Azure)
+        );
+        assert_eq!(
+            CloudProvider::from_str_name("none"),
+            Some(CloudProvider::None)
+        );
     }
 
     #[test]

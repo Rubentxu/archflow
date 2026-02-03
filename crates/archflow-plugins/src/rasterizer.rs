@@ -159,20 +159,18 @@ impl AtlasPacker {
 
         // Try to fit in existing shelf
         for shelf in &mut self.shelves {
-            if shelf.height >= padded_height {
-                if shelf.current_x + padded_width <= self.width {
-                    let x = shelf.current_x + self.padding;
-                    let y = shelf.y_start + self.padding;
+            if shelf.height >= padded_height && shelf.current_x + padded_width <= self.width {
+                let x = shelf.current_x + self.padding;
+                let y = shelf.y_start + self.padding;
 
-                    shelf.current_x += padded_width;
+                shelf.current_x += padded_width;
 
-                    return Some(PackedRect {
-                        x,
-                        y,
-                        w: width,
-                        h: height,
-                    });
-                }
+                return Some(PackedRect {
+                    x,
+                    y,
+                    w: width,
+                    h: height,
+                });
             }
         }
 

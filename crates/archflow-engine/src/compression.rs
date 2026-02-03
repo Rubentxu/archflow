@@ -358,7 +358,6 @@ impl Default for BatchBuilder {
 
 /// Instant timing helper
 mod instant {
-    use core::time::Duration;
 
     /// Instant type for timing measurements
     #[derive(Clone, Copy, Debug)]

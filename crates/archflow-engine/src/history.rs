@@ -253,8 +253,7 @@ impl CommandGroup {
     }
 
     /// Get iterator over commands
-    #[must_use]
-    pub fn iter(&self) -> core::slice::Iter<Command> {
+    pub fn iter(&self) -> core::slice::Iter<'_, Command> {
         self.commands.iter()
     }
 
@@ -289,7 +288,7 @@ impl CommandGroupBuilder {
     }
 
     /// Add a command to the group
-    pub fn add(mut self, command: Command) -> Self {
+    pub fn with_command(mut self, command: Command) -> Self {
         self.group.add(command);
         self
     }
@@ -579,8 +578,8 @@ mod tests {
     #[test]
     fn test_builder_add_single() {
         let group = CommandGroupBuilder::new()
-            .add(create_test_command(1))
-            .add(create_test_command(2))
+            .with_command(create_test_command(1))
+            .with_command(create_test_command(2))
             .build();
 
         assert_eq!(group.len(), 2);
@@ -604,9 +603,9 @@ mod tests {
         let cmds = vec![create_test_command(10), create_test_command(11)];
 
         let group = CommandGroupBuilder::new()
-            .add(create_test_command(1))
+            .with_command(create_test_command(1))
             .add_all(cmds)
-            .add(create_test_command(2))
+            .with_command(create_test_command(2))
             .build();
 
         assert_eq!(group.len(), 4);
@@ -633,7 +632,7 @@ mod tests {
         // Execute the command first
         move_cmd.execute(&mut store);
 
-        let moved_pos = Vec2::new(
+        let _moved_pos = Vec2::new(
             store.transforms[id.index().0 as usize][0],
             store.transforms[id.index().0 as usize][1],
         );
@@ -663,11 +662,11 @@ mod tests {
 
         // Create atomic group
         let group = CommandGroupBuilder::new()
-            .add(Command::Move {
+            .with_command(Command::Move {
                 id: id1,
                 delta: Vec2::new(5.0, 5.0),
             })
-            .add(Command::Move {
+            .with_command(Command::Move {
                 id: id2,
                 delta: Vec2::new(10.0, 10.0),
             })

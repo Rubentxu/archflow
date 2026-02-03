@@ -19,10 +19,8 @@
 #![allow(dead_code)]
 
 use alloc::format;
-use alloc::string::String;
-use alloc::string::ToString;
+use alloc::string::{String, ToString};
 use alloc::vec;
-use alloc::vec::Vec;
 
 /// WebGPU context containing device, surface, and queue
 ///
@@ -103,7 +101,7 @@ impl WebGpuContext {
                 )
                 .await
         })
-        .map_err(|e| format!("Failed to create device: {}", e))?;
+        .map_err(|e| format!("Failed to create device: {e}"))?;
 
         // Default swapchain format (will be updated when surface is set)
         let swapchain_format = wgpu::TextureFormat::Bgra8UnormSrgb;
@@ -170,10 +168,7 @@ impl WebGpuContext {
     /// `Option<wgpu::SurfaceTexture>` - The next texture or None if lost/no surface
     pub fn get_current_texture(&self) -> Option<wgpu::SurfaceTexture> {
         match &self.surface {
-            Some(surface) => match surface.get_current_texture() {
-                Ok(texture) => Some(texture),
-                Err(_) => None,
-            },
+            Some(surface) => surface.get_current_texture().ok(),
             None => None,
         }
     }
