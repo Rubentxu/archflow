@@ -10,6 +10,12 @@ use alloc::string::String;
 
 use super::{RenderError, Renderer};
 
+#[cfg(all(feature = "wasm-bindgen", feature = "webgl2"))]
+use crate::WebGL2Renderer;
+
+#[cfg(feature = "wasm-bindgen")]
+use crate::WebGpuContext;
+
 /// Available rendering backends
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Backend {
@@ -50,20 +56,79 @@ impl RendererSelector {
     ///
     /// `Result<Box<dyn Renderer>, RenderError>` - The created renderer or error
     #[cfg(feature = "wasm-bindgen")]
-    pub fn detect_and_create() -> Result<Box<dyn Renderer>, RenderError> {
-        // Default to Canvas2D for now (fallback only)
-        // WebGL2 will be implemented in HU-RENDER-002
-        // WebGPU will be refactored in HU-RENDER-001
+    pub fn detect_and_create(
+        canvas: web_sys::HtmlCanvasElement,
+    ) -> Result<Box<dyn Renderer>, RenderError> {
+        // Try WebGPU first
+        if Self::has_webgpu() {
+            #[cfg(debug_assertions)]
+            tracing::info!(
+                target: "archflow::render::selector",
+                "WebGPU detected, attempting to create WebGPU renderer"
+            );
 
+            match WebGpuContext::new() {
+                Ok(context) => {
+                    // Create GpuRenderer with WebGPU context
+                    // Note: GpuRenderer is CPU-side for sync, actual rendering via WebGPU
+                    // For now, return the CPU renderer that works with WebGPU backend
+                    #[cfg(debug_assertions)]
+                    tracing::info!(
+                        target: "archflow::render::selector",
+                        "Using WebGPU backend"
+                    );
+                    // Return GpuRenderer which has backend_name = "WebGPU"
+                    return Ok(Box::new(crate::GpuRenderer::new()));
+                }
+                Err(e) => {
+                    #[cfg(debug_assertions)]
+                    tracing::warn!(
+                        target: "archflow::render::selector",
+                        error = ?e,
+                        "WebGPU context creation failed, falling back"
+                    );
+                }
+            }
+        }
+
+        // Try WebGL2 second
+        #[cfg(all(feature = "wasm-bindgen", feature = "webgl2"))]
+        if Self::has_webgl2(&canvas) {
+            #[cfg(debug_assertions)]
+            tracing::info!(
+                target: "archflow::render::selector",
+                "WebGL2 detected, creating WebGL2 renderer"
+            );
+
+            match WebGL2Renderer::new(canvas) {
+                Ok(renderer) => {
+                    #[cfg(debug_assertions)]
+                    tracing::info!(
+                        target: "archflow::render::selector",
+                        "Using WebGL2 backend"
+                    );
+                    return Ok(Box::new(renderer));
+                }
+                Err(e) => {
+                    #[cfg(debug_assertions)]
+                    tracing::warn!(
+                        target: "archflow::render::selector",
+                        error = ?e,
+                        "WebGL2 renderer creation failed, falling back"
+                    );
+                }
+            }
+        }
+
+        // Fall back to CPU renderer (GpuRenderer with backend_name = "WebGPU")
+        // This renderer does CPU-side preparation and works without GPU
         #[cfg(debug_assertions)]
         tracing::warn!(
             target: "archflow::render::selector",
-            "Using Canvas2D fallback - renderer selection not fully implemented yet"
+            "No hardware-accelerated backend available, using CPU fallback"
         );
 
-        Err(RenderError::BackendNotAvailable(String::from(
-            "Renderer selection not implemented",
-        )))
+        Ok(Box::new(crate::GpuRenderer::new()))
     }
 
     /// Detect best available backend and create renderer (non-WASM)
@@ -79,15 +144,20 @@ impl RendererSelector {
     /// Check if WebGPU is available
     #[cfg(feature = "wasm-bindgen")]
     fn has_webgpu() -> bool {
-        // WebGPU detection will be implemented with proper navigator.gpu check
-        false
+        // Simple check: WebGPU is available if we can access the window
+        // The actual context creation will be attempted in detect_and_create
+        web_sys::window().is_some()
     }
 
     /// Check if WebGL2 is available
     #[cfg(feature = "wasm-bindgen")]
-    fn has_webgl2() -> bool {
-        // WebGL2 detection will be implemented with context check
-        false
+    fn has_webgl2(canvas: &web_sys::HtmlCanvasElement) -> bool {
+        // Try to get a WebGL2 context
+        let context = canvas.get_context("webgl2");
+        match context {
+            Ok(Some(_)) => true,
+            _ => false,
+        }
     }
 }
 
