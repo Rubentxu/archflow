@@ -62,10 +62,11 @@ fn init_tracing() {
     // Set up panic hook to get better error messages
     set_once();
 
-    // Initialize wasm-tracing as the global default subscriber
+    // Initialize wasm-tracing as the global default subscriber (only on WASM)
     // This sends all tracing events to the browser console
     // Note: wasm-tracing doesn't support filters like tracing-subscriber,
     // so it will capture ALL events regardless of level
+    #[cfg(target_arch = "wasm32")]
     wasm_tracing::set_as_global_default();
 
     info!(target: "archflow::wasm", "ArchFlow WASM tracing initialized");
