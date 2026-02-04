@@ -84,3 +84,4 @@ docs/
 -e *.png
 repomix_output.txt
 rust_files.txt
+*.png

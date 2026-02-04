@@ -78,6 +78,21 @@ fn init_tracing() {
     // Tracing disabled, do nothing
 }
 
+/// Convert RGBA color format to ABGR format
+///
+/// WebGL expects colors in ABGR format (little-endian), but Color::rgba creates RGBA.
+/// This function performs the conversion.
+#[inline]
+fn rgba_to_abgr(rgba: u32) -> u32 {
+    let r = (rgba >> 24) & 0xFF;
+    let g = (rgba >> 16) & 0xFF;
+    let b = (rgba >> 8) & 0xFF;
+    let a = rgba & 0xFF;
+
+    // ABGR format: A=highest byte, B, G, R=lowest byte
+    (a << 24) | (b << 16) | (g << 8) | r
+}
+
 // WASM Bridge for JavaScript/WebAssembly communication
 //
 // This struct provides the interface between JavaScript and the Rust engine.
@@ -770,8 +785,9 @@ impl WasmBridge {
             use archflow_core::{Color, EntityId};
             use archflow_engine::Command;
             let id = EntityId::new(entity_index);
-            let color = Color::rgba(r, g, b, a);
-            let cmd = Command::SetColor { id, color: color.0 };
+            let rgba = Color::rgba(r, g, b, a).0;
+            let color = rgba_to_abgr(rgba);
+            let cmd = Command::SetColor { id, color };
             engine.command_queue.push(cmd);
             Ok(())
         } else {
@@ -792,11 +808,10 @@ impl WasmBridge {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
             use archflow_core::{Color, EntityId};
             let id = EntityId::new(entity_index);
-            let color = Color::rgba(r, g, b, a);
+            let rgba = Color::rgba(r, g, b, a).0;
+            let color = rgba_to_abgr(rgba);
             // TODO: Use Command for undo/redo
-            engine
-                .store
-                .set_stroke_color(id.index().0 as usize, color.0);
+            engine.store.set_stroke_color(id.index().0 as usize, color);
             Ok(())
         } else {
             Err(JsError::new("Engine not initialized").into())
@@ -821,7 +836,8 @@ impl WasmBridge {
     #[wasm_bindgen]
     pub fn set_active_color(&self, r: u8, g: u8, b: u8, a: u8) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
-            engine.active_color = archflow_core::Color::rgba(r, g, b, a).0;
+            let rgba = archflow_core::Color::rgba(r, g, b, a).0;
+            engine.active_color = rgba_to_abgr(rgba);
             Ok(())
         } else {
             Err(JsError::new("Engine not initialized").into())
@@ -832,7 +848,8 @@ impl WasmBridge {
     #[wasm_bindgen]
     pub fn set_active_stroke_color(&self, r: u8, g: u8, b: u8, a: u8) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
-            engine.active_stroke_color = archflow_core::Color::rgba(r, g, b, a).0;
+            let rgba = archflow_core::Color::rgba(r, g, b, a).0;
+            engine.active_stroke_color = rgba_to_abgr(rgba);
             Ok(())
         } else {
             Err(JsError::new("Engine not initialized").into())
@@ -845,6 +862,48 @@ impl WasmBridge {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
             engine.active_stroke_width = width;
             Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Get the active fill color (returns RGBA as hex string)
+    #[wasm_bindgen]
+    pub fn get_active_color(&self) -> Result<String, JsValue> {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            let abgr = engine.active_color;
+            // Convert ABGR back to RGBA for JavaScript
+            let r = abgr & 0xFF;
+            let g = (abgr >> 8) & 0xFF;
+            let b = (abgr >> 16) & 0xFF;
+            let a = (abgr >> 24) & 0xFF;
+            Ok(format!("#{:02x}{:02x}{:02x}", r, g, b))
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Get the active stroke color (returns RGBA as hex string)
+    #[wasm_bindgen]
+    pub fn get_active_stroke_color(&self) -> Result<String, JsValue> {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            let abgr = engine.active_stroke_color;
+            // Convert ABGR back to RGBA for JavaScript
+            let r = abgr & 0xFF;
+            let g = (abgr >> 8) & 0xFF;
+            let b = (abgr >> 16) & 0xFF;
+            let a = (abgr >> 24) & 0xFF;
+            Ok(format!("#{:02x}{:02x}{:02x}", r, g, b))
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Get the active stroke width
+    #[wasm_bindgen]
+    pub fn get_active_stroke_width(&self) -> Result<f32, JsValue> {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            Ok(engine.active_stroke_width)
         } else {
             Err(JsError::new("Engine not initialized").into())
         }

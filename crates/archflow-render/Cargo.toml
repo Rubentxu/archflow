@@ -47,6 +47,7 @@ naga = { version = "28.0.0", features = ["wgsl-in", "glsl-out"] }
 [dev-dependencies]
 criterion = "0.5"
 image = "0.25"
+wasm-bindgen-test = "0.3"
 
 [features]
 default = []
@@ -54,6 +55,9 @@ tracing = []
 wasm-bindgen = ["dep:wasm-bindgen", "dep:web-sys", "dep:js-sys"]
 webgl2 = ["dep:wasm-bindgen", "dep:web-sys", "dep:js-sys"]
 webgpu = ["dep:wgpu", "dep:pollster"]
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen-test = "0.3"
 
 [[bench]]
 name = "render_bench"

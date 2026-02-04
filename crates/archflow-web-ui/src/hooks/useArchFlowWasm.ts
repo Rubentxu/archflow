@@ -56,31 +56,49 @@ export function useArchFlowWasm(): UseWasmBridgeReturn {
   const [error, setError] = useState<Error | null>(null);
   const initRef = useRef<Promise<void> | null>(null);
 
+  // DEBUG: State changes
+  useEffect(() => {
+    console.log("[useArchFlowWasm] State:", {
+      hasBridge: !!bridge,
+      isLoaded,
+      isInitialized,
+      hasError: !!error,
+    });
+  }, [bridge, isLoaded, isInitialized, error]);
+
   // Load WASM module on mount
   useEffect(() => {
+    console.log("[useArchFlowWasm] Hook mounted, starting WASM load...");
     let mounted = true;
 
     const loadWasm = async () => {
       try {
+        console.log("[useArchFlowWasm] Calling initializeWasm...");
         // Initialize the WASM module
         await initializeWasm();
 
-        if (!mounted) return;
+        if (!mounted) {
+          console.log("[useArchFlowWasm] Component unmounted, aborting");
+          return;
+        }
 
+        console.log("[useArchFlowWasm] Creating WasmBridge instance...");
         // Create a new WasmBridge instance
         const newBridge = new WasmBridge();
         setBridge(newBridge);
         setIsLoaded(true);
         setError(null);
+        console.log("[useArchFlowWasm] ✓ WASM loaded and bridge created");
       } catch (err) {
         if (mounted) {
           const errorMessage = err instanceof Error ? err.message : String(err);
+          console.error("[useArchFlowWasm] ✗ WASM load failed:", errorMessage);
           setError(
             new Error(
               `Failed to load WASM module: ${errorMessage}\n\n` +
-              `Please build WASM first:\n` +
-              `  cd crates/archflow-web && wasm-pack build --target web\n\n` +
-              `Ensure COOP/COEP headers are configured for SharedArrayBuffer support.`,
+                `Please build WASM first:\n` +
+                `  cd crates/archflow-web && wasm-pack build --target web\n\n` +
+                `Ensure COOP/COEP headers are configured for SharedArrayBuffer support.`,
             ),
           );
         }
@@ -90,27 +108,42 @@ export function useArchFlowWasm(): UseWasmBridgeReturn {
     loadWasm();
 
     return () => {
+      console.log("[useArchFlowWasm] Hook unmounting");
       mounted = false;
     };
   }, []);
 
   const initialize = useCallback(
     async (width: number, height: number) => {
+      console.log("[useArchFlowWasm] initialize called:", {
+        width,
+        height,
+        hasBridge: !!bridge,
+      });
+
       if (!bridge) {
-        throw new Error("WASM bridge not loaded. Cannot initialize.");
+        const error = new Error("WASM bridge not loaded. Cannot initialize.");
+        console.error("[useArchFlowWasm] ✗", error.message);
+        throw error;
       }
 
       if (initRef.current) {
+        console.log(
+          "[useArchFlowWasm] Initialization already in progress, waiting...",
+        );
         return initRef.current;
       }
 
       const initPromise = (async () => {
         try {
+          console.log("[useArchFlowWasm] Calling bridge.initialize...");
           // Note: initialize is synchronous, not async
           bridge.initialize(width, height);
           setIsInitialized(true);
           setError(null);
+          console.log("[useArchFlowWasm] ✓ Bridge initialized");
         } catch (err) {
+          console.error("[useArchFlowWasm] ✗ Initialize failed:", err);
           setError(err instanceof Error ? err : new Error(String(err)));
           throw err;
         }

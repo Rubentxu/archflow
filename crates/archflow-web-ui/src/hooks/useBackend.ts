@@ -21,7 +21,12 @@ export function useBackendDetection(bridge: WasmBridge | null): BackendState {
   });
 
   useEffect(() => {
+    console.log("[useBackendDetection] Effect triggered:", {
+      hasBridge: !!bridge,
+    });
+
     if (!bridge) {
+      console.log("[useBackendDetection] No bridge, clearing state");
       setState((prev) => ({
         ...prev,
         availableBackends: null,
@@ -31,9 +36,12 @@ export function useBackendDetection(bridge: WasmBridge | null): BackendState {
     }
 
     try {
+      console.log("[useBackendDetection] Calling detect_available_backends...");
       // Call Rust's detect_available_backends()
-      const backends = bridge.detect_available_backends() as unknown as BackendInfo;
+      const backends =
+        bridge.detect_available_backends() as unknown as BackendInfo;
 
+      console.log("[useBackendDetection] ✓ Detected backends:", backends);
       setState((prev) => ({
         ...prev,
         availableBackends: backends,
@@ -41,6 +49,10 @@ export function useBackendDetection(bridge: WasmBridge | null): BackendState {
         error: null,
       }));
     } catch (err) {
+      console.warn(
+        "[useBackendDetection] Detection failed, falling back to WebGL2:",
+        err,
+      );
       // WebGPU might not be available, fallback to WebGL2 only
       setState((prev) => ({
         ...prev,
@@ -64,6 +76,9 @@ export function useBackendDetection(bridge: WasmBridge | null): BackendState {
 
 /**
  * Hook to initialize graphics with selected backend
+ * NOTE: This hook is NO LONGER USED because it tries to initialize graphics
+ * before the engine is ready. Graphics initialization is now handled in Canvas.tsx
+ * after bridge.initialize() is called.
  */
 export function useBackendInitialization(
   bridge: WasmBridge | null,
@@ -75,46 +90,36 @@ export function useBackendInitialization(
   const [graphicsError, setGraphicsError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log("[useBackendInitialization] Effect triggered (DEPRECATED):", {
+      hasBridge: !!bridge,
+      hasCanvas: !!canvas,
+      isEngineInitialized,
+      selectedBackend,
+    });
+
+    // DISABLED: This was causing "Engine not initialized" errors
+    // Graphics init is now handled in Canvas.tsx after engine init
+    console.log(
+      "[useBackendInitialization] Skipping - graphics init moved to Canvas.tsx",
+    );
+    return;
+
+    // Original problematic code commented out:
+    /*
     if (!bridge || !canvas || !isEngineInitialized) {
+      console.log("[useBackendInitialization] Skipping - missing dependencies");
       return;
     }
 
-    let mounted = true;
-
-    const initGraphics = async () => {
-      try {
-        setGraphicsError(null);
-
-        // Call Rust's initialize_graphics_with_backend()
-        await bridge.initialize_graphics_with_backend(
-          canvas,
-          selectedBackend,
-        );
-
-        if (mounted) {
-          setIsGraphicsReady(true);
-        }
-      } catch (err) {
-        if (mounted) {
-          const errorMessage = err instanceof Error ? err.message : String(err);
-          setGraphicsError(errorMessage);
-          setIsGraphicsReady(false);
-        }
-      }
-    };
-
-    initGraphics();
-
-    return () => {
-      mounted = false;
-    };
+    // Commented out problematic initialization code
+    */
   }, [bridge, canvas, selectedBackend, isEngineInitialized]);
 
   return { isGraphicsReady, graphicsError };
 }
 
 /**
- * Hook that combines backend detection and initialization
+ * Hook that combines backend detection (NO initialization - that's in Canvas.tsx)
  */
 export function useBackend(
   bridge: WasmBridge | null,
@@ -122,25 +127,26 @@ export function useBackend(
   isEngineInitialized: boolean,
 ) {
   const detectionState = useBackendDetection(bridge);
-  const { isGraphicsReady, graphicsError } = useBackendInitialization(
-    bridge,
-    canvas,
-    detectionState.selectedBackend,
-    isEngineInitialized,
-  );
+  // REMOVED: useBackendInitialization call - it was causing race conditions
+  // Graphics initialization now happens in Canvas.tsx after engine init
+  const isGraphicsReady = false; // Not used anymore
+  const graphicsError = null; // Not used anymore
 
-  const [preferredBackend, setPreferredBackend] = useState<
-    GraphicsBackend
-  >("webgl2");
+  const [preferredBackend, setPreferredBackend] =
+    useState<GraphicsBackend>("webgl2");
 
   // Update preferred when detection changes
   useEffect(() => {
+    console.log("[useBackend] Detection state changed:", {
+      availableBackends: detectionState.availableBackends,
+    });
     if (detectionState.availableBackends) {
       setPreferredBackend(detectionState.availableBackends.preferred);
     }
   }, [detectionState.availableBackends]);
 
   const selectBackend = useCallback((backend: GraphicsBackend) => {
+    console.log("[useBackend] Backend selected:", backend);
     setPreferredBackend(backend);
   }, []);
 
