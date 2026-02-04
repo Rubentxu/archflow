@@ -7,29 +7,53 @@ edition.workspace = true
 archflow-core = { path = "../archflow-core" }
 archflow-engine = { path = "../archflow-engine", features = ["tracing"] }
 glow = "0.15"
-naga = { version = "22", features = ["wgsl-in", "glsl-out"] }
-wgpu = { workspace = true }
+naga = { version = "28.0.0", features = ["wgsl-in", "glsl-out"] }
+wgpu = { workspace = true, optional = true }
 bytemuck = { workspace = true }
-pollster = "0.3"
+pollster = { version = "0.3", optional = true }
 
 # WASM dependencies (only used on wasm32)
 wasm-bindgen = { workspace = true, optional = true }
-web-sys = { workspace = true, optional = true }
+web-sys = { workspace = true, optional = true, features = [
+    # Core
+    "Window",
+    "Document",
+    "Element",
+    "Performance",
+    "Navigator",
+    # Canvas & WebGL
+    "HtmlCanvasElement",
+    "CanvasRenderingContext2d",
+    "OffscreenCanvas",
+    "WebGl2RenderingContext",
+    "WebGlRenderingContext",
+    "WebGlBuffer",
+    "WebGlFramebuffer",
+    "WebGlProgram",
+    "WebGlRenderbuffer",
+    "WebGlShader",
+    "WebGlTexture",
+    "WebGlUniformLocation",
+    "WebGlVertexArrayObject",
+] }
+js-sys = { workspace = true, optional = true }
 
 # Diagnostics - tracing is not optional in workspace deps
 tracing = { workspace = true }
 
 [build-dependencies]
-naga = { version = "22", features = ["wgsl-in", "glsl-out"] }
+naga = { version = "28.0.0", features = ["wgsl-in", "glsl-out"] }
 
 [dev-dependencies]
 criterion = "0.5"
+image = "0.25"
 
 [features]
 default = []
 tracing = []
-wasm-bindgen = ["dep:wasm-bindgen", "dep:web-sys"]
-webgl2 = ["dep:wasm-bindgen", "dep:web-sys"]
+wasm-bindgen = ["dep:wasm-bindgen", "dep:web-sys", "dep:js-sys"]
+webgl2 = ["dep:wasm-bindgen", "dep:web-sys", "dep:js-sys"]
+webgpu = ["dep:wgpu", "dep:pollster"]
 
 [[bench]]
 name = "render_bench"
