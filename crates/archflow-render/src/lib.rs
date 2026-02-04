@@ -45,10 +45,14 @@ pub mod pipelines;
 pub mod renderer;
 /// Renderer selector for backend detection
 pub mod selector;
+/// Shader specialization constants
+pub mod shader_specialization;
 /// Shader sources
 pub mod shaders;
 /// Texture layout and alignment utilities
 pub mod texture_layout;
+/// Async texture loading queue
+pub mod texture_loader;
 /// WebGL2 renderer (alternative backend)
 #[cfg(all(feature = "wasm-bindgen", feature = "webgl2"))]
 pub mod webgl2_renderer_real;
@@ -62,12 +66,16 @@ pub use gpu_resources::GpuResources;
 pub use pipelines::RenderPipelines;
 pub use renderer::{CameraUniforms, GpuInstance, GpuRenderer, RenderPhase, Renderer};
 pub use selector::{Backend, RendererSelector};
+pub use shader_specialization::{BackendType, FeatureFlags, PipelineOptions, ShaderConstants};
 pub use shaders::{SHADER_ICON_TEXTURE, SHADER_IMAGE_ARRAY, SHADER_MTSDF_TEXT, SHADER_SDF_SHAPES};
 pub use texture_layout::{
     Alignment, PixelFormat, TextureLayout, calculate_optimal_alignment, pad_texture_data,
+};
+pub use texture_loader::{
+    AtlasInsertResult, AtlasReserveResult, LoadedTexture, TextureFormat, TextureLoadHandle,
+    TextureLoadResult, TextureLoadStatus, TextureLoader, TextureLoaderConfig, TextureSource,
 };
 #[cfg(feature = "wasm-bindgen")]
 #[cfg(all(feature = "wasm-bindgen", feature = "webgl2"))]
 pub use webgl2_renderer_real::{WebGL2Context, WebGL2Renderer};
 pub use webgpu_context::WebGpuContext;
-
