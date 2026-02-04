@@ -143,10 +143,10 @@ fn test_snapshot_viewport_culling() {
 
     // Create camera centered far from entities
     let mut camera = create_test_camera();
-    camera.center = Vec2f64::new(100.0, 100.0); // Far from origin
+    camera.center = Vec2f64::new(500.0, 500.0); // Far from origin (viewport is 1280x720 at PPU=1.0, zoom=1.0)
 
     // Spawn entities at origin (outside camera view)
-    store.spawn(Vec2::new(0.0, 0.0), Vec2::new(0.1, 0.06));
+    store.spawn(Vec2::new(0.0, 0.0), Vec2::new(10.0, 10.0));
 
     renderer.sync_from_store(&store, &camera);
 

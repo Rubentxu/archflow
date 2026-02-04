@@ -24,6 +24,16 @@ pub const ZOOM_MAX: f32 = 100.0;
 /// Zoom intensity for mouse wheel
 pub const ZOOM_INTENSITY: f32 = 0.001;
 
+/// Pixels Per Unit - Defines the relationship between screen pixels and world units.
+///
+/// With PPU = 1.0 (1:1 pixels):
+/// - A 100px button = 100 world units
+/// - An 800x600 canvas = 800 x 600 world units
+/// - Zoom 1.0 = pixel-perfect rendering
+///
+/// Camera-Relative Rendering handles precision at large coordinates.
+pub const PIXELS_PER_UNIT: f32 = 1.0;
+
 /// 2D Orthographic camera for infinite canvas diagrams
 ///
 /// Features:
@@ -121,10 +131,15 @@ impl Camera {
     /// NOTE: With Camera-Relative Rendering, this matrix effectively only handles
     /// Projection (Zoom + Aspect Ratio). The Translation (View) part is handled
     /// in the vertex shader by subtracting `camera.camera_pos` from vertex positions.
-    /// We essentially generate a projection matrix assuming the camera is at (0,0).
-    pub fn build_view_projection_matrix(&self) -> [[f32; 4]; 4] {
-        // Calculate half-width and half-height of view in world coordinates
-        let half_height = 1.0 / self.zoom;
+    ///
+    /// With PPU=1.0 (1:1 pixels):
+    /// - At zoom=1.0: viewport = canvas_height units
+    /// - At zoom=2.0: viewport = canvas_height / 2 units
+    pub fn build_view_projection_matrix(&self, canvas_height: f32) -> [[f32; 4]; 4] {
+        // Calculate viewport height in world units
+        // At zoom=1.0: viewport = canvas_height units
+        let viewport_height = canvas_height / self.zoom;
+        let half_height = viewport_height / 2.0;
         let half_width = half_height * self.aspect_ratio;
 
         // In relative rendering, the camera is always at (0,0) relative to itself
@@ -160,16 +175,15 @@ impl Camera {
     /// - Snap to grid
     pub fn screen_to_world(&self, screen_pos: Vec2, screen_size: Vec2) -> Vec2f64 {
         // Normalize to device normalized coordinates (NDC) [-1, 1]
-        // Screen Y=0 is top (DOM), World Y-up means we need:
+        // Screen Y=0 is top (DOM), World Y-up means:
         // - Screen top (Y=0) → NDC Y=1 → World +Y
         // - Screen bottom (Y=max) → NDC Y=-1 → World -Y
-        // NDC formula: (pos / size) * 2 - 1
-        // For Y: (0/height)*2-1 = 1 (top), (height/height)*2-1 = -1 (bottom)
-        // This naturally maps Y-down to Y-up, NO extra flip needed!
         let ndc = (screen_pos / screen_size) * 2.0 - Vec2::ONE;
 
-        // Apply inverse zoom to get world coordinates (f64 for precision)
-        let half_height = 1.0 / self.zoom as f64;
+        // Calculate viewport height in world units
+        // At zoom=1.0: viewport = screen_height units
+        let viewport_height = screen_size.y as f64 / self.zoom as f64;
+        let half_height = viewport_height / 2.0;
         let half_width = half_height * self.aspect_ratio as f64;
 
         Vec2f64::new(
@@ -205,8 +219,10 @@ impl Camera {
     /// Useful for:
     /// - Viewport culling (only render what's visible)
     /// - Determining which icons to lazy load
-    pub fn viewport_bounds(&self) -> Rect {
-        let half_height = 1.0 / self.zoom;
+    pub fn viewport_bounds(&self, canvas_height: f32) -> Rect {
+        // Calculate viewport height in world units using PPU
+        let viewport_height = canvas_height / (PIXELS_PER_UNIT * self.zoom);
+        let half_height = viewport_height / 2.0;
         let half_width = half_height * self.aspect_ratio;
 
         // Use center_f64() for compatibility
@@ -218,15 +234,15 @@ impl Camera {
     }
 
     /// Check if a world-space point is visible in the viewport
-    pub fn is_visible(&self, world_pos: Vec2f64) -> bool {
-        let bounds = self.viewport_bounds();
+    pub fn is_visible(&self, world_pos: Vec2f64, canvas_height: f32) -> bool {
+        let bounds = self.viewport_bounds(canvas_height);
         let pos_f32 = Vec2::new(world_pos.x as f32, world_pos.y as f32);
         bounds.contains(pos_f32)
     }
 
     /// Check if a world-space rectangle intersects the viewport
-    pub fn is_rect_visible(&self, rect: Rect) -> bool {
-        self.viewport_bounds().intersects(&rect)
+    pub fn is_rect_visible(&self, rect: Rect, canvas_height: f32) -> bool {
+        self.viewport_bounds(canvas_height).intersects(&rect)
     }
 }
 
@@ -289,11 +305,11 @@ mod tests {
     #[test]
     fn test_zoom_affects_viewport() {
         let mut camera = Camera::new(100.0, 100.0);
-        let bounds_1x = camera.viewport_bounds();
+        let bounds_1x = camera.viewport_bounds(100.0);
         let size_1x = bounds_1x.size();
 
         camera.zoom = 2.0;
-        let bounds_2x = camera.viewport_bounds();
+        let bounds_2x = camera.viewport_bounds(100.0);
         let size_2x = bounds_2x.size();
 
         // At 2x zoom, viewport should be half the size
@@ -303,15 +319,64 @@ mod tests {
 
     #[test]
     fn test_viewport_bounds() {
+        // Create camera with zoom=1.0 (not engine-initialized zoom)
         let camera = Camera::new(100.0, 100.0);
-        let bounds = camera.viewport_bounds();
+        let bounds = camera.viewport_bounds(100.0);
 
         // Bounds should be centered at origin
         assert_eq!(bounds.center(), Vec2::ZERO);
 
-        // At zoom 1.0 and 1:1 aspect, should be 2x2 units
+        // At zoom=1.0 with PPU=1.0 and canvas 100x100:
+        // viewport height = 100 / 1.0 = 100 world units
         let size = bounds.size();
-        assert!((size.x - 2.0).abs() < 0.01);
-        assert!((size.y - 2.0).abs() < 0.01);
+        assert!((size.x - 100.0).abs() < 0.01);
+        assert!((size.y - 100.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_pixels_per_unit_consistency() {
+        // Verify PPU constant is set correctly (1:1 pixels for Figma-like editing)
+        assert_eq!(PIXELS_PER_UNIT, 1.0);
+
+        // Test that screen_to_world correctly converts pixels to world units
+        // With zoom=1.0 and PPU=1.0:
+        // - canvas 800x600, viewport is 800x600 world units
+        // - screen center (400, 300) should map to world center (0, 0)
+        let camera = Camera::new(800.0, 600.0);
+
+        // Debug: print values
+        let world_center = camera.screen_to_world(
+            Vec2::new(400.0, 300.0), // Canvas center
+            Vec2::new(800.0, 600.0),
+        );
+        assert!(
+            (world_center.x - 0.0).abs() < 0.01,
+            "center.x = {}",
+            world_center.x
+        );
+        assert!(
+            (world_center.y - 0.0).abs() < 0.01,
+            "center.y = {}",
+            world_center.y
+        );
+
+        // Top-left of screen (0, 0) should map correctly
+        let world_top_left = camera.screen_to_world(Vec2::new(0.0, 0.0), Vec2::new(800.0, 600.0));
+
+        // At zoom=1.0 with PPU=1.0 and 800x600 canvas:
+        // viewport is 800x600 world units (half: 400x300)
+        // ndc = (0/800)*2-1 = -1 for X
+        // ndc = (0/600)*2-1 = -1 for Y (top in DOM)
+        // world = center + ndc * half = 0 + (-1)*400, (-1)*300 = (-400, -300)
+        assert!(
+            (world_top_left.x - (-400.0)).abs() < 0.01,
+            "top_left.x = {}",
+            world_top_left.x
+        );
+        assert!(
+            (world_top_left.y - (-300.0)).abs() < 0.01,
+            "top_left.y = {}",
+            world_top_left.y
+        );
     }
 }

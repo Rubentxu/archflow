@@ -20,7 +20,7 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use archflow_core::MAX_ENTITIES;
+use archflow_core::{MAX_ENTITIES, Vec2};
 use archflow_engine::EntityStore;
 
 use crate::camera::Camera;
@@ -107,10 +107,9 @@ impl Default for CameraUniforms {
 
 impl CameraUniforms {
     /// Create uniforms from camera
-    pub fn from_camera(camera: &Camera) -> Self {
-        // Camera already returns the matrix in [[f32; 4]; 4] format
+    pub fn from_camera(camera: &Camera, canvas_height: f32) -> Self {
         Self {
-            view_projection: camera.build_view_projection_matrix(),
+            view_projection: camera.build_view_projection_matrix(canvas_height),
             camera_pos: [camera.center.x as f32, camera.center.y as f32],
             _padding: [0.0; 2],
         }
@@ -193,6 +192,9 @@ pub struct GpuRenderer {
 
     /// Camera uniforms (updated every frame)
     camera_uniforms: CameraUniforms,
+
+    /// Canvas size for PPU calculations
+    canvas_size: Vec2,
 }
 
 impl GpuRenderer {
@@ -202,7 +204,13 @@ impl GpuRenderer {
             instances: Vec::with_capacity(MAX_ENTITIES as usize),
             batches: DrawBatches::new(),
             camera_uniforms: CameraUniforms::default(),
+            canvas_size: Vec2::new(800.0, 600.0), // Default size
         }
+    }
+
+    /// Resize the renderer (updates canvas size for PPU calculations)
+    pub fn resize(&mut self, width: u32, height: u32) {
+        self.canvas_size = Vec2::new(width as f32, height as f32);
     }
 
     /// Sync renderer data from EntityStore
@@ -220,9 +228,9 @@ impl GpuRenderer {
         self.instances.clear();
 
         // Update camera uniforms
-        self.camera_uniforms = CameraUniforms::from_camera(camera);
+        self.camera_uniforms = CameraUniforms::from_camera(camera, self.canvas_size.y);
 
-        let viewport = camera.viewport_bounds();
+        let viewport = camera.viewport_bounds(self.canvas_size.y);
         let mut visible_count = 0;
 
         // Iterate entities in draw order (back-to-front for proper z-layering)
@@ -358,9 +366,9 @@ impl GpuRenderer {
         }
 
         // Update camera uniforms (always needed)
-        self.camera_uniforms = CameraUniforms::from_camera(camera);
+        self.camera_uniforms = CameraUniforms::from_camera(camera, self.canvas_size.y);
 
-        let viewport = camera.viewport_bounds();
+        let viewport = camera.viewport_bounds(self.canvas_size.y);
         let mut updated_count = 0;
 
         // Get all dirty entity indices and clear flags
@@ -504,9 +512,9 @@ impl Renderer for GpuRenderer {
         Self::total_draw_calls(self)
     }
 
-    fn resize(&mut self, _width: u32, _height: u32) {
-        // GpuRenderer doesn't need resize in this implementation
-        // In a full implementation, this would update framebuffers
+    fn resize(&mut self, width: u32, height: u32) {
+        // Update canvas size for PPU calculations
+        self.canvas_size = Vec2::new(width as f32, height as f32);
     }
 
     fn backend_name(&self) -> &'static str {
@@ -637,7 +645,7 @@ mod tests {
         camera.center = Vec2f64::new(100.0, 200.0);
         camera.zoom = 2.0;
 
-        let uniforms = CameraUniforms::from_camera(&camera);
+        let uniforms = CameraUniforms::from_camera(&camera, 600.0);
 
         // Check that the matrix is not identity (we set center and zoom)
         // Identity matrix would have 1s on diagonal

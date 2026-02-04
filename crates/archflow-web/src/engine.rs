@@ -77,11 +77,13 @@ impl ArchFlowEngine {
     pub fn new(canvas_width: f32, canvas_height: f32) -> Self {
         let mut camera = Camera::new(canvas_width, canvas_height);
 
-        // Initialize zoom such that world units = screen pixels (roughly)
-        // With zoom=1.0, viewport is ~2.0 height (-1 to 1).
-        // With zoom=2.0/height, viewport is ~height (-h/2 to h/2).
+        // Initialize zoom based on PIXELS_PER_UNIT
+        // With PPU = 100: zoom = 1.0 means 1 world unit = 100 pixels
+        // At zoom=1.0, viewport height = canvas_height / PIXELS_PER_UNIT world units
+        // For example: 600px height / 100 = 6 world units total (spans -3 to +3)
         if canvas_height > 0.0 {
-            camera.zoom = (2.0 / canvas_height).max(archflow_render::ZOOM_MIN);
+            // With PPU=1.0 (1:1 pixels), zoom=1 means 1 pixel = 1 world unit
+            camera.zoom = 1.0;
         }
 
         camera.set_viewport_size(canvas_width, canvas_height);

@@ -396,9 +396,9 @@ impl Renderer for WebGL2Renderer {
         self.batches.clear();
         self.instances.clear();
 
-        self.camera_uniforms = CameraUniforms::from_camera(camera);
+        self.camera_uniforms = CameraUniforms::from_camera(camera, self.height as f32);
 
-        let viewport = camera.viewport_bounds();
+        let viewport = camera.viewport_bounds(self.height as f32);
         let mut visible_count = 0;
 
         // Iterate phases to group instances contiguously in the buffer
