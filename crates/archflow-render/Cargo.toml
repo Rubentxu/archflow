@@ -22,8 +22,15 @@ tracing = { workspace = true }
 [build-dependencies]
 naga = { version = "22", features = ["wgsl-in", "glsl-out"] }
 
+[dev-dependencies]
+criterion = "0.5"
+
 [features]
 default = []
 tracing = []
 wasm-bindgen = ["dep:wasm-bindgen", "dep:web-sys"]
 webgl2 = ["dep:wasm-bindgen", "dep:web-sys"]
+
+[[bench]]
+name = "render_bench"
+harness = false

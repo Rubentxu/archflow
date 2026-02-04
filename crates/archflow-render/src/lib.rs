@@ -59,6 +59,10 @@ pub mod webgl2_renderer_real;
 /// WebGPU context wrapper
 pub mod webgpu_context;
 
+/// Feature parity tests
+#[cfg(test)]
+mod parity_tests;
+
 pub use atlas::{AtlasPacker, AtlasRect};
 pub use camera::{Camera, ZOOM_INTENSITY, ZOOM_MAX, ZOOM_MIN};
 pub use error::{RenderError, RenderErrorKind};
