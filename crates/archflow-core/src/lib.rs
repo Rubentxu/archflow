@@ -31,6 +31,9 @@ pub mod id;
 /// 2D vector math and geometry primitives (Vec2, Color, Rect, Transform).
 pub mod math;
 
+/// Extended types for camera precision (Vec2f64).
+pub mod types;
+
 /// Vector path construction using Bézier curves for canvas rendering.
 pub mod paths;
 
@@ -48,6 +51,7 @@ pub mod ports;
 pub use id::{EntityId, Generation, Index};
 pub use math::{Color, Rect, Transform, Vec2};
 pub use paths::{Path, PathBuilder, PathCommand};
+pub use types::Vec2f64;
 pub use vo::{Bounds, Position, Size};
 
 // ═══════════════════════════════════════════════════════════════════════════════

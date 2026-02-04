@@ -4,7 +4,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::fmt;
-use std::ops::{Add, Div, Mul, MulAssign, Neg, Sub};
+use std::ops::{Add, Div, Mul, MulAssign, Neg, Sub, SubAssign};
 
 /// Vector 2D con soporte serde
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -139,6 +139,127 @@ impl Neg for Vec2 {
 impl fmt::Display for Vec2 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Vec2({:.2}, {:.2})", self.x, self.y)
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// Vec2f64 - Vector 2D de doble precisión para coordenadas de cámara
+//
+// Usado para:
+// - Posición de cámara (evita jittering en zoom extremo)
+// - Coordenadas de mundo (antes de conversión a f32 para GPU)
+// - Conversión precisa a f32 para shaders
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Vector 2D de doble precisión para coordenadas de cámara
+///
+/// Problem: En zoom extremo (1000x+), coordenadas como 10_000_000.0
+/// pierden precisión cuando se convierten a f32 (~7 dígitos significativos).
+///
+/// Solution: Usar f64 para posición de cámara, convertir a f32
+/// SOLO después de restar la posición de cámara (coordinates relativas).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Vec2f64 {
+    pub x: f64,
+    pub y: f64,
+}
+
+impl Vec2f64 {
+    /// Vector cero
+    pub const ZERO: Vec2f64 = Vec2f64 { x: 0.0, y: 0.0 };
+
+    #[inline]
+    pub fn new(x: f64, y: f64) -> Self {
+        Self { x, y }
+    }
+
+    #[inline]
+    pub fn splat(v: f64) -> Self {
+        Self { x: v, y: v }
+    }
+
+    #[inline]
+    pub fn length(&self) -> f64 {
+        (self.x * self.x + self.y * self.y).sqrt()
+    }
+
+    /// Restar otro vector (devuelve Vec2f64)
+    #[inline]
+    pub fn sub(self, other: Self) -> Self {
+        Self::new(self.x - other.x, self.y - other.y)
+    }
+
+    /// Restar otro vector (devuelve Self)
+    #[inline]
+    pub fn sub_f32(self, other: Vec2) -> Vec2 {
+        Vec2::new(self.x as f32 - other.x, self.y as f32 - other.y)
+    }
+
+    /// Convertir a Vec2 (truncando/convirtiendo)
+    #[inline]
+    pub fn to_vec2(self) -> Vec2 {
+        Vec2::new(self.x as f32, self.y as f32)
+    }
+
+    /// Convertir a Vec2 con conversión segura
+    /// Útil para coordenadas relativas (cercanas a 0)
+    #[inline]
+    pub fn to_relative_vec2(self, reference: Self) -> Vec2 {
+        let relative = self.sub(reference);
+        // Ahora relative.x e relative.y son pequeños (~decenas o cientos)
+        // por lo que la conversión a f32 preserva precisión
+        Vec2::new(relative.x as f32, relative.y as f32)
+    }
+}
+
+impl Default for Vec2f64 {
+    fn default() -> Self {
+        Self::ZERO
+    }
+}
+
+impl Add for Vec2f64 {
+    type Output = Self;
+    #[inline]
+    fn add(self, other: Self) -> Self {
+        Self::new(self.x + other.x, self.y + other.y)
+    }
+}
+
+impl Sub for Vec2f64 {
+    type Output = Self;
+    #[inline]
+    fn sub(self, other: Self) -> Self {
+        Self::new(self.x - other.x, self.y - other.y)
+    }
+}
+
+impl SubAssign for Vec2f64 {
+    fn sub_assign(&mut self, other: Self) {
+        self.x -= other.x;
+        self.y -= other.y;
+    }
+}
+
+impl Mul<f64> for Vec2f64 {
+    type Output = Self;
+    #[inline]
+    fn mul(self, s: f64) -> Self {
+        Self::new(self.x * s, self.y * s)
+    }
+}
+
+impl Div<f64> for Vec2f64 {
+    type Output = Self;
+    #[inline]
+    fn div(self, s: f64) -> Self {
+        Self::new(self.x / s, self.y / s)
+    }
+}
+
+impl fmt::Display for Vec2f64 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Vec2f64({:.4}, {:.4})", self.x, self.y)
     }
 }
 
