@@ -75,7 +75,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     let local_pos = (input.world_pos - input.instance_pos) / input.instance_size;
-    let centered = local_pos - 0.5;  // Center at origin, range [-0.5, 0.5]
+    let centered = local_pos;  // Already centered from Vertex Shader logic
 
     var distance: f32 = 0.0;
     let shape_type = input.shape_type & 0xFu;  // Lower 4 bits for shape type
