@@ -146,6 +146,8 @@ build-wasm: sync-wasm-types
     @echo "Building WASM..."
     @cd crates/archflow-web && wasm-pack build --target web --debug
     @echo "WASM built!"
+    @cp crates/archflow-web/pkg/archflow_web_bg.wasm crates/archflow-web-ui/src/wasm/
+
 
 # Sync WASM types to frontend
 [doc("Sync WASM types from Rust to TypeScript frontend")]
@@ -215,11 +217,14 @@ watch-all:
 # TESTING
 # =============================================================================
 
-# Run all tests
-[doc("Run all tests (unit + integration)")]
+# Run all tests (unit + integration + shader E2E)
+[doc("Run all tests (unit + integration + shader E2E)")]
 test:
     @echo "Running all tests..."
     @cargo test -p archflow-sdk -p archflow-core -p archflow-geometry -p archflow-spatial -p archflow-primitives
+    @echo ""
+    @echo "Running shader E2E tests..."
+    @just test-shader-e2e
     @echo ""
     @echo "All tests passed!"
 
@@ -244,6 +249,27 @@ test-workspace:
 test-watch:
     @echo Starting test watch mode...
     @cargo watch -x "test --workspace"
+
+# Run shader rendering E2E tests (WASM + WebGL2)
+[doc("Run shader rendering E2E tests in headless browser")]
+test-shader-e2e:
+    @echo "Running shader rendering E2E tests..."
+    @echo ""
+    @cd crates/archflow-render && wasm-pack test --headless --firefox
+    @echo ""
+    @echo "Shader E2E tests passed!"
+
+# Run shader E2E tests in Chrome
+[doc("Run shader E2E tests in Chrome")]
+test-shader-e2e-chrome:
+    @echo "Running shader rendering E2E tests (Chrome)..."
+    @cd crates/archflow-render && wasm-pack test --headless --chrome
+
+# Run shader E2E tests with browser visible
+[doc("Run shader E2E tests with visible browser (debugging)")]
+test-shader-e2e-headed:
+    @echo "Running shader rendering E2E tests (headed mode)..."
+    @cd crates/archflow-render && wasm-pack test --firefox
 
 # Run E2E tests with Playwright
 [doc("Run E2E tests with Playwright")]

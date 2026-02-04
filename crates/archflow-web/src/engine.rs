@@ -21,6 +21,27 @@ use archflow_engine::{Command, CommandQueue, ConnectionStore, EntityStore};
 use archflow_interaction::HistoryManager;
 use archflow_render::{Camera, GpuRenderer, Renderer};
 
+/// Converts RGBA color format to ABGR for WebGL compatibility.
+///
+/// WebGL's UNSIGNED_BYTE normalized attributes read bytes in little-endian order,
+/// so we need to swap R and B channels.
+///
+/// # Example
+/// ```
+/// let rgba = 0x3b82f6ff; // RGB(59, 130, 246) blue with alpha 255
+/// let abgr = rgba_to_abgr(rgba); // 0xfff6823b
+/// ```
+#[inline]
+const fn rgba_to_abgr(rgba: u32) -> u32 {
+    let r = (rgba >> 24) & 0xFF;
+    let g = (rgba >> 16) & 0xFF;
+    let b = (rgba >> 8) & 0xFF;
+    let a = rgba & 0xFF;
+
+    // ABGR format: A=highest byte, B, G, R=lowest byte
+    (a << 24) | (b << 16) | (g << 8) | r
+}
+
 /// Main ArchFlow Engine combining all systems
 ///
 /// This is the central orchestrator that coordinates all engine subsystems
@@ -99,8 +120,8 @@ impl ArchFlowEngine {
             active_tool: alloc::string::String::from("select"),
             is_creating: false,
             drag_start: None,
-            active_color: 0x3b82f6ff,
-            active_stroke_color: 0x000000ff,
+            active_color: rgba_to_abgr(0x3b82f6ff), // Blue color converted to ABGR
+            active_stroke_color: rgba_to_abgr(0x000000ff), // Black stroke converted to ABGR
             active_stroke_width: 2.0,
         }
     }

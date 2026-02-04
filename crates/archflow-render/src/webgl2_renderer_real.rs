@@ -30,27 +30,89 @@ use crate::camera::Camera;
 use crate::error::RenderError;
 use crate::renderer::{CameraUniforms, GpuInstance, RenderPhase, Renderer};
 
-/// Vertex shader with instancing support
+/// Vertex shader with instancing support and camera-relative rendering
 const VERTEX_SHADER_SOURCE: &str = "#version 300 es\n\
     layout(location = 0) in vec2 a_position;\n\
     layout(location = 1) in vec2 a_instance_pos;\n\
     layout(location = 2) in vec2 a_instance_size;\n\
     layout(location = 3) in vec4 a_instance_color;\n\
+    layout(location = 4) in float a_shape_type;\n\
+    layout(location = 5) in vec4 a_stroke_color;\n\
+    layout(location = 6) in float a_stroke_width;\n\
     uniform mat4 u_view_projection;\n\
+    uniform vec2 u_camera_pos;\n\
     out vec4 v_color;\n\
+    out vec2 v_world_pos;\n\
+    out vec2 v_instance_pos;\n\
+    out vec2 v_instance_size;\n\
+    flat out float v_shape_type;\n\
+    out vec4 v_stroke_color;\n\
+    out float v_stroke_width;\n\
     void main() {\n\
-        vec2 world_pos = a_position * a_instance_size + a_instance_pos;\n\
-        gl_Position = u_view_projection * vec4(world_pos, 0.0, 1.0);\n\
+        vec2 centered_vert = a_position - 0.5;\n\
+        vec2 world_pos = a_instance_pos + centered_vert * a_instance_size;\n\
+        vec2 camera_relative_pos = world_pos - u_camera_pos;\n\
+        gl_Position = u_view_projection * vec4(camera_relative_pos, 0.0, 1.0);\n\
         v_color = a_instance_color;\n\
+        v_world_pos = world_pos;\n\
+        v_instance_pos = a_instance_pos;\n\
+        v_instance_size = a_instance_size;\n\
+        v_shape_type = a_shape_type;\n\
+        v_stroke_color = a_stroke_color;\n\
+        v_stroke_width = a_stroke_width;\n\
     }";
 
-/// Fragment shader with color support
+/// Fragment shader with SDF support for shapes with stroke
 const FRAGMENT_SHADER_SOURCE: &str = "#version 300 es\n\
     precision highp float;\n\
     in vec4 v_color;\n\
+    in vec2 v_world_pos;\n\
+    in vec2 v_instance_pos;\n\
+    in vec2 v_instance_size;\n\
+    flat in float v_shape_type;\n\
+    in vec4 v_stroke_color;\n\
+    in float v_stroke_width;\n\
     out vec4 frag_color;\n\
+    \n\
     void main() {\n\
-        frag_color = v_color;\n\
+        vec2 local_pos = (v_world_pos - v_instance_pos) / v_instance_size;\n\
+        vec2 centered = local_pos;\n\
+        \n\
+        float distance = 0.0;\n\
+        int shape_type = int(v_shape_type) & 15;\n\
+        \n\
+        const int SHAPE_RECT = 0;\n\
+        const int SHAPE_CIRCLE = 1;\n\
+        const int SHAPE_ELLIPSE = 2;\n\
+        \n\
+        if (shape_type == SHAPE_RECT) {\n\
+            vec2 half_size = v_instance_size * 0.5;\n\
+            vec2 d = abs(centered * v_instance_size) - half_size;\n\
+            distance = max(d.x, d.y);\n\
+        }\n\
+        else if (shape_type == SHAPE_CIRCLE) {\n\
+            distance = length(centered * v_instance_size) - (min(v_instance_size.x, v_instance_size.y) * 0.5);\n\
+        }\n\
+        else {\n\
+            vec2 half_size = v_instance_size * 0.5;\n\
+            vec2 d = abs(centered * v_instance_size) - half_size;\n\
+            distance = max(d.x, d.y);\n\
+        }\n\
+        \n\
+        // Anti-aliased edge\n\
+        float edge_width = fwidth(distance);\n\
+        float fill_alpha = 1.0 - smoothstep(-edge_width, edge_width, distance);\n\
+        \n\
+        // Stroke calculation\n\
+        float stroke_distance = abs(distance) - v_stroke_width;\n\
+        float stroke_alpha = 1.0 - smoothstep(-edge_width, edge_width, stroke_distance);\n\
+        \n\
+        // Combine fill and stroke\n\
+        vec4 fill_color = v_color * fill_alpha;\n\
+        vec4 stroke_color_final = v_stroke_color * stroke_alpha;\n\
+        \n\
+        // Stroke on top of fill\n\
+        frag_color = mix(fill_color, stroke_color_final, stroke_alpha * (1.0 - fill_alpha));\n\
     }";
 
 /// WebGL2 Production Renderer
@@ -88,7 +150,7 @@ pub struct WebGL2Renderer {
 
     /// Cached uniform locations (avoid expensive string lookups)
     u_view_proj_loc: Option<web_sys::WebGlUniformLocation>,
-    u_color_loc: Option<web_sys::WebGlUniformLocation>,
+    u_camera_pos_loc: Option<web_sys::WebGlUniformLocation>,
 
     /// Instance data (CPU-side, synced to GPU)
     instances: Vec<GpuInstance>,
@@ -178,7 +240,7 @@ impl WebGL2Renderer {
         // Create shader program with cached uniform locations
         let program = Self::create_program(&gl)?;
         let u_view_proj_loc = gl.get_uniform_location(&program, "u_view_projection");
-        let u_color_loc = gl.get_uniform_location(&program, "u_color");
+        let u_camera_pos_loc = gl.get_uniform_location(&program, "u_camera_pos");
 
         // WebGL2 has native VAO support - no extension needed
         let vao = gl
@@ -221,10 +283,13 @@ impl WebGL2Renderer {
         );
 
         // Instance buffer (placeholder, filled in render)
+        // GpuInstance layout: pos(8) + size(8) + color(4) + shape_type(4) + padding(8) + uv_rect(16) = 48 bytes
         gl.bind_buffer(
             web_sys::WebGl2RenderingContext::ARRAY_BUFFER,
             Some(&instance_buffer),
         );
+
+        // Location 1: pos (vec2<f32> at offset 0)
         gl.enable_vertex_attrib_array(1);
         gl.vertex_attrib_pointer_with_i32(
             1,
@@ -236,6 +301,7 @@ impl WebGL2Renderer {
         );
         gl.vertex_attrib_divisor(1, 1);
 
+        // Location 2: size (vec2<f32> at offset 8)
         gl.enable_vertex_attrib_array(2);
         gl.vertex_attrib_pointer_with_i32(
             2,
@@ -247,6 +313,7 @@ impl WebGL2Renderer {
         );
         gl.vertex_attrib_divisor(2, 1);
 
+        // Location 3: color (u32 at offset 16, unpacked as vec4 normalized bytes)
         gl.enable_vertex_attrib_array(3);
         gl.vertex_attrib_pointer_with_i32(
             3,
@@ -257,6 +324,42 @@ impl WebGL2Renderer {
             16,
         );
         gl.vertex_attrib_divisor(3, 1);
+
+        // Location 4: shape_type (u32 at offset 20, passed as float for compatibility)
+        gl.enable_vertex_attrib_array(4);
+        gl.vertex_attrib_pointer_with_i32(
+            4,
+            1,
+            web_sys::WebGl2RenderingContext::UNSIGNED_INT,
+            false,
+            48,
+            20,
+        );
+        gl.vertex_attrib_divisor(4, 1);
+
+        // Location 5: stroke_color (u32 at offset 24, unpacked as vec4 normalized bytes)
+        gl.enable_vertex_attrib_array(5);
+        gl.vertex_attrib_pointer_with_i32(
+            5,
+            4,
+            web_sys::WebGl2RenderingContext::UNSIGNED_BYTE,
+            true,
+            48,
+            24,
+        );
+        gl.vertex_attrib_divisor(5, 1);
+
+        // Location 6: stroke_width (f32 bits stored as u32 at offset 28)
+        gl.enable_vertex_attrib_array(6);
+        gl.vertex_attrib_pointer_with_i32(
+            6,
+            1,
+            web_sys::WebGl2RenderingContext::FLOAT,
+            false,
+            48,
+            28,
+        );
+        gl.vertex_attrib_divisor(6, 1);
 
         gl.bind_vertex_array(None);
 
@@ -271,7 +374,7 @@ impl WebGL2Renderer {
             instance_buffer,
             camera_uniforms: CameraUniforms::default(),
             u_view_proj_loc,
-            u_color_loc,
+            u_camera_pos_loc,
             instances: Vec::with_capacity(MAX_ENTITIES as usize),
             batches: DrawBatches::default(),
             draw_calls: 0,
@@ -374,7 +477,8 @@ impl WebGL2Renderer {
                 } else {
                     store.texture_index[i] as u32
                 },
-                _padding: [0, 0],
+                stroke_color: store.stroke_colors[i],
+                stroke_width_bits: store.stroke_widths[i].to_bits(),
                 uv_rect: store.uv_rects[i],
             };
 
@@ -415,15 +519,15 @@ impl Renderer for WebGL2Renderer {
             for &idx in &store.draw_order {
                 let idx = idx as usize;
 
-                // Debug first entity only to avoid spam
-                let debug_entity = idx == 0 && phase == RenderPhase::Shapes;
+                // DEBUG: Entity 0 debug logs (DISABLED - too noisy)
+                let debug_entity = false; // idx == 0 && phase == RenderPhase::Shapes;
 
                 if !store.is_visible(idx) {
-                    if debug_entity {
-                        web_sys::console::log_1(&JsValue::from_str(
-                            "Entity 0 skipped: not visible",
-                        ));
-                    }
+                    // if debug_entity {
+                    //     web_sys::console::log_1(&JsValue::from_str(
+                    //         "Entity 0 skipped: not visible",
+                    //     ));
+                    // }
                     continue;
                 }
 
@@ -437,12 +541,12 @@ impl Renderer for WebGL2Renderer {
                 };
 
                 if entity_phase != phase {
-                    if debug_entity {
-                        web_sys::console::log_1(&JsValue::from_str(&format!(
-                            "Entity 0 phase mismatch: has {:?} vs loop {:?}",
-                            entity_phase, phase
-                        )));
-                    }
+                    // if debug_entity {
+                    //     web_sys::console::log_1(&JsValue::from_str(&format!(
+                    //         "Entity 0 phase mismatch: has {:?} vs loop {:?}",
+                    //         entity_phase, phase
+                    //     )));
+                    // }
                     continue;
                 }
 
@@ -459,12 +563,12 @@ impl Renderer for WebGL2Renderer {
                     entity_max.x,
                     entity_max.y,
                 )) {
-                    if debug_entity {
-                        web_sys::console::log_1(&JsValue::from_str(&format!(
-                            "Entity 0 culled: viewport={:?} entity={:?}-{:?}",
-                            viewport, entity_min, entity_max
-                        )));
-                    }
+                    // if debug_entity {
+                    //     web_sys::console::log_1(&JsValue::from_str(&format!(
+                    //         "Entity 0 culled: viewport={:?} entity={:?}-{:?}",
+                    //         viewport, entity_min, entity_max
+                    //     )));
+                    // }
                     continue;
                 }
 
@@ -477,13 +581,14 @@ impl Renderer for WebGL2Renderer {
                     } else {
                         texture_idx as u32
                     },
-                    _padding: [0, 0],
+                    stroke_color: store.stroke_colors[idx],
+                    stroke_width_bits: store.stroke_widths[idx].to_bits(),
                     uv_rect: store.uv_rects[idx],
                 };
 
-                if debug_entity {
-                    web_sys::console::log_1(&JsValue::from_str("Entity 0 accepted for rendering"));
-                }
+                // if debug_entity {
+                //     web_sys::console::log_1(&JsValue::from_str("Entity 0 accepted for rendering"));
+                // }
 
                 let instance_idx = self.instances.len() as u32;
                 self.instances.push(instance);
@@ -543,7 +648,8 @@ impl Renderer for WebGL2Renderer {
         gl.bind_vertex_array(Some(&self.vao));
 
         // Upload camera uniforms (correct method for web-sys 0.3)
-        if let Some(ref loc) = self.u_view_proj_loc {
+        // Upload view-projection matrix
+        if let Some(loc) = &self.u_view_proj_loc {
             let matrix: [f32; 16] = self
                 .camera_uniforms
                 .view_projection
@@ -554,17 +660,16 @@ impl Renderer for WebGL2Renderer {
                 .try_into()
                 .unwrap();
 
-            // Log first matrix visual check (once per 60 frames roughly to avoid spam? or just once)
-            // For now, always log if small instance count (debugging)
-            if self.instances.len() < 5 {
-                web_sys::console::log_1(&JsValue::from_str(&format!(
-                    "Rendering {} instances. Matrix[0]={}",
-                    self.instances.len(),
-                    matrix[0]
-                )));
-            }
-
             gl.uniform_matrix4fv_with_f32_array(Some(loc), false, &matrix);
+        }
+
+        // Upload camera position for camera-relative rendering
+        if let Some(loc) = &self.u_camera_pos_loc {
+            gl.uniform2f(
+                Some(loc),
+                self.camera_uniforms.camera_pos[0],
+                self.camera_uniforms.camera_pos[1],
+            );
         }
 
         // Buffer orphaning: Avoid CPU/GPU synchronization stall
@@ -575,13 +680,14 @@ impl Renderer for WebGL2Renderer {
         // Update entire instance buffer with new data
         let data = bytemuck::cast_slice(&self.instances);
         // Debug first instance data
-        if !self.instances.is_empty() {
-            let i0 = &self.instances[0];
-            web_sys::console::log_1(&JsValue::from_str(&format!(
-                "Instance[0]: pos=[{},{}], size=[{},{}], color={:x}",
-                i0.pos[0], i0.pos[1], i0.size[0], i0.size[1], i0.color
-            )));
-        }
+        // DEBUG: instance details (DISABLED - too noisy)
+        // if !self.instances.is_empty() {
+        //     let i0 = &self.instances[0];
+        //     web_sys::console::log_1(&JsValue::from_str(&format!(
+        //         "Instance[0]: pos=[{},{}], size=[{},{}], color={:x}",
+        //         i0.pos[0], i0.pos[1], i0.size[0], i0.size[1], i0.color
+        //     )));
+        // }
         let view = unsafe { js_sys::Uint8Array::view(data) };
         gl.buffer_data_with_array_buffer_view(
             web_sys::WebGl2RenderingContext::ARRAY_BUFFER,

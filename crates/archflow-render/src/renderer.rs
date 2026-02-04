@@ -68,7 +68,7 @@ pub struct GpuInstance {
     /// Size [w, h] in world coordinates
     pub size: [f32; 2],
 
-    /// Packed color as 0xRRGGBBAA
+    /// Packed fill color as 0xAABBGGRR (ABGR for WebGL compatibility)
     pub color: u32,
 
     /// Shape type (0-15) or texture index
@@ -76,8 +76,13 @@ pub struct GpuInstance {
     /// For textures: Index into texture atlas/array
     pub shape_type_or_texture_index: u32,
 
-    /// Padding to align to 16 bytes
-    pub _padding: [u32; 2],
+    /// Packed stroke color as 0xAABBGGRR (ABGR for WebGL compatibility)
+    /// Note: Using first padding slot for stroke color
+    pub stroke_color: u32,
+
+    /// Stroke width in world units (packed as f32 bits in u32)
+    /// Note: Using second padding slot for stroke width
+    pub stroke_width_bits: u32,
 
     /// UV rectangle for texture sampling [u, v, w, h]
     /// Normalized 0-1 coordinates in texture atlas
@@ -282,7 +287,8 @@ impl GpuRenderer {
                 } else {
                     texture_idx as u32
                 },
-                _padding: [0, 0],
+                stroke_color: store.stroke_colors[idx],
+                stroke_width_bits: store.stroke_widths[idx].to_bits(),
                 uv_rect: store.uv_rects[idx],
             };
 
@@ -414,7 +420,8 @@ impl GpuRenderer {
                 } else {
                     texture_idx as u32
                 },
-                _padding: [0, 0],
+                stroke_color: store.stroke_colors[idx],
+                stroke_width_bits: store.stroke_widths[idx].to_bits(),
                 uv_rect: store.uv_rects[idx],
             };
 
@@ -625,7 +632,8 @@ mod tests {
             size: [10.0, 20.0],
             color: 0xFF0000FF,
             shape_type_or_texture_index: 1,
-            _padding: [0, 0],
+            stroke_color: 0xFF000000,
+            stroke_width_bits: 2.0f32.to_bits(),
             uv_rect: [0.0, 0.0, 1.0, 1.0],
         };
 

@@ -49,16 +49,52 @@ import { ShapeHistory } from "./ShapeHistory";
 function VisualPropertiesForm({
   entityId,
   bridge,
-  onUpdate
+  onUpdate,
 }: {
-  entityId: number | null,
-  bridge: any,
-  onUpdate?: () => void
+  entityId: number | null;
+  bridge: any;
+  onUpdate?: () => void;
 }) {
-  // Local state for immediate feedback
-  const [fillColor, setFillColor] = React.useState("#3b82f6");
-  const [strokeColor, setStrokeColor] = React.useState("#000000");
-  const [strokeWidth, setStrokeWidth] = React.useState(2.0);
+  // Local state for immediate feedback - initialize from bridge if available
+  const [fillColor, setFillColor] = React.useState(() => {
+    if (!bridge || entityId !== null) return "#3b82f6";
+    try {
+      return bridge.get_active_color() || "#3b82f6";
+    } catch {
+      return "#3b82f6";
+    }
+  });
+  const [strokeColor, setStrokeColor] = React.useState(() => {
+    if (!bridge || entityId !== null) return "#000000";
+    try {
+      return bridge.get_active_stroke_color() || "#000000";
+    } catch {
+      return "#000000";
+    }
+  });
+  const [strokeWidth, setStrokeWidth] = React.useState(() => {
+    if (!bridge || entityId !== null) return 2.0;
+    try {
+      return bridge.get_active_stroke_width() || 2.0;
+    } catch {
+      return 2.0;
+    }
+  });
+
+  // Sync with bridge when it becomes available
+  React.useEffect(() => {
+    if (!bridge || entityId !== null) return;
+    try {
+      const activeColor = bridge.get_active_color();
+      const activeStrokeColor = bridge.get_active_stroke_color();
+      const activeStrokeWidth = bridge.get_active_stroke_width();
+      if (activeColor) setFillColor(activeColor);
+      if (activeStrokeColor) setStrokeColor(activeStrokeColor);
+      if (activeStrokeWidth !== undefined) setStrokeWidth(activeStrokeWidth);
+    } catch (e) {
+      console.warn("Failed to sync colors from bridge:", e);
+    }
+  }, [bridge, entityId]);
 
   const handleFillChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -108,7 +144,9 @@ function VisualPropertiesForm({
 
   return (
     <div className="space-y-4 mb-6 pt-2 pb-4 border-b border-border-light dark:border-border-dark/50">
-      <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Appearance</h4>
+      <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
+        Appearance
+      </h4>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
@@ -137,16 +175,24 @@ function VisualPropertiesForm({
         </div>
 
         <div className="col-span-2 space-y-1.5">
-          <label className="text-xs text-gray-400 font-medium">Stroke Width</label>
+          <label className="text-xs text-gray-400 font-medium">
+            Stroke Width
+          </label>
           <div className="flex items-center gap-3">
             <input
               type="range"
-              min="0" max="20" step="0.5"
+              min="0"
+              max="20"
+              step="0.5"
               value={strokeWidth}
-              onChange={(e) => handleStrokeWidthChange(parseFloat(e.target.value))}
+              onChange={(e) =>
+                handleStrokeWidthChange(parseFloat(e.target.value))
+              }
               className="flex-1 accent-primary h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"
             />
-            <span className="text-xs w-8 text-right font-mono text-gray-300">{strokeWidth}px</span>
+            <span className="text-xs w-8 text-right font-mono text-gray-300">
+              {strokeWidth}px
+            </span>
           </div>
         </div>
       </div>
@@ -721,7 +767,9 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
   const { selectedIds } = useSelectionStore();
   const { updateProperty, getEntity } = useEntityStore();
   const [isSaving, setIsSaving] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState<"properties" | "logic" | "history">("properties");
+  const [activeTab, setActiveTab] = React.useState<
+    "properties" | "logic" | "history"
+  >("properties");
 
   // Motion & Particles state
   const [throughput, setThroughput] = React.useState(500);
@@ -804,12 +852,14 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
 
   // Empty state when no entity is selected
   if (!entity || !selectedId) {
-    if (activeTool !== 'select') {
+    if (activeTool !== "select") {
       return (
-        <aside className={cn(
-          "w-80 bg-surface-light dark:bg-surface-dark border-l border-border-light dark:border-border-dark flex flex-col items-stretch transition-all duration-300",
-          className
-        )}>
+        <aside
+          className={cn(
+            "w-80 bg-surface-light dark:bg-surface-dark border-l border-border-light dark:border-border-dark flex flex-col items-stretch transition-all duration-300",
+            className,
+          )}
+        >
           <div className="flex-1 w-full space-y-4 overflow-y-auto p-6">
             <div className="flex items-center gap-3 pb-4 border-b border-border-light dark:border-border-dark">
               <div className="size-10 rounded bg-primary/10 flex items-center justify-center text-primary shrink-0">
@@ -817,18 +867,14 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
               </div>
               <div className="overflow-hidden">
                 <h4 className="font-bold text-sm text-slate-900 dark:text-white truncate">
-                  {activeTool.charAt(0).toUpperCase() + activeTool.slice(1)} Tool
+                  {activeTool.charAt(0).toUpperCase() + activeTool.slice(1)}{" "}
+                  Tool
                 </h4>
-                <p className="text-xs text-slate-500">
-                  Default Properties
-                </p>
+                <p className="text-xs text-slate-500">Default Properties</p>
               </div>
             </div>
 
-            <VisualPropertiesForm
-              entityId={null}
-              bridge={bridge}
-            />
+            <VisualPropertiesForm entityId={null} bridge={bridge} />
           </div>
           <ShapeHistory />
         </aside>
@@ -836,10 +882,12 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
     }
 
     return (
-      <aside className={cn(
-        "w-80 bg-surface-light dark:bg-surface-dark border-l border-border-light dark:border-border-dark flex flex-col transition-all duration-300",
-        className
-      )}>
+      <aside
+        className={cn(
+          "w-80 bg-surface-light dark:bg-surface-dark border-l border-border-light dark:border-border-dark flex flex-col transition-all duration-300",
+          className,
+        )}
+      >
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-gray-500 dark:text-gray-400">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center">
             <AlertCircle className="w-8 h-8" />
@@ -871,7 +919,7 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
             "flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2",
             activeTab === "properties"
               ? "border-primary text-primary bg-white dark:bg-transparent"
-              : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300",
           )}
         >
           Properties
@@ -882,7 +930,7 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
             "flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2",
             activeTab === "logic"
               ? "border-primary text-primary bg-white dark:bg-transparent"
-              : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300",
           )}
         >
           Logic
@@ -893,7 +941,7 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
             "flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2",
             activeTab === "history"
               ? "border-primary text-primary bg-white dark:bg-transparent"
-              : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300",
           )}
         >
           History
@@ -915,10 +963,7 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
-              <VisualPropertiesForm
-                entityId={selectedId}
-                bridge={bridge}
-              />
+              <VisualPropertiesForm entityId={selectedId} bridge={bridge} />
 
               {/* Identity Section */}
               <div className="space-y-3">
@@ -961,7 +1006,11 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
                   <>
                     <motion.div
                       animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      transition={{
+                        duration: 1,
+                        repeat: Infinity,
+                        ease: "linear",
+                      }}
                       className="w-4 h-4 border-2 border-current border-t-transparent rounded-full"
                     />
                     <span>Saving...</span>
@@ -986,7 +1035,9 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="size-2 bg-primary rounded-full animate-pulse"></span>
-                  <span className="text-[10px] font-bold text-primary tracking-wider">LIVE</span>
+                  <span className="text-[10px] font-bold text-primary tracking-wider">
+                    LIVE
+                  </span>
                 </div>
               </div>
 
@@ -994,7 +1045,9 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-500">Throughput Speed</span>
-                    <span className="text-primary font-mono">{throughput} req/s</span>
+                    <span className="text-primary font-mono">
+                      {throughput} req/s
+                    </span>
                   </div>
                   <input
                     type="range"
@@ -1009,7 +1062,9 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-500">Packet Size</span>
-                    <span className="text-gray-200 font-mono">{packetSize}kb</span>
+                    <span className="text-gray-200 font-mono">
+                      {packetSize}kb
+                    </span>
                   </div>
                   <input
                     type="range"
@@ -1023,7 +1078,9 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">Flow Color</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">
+                      Flow Color
+                    </span>
                     <div className="flex gap-1.5">
                       <button className="w-5 h-5 rounded-full bg-primary ring-2 ring-offset-1 ring-offset-[#0d1117] ring-primary"></button>
                       <button className="w-5 h-5 rounded-full bg-orange-500 hover:ring-2 ring-orange-500/50"></button>
@@ -1032,7 +1089,9 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">Effect Style</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">
+                      Effect Style
+                    </span>
                     <select className="w-full text-xs bg-surface-dark border border-white/10 rounded px-2 py-1 text-gray-300 focus:outline-none">
                       <option>Pulse</option>
                       <option>Stream</option>

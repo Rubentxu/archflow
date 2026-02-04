@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGL2 Shader Test - ArchFlow</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 20px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .test-case {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #0f3460;
+        }
+        .test-case h3 {
+            margin: 0 0 10px 0;
+            color: #e94560;
+        }
+        canvas {
+            border: 2px solid #0f3460;
+            background: #0a0a0a;
+            display: block;
+            margin-bottom: 10px;
+        }
+        .status {
+            font-size: 12px;
+            padding: 5px;
+            border-radius: 4px;
+        }
+        .status.pass { background: #1b4332; color: #95d5b2; }
+        .status.fail { background: #582f0e; color: #e9c46a; }
+        .status.error { background: #6a040f; color: #ffccd5; }
+        #log {
+            background: #0a0a0a;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-top: 20px;
+        }
+        .log-info { color: #90caf9; }
+        .log-success { color: #a5d6a7; }
+        .log-error { color: #ef9a9a; }
+        .log-warn { color: #fff59d; }
+        button {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        button:hover { background: #ff6b6b; }
+        .controls { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🔬 WebGL2 Shader Integration Tests</h1>
+    <p>Testing shaders for rectangle and circle rendering with instancing.</p>
+
+    <div class="controls">
+        <button onclick="runAllTests()">Run All Tests</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <div class="container" id="test-container">
+        <!-- Test cases will be inserted here -->
+    </div>
+
+    <div id="log"></div>
+
+    <script>
+        // ═══════════════════════════════════════════════════════════════════════
+        // SHADER SOURCES - Matching webgl2_renderer_real.rs
+        // ═══════════════════════════════════════════════════════════════════════
+
+        // Original minimal shader (should work)
+        const VERTEX_SHADER_MINIMAL = `#version 300 es
+            layout(location = 0) in vec2 a_position;
+            layout(location = 1) in vec2 a_instance_pos;
+            layout(location = 2) in vec2 a_instance_size;
+            layout(location = 3) in vec4 a_instance_color;
+            uniform mat4 u_view_projection;
+            out vec4 v_color;
+            void main() {
+                vec2 world_pos = a_position * a_instance_size + a_instance_pos;
+                gl_Position = u_view_projection * vec4(world_pos, 0.0, 1.0);
+                v_color = a_instance_color;
+            }`;
+
+        const FRAGMENT_SHADER_MINIMAL = `#version 300 es
+            precision highp float;
+            in vec4 v_color;
+            out vec4 frag_color;
+            void main() {
+                frag_color = v_color;
+            }`;
+
+        // SDF shader with shape_type support
+        const VERTEX_SHADER_SDF = `#version 300 es
+            layout(location = 0) in vec2 a_position;
+            layout(location = 1) in vec2 a_instance_pos;
+            layout(location = 2) in vec2 a_instance_size;
+            layout(location = 3) in vec4 a_instance_color;
+            layout(location = 4) in float a_shape_type;
+            uniform mat4 u_view_projection;
+            out vec4 v_color;
+            out vec2 v_uv;
+            out float v_shape_type;
+            void main() {
+                vec2 world_pos = a_position * a_instance_size + a_instance_pos;
+                gl_Position = u_view_projection * vec4(world_pos, 0.0, 1.0);
+                v_color = a_instance_color;
+                v_uv = a_position;
+                v_shape_type = a_shape_type;
+            }`;
+
+        const FRAGMENT_SHADER_SDF = `#version 300 es
+            precision highp float;
+            in vec4 v_color;
+            in vec2 v_uv;
+            in float v_shape_type;
+            out vec4 frag_color;
+            void main() {
+                vec2 centered = v_uv - 0.5;
+                int shape = int(v_shape_type + 0.5);
+
+                if (shape == 1) {
+                    // Circle: discard pixels outside radius
+                    float dist = length(centered) * 2.0;
+                    if (dist > 1.0) discard;
+                    // Smooth edge
+                    float alpha = 1.0 - smoothstep(0.95, 1.0, dist);
+                    frag_color = vec4(v_color.rgb, v_color.a * alpha);
+                } else {
+                    // Rectangle (shape == 0) or default
+                    frag_color = v_color;
+                }
+            }`;
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // LOGGING UTILITIES
+        // ═══════════════════════════════════════════════════════════════════════
+
+        function log(message, type = 'info') {
+            const logEl = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logEl.innerHTML += `<span class="log-${type}">[${time}] ${message}</span>\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // WEBGL2 UTILITIES
+        // ═══════════════════════════════════════════════════════════════════════
+
+        function createShader(gl, type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                const error = gl.getShaderInfoLog(shader);
+                gl.deleteShader(shader);
+                throw new Error(`Shader compilation failed: ${error}`);
+            }
+            return shader;
+        }
+
+        function createProgram(gl, vsSource, fsSource) {
+            const vs = createShader(gl, gl.VERTEX_SHADER, vsSource);
+            const fs = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+
+            const program = gl.createProgram();
+            gl.attachShader(program, vs);
+            gl.attachShader(program, fs);
+            gl.linkProgram(program);
+
+            if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+                const error = gl.getProgramInfoLog(program);
+                throw new Error(`Program link failed: ${error}`);
+            }
+            return program;
+        }
+
+        function createIdentityMatrix() {
+            return new Float32Array([
+                1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1
+            ]);
+        }
+
+        function createOrthoMatrix(left, right, bottom, top) {
+            const lr = 1 / (left - right);
+            const bt = 1 / (bottom - top);
+            return new Float32Array([
+                -2 * lr, 0, 0, 0,
+                0, -2 * bt, 0, 0,
+                0, 0, -1, 0,
+                (left + right) * lr, (top + bottom) * bt, 0, 1
+            ]);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // TEST SETUP
+        // ═══════════════════════════════════════════════════════════════════════
+
+        function setupMinimalRenderer(gl, program) {
+            const vao = gl.createVertexArray();
+            gl.bindVertexArray(vao);
+
+            // Unit quad vertices [0,0] to [1,1]
+            const vertices = new Float32Array([0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0]);
+            const vertexBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+            gl.enableVertexAttribArray(0);
+            gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+            // Instance buffer
+            const instanceBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffer);
+
+            // Attribute 1: position (offset 0)
+            gl.enableVertexAttribArray(1);
+            gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 20, 0);
+            gl.vertexAttribDivisor(1, 1);
+
+            // Attribute 2: size (offset 8)
+            gl.enableVertexAttribArray(2);
+            gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 20, 8);
+            gl.vertexAttribDivisor(2, 1);
+
+            // Attribute 3: color (offset 16)
+            gl.enableVertexAttribArray(3);
+            gl.vertexAttribPointer(3, 4, gl.UNSIGNED_BYTE, true, 20, 16);
+            gl.vertexAttribDivisor(3, 1);
+
+            gl.bindVertexArray(null);
+
+            return { vao, vertexBuffer, instanceBuffer };
+        }
+
+        function setupSDFRenderer(gl, program) {
+            const vao = gl.createVertexArray();
+            gl.bindVertexArray(vao);
+
+            // Unit quad vertices [0,0] to [1,1]
+            const vertices = new Float32Array([0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0]);
+            const vertexBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+            gl.enableVertexAttribArray(0);
+            gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+            // Instance buffer (with shape_type)
+            const instanceBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffer);
+
+            // Stride: 24 bytes (2*4 pos + 2*4 size + 4 color + 4 shape_type)
+            const stride = 24;
+
+            // Attribute 1: position (offset 0)
+            gl.enableVertexAttribArray(1);
+            gl.vertexAttribPointer(1, 2, gl.FLOAT, false, stride, 0);
+            gl.vertexAttribDivisor(1, 1);
+
+            // Attribute 2: size (offset 8)
+            gl.enableVertexAttribArray(2);
+            gl.vertexAttribPointer(2, 2, gl.FLOAT, false, stride, 8);
+            gl.vertexAttribDivisor(2, 1);
+
+            // Attribute 3: color (offset 16)
+            gl.enableVertexAttribArray(3);
+            gl.vertexAttribPointer(3, 4, gl.UNSIGNED_BYTE, true, stride, 16);
+            gl.vertexAttribDivisor(3, 1);
+
+            // Attribute 4: shape_type (offset 20)
+            gl.enableVertexAttribArray(4);
+            gl.vertexAttribPointer(4, 1, gl.FLOAT, false, stride, 20);
+            gl.vertexAttribDivisor(4, 1);
+
+            gl.bindVertexArray(null);
+
+            return { vao, vertexBuffer, instanceBuffer };
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // TEST CASES
+        // ═══════════════════════════════════════════════════════════════════════
+
+        const testCases = [
+            {
+                name: "Minimal Shader - Single Rectangle",
+                description: "Tests basic instanced rendering with minimal shader",
+                shader: "minimal",
+                instances: [
+                    { pos: [-0.5, -0.5], size: [0.8, 0.8], color: [59, 130, 246, 255], shapeType: 0 }
+                ]
+            },
+            {
+                name: "Minimal Shader - Multiple Rectangles",
+                description: "Tests multiple instances with minimal shader",
+                shader: "minimal",
+                instances: [
+                    { pos: [-0.7, -0.3], size: [0.3, 0.5], color: [239, 68, 68, 255], shapeType: 0 },
+                    { pos: [0.0, -0.3], size: [0.3, 0.5], color: [34, 197, 94, 255], shapeType: 0 },
+                    { pos: [0.4, -0.3], size: [0.3, 0.5], color: [59, 130, 246, 255], shapeType: 0 }
+                ]
+            },
+            {
+                name: "SDF Shader - Rectangle (shape=0)",
+                description: "Tests SDF shader with rectangle shape type",
+                shader: "sdf",
+                instances: [
+                    { pos: [-0.5, -0.5], size: [0.8, 0.8], color: [59, 130, 246, 255], shapeType: 0 }
+                ]
+            },
+            {
+                name: "SDF Shader - Circle (shape=1)",
+                description: "Tests SDF shader with circle shape type",
+                shader: "sdf",
+                instances: [
+                    { pos: [-0.5, -0.5], size: [0.8, 0.8], color: [239, 68, 68, 255], shapeType: 1 }
+                ]
+            },
+            {
+                name: "SDF Shader - Mixed Shapes",
+                description: "Tests both rectangle and circle in same scene",
+                shader: "sdf",
+                instances: [
+                    { pos: [-0.7, -0.4], size: [0.5, 0.7], color: [59, 130, 246, 255], shapeType: 0 },
+                    { pos: [0.2, -0.4], size: [0.6, 0.6], color: [239, 68, 68, 255], shapeType: 1 }
+                ]
+            },
+            {
+                name: "SDF Shader - Multiple Circles",
+                description: "Tests multiple circle instances",
+                shader: "sdf",
+                instances: [
+                    { pos: [-0.7, -0.3], size: [0.4, 0.4], color: [239, 68, 68, 255], shapeType: 1 },
+                    { pos: [-0.1, -0.3], size: [0.4, 0.4], color: [34, 197, 94, 255], shapeType: 1 },
+                    { pos: [0.5, -0.3], size: [0.4, 0.4], color: [59, 130, 246, 255], shapeType: 1 }
+                ]
+            }
+        ];
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // TEST RUNNER
+        // ═══════════════════════════════════════════════════════════════════════
+
+        function createTestCanvas(testCase, index) {
+            const container = document.getElementById('test-container');
+
+            const div = document.createElement('div');
+            div.className = 'test-case';
+            div.id = `test-${index}`;
+
+            div.innerHTML = `
+                <h3>${testCase.name}</h3>
+                <canvas id="canvas-${index}" width="200" height="200"></canvas>
+                <p style="font-size: 11px; color: #888;">${testCase.description}</p>
+                <div class="status" id="status-${index}">Pending...</div>
+            `;
+
+            container.appendChild(div);
+            return document.getElementById(`canvas-${index}`);
+        }
+
+        function runTest(testCase, index) {
+            const statusEl = document.getElementById(`status-${index}`);
+            const canvas = document.getElementById(`canvas-${index}`);
+
+            try {
+                const gl = canvas.getContext('webgl2');
+                if (!gl) {
+                    throw new Error('WebGL2 not supported');
+                }
+
+                // Select shader based on test case
+                let vsSource, fsSource, setup;
+                if (testCase.shader === 'minimal') {
+                    vsSource = VERTEX_SHADER_MINIMAL;
+                    fsSource = FRAGMENT_SHADER_MINIMAL;
+                } else {
+                    vsSource = VERTEX_SHADER_SDF;
+                    fsSource = FRAGMENT_SHADER_SDF;
+                }
+
+                // Compile shaders
+                log(`[Test ${index}] Compiling ${testCase.shader} shaders...`, 'info');
+                const program = createProgram(gl, vsSource, fsSource);
+                log(`[Test ${index}] Shaders compiled successfully`, 'success');
+
+                // Setup renderer
+                let renderer;
+                if (testCase.shader === 'minimal') {
+                    renderer = setupMinimalRenderer(gl, program);
+                } else {
+                    renderer = setupSDFRenderer(gl, program);
+                }
+
+                // Create instance data
+                let instanceData;
+                if (testCase.shader === 'minimal') {
+                    // 20 bytes per instance: 2*4 pos + 2*4 size + 4 color
+                    const buffer = new ArrayBuffer(testCase.instances.length * 20);
+                    const view = new DataView(buffer);
+                    testCase.instances.forEach((inst, i) => {
+                        const offset = i * 20;
+                        view.setFloat32(offset + 0, inst.pos[0], true);
+                        view.setFloat32(offset + 4, inst.pos[1], true);
+                        view.setFloat32(offset + 8, inst.size[0], true);
+                        view.setFloat32(offset + 12, inst.size[1], true);
+                        view.setUint8(offset + 16, inst.color[0]);
+                        view.setUint8(offset + 17, inst.color[1]);
+                        view.setUint8(offset + 18, inst.color[2]);
+                        view.setUint8(offset + 19, inst.color[3]);
+                    });
+                    instanceData = new Uint8Array(buffer);
+                } else {
+                    // 24 bytes per instance: 2*4 pos + 2*4 size + 4 color + 4 shape_type
+                    const buffer = new ArrayBuffer(testCase.instances.length * 24);
+                    const view = new DataView(buffer);
+                    testCase.instances.forEach((inst, i) => {
+                        const offset = i * 24;
+                        view.setFloat32(offset + 0, inst.pos[0], true);
+                        view.setFloat32(offset + 4, inst.pos[1], true);
+                        view.setFloat32(offset + 8, inst.size[0], true);
+                        view.setFloat32(offset + 12, inst.size[1], true);
+                        view.setUint8(offset + 16, inst.color[0]);
+                        view.setUint8(offset + 17, inst.color[1]);
+                        view.setUint8(offset + 18, inst.color[2]);
+                        view.setUint8(offset + 19, inst.color[3]);
+                        view.setFloat32(offset + 20, inst.shapeType, true);
+                    });
+                    instanceData = new Uint8Array(buffer);
+                }
+
+                // Upload instance data
+                gl.bindBuffer(gl.ARRAY_BUFFER, renderer.instanceBuffer);
+                gl.bufferData(gl.ARRAY_BUFFER, instanceData, gl.DYNAMIC_DRAW);
+
+                // Setup uniforms
+                gl.useProgram(program);
+                const uViewProj = gl.getUniformLocation(program, 'u_view_projection');
+                const matrix = createIdentityMatrix();
+                gl.uniformMatrix4fv(uViewProj, false, matrix);
+
+                // Render
+                gl.viewport(0, 0, canvas.width, canvas.height);
+                gl.clearColor(0.05, 0.05, 0.1, 1.0);
+                gl.clear(gl.COLOR_BUFFER_BIT);
+
+                gl.enable(gl.BLEND);
+                gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+                gl.bindVertexArray(renderer.vao);
+                gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, testCase.instances.length);
+                gl.bindVertexArray(null);
+
+                // Check for errors
+                const error = gl.getError();
+                if (error !== gl.NO_ERROR) {
+                    throw new Error(`GL Error: ${error}`);
+                }
+
+                statusEl.className = 'status pass';
+                statusEl.textContent = `✓ PASS - Rendered ${testCase.instances.length} instance(s)`;
+                log(`[Test ${index}] PASSED`, 'success');
+                return true;
+
+            } catch (e) {
+                statusEl.className = 'status error';
+                statusEl.textContent = `✗ ERROR: ${e.message}`;
+                log(`[Test ${index}] FAILED: ${e.message}`, 'error');
+                console.error(e);
+                return false;
+            }
+        }
+
+        function runAllTests() {
+            log('═══════════════════════════════════════════════════', 'info');
+            log('Starting WebGL2 Shader Tests...', 'info');
+            log('═══════════════════════════════════════════════════', 'info');
+
+            // Clear previous tests
+            document.getElementById('test-container').innerHTML = '';
+
+            let passed = 0;
+            let failed = 0;
+
+            testCases.forEach((testCase, index) => {
+                createTestCanvas(testCase, index);
+                if (runTest(testCase, index)) {
+                    passed++;
+                } else {
+                    failed++;
+                }
+            });
+
+            log('═══════════════════════════════════════════════════', 'info');
+            log(`Test Results: ${passed} passed, ${failed} failed`, passed === testCases.length ? 'success' : 'warn');
+            log('═══════════════════════════════════════════════════', 'info');
+        }
+
+        // Run tests on load
+        window.addEventListener('load', runAllTests);
+    </script>
+</body>
+</html>

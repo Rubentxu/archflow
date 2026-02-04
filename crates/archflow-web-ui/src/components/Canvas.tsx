@@ -49,6 +49,20 @@ export default memo(function Canvas({
   const containerRef = useRef<HTMLDivElement>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
+  // DEBUG: Component lifecycle
+  useEffect(() => {
+    console.log(
+      "[Canvas] Component mounted, canvasRef.current:",
+      canvasRef.current,
+    );
+    return () => console.log("[Canvas] Component unmounted");
+  }, []);
+
+  // DEBUG: Canvas ref changes
+  useEffect(() => {
+    console.log("[Canvas] canvasRef.current changed:", canvasRef.current);
+  }, [canvasRef.current]);
+
   // Use specific selectors to prevent re-renders when other store parts change
   const camera = useCanvasStore((state) => state.camera);
   const showGrid = useCanvasStore((state) => state.showGrid);
@@ -63,6 +77,25 @@ export default memo(function Canvas({
   // Backend for graphics initialization - useBackend handles detection and initialization
   const backend = useBackend(bridge, canvasRef.current, true);
   const { isGraphicsReady, graphicsError, selectedBackend } = backend;
+
+  // DEBUG: Backend state
+  useEffect(() => {
+    console.log("[Canvas] Backend state:", {
+      isGraphicsReady,
+      graphicsError,
+      selectedBackend,
+      wasmLoaded,
+      bridgeExists: !!bridge,
+      isInitialized,
+    });
+  }, [
+    isGraphicsReady,
+    graphicsError,
+    selectedBackend,
+    wasmLoaded,
+    bridge,
+    isInitialized,
+  ]);
 
   // Performance monitoring in development
   usePerformanceMonitor("Canvas");
@@ -303,15 +336,35 @@ export default memo(function Canvas({
 
   // Initialize renderer with backend selection
   useEffect(() => {
-    if (!canvasRef.current || !bridge || !wasmLoaded) return;
+    console.log("[Canvas] Initialize graphics effect triggered:", {
+      hasCanvas: !!canvasRef.current,
+      hasBridge: !!bridge,
+      wasmLoaded,
+      selectedBackend,
+    });
+
+    if (!canvasRef.current || !bridge || !wasmLoaded) {
+      console.log("[Canvas] Skipping graphics init - missing dependencies");
+      return;
+    }
 
     const initializeGraphics = async () => {
       const canvas = canvasRef.current;
-      if (!canvas) return;
+      if (!canvas) {
+        console.log("[Canvas] Canvas ref lost during init");
+        return;
+      }
+
+      console.log("[Canvas] Starting graphics initialization...", {
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height,
+        backend: selectedBackend,
+      });
 
       try {
         // Initialize WASM engine
         // canvas.width/height is already scaled by DPR in the ResizeObserver
+        console.log("[Canvas] Calling bridge.initialize...");
         (
           bridge as {
             initialize: (w: number, h: number) => void;
@@ -319,6 +372,9 @@ export default memo(function Canvas({
         ).initialize(canvas.width, canvas.height);
 
         // Initialize graphics with selected backend (WebGL2 by default)
+        console.log(
+          "[Canvas] Calling bridge.initialize_graphics_with_backend...",
+        );
         await (
           bridge as {
             initialize_graphics_with_backend: (
@@ -329,11 +385,13 @@ export default memo(function Canvas({
         ).initialize_graphics_with_backend(canvas, selectedBackend);
 
         setIsInitialized(true);
-        console.log(`Graphics initialized with ${selectedBackend} backend`);
+        console.log(
+          `[Canvas] ✓ Graphics initialized with ${selectedBackend} backend`,
+        );
       } catch (err) {
-        console.error("Failed to initialize graphics:", err);
+        console.error("[Canvas] ✗ Failed to initialize graphics:", err);
         const errMsg = err instanceof Error ? err.message : String(err);
-        console.error("Error details:", errMsg);
+        console.error("[Canvas] Error details:", errMsg);
       }
     };
 
@@ -342,25 +400,49 @@ export default memo(function Canvas({
 
   // Sync active tool with WASM bridge
   useEffect(() => {
-    if (!bridge || !wasmLoaded || !isInitialized) return;
+    console.log("[Canvas] Tool sync effect:", {
+      hasBridge: !!bridge,
+      wasmLoaded,
+      isInitialized,
+      activeTool,
+    });
+
+    if (!bridge || !wasmLoaded || !isInitialized) {
+      console.log("[Canvas] Skipping tool sync - not ready");
+      return;
+    }
 
     try {
+      console.log(`[Canvas] Setting tool to: ${activeTool}`);
       (
         bridge as {
           set_tool: (tool: string) => void;
         }
       ).set_tool(activeTool);
+      console.log(`[Canvas] ✓ Tool set to: ${activeTool}`);
     } catch (err) {
-      console.error("Failed to set tool in WASM:", err);
+      console.error("[Canvas] ✗ Failed to set tool in WASM:", err);
     }
   }, [bridge, wasmLoaded, isInitialized, activeTool]);
 
   // WASM-driven render loop
   useEffect(() => {
-    if (!canvasRef.current || !bridge || !wasmLoaded || !isInitialized) return;
+    console.log("[Canvas] Render loop effect:", {
+      hasCanvas: !!canvasRef.current,
+      hasBridge: !!bridge,
+      wasmLoaded,
+      isInitialized,
+    });
 
+    if (!canvasRef.current || !bridge || !wasmLoaded || !isInitialized) {
+      console.log("[Canvas] Skipping render loop - not ready");
+      return;
+    }
+
+    console.log("[Canvas] Starting render loop...");
     let animationId: number;
     let lastTime = performance.now();
+    let frameCount = 0;
 
     const render = (timestamp: number) => {
       try {
@@ -371,19 +453,31 @@ export default memo(function Canvas({
           }
         ).tick(timestamp);
 
+        // Log every 300 frames (roughly 5 seconds at 60fps) to reduce noise
+        frameCount++;
+        if (frameCount % 300 === 0) {
+          console.log(
+            `[Canvas] Render loop active, frame ${frameCount}, fps: ${(1000 / (timestamp - lastTime)).toFixed(1)}`,
+          );
+        }
+
         lastTime = timestamp;
         animationId = requestAnimationFrame(render);
       } catch (err) {
-        console.error("WASM render tick failed:", err);
+        console.error("[Canvas] ✗ WASM render tick failed:", err);
         // Continue animation loop even if tick fails
         animationId = requestAnimationFrame(render);
       }
     };
 
     animationId = requestAnimationFrame(render);
+    console.log("[Canvas] ✓ Render loop started");
 
     return () => {
-      if (animationId) cancelAnimationFrame(animationId);
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+        console.log("[Canvas] Render loop stopped");
+      }
     };
   }, [
     bridge,
