@@ -146,6 +146,23 @@ impl WasmBridge {
         Ok(())
     }
 
+    /// Resize the engine and renderer
+    #[wasm_bindgen]
+    pub fn resize(&self, width: f32, height: f32) -> Result<(), JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            engine.resize(width, height);
+
+            // Renderer resize is handled via engine since renderer is owned by engine?
+            // Wait, engine.renderer is Box<dyn Renderer>.
+            // Renderer trait has resize method.
+            engine.renderer.resize(width as u32, height as u32);
+
+            #[cfg(feature = "tracing-logging")]
+            debug!(target: "archflow::wasm", width, height, "Resized engine and renderer");
+        }
+        Ok(())
+    }
+
     /// Initialize graphics (uses WebGL2/Canvas 2D by default)
     ///
     /// This should be called after `initialize()` and after the canvas is mounted.
@@ -490,7 +507,8 @@ impl WasmBridge {
 
         // Only log important input events, not every mouse movement
         #[cfg(feature = "tracing-logging")]
-        if !matches!(input_event_type, InputEventType::Move) {
+        // if !matches!(input_event_type, InputEventType::Move) {
+        {
             debug!(
                 target: "archflow::wasm::input",
                 event_type = ?input_event_type,
@@ -603,13 +621,10 @@ impl WasmBridge {
                     };
                     engine.store.set_shape_type(idx, shape as u8);
 
-                    // Set random color
-                    let color = archflow_core::Color::rgb(
-                        (js_sys::Math::random() * 255.0) as u8,
-                        (js_sys::Math::random() * 255.0) as u8,
-                        (js_sys::Math::random() * 255.0) as u8,
-                    );
-                    engine.store.colors[idx] = color.0;
+                    // Set active colors
+                    engine.store.colors[idx] = engine.active_color;
+                    engine.store.stroke_colors[idx] = engine.active_stroke_color;
+                    engine.store.stroke_widths[idx] = engine.active_stroke_width;
 
                     // Select and start creating
                     engine.selected_entities.clear();
@@ -721,6 +736,77 @@ impl WasmBridge {
             let color = Color::rgba(r, g, b, a);
             let cmd = Command::SetColor { id, color: color.0 };
             engine.command_queue.push(cmd);
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Set the stroke color of an entity
+    #[wasm_bindgen]
+    pub fn set_stroke_color(
+        &self,
+        entity_index: u32,
+        r: u8,
+        g: u8,
+        b: u8,
+        a: u8,
+    ) -> Result<(), JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            use archflow_core::{Color, EntityId};
+            let id = EntityId::new(entity_index);
+            let color = Color::rgba(r, g, b, a);
+            // TODO: Use Command for undo/redo
+            engine
+                .store
+                .set_stroke_color(id.index().0 as usize, color.0);
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Set the stroke width of an entity
+    #[wasm_bindgen]
+    pub fn set_stroke_width(&self, entity_index: u32, width: f32) -> Result<(), JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            use archflow_core::EntityId;
+            let id = EntityId::new(entity_index);
+            // TODO: Use Command for undo/redo
+            engine.store.set_stroke_width(id.index().0 as usize, width);
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Set the active fill color for new shapes
+    #[wasm_bindgen]
+    pub fn set_active_color(&self, r: u8, g: u8, b: u8, a: u8) -> Result<(), JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            engine.active_color = archflow_core::Color::rgba(r, g, b, a).0;
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Set the active stroke color for new shapes
+    #[wasm_bindgen]
+    pub fn set_active_stroke_color(&self, r: u8, g: u8, b: u8, a: u8) -> Result<(), JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            engine.active_stroke_color = archflow_core::Color::rgba(r, g, b, a).0;
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Set the active stroke width for new shapes
+    #[wasm_bindgen]
+    pub fn set_active_stroke_width(&self, width: f32) -> Result<(), JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            engine.active_stroke_width = width;
             Ok(())
         } else {
             Err(JsError::new("Engine not initialized").into())

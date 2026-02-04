@@ -61,12 +61,29 @@ pub struct ArchFlowEngine {
 
     /// Starting world position of the drag operation
     pub drag_start: Option<Vec2>,
+
+    /// Active fill color for new shapes (RGBA packed)
+    pub active_color: u32,
+
+    /// Active stroke color for new shapes (RGBA packed)
+    pub active_stroke_color: u32,
+
+    /// Active stroke width for new shapes
+    pub active_stroke_width: f32,
 }
 
 impl ArchFlowEngine {
     /// Create a new engine instance
     pub fn new(canvas_width: f32, canvas_height: f32) -> Self {
         let mut camera = Camera::new(canvas_width, canvas_height);
+
+        // Initialize zoom such that world units = screen pixels (roughly)
+        // With zoom=1.0, viewport is ~2.0 height (-1 to 1).
+        // With zoom=2.0/height, viewport is ~height (-h/2 to h/2).
+        if canvas_height > 0.0 {
+            camera.zoom = (2.0 / canvas_height).max(archflow_render::ZOOM_MIN);
+        }
+
         camera.set_viewport_size(canvas_width, canvas_height);
 
         Self {
@@ -82,6 +99,9 @@ impl ArchFlowEngine {
             active_tool: alloc::string::String::from("select"),
             is_creating: false,
             drag_start: None,
+            active_color: 0x3b82f6ff,
+            active_stroke_color: 0x000000ff,
+            active_stroke_width: 2.0,
         }
     }
 
@@ -117,9 +137,19 @@ impl ArchFlowEngine {
         self.connection_store.update_dirty(&self.store);
 
         // ═════════════════════════════════════════════════════════════════════
-        // PHASE 3: RENDER PREPARATION
+        // PHASE 3: RENDER PREPARATION AND DRAW
         // ═════════════════════════════════════════════════════════════════════
         self.prepare_render();
+
+        // Execute the draw calls
+        if let Err(e) = self.renderer.render() {
+            // We can't use tracing/log easily here without checking features/imports,
+            // but we should at least not panic.
+            // In a real engine, we might want to log this once or flag it.
+            // For now, GpuRenderer (default) returns error, so we expect this to fail
+            // until WebGL2Renderer is injected.
+            let _ = e;
+        }
     }
 
     /// ═══════════════════════════════════════════════════════════════════════════
