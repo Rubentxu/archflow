@@ -97,7 +97,10 @@ pub struct WasmBridge {
     #[cfg(target_arch = "wasm32")]
     is_recovering: Cell<bool>,
     #[cfg(target_arch = "wasm32")]
+    #[cfg(target_arch = "wasm32")]
     pending_canvas: Cell<Option<web_sys::HtmlCanvasElement>>,
+    #[cfg(target_arch = "wasm32")]
+    canvas: RefCell<Option<web_sys::HtmlCanvasElement>>,
 }
 
 #[wasm_bindgen]
@@ -122,6 +125,8 @@ impl WasmBridge {
             is_recovering: Cell::new(false),
             #[cfg(target_arch = "wasm32")]
             pending_canvas: Cell::new(None),
+            #[cfg(target_arch = "wasm32")]
+            canvas: RefCell::new(None),
         }
     }
 
@@ -265,6 +270,9 @@ impl WasmBridge {
         canvas: web_sys::HtmlCanvasElement,
         backend: &str,
     ) -> Result<(), JsValue> {
+        // Store canvas reference for DPI scaling
+        self.canvas.borrow_mut().replace(canvas.clone());
+
         #[cfg(feature = "tracing-logging")]
         info!(
             target: "archflow::wasm",
@@ -505,35 +513,42 @@ impl WasmBridge {
             _ => InputEventType::Move,
         };
 
-        // Only log important input events, not every mouse movement
-        #[cfg(feature = "tracing-logging")]
-        // if !matches!(input_event_type, InputEventType::Move) {
-        {
-            debug!(
-                target: "archflow::wasm::input",
-                event_type = ?input_event_type,
-                x, y, buttons, modifiers,
-                "Input event"
-            );
-        }
-
         let button_flags = Buttons(buttons);
         let modifier_flags = Modifiers(modifiers);
 
-        let event = RawInputEvent::new(0, 0, x, y, input_event_type, button_flags, modifier_flags);
+        if let Some(canvas) = self.canvas.borrow().as_ref() {
+            let rect = canvas.get_bounding_client_rect();
 
-        if let Some(processor) = self.input_processor.borrow_mut().as_mut() {
-            if processor.buffer().push_event(event) {
-                Ok(())
+            // Calculate coordinates relative to canvas (CSS pixels)
+            // We do NOT multiply by DPI here because screen_to_world likely expects
+            // logical coordinates or handles its own scaling if screen_size is logical.
+            // Even if screen_size is physical, using logical here and letting engine handle it
+            // is safer than double-applying DPI which causes coordinate explosion.
+            let canvas_x = x - rect.left() as f32;
+            let canvas_y = y - rect.top() as f32;
+
+            let event = RawInputEvent::new(
+                0,
+                0,
+                canvas_x,
+                canvas_y,
+                input_event_type,
+                button_flags,
+                modifier_flags,
+            );
+
+            if let Some(processor) = self.input_processor.borrow_mut().as_mut() {
+                if processor.buffer().push_event(event) {
+                    Ok(())
+                } else {
+                    // Logic full warning removed to reduce noise as per user request
+                    Err(JsError::new("Input buffer full").into())
+                }
             } else {
-                #[cfg(feature = "tracing-logging")]
-                warn!(target: "archflow::wasm::input", "Input buffer full - event dropped");
-                Err(JsError::new("Input buffer full").into())
+                Err(JsError::new("Input processor not initialized").into())
             }
         } else {
-            #[cfg(feature = "tracing-logging")]
-            error!(target: "archflow::wasm", "Input processor not initialized");
-            Err(JsError::new("Input processor not initialized").into())
+            Err(JsError::new("Canvas not initialized").into())
         }
     }
 

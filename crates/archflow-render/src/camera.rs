@@ -117,14 +117,20 @@ impl Camera {
     ///
     /// This matrix is uploaded to the WebGPU Uniform Buffer each frame
     /// and transforms world coordinates to clip space coordinates.
+    ///
+    /// NOTE: With Camera-Relative Rendering, this matrix effectively only handles
+    /// Projection (Zoom + Aspect Ratio). The Translation (View) part is handled
+    /// in the vertex shader by subtracting `camera.camera_pos` from vertex positions.
+    /// We essentially generate a projection matrix assuming the camera is at (0,0).
     pub fn build_view_projection_matrix(&self) -> [[f32; 4]; 4] {
         // Calculate half-width and half-height of view in world coordinates
         let half_height = 1.0 / self.zoom;
         let half_width = half_height * self.aspect_ratio;
 
-        // Convert f64 center to f32 for matrix computation
-        let center_x = self.center.x as f32;
-        let center_y = self.center.y as f32;
+        // In relative rendering, the camera is always at (0,0) relative to itself
+        // The vertex shader subtracts the actual world camera position
+        let center_x = 0.0;
+        let center_y = 0.0;
 
         let left = center_x - half_width;
         let right = center_x + half_width;
@@ -154,9 +160,13 @@ impl Camera {
     /// - Snap to grid
     pub fn screen_to_world(&self, screen_pos: Vec2, screen_size: Vec2) -> Vec2f64 {
         // Normalize to device normalized coordinates (NDC) [-1, 1]
-        // Flip Y axis because DOM is Y-down but WebGPU/World is Y-up
-        let mut ndc = (screen_pos / screen_size) * 2.0 - Vec2::ONE;
-        ndc.y = -ndc.y;
+        // Screen Y=0 is top (DOM), World Y-up means we need:
+        // - Screen top (Y=0) → NDC Y=1 → World +Y
+        // - Screen bottom (Y=max) → NDC Y=-1 → World -Y
+        // NDC formula: (pos / size) * 2 - 1
+        // For Y: (0/height)*2-1 = 1 (top), (height/height)*2-1 = -1 (bottom)
+        // This naturally maps Y-down to Y-up, NO extra flip needed!
+        let ndc = (screen_pos / screen_size) * 2.0 - Vec2::ONE;
 
         // Apply inverse zoom to get world coordinates (f64 for precision)
         let half_height = 1.0 / self.zoom as f64;
@@ -177,16 +187,16 @@ impl Camera {
         let half_width_f64 = half_width as f64;
         let half_height_f64 = half_height as f64;
 
-        // First to world normalized coordinates
-        let mut ndc = Vec2::new(
+        // World coordinates to NDC [-1, 1]
+        // World +Y (top) → NDC Y=1 → Screen Y=0 (top)
+        // World -Y (bottom) → NDC Y=-1 → Screen Y=height (bottom)
+        // The NDC conversion naturally handles the Y-flip, NO extra flip needed!
+        let ndc = Vec2::new(
             ((world_pos.x - self.center.x) / half_width_f64) as f32,
             ((world_pos.y - self.center.y) / half_height_f64) as f32,
         );
 
-        // Flip Y axis because DOM is Y-down but WebGPU/World is Y-up
-        ndc.y = -ndc.y;
-
-        // Then to screen coordinates
+        // NDC [-1, 1] to Screen [0, width/height]
         (ndc * 0.5 + 0.5) * screen_size
     }
 
