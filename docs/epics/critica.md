@@ -106,3 +106,55 @@ WebGL2 pierde el contexto con frecuencia en la web.
 Dado que ya completaste la utilidad de alineación en HU-RENDER-002, asegúrate de que esté integrada en tu sistema de carga de fuentes (MTSDF).
 
 * **Detalle:** WebGL2 fallará o distorsionará el texto si los datos no respetan el alineamiento de 1/2/4/8 bytes configurado vía `GL_UNPACK_ALIGNMENT`.
+
+---
+
+Esta implementación del `GpuRenderer` es una pieza de ingeniería de software de alta calidad, especialmente diseñada para los desafíos de **WebAssembly** y **WebGPU**. El enfoque de **Instanciación Multi-Fase** es la decisión correcta para evitar la divergencia en la ejecución de la GPU (SIMD divergence) y maximizar la coherencia de caché.
+
+Aquí tienes una crítica constructiva detallada basada en principios de arquitectura de sistemas y gráficos:
+
+### 1. Fortalezas de la Implementación
+
+* **Alineación de Datos (Memory Layout):** El uso de `#[repr(C, align(16))]` y `bytemuck` para `GpuInstance` y `CameraUniforms` es excelente. Alinear las estructuras a 16 bytes es un requisito estricto en WebGPU para evitar errores de validación y overhead de copia en la memoria de la GPU.
+* **Gestión de Memoria:** El uso de `Vec::with_capacity` y el método `clear()` en lugar de reasignar vectores evita fragmentación del heap en WASM, lo cual es crítico dado que el recolector de basura de JS no puede ayudar aquí.
+* **Estrategia de Culling:** La integración de un culling básico basado en la intersección con el viewport de la cámara antes de añadir entidades al lote es una optimización vital para manejar 100k entidades.
+
+---
+
+### 2. Áreas de Mejora y Sugerencias Críticas
+
+#### A. El "Cuello de Botella" en `sync_from_store`
+
+Actualmente, `sync_from_store` itera sobre el `EntityStore` en cada frame para reconstruir los lotes. Para 100k entidades, este bucle  en Rust/WASM puede consumir gran parte del presupuesto de 16ms.
+
+* **Sugerencia:** Implementar **Dirty Marking**. En lugar de reconstruir todo el buffer, solo actualiza los datos de las entidades que han cambiado su posición, color o visibilidad desde el último frame.
+
+#### B. La Limitación de `MAX_INSTANCES_PER_DRAW`
+
+Has definido una constante de 100,000 instancias.
+
+* **Crítica:** Aunque el backend WebGPU puede manejar esto, muchos dispositivos móviles (target principal de la web) tienen límites de memoria de buffer de almacenamiento (Storage Buffer) mucho menores.
+* **Sugerencia:** Implementar un **Batch Splitting** automático. Si una fase excede el límite del adaptador GPU actual (consultado vía `adapter.limits()`), el renderer debería dividir esa fase en múltiples *draw calls* de menor tamaño.
+
+#### C. Orden de Dibujo vs. Transparencia
+
+El bucle itera según `store.draw_order`.
+
+* **Crítica:** Si mezclas formas (Shapes) y texto (Text), tu arquitectura actual los separa en fases distintas. Esto romperá el orden `z-layering` si una forma debe aparecer *encima* de un texto pero debajo de un icono.
+* **Sugerencia:** Si la transparencia es crítica (como en un Figma Clone), considera un sistema de **Depth Buffering** (Z-Buffer) en los shaders para que el orden de los draw calls no afecte el resultado visual final.
+
+---
+
+### 3. Análisis del Trait `Renderer` y Polimorfismo
+
+La decisión de separar el `GpuRenderer` (preparación en CPU) de los backends reales (`WebGL2Renderer`) es brillante para el testing. Sin embargo:
+
+* **Error Handling:** El método `render()` devuelve un `RenderError::Generic` en `GpuRenderer`. Esto es correcto, pero sería mejor marcar `GpuRenderer` como un `DataPreparer` y que el `Renderer` sea solo para los backends con contexto GPU.
+* **Inconsistencia de Tipos:** El trait `Renderer` pide un `usize` en `sync_from_store`, pero no provee una forma de que el backend sepa *qué* datos debe subir a la GPU (el buffer de instancias).
+* **Mejora:** El trait debería devolver una estructura `PreparedFrameData` que contenga tanto los buffers como la información de los batches.
+
+
+
+### Veredicto Técnico
+
+Es una base **robusta y profesional**. Cumple con los requisitos de la v28 de `wgpu` y está lista para ser la base de un motor de alto rendimiento. Las sugerencias de *Dirty Marking* y *Depth Buffering* son lo único que separa este MVP de un motor de producción industrial.
