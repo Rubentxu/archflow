@@ -14,7 +14,7 @@
 
 extern crate alloc;
 
-use archflow_core::Vec2;
+use archflow_core::{Vec2, Vec2f64};
 use archflow_render::{Camera, ZOOM_INTENSITY, ZOOM_MAX, ZOOM_MIN};
 
 /// Camera controller state for tracking drag operations
@@ -71,7 +71,7 @@ impl CameraController {
         let mouse_world = camera.screen_to_world(mouse_screen, screen_size);
         let zoom_ratio = old_zoom / camera.zoom;
 
-        camera.center = camera.center + (mouse_world - camera.center) * (1.0 - zoom_ratio);
+        camera.center = camera.center + (mouse_world - camera.center) * ((1.0 - zoom_ratio) as f64);
     }
 
     /// Start a pan drag operation
@@ -108,7 +108,8 @@ impl CameraController {
         );
 
         // Move camera in opposite direction (dragging right moves camera left)
-        camera.center -= world_delta;
+        // Convert to Vec2f64 for camera.center
+        camera.center -= Vec2f64::new(world_delta.x as f64, world_delta.y as f64);
     }
 
     /// Handle pan with explicit delta (for touch/trackpad)
@@ -127,7 +128,7 @@ impl CameraController {
             delta.y * (2.0 * half_height) / screen_size.y,
         );
 
-        camera.center -= world_delta;
+        camera.center -= Vec2f64::new(world_delta.x as f64, world_delta.y as f64);
     }
 
     /// Check if currently panning

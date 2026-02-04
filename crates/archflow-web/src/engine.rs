@@ -16,7 +16,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use alloc::boxed::Box;
-use archflow_core::{EntityId, Vec2};
+use archflow_core::{EntityId, Vec2, Vec2f64};
 use archflow_engine::{Command, CommandQueue, ConnectionStore, EntityStore};
 use archflow_interaction::HistoryManager;
 use archflow_render::{Camera, GpuRenderer, Renderer};
@@ -154,23 +154,14 @@ impl ArchFlowEngine {
 
     /// Convert screen coordinates to world coordinates
     pub fn screen_to_world(&self, screen_x: f32, screen_y: f32) -> Vec2 {
-        // Get canvas dimensions
-        let width = self.canvas_width;
-        let height = self.canvas_height;
+        let screen_pos = Vec2::new(screen_x, screen_y);
+        let screen_size = Vec2::new(self.canvas_width, self.canvas_height);
 
-        // Convert screen pixel to normalized device coordinates (-1 to +1)
-        let ndc_x = (screen_x / width) * 2.0 - 1.0;
-        let ndc_y = 1.0 - (screen_y / height) * 2.0; // Flip Y
+        // Use camera's screen_to_world which handles Vec2f64 internally
+        let world_pos = self.camera.screen_to_world(screen_pos, screen_size);
 
-        // Convert NDC to world coordinates using camera
-        let aspect_ratio = width / height;
-        let world_width = 2.0 * aspect_ratio / self.camera.zoom;
-        let world_height = 2.0 / self.camera.zoom;
-
-        let world_x = self.camera.center.x + ndc_x * world_width / 2.0;
-        let world_y = self.camera.center.y + ndc_y * world_height / 2.0;
-
-        Vec2::new(world_x, world_y)
+        // Convert from Vec2f64 to Vec2 for API compatibility
+        Vec2::new(world_pos.x as f32, world_pos.y as f32)
     }
 
     /// Convert screen delta to world delta
@@ -192,21 +183,12 @@ impl ArchFlowEngine {
     pub fn world_to_screen(&self, world_pos: Vec2) -> (f32, f32) {
         let width = self.canvas_width;
         let height = self.canvas_height;
+        let screen_size = Vec2::new(width, height);
 
-        let aspect_ratio = width / height;
-        let world_width = 2.0 * aspect_ratio / self.camera.zoom;
-        let world_height = 2.0 / self.camera.zoom;
-
-        let rel_x = world_pos.x - self.camera.center.x;
-        let rel_y = world_pos.y - self.camera.center.y;
-
-        let ndc_x = rel_x / (world_width / 2.0);
-        let ndc_y = rel_y / (world_height / 2.0);
-
-        let screen_x = (ndc_x + 1.0) * width / 2.0;
-        let screen_y = (1.0 - ndc_y) * height / 2.0;
-
-        (screen_x, screen_y)
+        // Convert to Vec2f64 and use camera's world_to_screen method
+        let world_pos_f64 = Vec2f64::new(world_pos.x as f64, world_pos.y as f64);
+        let screen_pos = self.camera.world_to_screen(world_pos_f64, screen_size);
+        (screen_pos.x, screen_pos.y)
     }
 
     /// ═══════════════════════════════════════════════════════════════════════════
