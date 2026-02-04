@@ -14,16 +14,57 @@
 #![warn(clippy::all)]
 
 /// SDF Shapes shader for rendering rectangles, circles, ellipses, and lines
+#[cfg(not(feature = "webgl2"))]
 pub const SHADER_SDF_SHAPES: &str = include_str!("shaders/sdf_shapes.wgsl");
 
 /// Icon texture shader for rendering from texture atlas
+#[cfg(not(feature = "webgl2"))]
 pub const SHADER_ICON_TEXTURE: &str = include_str!("shaders/icon_texture.wgsl");
 
 /// Image array shader for rendering from texture2D array
+#[cfg(not(feature = "webgl2"))]
 pub const SHADER_IMAGE_ARRAY: &str = include_str!("shaders/image_array.wgsl");
 
 /// MTSDF text shader for crisp text rendering at any size
+#[cfg(not(feature = "webgl2"))]
 pub const SHADER_MTSDF_TEXT: &str = include_str!("shaders/mtsdf_text.wgsl");
+
+/// Icon texture shader for rendering from texture atlas
+#[cfg(not(feature = "webgl2"))]
+pub const SHADER_ICON_TEXTURE: &str = include_str!("shaders/icon_texture.wgsl");
+
+/// Image array shader for rendering from texture2D array
+#[cfg(not(feature = "webgl2"))]
+pub const SHADER_IMAGE_ARRAY: &str = include_str!("shaders/image_array.wgsl");
+
+/// SDF Shapes shader for rendering rectangles, circles, ellipses, and lines
+/// SDF Shapes shader for rendering rectangles, circles, ellipses, and lines
+#[cfg(not(feature = "webgl2"))]
+pub const SHADER_SDF_SHAPES: &str = include_str!("shaders/sdf_shapes.wgsl");
+
+/// Icon texture shader for rendering from texture atlas
+#[cfg(not(feature = "webgl2"))]
+pub const SHADER_ICON_TEXTURE: &str = include_str!("shaders/icon_texture.wgsl");
+
+/// Image array shader for rendering from texture2D array
+#[cfg(not(feature = "webgl2"))]
+pub const SHADER_IMAGE_ARRAY: &str = include_str!("shaders/image_array.wgsl");
+
+/// MTSDF text shader for crisp text rendering at any size
+#[cfg(not(feature = "webgl2"))]
+pub const SHADER_MTSDF_TEXT: &str = include_str!("shaders/mtsdf_text.wgsl");
+
+#[cfg(feature = "webgl2")]
+pub const SHADER_SDF_SHAPES_GLSL: &str = include_str!(concat!(env!("OUT_DIR"), "/sdf_shapes.glsl");
+
+#[cfg(feature = "webgl2")]
+pub const SHADER_ICON_TEXTURE_GLSL: &str = include_str!(concat!(env!("OUT_DIR"), "/icon_texture.glsl");
+
+#[cfg(feature = "webgl2")]
+pub const SHADER_IMAGE_ARRAY_GLSL: &str = include_str!(concat!(env!("OUT_DIR"), "/image_array.glsl");
+
+#[cfg(feature = "webgl2")]
+pub const SHADER_MTSDF_TEXT_GLSL: &str = include_str!(concat!(env!("OUT_DIR"), "/mtsdf_text.glsl");
 
 #[cfg(test)]
 mod tests {
@@ -65,7 +106,167 @@ mod tests {
 
     #[test]
     fn test_shader_mtsdf_contains_median_function() {
+        assert!(SHADER_SDF_SHAPES.contains("median"));
+        assert!(SHADER_SDF_SHAPES.contains("msdf"));
+    }
+
+    #[cfg(feature = "webgl2")]
+    #[test]
+    fn test_shader_sdf_shapes_glsl_exists() {
+        assert!(!SHADER_SDF_SHAPES_GLSL.is_empty());
+        assert!(SHADER_SDF_SHAPES_GLSL.contains("@vertex"));
+        assert!(SHADER_SDF_SHAPES_GLSL.contains("@fragment"));
+    }
+
+    #[cfg(feature = "webgl2")]
+    #[test]
+    fn test_shader_icon_texture_glsl_exists() {
+        assert!(!SHADER_ICON_TEXTURE_GLSL.is_empty());
+        assert!(SHADER_ICON_TEXTURE_GLSL.contains("@vertex"));
+        assert!(SHADER_ICON_TEXTURE_GLSL.contains("@fragment"));
+    }
+
+    #[cfg(feature = "webgl2")]
+    #[test]
+    fn test_shader_image_array_glsl_exists() {
+        assert!(!SHADER_IMAGE_ARRAY_GLSL.is_empty());
+        assert!(SHADER_IMAGE_ARRAY_GLSL.contains("@vertex"));
+        assert!(SHADER_IMAGE_ARRAY_GLSL.contains("@fragment"));
+    }
+
+    #[cfg(feature = "webgl2")]
+    #[test]
+    fn test_shader_mtsdf_text_glsl_exists() {
+        assert!(!SHADER_MTSDF_TEXT_GLSL.is_empty());
+        assert!(SHADER_MTSDF_TEXT_GLSL.contains("@vertex"));
+        assert!(SHADER_MTSDF_TEXT_GLSL.contains("@fragment"));
+    }
+}
+
+    #[test]
+    fn test_shader_icon_texture_exists() {
+        assert!(!SHADER_ICON_TEXTURE.is_empty());
+        assert!(SHADER_ICON_TEXTURE.contains("@vertex"));
+        assert!(SHADER_ICON_TEXTURE.contains("@fragment"));
+    }
+
+    #[test]
+    fn test_shader_image_array_exists() {
+        assert!(!SHADER_IMAGE_ARRAY.is_empty());
+        assert!(SHADER_IMAGE_ARRAY.contains("@vertex"));
+        assert!(SHADER_IMAGE_ARRAY.contains("@fragment"));
+    }
+
+    #[test]
+    fn test_shader_mtsdf_text_exists() {
+        assert!(!SHADER_MTSDF_TEXT.is_empty());
+        assert!(SHADER_MTSDF_TEXT.contains("@vertex"));
+        assert!(SHADER_MTSDF_TEXT.contains("@fragment"));
+    }
+
+    #[test]
+    fn test_shader_sdf_shapes_contains_uniforms() {
+        assert!(SHADER_SDF_SHAPES.contains("CameraUniforms"));
+        assert!(SHADER_SDF_SHAPES.contains("view_projection"));
+    }
+
+    #[test]
+    fn test_shader_mtsdf_contains_median_function() {
         assert!(SHADER_MTSDF_TEXT.contains("median"));
         assert!(SHADER_MTSDF_TEXT.contains("msdf"));
+    }
+
+    #[cfg(feature = "webgl2")]
+    #[test]
+    fn test_shader_sdf_shapes_glsl_exists() {
+        assert!(!SHADER_SDF_SHAPES_GLSL.is_empty());
+        assert!(SHADER_SDF_SHAPES_GLSL.contains("void main"));
+        assert!(SHADER_SDF_SHAPES_GLSL.contains("@fragment"));
+    }
+
+    #[cfg(feature = "webgl2")]
+    #[test]
+    fn test_shader_icon_texture_glsl_exists() {
+        assert!(!SHADER_ICON_TEXTURE_GLSL.is_empty());
+        assert!(SHADER_ICON_TEXTURE_GLSL.contains("void main"));
+        assert!(SHADER_ICON_TEXTURE_GLSL.contains("@fragment"));
+    }
+
+    #[cfg(feature = "webgl2")]
+    #[test]
+    fn test_shader_image_array_glsl_exists() {
+        assert!(!SHADER_IMAGE_ARRAY_GLSL.is_empty());
+        assert!(SHADER_IMAGE_ARRAY_GLSL.contains("void main"));
+        assert!(SHADER_IMAGE_ARRAY_GLSL.contains("@fragment"));
+    }
+
+    #[cfg(feature = "webgl2")]
+    #[test]
+    fn test_shader_mtsdf_text_glsl_exists() {
+        assert!(!SHADER_MTSDF_TEXT_GLSL.is_empty());
+        assert!(SHADER_MTSDF_TEXT_GLSL.contains("void main"));
+        assert!(SHADER_MTSDF_TEXT_GLSL.contains("@fragment"));
+    }
+}
+
+    #[test]
+    fn test_shader_icon_texture_exists() {
+        assert!(!SHADER_ICON_TEXTURE.is_empty());
+        assert!(SHADER_ICON_TEXTURE.contains("@vertex"));
+        assert!(SHADER_ICON_TEXTURE.contains("@fragment"));
+    }
+
+    #[test]
+    fn test_shader_image_array_exists() {
+        assert!(!SHADER_IMAGE_ARRAY.is_empty());
+        assert!(SHADER_IMAGE_ARRAY.contains("@vertex"));
+        assert!(SHADER_IMAGE_ARRAY.contains("@fragment"));
+    }
+
+    #[test]
+    fn test_shader_mtsdf_text_exists() {
+        assert!(!SHADER_MTSDF_TEXT.is_empty());
+        assert!(SHADER_MTSDF_TEXT.contains("@vertex"));
+        assert!(SHADER_MTSDF_TEXT.contains("@fragment"));
+    }
+
+    #[test]
+    fn test_shader_sdf_shapes_contains_uniforms() {
+        assert!(SHADER_SDF_SHAPES.contains("CameraUniforms"));
+        assert!(SHADER_SDF_SHAPES.contains("view_projection"));
+    }
+
+    #[test]
+    fn test_shader_mtsdf_contains_median_function() {
+        assert!(SHADER_MTSDF_TEXT.contains("median"));
+        assert!(SHADER_MTSDF_TEXT.contains("msdf"));
+    }
+
+    #[cfg(feature = "webgl2")]
+    #[test]
+    fn test_shader_sdf_shapes_glsl_exists() {
+        assert!(!SHADER_SDF_SHAPES_GLSL.is_empty());
+        assert!(SHADER_SDF_SHAPES_GLSL.contains("void main"));
+    }
+
+    #[cfg(feature = "webgl2")]
+    #[test]
+    fn test_shader_icon_texture_glsl_exists() {
+        assert!(!SHADER_ICON_TEXTURE_GLSL.is_empty());
+        assert!(SHADER_ICON_TEXTURE_GLSL.contains("void main"));
+    }
+
+    #[cfg(feature = "webgl2")]
+    #[test]
+    fn test_shader_image_array_glsl_exists() {
+        assert!(!SHADER_IMAGE_ARRAY_GLSL.is_empty());
+        assert!(SHADER_IMAGE_ARRAY_GLSL.contains("void main"));
+    }
+
+    #[cfg(feature = "webgl2")]
+    #[test]
+    fn test_shader_mtsdf_text_glsl_exists() {
+        assert!(!SHADER_MTSDF_TEXT_GLSL.is_empty());
+        assert!(SHADER_MTSDF_TEXT_GLSL.contains("void main"));
     }
 }
