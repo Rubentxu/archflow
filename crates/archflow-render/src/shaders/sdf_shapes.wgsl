@@ -34,6 +34,7 @@ struct VertexOutput {
 
 struct CameraUniforms {
     view_projection: mat4x4<f32>,
+    camera_pos: vec2<f32>,
 };
 
 @group(0) @binding(0) var<uniform> camera: CameraUniforms;
@@ -56,12 +57,19 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     let instance = instances[instance_idx];
     let quad_vert = QUAD_VERTICES[vert_idx];
 
-    // Calculate world position from instance position and quad vertex
-    let half_size = instance.size * 0.5;
+    // Relative Rendering: Calculate position relative to camera center
+    // This avoids float32 precision issues at large coordinates
+    let relative_instance_pos = instance.pos - camera.camera_pos;
+    
+    // Apply vertex offset (quad expansion) for relative position
+    let final_pos = relative_instance_pos + (quad_vert - 0.5) * instance.size;
+    
+    // Calculate true world position for logic that needs it (like SDF in fragment shader)
     let world_pos = instance.pos + (quad_vert - 0.5) * instance.size;
 
     var output: VertexOutput;
-    output.clip_pos = camera.view_projection * vec4<f32>(world_pos, 0.0, 1.0);
+    // Projection matrix now only handles Zoom and Aspect Ratio, translation is done above
+    output.clip_pos = camera.view_projection * vec4<f32>(final_pos, 0.0, 1.0);
     output.world_pos = world_pos;
     output.instance_pos = instance.pos;
     output.instance_size = instance.size;

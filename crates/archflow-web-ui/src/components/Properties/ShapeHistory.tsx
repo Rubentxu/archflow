@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useEntityStore } from '../../hooks/useEntityStore';
 import { useSelectionStore } from '../../store/useSelectionStore';
-import { cn } from '@/lib/utils';
+import { cn } from '../../utils/cn';
 import {
     Box,
     Circle,

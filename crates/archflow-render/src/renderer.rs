@@ -90,12 +90,17 @@ pub struct GpuInstance {
 pub struct CameraUniforms {
     /// View-projection matrix (column-major, 16 floats = 64 bytes)
     pub view_projection: [[f32; 4]; 4],
+    /// Camera position sent to shader for relative rendering
+    pub camera_pos: [f32; 2],
+    pub _padding: [f32; 2], // 16-byte alignment
 }
 
 impl Default for CameraUniforms {
     fn default() -> Self {
         Self {
             view_projection: [[0.0; 4]; 4],
+            camera_pos: [0.0; 2],
+            _padding: [0.0; 2],
         }
     }
 }
@@ -106,6 +111,8 @@ impl CameraUniforms {
         // Camera already returns the matrix in [[f32; 4]; 4] format
         Self {
             view_projection: camera.build_view_projection_matrix(),
+            camera_pos: [camera.center.x as f32, camera.center.y as f32],
+            _padding: [0.0; 2],
         }
     }
 }
