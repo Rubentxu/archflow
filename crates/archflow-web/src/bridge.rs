@@ -654,6 +654,14 @@ impl WasmBridge {
                     engine.store.set_shape_type(idx, shape as u8);
 
                     // Set active colors
+                    web_sys::console::log_1(
+                        &format!(
+                            "🔵 Creating shape with active_color=0x{:08x}",
+                            engine.active_color
+                        )
+                        .into(),
+                    );
+
                     engine.store.colors[idx] = engine.active_color;
                     engine.store.stroke_colors[idx] = engine.active_stroke_color;
                     engine.store.stroke_widths[idx] = engine.active_stroke_width;
@@ -837,7 +845,17 @@ impl WasmBridge {
     pub fn set_active_color(&self, r: u8, g: u8, b: u8, a: u8) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
             let rgba = archflow_core::Color::rgba(r, g, b, a).0;
-            engine.active_color = rgba_to_abgr(rgba);
+            let abgr = rgba_to_abgr(rgba);
+
+            web_sys::console::log_1(
+                &format!(
+                    "🎨 set_active_color: R={} G={} B={} A={} | RGBA=0x{:08x} | ABGR=0x{:08x}",
+                    r, g, b, a, rgba, abgr
+                )
+                .into(),
+            );
+
+            engine.active_color = abgr;
             Ok(())
         } else {
             Err(JsError::new("Engine not initialized").into())

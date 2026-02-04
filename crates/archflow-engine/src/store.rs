@@ -192,10 +192,10 @@ pub struct EntityStore {
     /// Layout: [shape:4 | layer:4 | visibility:1 | selected:1 | locked:1 | padding:21]
     pub metadata: Vec<u32>,
 
-    /// Colors packed as 0xRRGGBBAA
+    /// Colors packed as 0xAABBGGRR (ABGR for WebGL compatibility)
     pub colors: Vec<u32>,
 
-    /// Stroke colors packed as 0xRRGGBBAA
+    /// Stroke colors packed as 0xAABBGGRR (ABGR for WebGL compatibility)
     pub stroke_colors: Vec<u32>,
 
     /// Stroke width in world units
