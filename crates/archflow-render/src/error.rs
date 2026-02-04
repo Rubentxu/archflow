@@ -1,16 +1,13 @@
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // ArchFlow Render - Renderer Error Types
 //
 // This module defines error types for rendering operations.
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════
 
 use alloc::format;
 use alloc::string::String;
 
 /// Renderer errors
-///
-/// This enum defines all possible errors that can occur during rendering operations.
-/// Each variant corresponds to a specific backend or general rendering issue.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RenderError {
     /// WebGPU-specific error
@@ -42,7 +39,9 @@ impl core::fmt::Display for RenderError {
             RenderError::WebGL2(msg) => write!(f, "WebGL2 error: {}", msg),
             RenderError::Canvas2D(msg) => write!(f, "Canvas 2D error: {}", msg),
             RenderError::ContextLost => write!(f, "Rendering context lost"),
-            RenderError::ShaderCompilation(msg) => write!(f, "Shader compilation failed: {}", msg),
+            RenderError::ShaderCompilation(msg) => {
+                write!(f, "Shader compilation failed: {}", msg)
+            }
             RenderError::BackendNotAvailable(msg) => {
                 write!(f, "Backend not available: {}", msg)
             }
@@ -52,11 +51,23 @@ impl core::fmt::Display for RenderError {
 }
 
 #[cfg(feature = "std")]
-impl std::error::Error for RenderError {}
+impl std::error::Error for RenderError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            RenderError::WebGPU(_) => None,
+            RenderError::WebGL2(_) => None,
+            RenderError::Canvas2D(_) => None,
+            RenderError::ContextLost => None,
+            RenderError::ShaderCompilation(_) => None,
+            RenderError::BackendNotAvailable(_) => None,
+            RenderError::Generic(_) => None,
+        }
+    }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// TESTS
-// ═══════════════════════════════════════════════════════════════════════════════
+    fn description(&self) -> Option<&str> {
+        Some("Rendering error occurred")
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -105,6 +116,9 @@ mod tests {
 
         let err3 = RenderError::WebGL2(String::from("test"));
         assert_ne!(err1, err3);
+
+        let err4 = RenderError::ContextLost;
+        assert_eq!(err4, RenderError::ContextLost);
     }
 
     #[test]

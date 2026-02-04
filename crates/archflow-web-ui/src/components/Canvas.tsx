@@ -20,6 +20,7 @@ import { useCanvasStore } from "../store/useCanvasStore";
 import { useUIStore } from "../store/useUIStore";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
 import { useArchFlowWasm } from "../hooks/useArchFlowWasm";
+import { useBackend } from "../hooks/useBackend";
 import { cn } from "../utils/cn";
 import { usePerformanceMonitor } from "../utils/performance";
 
@@ -58,6 +59,10 @@ export default memo(function Canvas({
   // WASM bridge access
   const { bridge, isLoaded: wasmLoaded } = useArchFlowWasm();
   const { CanvasDroppable, DragOverlayContent, dragState } = useDragAndDrop();
+
+  // Backend for graphics initialization - useBackend handles detection and initialization
+  const backend = useBackend(bridge, canvasRef.current, true);
+  const { isGraphicsReady, graphicsError, selectedBackend } = backend;
 
   // Performance monitoring in development
   usePerformanceMonitor("Canvas");
@@ -283,26 +288,45 @@ export default memo(function Canvas({
     return () => resizeObserver.disconnect();
   }, []);
 
-  // Initialize renderer
+  // Initialize renderer with backend selection
   useEffect(() => {
     if (!canvasRef.current || !bridge || !wasmLoaded) return;
 
-    // Initialize the WASM engine with canvas dimensions
-    try {
+    const initializeGraphics = async () => {
       const canvas = canvasRef.current;
-      const dpr = window.devicePixelRatio || 1;
+      if (!canvas) return;
 
-      (
-        bridge as {
-          initialize: (w: number, h: number) => void;
-        }
-      ).initialize(canvas.width * dpr, canvas.height * dpr);
+      try {
+        const dpr = window.devicePixelRatio || 1;
 
-      setIsInitialized(true);
-    } catch (err) {
-      console.error("Failed to initialize WASM bridge:", err);
-    }
-  }, [bridge, wasmLoaded]);
+        // Initialize WASM engine
+        (
+          bridge as {
+            initialize: (w: number, h: number) => void;
+          }
+        ).initialize(canvas.width * dpr, canvas.height * dpr);
+
+        // Initialize graphics with selected backend (WebGL2 by default)
+        await (
+          bridge as {
+            initialize_graphics_with_backend: (
+              c: HTMLCanvasElement,
+              backend: string,
+            ) => Promise<void>;
+          }
+        ).initialize_graphics_with_backend(canvas, selectedBackend);
+
+        setIsInitialized(true);
+        console.log(`Graphics initialized with ${selectedBackend} backend`);
+      } catch (err) {
+        console.error("Failed to initialize graphics:", err);
+        const errMsg = err instanceof Error ? err.message : String(err);
+        console.error("Error details:", errMsg);
+      }
+    };
+
+    initializeGraphics();
+  }, [bridge, wasmLoaded, selectedBackend]);
 
   // Sync active tool with WASM bridge
   useEffect(() => {
@@ -391,6 +415,11 @@ export default memo(function Canvas({
                 <span className="text-sm text-text-secondary">
                   Initializing renderer...
                 </span>
+                {graphicsError && (
+                  <div className="text-xs text-red-400 mt-2 max-w-md text-center">
+                    Error: {graphicsError}
+                  </div>
+                )}
               </div>
             </div>
           )}
