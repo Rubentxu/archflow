@@ -494,6 +494,23 @@ impl WebGL2Renderer {
 }
 ```
 
+#### Estado
+✅ **COMPLETADO** - 2026-02-04
+- Commit: feat(render): implement WebGL2 texture alignment utility
+- Commit: docs(epic): update HU-RENDER-002 with texture alignment utility
+- Texture Padding Utility implementada para WebGL2
+  - `texture_layout.rs` module (432 lines)
+  - `PixelFormat` enum: 12 formats (R8, RG8, RGB8, RGBA8, 16F, 32F variants)
+  - `Alignment` enum: 1, 2, 4, 8 bytes
+  - `TextureLayout` struct with row padding calculations
+  - Functions: `calculate_aligned_row_size()`, `calculate_optimal_alignment()`, `pad_texture_data()`
+  - **14 tests passing** (texture_layout module)
+- WebGL2 fallas silenciosas o errores crípticos si el alineamiento no es exacto
+  - ✅ Resuelto con la utilidad de alineamiento de texturas
+  - WebGPU requiere alineamiento de 256 bytes
+  - WebGL2 requiere alineamiento de 1/2/4/8 bytes (via GL_UNPACK_ALIGNMENT)
+- Nota: HU-RENDER-002 tiene el shader compilation pendiente (HU-RENDER-004)
+
 #### Estimación
 - Investigación: 8 horas
 - Setup de glow/OpenGL bindings: 8 horas
@@ -850,7 +867,7 @@ criterion_main!(benches);
 #### Investigación Previa Requerida (OBLIGATORIA)
 
 **Query para Perplexity:**
-> "WebGL2 instanced rendering performance optimization Rust WASM 2025"
+> "WebGL2 instanced rendering performance optimization Rust WASM 2025 and 2026"
 
 **Qué buscar:**
 - [ ] Técnicas de batching para WebGL2
@@ -957,25 +974,460 @@ mod regression_tests {
 
 ---
 
-## Plan de Implementación por Fases
+### HU-RENDER-007: Sistema de Dirty Checking y Buffering Persistente
 
-### Fase 1: Foundation (Sprint 1)
+**Como** desarrollador de ArchFlow  
+**Quiero** implementar un sistema de mapeo de memoria persistente que solo actualice los buffers de entidades modificadas  
+**Para** mantener 60fps con 100k entidades reduciendo el overhead de sincronización CPU→GPU
+
+#### Criterios de Aceptación
+- [ ] Sistema de dirty tracking integrado en `EntityStore`
+- [ ] `GpuRenderer` solo actualiza buffers de entidades marcadas como "dirty"
+- [ ] WebGL2Renderer usa `write_buffer` con offsets específicos
+- [ ] Reducción del 80%+ en tiempo de `sync_from_store` para escenas estáticas
+- [ ] Tests de performance con escenas mixtas (entidades dinámicas + estáticas)
+
+#### Tareas Técnicas
+
+**1. Implementar dirty tracking en EntityStore:**
+```rust
+// EN: archflow-engine/src/store.rs
+
+/// Sistema de tracking de entidades modificadas
+pub struct EntityStore {
+    // ... campos existentes
+    dirty_entities: EntityIdSet,  // NUEVO: entidades modificadas
+    version_counter: u64,          // NUEVO: para detectar cambios globales
+}
+
+impl EntityStore {
+    /// NUEVO: Marcar entidad como modificada
+    pub fn mark_dirty(&mut self, id: EntityId) {
+        self.dirty_entities.insert(id);
+        self.version_counter += 1;
+    }
+
+    /// NUEVO: Obtener entidades dirty desde última sincronización
+    pub fn take_dirty_entities(&mut self) -> Vec<EntityId> {
+        self.dirty_entities.take_all()
+    }
+
+    /// NUEVO: Verificar si hay cambios globales (camera, viewport)
+    pub fn version(&self) -> u64 {
+        self.version_counter
+    }
+
+    /// Modificar setter existentes para marcar dirty
+    pub fn set_position(&mut self, id: EntityId, pos: Vec2) {
+        if let Some(entity) = self.get_mut(id) {
+            entity.pos = pos;
+            self.mark_dirty(id);
+        }
+    }
+}
+```
+
+**2. Implementar buffering persistente en GpuResources:**
+```rust
+// EN: archflow-render/src/gpu_resources.rs
+
+pub struct GpuResources {
+    // Buffer persistente para instancias (mapeado una vez)
+    instance_buffer: WgpuBuffer,
+
+    // Rastrear qué rangos del buffer necesitan actualización
+    dirty_ranges: Vec<Range<u32>>,
+}
+
+impl GpuResources {
+    /// Escribir solo los datos dirty al buffer persistente
+    pub fn write_dirty_instances(
+        &mut self,
+        device: &Device,
+        queue: &Queue,
+        store: &EntityStore,
+    ) {
+        let dirty_ids = store.take_dirty_entities();
+
+        // Agrupar por región del buffer para minimizar writes
+        for id in dirty_ids {
+            let entity = store.get(id).unwrap();
+            let offset = id.index() * INSTANCE_STRIDE;
+
+            // Usar write_buffer con offset específico
+            queue.write_buffer(
+                &self.instance_buffer.buffer(),
+                offset as u64,
+                bytemuck::bytes_of(&entity.transform_matrix),
+                std::mem::size_of::<Mat4>() as u64,
+            );
+        }
+    }
+
+    /// Forzar write completo (para frames críticos)
+    pub fn write_all_instances(&mut self, queue: &Queue, instances: &[GpuInstance]) {
+        queue.write_buffer(
+            &self.instance_buffer.buffer(),
+            0,
+            bytemuck::cast_slice(instances),
+        );
+    }
+}
+```
+
+**3. Implementar en WebGL2Renderer:**
+```rust
+// EN: archflow-render/src/webgl2/renderer.rs
+
+impl WebGL2Renderer {
+    /// Escribir solo entidades dirty al buffer de instancias
+    fn write_dirty_instances(&mut self, store: &EntityStore) {
+        let dirty_ids = store.take_dirty_entities();
+
+        for id in dirty_ids {
+            let entity = store.get(id).unwrap();
+            let offset = id.index() * INSTANCE_STRIDE;
+
+            // WebGL2: gl.bufferSubData con offset
+            self.gl.bind_buffer(glow::ARRAY_BUFFER, Some(self.instance_buffer));
+            unsafe {
+                self.gl.buffer_sub_data_u8_array(
+                    glow::ARRAY_BUFFER,
+                    offset as i32,
+                    bytemuck::cast_slice(&[entity.instance_data]),
+                );
+            }
+        }
+    }
+}
+```
+
+#### Investigación Previa Requerida (OBLIGATORIA)
+
+**Query para Perplexity:**
+> "Rust WASM GPU buffer persistent mapping write_buffer subrange update performance 2025"
+
+**Qué buscar:**
+- [ ] Diferencias entre `write_buffer` completo vs parcial en wgpu
+- [ ] Patrones de dirty tracking en ECS (Entity Component Systems)
+- [ ] WebGL2 `bufferSubData` vs `bufferData` performance
+- [ ] Estrategias de batching para updates incrementales
+
+#### Estimación
+- Investigación: 6 horas
+- EntityStore dirty tracking: 8 horas
+- GpuRenderer persistent buffering: 10 horas
+- WebGL2Renderer partial updates: 8 horas
+- Tests de performance: 6 horas
+- **Total: 38 horas (~5 días)**
+
+---
+
+### HU-RENDER-008: Camera-Relative Rendering para Zoom Infinito
+
+**Como** usuario de ArchFlow  
+**Quiero** que las entidades no "tiemblen" cuando me alejo mucho del origen  
+**Para** tener una experiencia fluida al hacer zoom extremo (como en Figma)
+
+#### Criterios de Aceptación
+- [ ] Coordenadas de entidades calculadas relativas a la cámara en CPU
+- [ ] Conversión automática de `f64` → `f32` sin pérdida de precisión
+- [ ] Shaders adaptados para recibir coordenadas relativas
+- [ ] Sin jittering visual en zoom 1000x+
+- [ ] Compatibilidad con todos los backends (WebGPU, WebGL2)
+
+#### Tareas Técnicas
+
+**1. Implementar conversión de coordenadas en Camera:**
+```rust
+// EN: archflow-render/src/camera.rs
+
+#[derive(Clone, Debug)]
+pub struct Camera {
+    /// Posición de la cámara en coordenadas del mundo (f64 para precisión)
+    pub position: Vec2f64,
+
+    /// Nivel de zoom (pixels por unidad)
+    pub zoom: f32,
+
+    /// Tamaño del viewport
+    viewport_size: Vec2,
+}
+
+impl Camera {
+    /// Convertir posición del mundo a coordenadas relativas a la cámara
+    /// Usa f64 internamente, convierte a f32 al final
+    pub fn world_to_camera(&self, world_pos: Vec2f64) -> Vec2f32 {
+        let relative = world_pos - self.position;
+        Vec2::new(relative.x as f32, relative.y as f32)
+    }
+
+    /// Generar uniform para shaders con coordenadas relativas
+    pub fn to_uniform(&self) -> CameraUniforms {
+        CameraUniforms {
+            // Convertir posición a f32 (ahora es relativa, sin pérdida)
+            position: self.world_to_camera(self.position),
+            zoom: self.zoom,
+            viewport_size: self.viewport_size,
+        }
+    }
+}
+```
+
+**2. Modificar sync_from_store para coordenadas relativas:**
+```rust
+// EN: archflow-render/src/renderer.rs
+
+impl<G: GraphicsApi> GpuRenderer<G> {
+    pub fn sync_from_store(&mut self, store: &EntityStore, camera: &Camera) -> usize {
+        // Pre-calcular coordenadas relativas de la cámara
+        let camera_pos_f32 = camera.world_to_camera(camera.position);
+
+        for entity in store.iter_visible(&view_rect) {
+            // Convertir posición a coordenadas relativas a la cámara
+            let relative_pos = entity.pos - camera.position;
+            let pos_f32 = Vec2::new(relative_pos.x as f32, relative_pos.y as f32);
+
+            // Crear instancia con coordenadas relativas
+            let instance = GpuInstance {
+                transform: Mat4::from_translation(Vec3::new(pos_f32.x, pos_f32.y, 0.0))
+                    * Mat4::from_scale(Vec3::splat(entity.size.x * camera.zoom)),
+                // ...
+            };
+            // ...
+        }
+    }
+}
+```
+
+**3. Actualizar shaders para coordenadas relativas:**
+```wgsl
+// EN: archflow-render/shaders/sdf_shapes.wgsl
+
+@vertex
+fn vs_main(
+    @location(1) instance_position: vec2<f32>,  // Ya es relativa a cámara
+    // ...
+) -> VertexOutput {
+    // Ya no necesitamos restar camera.position
+    let world_pos = instance_position + (position * instance_size);
+    let screen_pos = (world_pos * camera.zoom) - (camera.viewport_size / 2.0);
+    // ...
+}
+```
+
+#### Investigación Previa Requerida (OBLIGATORIA)
+
+**Query para Perplexity:**
+> "floating point precision jitter zoom WebGL GPU camera relative coordinates 2025"
+
+#### Estimación
+- Investigación: 8 horas
+- Camera refactoring: 8 horas
+- sync_from_store modification: 6 horas
+- Shader updates: 6 horas
+- Tests: 6 horas
+- **Total: 34 horas (~4.5 días)**
+
+---
+
+### HU-RENDER-009: Recuperación Automática del Contexto (Context Loss)
+
+**Como** usuario de ArchFlow  
+**Quiero** que la aplicación se recupere automáticamente cuando WebGL pierde el contexto  
+**Para** no perder mi trabajo al cambiar de pestaña o entrar en modo ahorro de energía
+
+#### Criterios de Aceptación
+- [ ] `WasmBridge` detecta eventos `webglcontextlost`
+- [ ] Renderer se reinicia automáticamente sin perder estado
+- [ ] Texturas y buffers se recargan desde el `EntityStore`
+- [ ] Aplicación continúa funcionando tras recuperación
+- [ ] Notificación al usuario en modo desarrollo
+
+#### Tareas Técnicas
+
+**1. Implementar ContextHandler en WasmBridge:**
+```rust
+// EN: archflow-web/src/bridge.rs
+
+#[wasm_bindgen]
+impl WasmBridge {
+    pub fn register_context_handlers(&self, canvas: HtmlCanvasElement) {
+        let on_lost = Closure::wrap(Box::new(move |event: Event| {
+            tracing::warn!(target: "archflow::web", "WebGL context lost");
+            event.prevent_default();
+            Self::schedule_context_recovery(self.js_value());
+        }) as Box<dyn FnMut(Event)>);
+
+        canvas.add_event_listener_with_callback(
+            "webglcontextlost",
+            on_lost.as_ref().unchecked_ref(),
+        ).expect("Failed to add contextlost listener");
+
+        self.on_context_lost.set(Some(on_lost));
+    }
+
+    fn schedule_context_recovery(bridge: JsValue) {
+        web_sys::window().unwrap().set_timeout_with_callback_and_timeout_and_arguments_0(
+            Closure::wrap(Box::new(move || {
+                let bridge: WasmBridge = bridge.unchecked_into();
+                Self::recover_context(&bridge);
+            }) as Box<dyn FnMut()>)
+            .as_ref().unchecked_ref(),
+            100,
+        );
+    }
+
+    fn recover_context(bridge: &WasmBridge) {
+        if let Some(canvas) = bridge.canvas.borrow().as_ref() {
+            match RendererSelector::detect_and_create_async(canvas.clone()) {
+                Ok(new_renderer) => {
+                    if let Some(engine) = bridge.engine.borrow_mut().as_mut() {
+                        engine.set_renderer(new_renderer);
+                        tracing::info!(target: "archflow::web", "Recovery successful");
+                    }
+                }
+                Err(e) => tracing::error!(target: "archflow::web", error = ?e),
+            }
+        }
+    }
+}
+```
+
+#### Investigación Previa Requerida (OBLIGATORIA)
+
+**Query para Perplexity:**
+> "WebGL context lost event handling preventDefault recovery best practices 2025"
+
+#### Estimación
+- Investigación: 6 horas
+- Event listeners: 8 horas
+- Recovery logic: 8 horas
+- RendererSelector modification: 4 horas
+- Tests: 6 horas
+- **Total: 32 horas (~4 días)**
+
+---
+
+### HU-RENDER-010: Shader Specialization Constants para Multi-Backend
+
+**Como** desarrollador de ArchFlow  
+**Quiero** usar constantes de especialización en shaders para optimizar rendimiento por backend  
+**Para** que WebGPU use features avanzados mientras WebGL2 usa un pipeline simplificado
+
+#### Criterios de Aceptación
+- [ ] WGSL shaders definen constantes con `override` para features
+- [ ] WebGPURenderer habilita shadows, lights, effects avanzados
+- [ ] WebGL2Renderer desactiva features costosos via PipelineCompilationOptions
+- [ ] Naga compila correctamente constantes a GLSL
+- [ ] Tests de paridad de rendering entre backends
+
+#### Tareas Técnicas
+
+**1. Definir constantes de especialización en shaders:**
+```rust
+// EN: archflow-render/src/shaders.rs
+
+#[derive(Clone, Copy)]
+pub struct ShaderConstants {
+    pub max_lights: u32,
+    pub enable_shadows: bool,
+    pub enable_aa: bool,
+    pub atlas_size: u32,
+}
+
+impl Default for ShaderConstants {
+    fn default() -> Self {
+        Self {
+            max_lights: 0,
+            enable_shadows: false,
+            enable_aa: true,
+            atlas_size: 1024,
+        }
+    }
+}
+
+pub const WEBGPU_CONSTANTS: ShaderConstants = ShaderConstants {
+    max_lights: 4,
+    enable_shadows: true,
+    enable_aa: true,
+    atlas_size: 2048,
+};
+
+pub const WEBGL2_CONSTANTS: ShaderConstants = ShaderConstants {
+    max_lights: 0,
+    enable_shadows: false,
+    enable_aa: true,
+    atlas_size: 1024,
+};
+```
+
+**2. WGSL shaders con override:**
+```wgsl
+// EN: archflow-render/shaders/sdf_shapes.wgsl
+
+override MAX_LIGHTS: u32 = 0;
+override ENABLE_SHADOWS: bool = false;
+override ENABLE_AA: bool = true;
+```
+
+#### Estimación
+- Investigación: 8 horas
+- Shader modifications: 10 horas
+- PipelineCompilationOptions integration: 8 horas
+- WebGL2 defines: 6 horas
+- Tests de paridad: 6 horas
+- **Total: 38 horas (~5 días)**
+
+---
+
+### HU-RENDER-011: Cola de Carga Asíncrona de Texturas
+
+**Como** usuario de ArchFlow  
+**Quiero** que la carga de nuevas texturas no bloqueque el renderizado  
+**Para** tener una experiencia fluida mientras se cargan recursos
+
+#### Criterios de Aceptación
+- [ ] Sistema de cola asíncrona para carga de texturas
+- [ ] Texturas en cola cargadas en background
+- [ ] Renderizado continúa durante carga
+- [ ] Callback cuando texturas están listas
+- [ ] Manejo de errores de carga
+
+#### Tareas Técnicas
+Implementar `TextureLoader` con canal `mpsc` para carga en background thread.
+
+#### Estimación
+- Investigación: 4 horas
+- Implementación cola: 8 horas
+- Integración con atlas: 6 horas
+- Tests: 4 horas
+- **Total: 22 horas (~3 días)**
+
+---
+
+## Plan de Implementación Actualizado
+
+### Fase 1: Foundation (Sprint 1) ✅ Completado
 - HU-RENDER-001: Abstracción de Renderer
 - HU-RENDER-003: Integración en ArchFlowEngine
-- **Entregable**: Trait Renderer + integración con engine
 
-### Fase 2: WebGL2 Renderer (Sprint 2-3)
-- HU-RENDER-002: Implementación WebGL2
-- HU-RENDER-004: Compilación de shaders
-- **Entregable**: WebGL2 renderer funcional
+### Fase 2: WebGL2 Renderer (Sprint 2-3) ⚠️ En Progreso
+- HU-RENDER-002: Implementación WebGL2 (Texture alignment completado)
+- HU-RENDER-004: Compilación de shaders (pendiente - marcado como PARTIAL)
 
-### Fase 3: Performance (Sprint 4)
-- HU-RENDER-005: Optimización
-- **Entregable**: 60fps con 100k entities
+### Fase 3: Estabilidad MVP (Sprint 4-5) 🆕 Nuevo
+- HU-RENDER-007: Dirty Checking y Buffering Persistente
+- HU-RENDER-008: Camera-Relative Rendering
+- HU-RENDER-009: Context Loss Recovery
 
-### Fase 4: Quality (Sprint 5)
-- HU-RENDER-006: Verificación de paridad
-- **Entregable**: 100% paridad de features
+### Fase 4: Optimización (Sprint 6) 🆕 Nuevo
+- HU-RENDER-010: Shader Specialization Constants
+- HU-RENDER-005: Optimización de Performance (revisado)
+
+### Fase 5: Quality (Sprint 7)
+- HU-RENDER-006: Verificación de Paridad
+- HU-RENDER-011: Cola Asíncrona de Texturas
 
 ## Métricas de Éxito
 
@@ -1022,6 +1474,7 @@ mod regression_tests {
 
 | Fecha | Cambio | Autor |
 |-------|--------|-------|
+| 2026-02-04 | Actualización: Añadidas HU-RENDER-007 a HU-RENDER-011 basadas en crítica técnica | @rubentxu |
 | 2026-02-04 | Implementación completa de HU-RENDER-001 | @rubentxu |
 | 2026-02-03 | Creación inicial con arquitectura real | @team |
 | 2026-02-03 | Actualización con crates existentes | @team |
