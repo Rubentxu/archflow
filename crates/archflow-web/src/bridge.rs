@@ -89,6 +89,15 @@ pub struct WasmBridge {
     // Store engine and input processor in the struct for safe access
     engine: RefCell<Option<ArchFlowEngine>>,
     input_processor: RefCell<Option<InputProcessor>>,
+    // Context loss handlers (HU-RENDER-009)
+    #[cfg(target_arch = "wasm32")]
+    on_context_lost: Cell<Option<Closure<dyn FnMut(web_sys::Event)>>>,
+    #[cfg(target_arch = "wasm32")]
+    on_context_restored: Cell<Option<Closure<dyn FnMut(web_sys::Event)>>>,
+    #[cfg(target_arch = "wasm32")]
+    is_recovering: Cell<bool>,
+    #[cfg(target_arch = "wasm32")]
+    pending_canvas: Cell<Option<web_sys::HtmlCanvasElement>>,
 }
 
 #[wasm_bindgen]
@@ -105,6 +114,14 @@ impl WasmBridge {
         Self {
             engine: RefCell::new(None),
             input_processor: RefCell::new(None),
+            #[cfg(target_arch = "wasm32")]
+            on_context_lost: Cell::new(None),
+            #[cfg(target_arch = "wasm32")]
+            on_context_restored: Cell::new(None),
+            #[cfg(target_arch = "wasm32")]
+            is_recovering: Cell::new(false),
+            #[cfg(target_arch = "wasm32")]
+            pending_canvas: Cell::new(None),
         }
     }
 
@@ -319,6 +336,9 @@ impl WasmBridge {
             }
         }
 
+        // Register context loss handlers (HU-RENDER-009)
+        self.register_context_handlers(canvas);
+
         Ok(())
     }
 
@@ -326,6 +346,104 @@ impl WasmBridge {
     #[cfg(not(target_arch = "wasm32"))]
     fn try_initialize_webgl2(&self, _canvas: &()) -> Result<(), JsValue> {
         Err(JsError::new("Graphics initialization only available on WASM").into())
+    }
+
+    // ════════════════════════════════════════════════════════════════════════════════
+    // CONTEXT LOSS HANDLERS (HU-RENDER-009)
+    // ════════════════════════════════════════════════════════════════════════════════
+
+    /// Register context loss and restoration event handlers
+    #[cfg(target_arch = "wasm32")]
+    fn register_context_handlers(&self, canvas: &web_sys::HtmlCanvasElement) {
+        use wasm_bindgen::closure::Closure;
+
+        // Store canvas for recovery
+        self.pending_canvas.set(Some(canvas.clone()));
+
+        // Context lost handler
+        let on_lost = Closure::wrap(Box::new(move |event: web_sys::Event| {
+            event.prevent_default();
+
+            #[cfg(feature = "tracing-logging")]
+            warn!(target: "archflow::web", "WebGL context lost - scheduling recovery");
+
+            web_sys::console::warn_1(&JsValue::from_str(
+                "WebGL context lost - attempting recovery",
+            ));
+
+            // Schedule recovery asynchronously (can't do sync recovery)
+            let canvas_clone = canvas.clone();
+            let closure = Closure::wrap(Box::new(move || {
+                let _ = Self::recover_context_internal(&canvas_clone);
+            }) as Box<dyn FnMut()>);
+
+            web_sys::window()
+                .unwrap()
+                .set_timeout_with_callback_and_timeout_and_arguments_0(
+                    closure.as_ref().unchecked_ref(),
+                    100,
+                );
+
+            closure.forget();
+        }) as Box<dyn FnMut(web_sys::Event)>);
+
+        // Context restored handler
+        let on_restored = Closure::wrap(Box::new(move |_event: web_sys::Event| {
+            #[cfg(feature = "tracing-logging")]
+            info!(target: "archflow::web", "WebGL context restored");
+
+            web_sys::console::log_1(&JsValue::from_str("WebGL context restored"));
+        }) as Box<dyn FnMut(web_sys::Event)>);
+
+        // Register listeners
+        if let Err(e) = canvas
+            .add_event_listener_with_callback("webglcontextlost", on_lost.as_ref().unchecked_ref())
+        {
+            #[cfg(feature = "tracing-logging")]
+            error!(target: "archflow::web", error = ?e, "Failed to register contextlost listener");
+        }
+
+        if let Err(e) = canvas.add_event_listener_with_callback(
+            "webglcontextrestored",
+            on_restored.as_ref().unchecked_ref(),
+        ) {
+            #[cfg(feature = "tracing-logging")]
+            error!(target: "archflow::web", error = ?e, "Failed to register contextrestored listener");
+        }
+
+        // Store handlers to prevent GC
+        self.on_context_lost.set(Some(on_lost));
+        self.on_context_restored.set(Some(on_restored));
+
+        #[cfg(feature = "tracing-logging")]
+        info!(target: "archflow::web", "Context loss handlers registered");
+    }
+
+    /// Internal recovery function (called via setTimeout)
+    #[cfg(target_arch = "wasm32")]
+    fn recover_context_internal(canvas: &web_sys::HtmlCanvasElement) -> Result<(), JsValue> {
+        // Re-initialize WebGL2
+        // Note: This is a simplified recovery - full recovery would need to
+        // re-create all textures, buffers, etc. from the EntityStore
+        #[cfg(feature = "tracing-logging")]
+        info!(target: "archflow::web", "Attempting WebGL context recovery");
+
+        web_sys::console::log_1(&JsValue::from_str("Attempting WebGL context recovery..."));
+
+        // For now, we just log - full recovery requires re-initializing
+        // the entire rendering pipeline which is complex
+        #[cfg(feature = "tracing-logging")]
+        warn!(target: "archflow::web",
+            "Full context recovery requires re-creating all GPU resources - consider re-initializing");
+
+        Ok(())
+    }
+
+    /// Check if context recovery is in progress
+    #[cfg(target_arch = "wasm32")]
+    #[wasm_bindgen]
+    pub fn is_recovering(&self) -> bool {
+        self.is_recovering.get()
     }
 
     /// Get a pointer to the SharedArrayBuffer for input events
@@ -668,7 +786,7 @@ impl WasmBridge {
     #[wasm_bindgen]
     pub fn set_camera_center(&self, x: f32, y: f32) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
-            engine.camera.center = archflow_core::Vec2::new(x, y);
+            engine.camera.center = archflow_core::Vec2f64::new(x as f64, y as f64);
             Ok(())
         } else {
             Err(JsError::new("Engine not initialized").into())
