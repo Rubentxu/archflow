@@ -21,6 +21,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use wasm_bindgen::JsCast;
+use wasm_bindgen::JsValue;
 
 use archflow_core::{MAX_ENTITIES, Rect, Vec2};
 use archflow_engine::EntityStore;
@@ -400,51 +401,95 @@ impl Renderer for WebGL2Renderer {
         let viewport = camera.viewport_bounds();
         let mut visible_count = 0;
 
-        for &idx in &store.draw_order {
-            let idx = idx as usize;
-            if !store.is_visible(idx) {
-                continue;
+        // Iterate phases to group instances contiguously in the buffer
+        // This ensures that when we call draw_arrays_instanced for Shapes,
+        // we are actually drawing the Shape instances.
+        let phases = [
+            RenderPhase::Shapes,
+            RenderPhase::Icons,
+            RenderPhase::Images,
+            RenderPhase::Text,
+        ];
+
+        for phase in phases {
+            for &idx in &store.draw_order {
+                let idx = idx as usize;
+
+                // Debug first entity only to avoid spam
+                let debug_entity = idx == 0 && phase == RenderPhase::Shapes;
+
+                if !store.is_visible(idx) {
+                    if debug_entity {
+                        web_sys::console::log_1(&JsValue::from_str(
+                            "Entity 0 skipped: not visible",
+                        ));
+                    }
+                    continue;
+                }
+
+                // Check texture index to determine phase
+                let texture_idx = store.texture_index[idx];
+                let entity_phase = match texture_idx {
+                    0 if store.text_glyph_count[idx] > 0 => RenderPhase::Text,
+                    0 => RenderPhase::Shapes,
+                    1..=1000 => RenderPhase::Icons,
+                    _ => RenderPhase::Images,
+                };
+
+                if entity_phase != phase {
+                    if debug_entity {
+                        web_sys::console::log_1(&JsValue::from_str(&format!(
+                            "Entity 0 phase mismatch: has {:?} vs loop {:?}",
+                            entity_phase, phase
+                        )));
+                    }
+                    continue;
+                }
+
+                let pos = store.pos(idx);
+                let size = store.size(idx);
+                // Assume centered:
+                let entity_min = pos - size / 2.0;
+                let entity_max = pos + size / 2.0;
+                // Or maybe corner? store.spawn says: pos is pos.
+
+                if !viewport.intersects(&Rect::new(
+                    entity_min.x,
+                    entity_min.y,
+                    entity_max.x,
+                    entity_max.y,
+                )) {
+                    if debug_entity {
+                        web_sys::console::log_1(&JsValue::from_str(&format!(
+                            "Entity 0 culled: viewport={:?} entity={:?}-{:?}",
+                            viewport, entity_min, entity_max
+                        )));
+                    }
+                    continue;
+                }
+
+                let instance = GpuInstance {
+                    pos: [pos.x as f32, pos.y as f32],
+                    size: [size.x as f32, size.y as f32],
+                    color: store.colors[idx],
+                    shape_type_or_texture_index: if texture_idx == 0 {
+                        store.shape_type(idx) as u32
+                    } else {
+                        texture_idx as u32
+                    },
+                    _padding: [0, 0],
+                    uv_rect: store.uv_rects[idx],
+                };
+
+                if debug_entity {
+                    web_sys::console::log_1(&JsValue::from_str("Entity 0 accepted for rendering"));
+                }
+
+                let instance_idx = self.instances.len() as u32;
+                self.instances.push(instance);
+                self.batches.get_batch(phase).push(instance_idx);
+                visible_count += 1;
             }
-
-            let pos = store.pos(idx);
-            let size = store.size(idx);
-            let entity_min = pos - size / 2.0;
-            let entity_max = pos + size / 2.0;
-
-            if !viewport.intersects(&Rect::new(
-                entity_min.x,
-                entity_min.y,
-                entity_max.x,
-                entity_max.y,
-            )) {
-                continue;
-            }
-
-            let texture_idx = store.texture_index[idx];
-            let phase = match texture_idx {
-                0 if store.text_glyph_count[idx] > 0 => RenderPhase::Text,
-                0 => RenderPhase::Shapes,
-                1..=1000 => RenderPhase::Icons,
-                _ => RenderPhase::Images,
-            };
-
-            let instance = GpuInstance {
-                pos: [pos.x as f32, pos.y as f32],
-                size: [size.x as f32, size.y as f32],
-                color: store.colors[idx],
-                shape_type_or_texture_index: if texture_idx == 0 {
-                    store.shape_type(idx) as u32
-                } else {
-                    texture_idx as u32
-                },
-                _padding: [0, 0],
-                uv_rect: store.uv_rects[idx],
-            };
-
-            let instance_idx = self.instances.len() as u32;
-            self.instances.push(instance);
-            self.batches.get_batch(phase).push(instance_idx);
-            visible_count += 1;
         }
 
         self.draw_calls = self.batches.total_draw_calls();
@@ -484,7 +529,8 @@ impl Renderer for WebGL2Renderer {
     fn render(&mut self) -> Result<(), RenderError> {
         let gl = &self.gl;
 
-        gl.clear_color(0.1, 0.1, 0.1, 1.0);
+        // Clear with transparent color to allow CSS background to show
+        gl.clear_color(0.0, 0.0, 0.0, 0.0);
         gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
         if self.instances.is_empty() {
@@ -507,6 +553,17 @@ impl Renderer for WebGL2Renderer {
                 .collect::<Vec<_>>()
                 .try_into()
                 .unwrap();
+
+            // Log first matrix visual check (once per 60 frames roughly to avoid spam? or just once)
+            // For now, always log if small instance count (debugging)
+            if self.instances.len() < 5 {
+                web_sys::console::log_1(&JsValue::from_str(&format!(
+                    "Rendering {} instances. Matrix[0]={}",
+                    self.instances.len(),
+                    matrix[0]
+                )));
+            }
+
             gl.uniform_matrix4fv_with_f32_array(Some(loc), false, &matrix);
         }
 
@@ -515,10 +572,17 @@ impl Renderer for WebGL2Renderer {
             web_sys::WebGl2RenderingContext::ARRAY_BUFFER,
             Some(&self.instance_buffer),
         );
+        // Update entire instance buffer with new data
         let data = bytemuck::cast_slice(&self.instances);
-        let view = unsafe { js_sys::Float32Array::view(data) };
-
-        // Orphan and upload new data in one call
+        // Debug first instance data
+        if !self.instances.is_empty() {
+            let i0 = &self.instances[0];
+            web_sys::console::log_1(&JsValue::from_str(&format!(
+                "Instance[0]: pos=[{},{}], size=[{},{}], color={:x}",
+                i0.pos[0], i0.pos[1], i0.size[0], i0.size[1], i0.color
+            )));
+        }
+        let view = unsafe { js_sys::Uint8Array::view(data) };
         gl.buffer_data_with_array_buffer_view(
             web_sys::WebGl2RenderingContext::ARRAY_BUFFER,
             &view,
@@ -541,6 +605,15 @@ impl Renderer for WebGL2Renderer {
                 4,
                 shapes_count,
             );
+
+            // Check for errors
+            let err = gl.get_error();
+            if err != web_sys::WebGl2RenderingContext::NO_ERROR {
+                web_sys::console::error_1(&JsValue::from_str(&format!(
+                    "WebGL Error after draw: {}",
+                    err
+                )));
+            }
         }
 
         gl.bind_vertex_array(None);

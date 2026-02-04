@@ -15,8 +15,8 @@
 
 use archflow_core::{Rect, Vec2, Vec2f64};
 
-/// Minimum zoom level (1% - very zoomed out)
-pub const ZOOM_MIN: f32 = 0.01;
+/// Minimum zoom level (0.01% - very zoomed out, needed for 1:1 pixel mapping on large screens)
+pub const ZOOM_MIN: f32 = 0.0001;
 
 /// Maximum zoom level (10000% - very zoomed in)
 pub const ZOOM_MAX: f32 = 100.0;
@@ -154,7 +154,9 @@ impl Camera {
     /// - Snap to grid
     pub fn screen_to_world(&self, screen_pos: Vec2, screen_size: Vec2) -> Vec2f64 {
         // Normalize to device normalized coordinates (NDC) [-1, 1]
-        let ndc = (screen_pos / screen_size) * 2.0 - Vec2::ONE;
+        // Flip Y axis because DOM is Y-down but WebGPU/World is Y-up
+        let mut ndc = (screen_pos / screen_size) * 2.0 - Vec2::ONE;
+        ndc.y = -ndc.y;
 
         // Apply inverse zoom to get world coordinates (f64 for precision)
         let half_height = 1.0 / self.zoom as f64;
@@ -176,10 +178,13 @@ impl Camera {
         let half_height_f64 = half_height as f64;
 
         // First to world normalized coordinates
-        let ndc = Vec2::new(
+        let mut ndc = Vec2::new(
             ((world_pos.x - self.center.x) / half_width_f64) as f32,
             ((world_pos.y - self.center.y) / half_height_f64) as f32,
         );
+
+        // Flip Y axis because DOM is Y-down but WebGPU/World is Y-up
+        ndc.y = -ndc.y;
 
         // Then to screen coordinates
         (ndc * 0.5 + 0.5) * screen_size
