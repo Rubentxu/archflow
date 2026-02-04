@@ -516,7 +516,7 @@ mod tests {
     fn test_custom_padding() {
         let mut packer = AtlasPacker::with_padding(1024, 1024, 4);
 
-        let r1 = packer.allocate(64, 64);
+        let _r1 = packer.allocate(64, 64);
         let r2 = packer.allocate(64, 64);
 
         assert_eq!(packer.shelf_count(), 1);

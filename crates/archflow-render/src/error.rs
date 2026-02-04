@@ -1,11 +1,31 @@
-// ═══════════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════════════
 // ArchFlow Render - Renderer Error Types
 //
 // This module defines error types for rendering operations.
-// ═════════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════════
 
-use alloc::format;
 use alloc::string::String;
+
+/// Renderer error kind
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RenderErrorKind {
+    /// WebGPU-specific error
+    WebGPU,
+    /// WebGL2-specific error
+    WebGL2,
+    /// Canvas 2D-specific error
+    Canvas2D,
+    /// Rendering context was lost
+    ContextLost,
+    /// Shader compilation failed
+    ShaderCompilation,
+    /// Backend not available (e.g., WebGPU not supported by browser)
+    BackendNotAvailable,
+    /// Generic rendering error
+    Generic,
+    /// Invalid texture data (wrong size, format, or alignment)
+    InvalidTextureData,
+}
 
 /// Renderer errors
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -30,6 +50,26 @@ pub enum RenderError {
 
     /// Generic rendering error
     Generic(String),
+}
+
+impl RenderError {
+    /// Create a new RenderError with given kind and message
+    pub fn new(kind: RenderErrorKind, message: &str) -> Self {
+        match kind {
+            RenderErrorKind::WebGPU => RenderError::WebGPU(String::from(message)),
+            RenderErrorKind::WebGL2 => RenderError::WebGL2(String::from(message)),
+            RenderErrorKind::Canvas2D => RenderError::Canvas2D(String::from(message)),
+            RenderErrorKind::ContextLost => RenderError::ContextLost,
+            RenderErrorKind::ShaderCompilation => {
+                RenderError::ShaderCompilation(String::from(message))
+            }
+            RenderErrorKind::BackendNotAvailable => {
+                RenderError::BackendNotAvailable(String::from(message))
+            }
+            RenderErrorKind::Generic => RenderError::Generic(String::from(message)),
+            RenderErrorKind::InvalidTextureData => RenderError::WebGL2(String::from(message)),
+        }
+    }
 }
 
 impl core::fmt::Display for RenderError {
@@ -72,6 +112,7 @@ impl std::error::Error for RenderError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::format;
 
     #[test]
     fn test_render_error_display() {
