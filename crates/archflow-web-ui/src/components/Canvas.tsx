@@ -280,13 +280,26 @@ export default memo(function Canvas({
           canvas.style.height = `${height}px`;
           canvas.width = width * dpr;
           canvas.height = height * dpr;
+
+          // Notify WASM of resize if ready
+          if (bridge && wasmLoaded && isInitialized) {
+            try {
+              (
+                bridge as {
+                  resize: (w: number, h: number) => void;
+                }
+              ).resize(canvas.width, canvas.height);
+            } catch (err) {
+              console.error("Failed to resize WASM engine:", err);
+            }
+          }
         }
       }
     });
 
     resizeObserver.observe(containerRef.current);
     return () => resizeObserver.disconnect();
-  }, []);
+  }, [bridge, wasmLoaded, isInitialized]);
 
   // Initialize renderer with backend selection
   useEffect(() => {
@@ -297,14 +310,13 @@ export default memo(function Canvas({
       if (!canvas) return;
 
       try {
-        const dpr = window.devicePixelRatio || 1;
-
         // Initialize WASM engine
+        // canvas.width/height is already scaled by DPR in the ResizeObserver
         (
           bridge as {
             initialize: (w: number, h: number) => void;
           }
-        ).initialize(canvas.width * dpr, canvas.height * dpr);
+        ).initialize(canvas.width, canvas.height);
 
         // Initialize graphics with selected backend (WebGL2 by default)
         await (

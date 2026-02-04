@@ -28,13 +28,13 @@ interface Command {
 }
 
 export function useCommandHistory(): UseCommandHistoryReturn {
-  const { bridge, isLoaded } = useArchFlowWasm();
+  const { bridge, isLoaded, isInitialized } = useArchFlowWasm();
   const [canUndoState, setCanUndo] = useState(false);
   const [canRedoState, setCanRedo] = useState(false);
 
   // Sync state with WASM bridge
   useEffect(() => {
-    if (!bridge || !isLoaded) {
+    if (!bridge || !isLoaded || !isInitialized) {
       setCanUndo(false);
       setCanRedo(false);
       return;
@@ -48,7 +48,7 @@ export function useCommandHistory(): UseCommandHistoryReturn {
     } catch (err) {
       console.warn("Failed to sync command history state:", err);
     }
-  }, [bridge, isLoaded]);
+  }, [bridge, isLoaded, isInitialized]);
 
   const undo = useCallback(() => {
     const typed = getTypedBridge(bridge);
