@@ -37,7 +37,123 @@ import {
   type EntityPropertySchema,
 } from "../../types/entity-schemas";
 
-/** Props para el panel de propiedades */
+import { useArchFlowWasm } from "../../hooks/useArchFlowWasm";
+import { useUIStore } from "../../store/useUIStore";
+import { LogicPanel } from "./LogicPanel";
+import { HistoryPanel } from "./HistoryPanel";
+import { ShapeHistory } from "./ShapeHistory";
+
+/**
+ * Visual Properties Form
+ */
+function VisualPropertiesForm({
+  entityId,
+  bridge,
+  onUpdate
+}: {
+  entityId: number | null,
+  bridge: any,
+  onUpdate?: () => void
+}) {
+  // Local state for immediate feedback
+  const [fillColor, setFillColor] = React.useState("#3b82f6");
+  const [strokeColor, setStrokeColor] = React.useState("#000000");
+  const [strokeWidth, setStrokeWidth] = React.useState(2.0);
+
+  const handleFillChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setFillColor(val);
+    if (!bridge) return;
+
+    const r = parseInt(val.slice(1, 3), 16);
+    const g = parseInt(val.slice(3, 5), 16);
+    const b = parseInt(val.slice(5, 7), 16);
+
+    if (entityId !== null) {
+      bridge.set_color(entityId, r, g, b, 255);
+    } else {
+      bridge.set_active_color(r, g, b, 255);
+    }
+    onUpdate?.();
+  };
+
+  const handleStrokeColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setStrokeColor(val);
+    if (!bridge) return;
+
+    const r = parseInt(val.slice(1, 3), 16);
+    const g = parseInt(val.slice(3, 5), 16);
+    const b = parseInt(val.slice(5, 7), 16);
+
+    if (entityId !== null) {
+      bridge.set_stroke_color(entityId, r, g, b, 255);
+    } else {
+      bridge.set_active_stroke_color(r, g, b, 255);
+    }
+    onUpdate?.();
+  };
+
+  const handleStrokeWidthChange = (val: number) => {
+    setStrokeWidth(val);
+    if (!bridge) return;
+
+    if (entityId !== null) {
+      bridge.set_stroke_width(entityId, val);
+    } else {
+      bridge.set_active_stroke_width(val);
+    }
+    onUpdate?.();
+  };
+
+  return (
+    <div className="space-y-4 mb-6 pt-2 pb-4 border-b border-border-light dark:border-border-dark/50">
+      <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Appearance</h4>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <label className="text-xs text-gray-400 font-medium">Fill</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={fillColor}
+              onChange={handleFillChange}
+              className="h-8 w-12 rounded bg-transparent cursor-pointer"
+            />
+            <span className="text-xs text-gray-300 font-mono">{fillColor}</span>
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs text-gray-400 font-medium">Stroke</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={strokeColor}
+              onChange={handleStrokeColorChange}
+              className="h-8 w-12 rounded bg-transparent cursor-pointer"
+            />
+          </div>
+        </div>
+
+        <div className="col-span-2 space-y-1.5">
+          <label className="text-xs text-gray-400 font-medium">Stroke Width</label>
+          <div className="flex items-center gap-3">
+            <input
+              type="range"
+              min="0" max="20" step="0.5"
+              value={strokeWidth}
+              onChange={(e) => handleStrokeWidthChange(parseFloat(e.target.value))}
+              className="flex-1 accent-primary h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+            />
+            <span className="text-xs w-8 text-right font-mono text-gray-300">{strokeWidth}px</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface PropertiesPanelProps {
   className?: string;
 }
@@ -599,10 +715,9 @@ function ContainerPropertiesForm({
 /**
  * Main PropertiesPanel component
  */
-import { LogicPanel } from "./LogicPanel";
-import { HistoryPanel } from "./HistoryPanel";
-
 export function PropertiesPanel({ className }: PropertiesPanelProps) {
+  const { bridge } = useArchFlowWasm();
+  const { activeTool } = useUIStore();
   const { selectedIds } = useSelectionStore();
   const { updateProperty, getEntity } = useEntityStore();
   const [isSaving, setIsSaving] = React.useState(false);
@@ -689,20 +804,54 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
 
   // Empty state when no entity is selected
   if (!entity || !selectedId) {
+    if (activeTool !== 'select') {
+      return (
+        <aside className={cn(
+          "w-80 bg-surface-light dark:bg-surface-dark border-l border-border-light dark:border-border-dark flex flex-col items-stretch transition-all duration-300",
+          className
+        )}>
+          <div className="flex-1 w-full space-y-4 overflow-y-auto p-6">
+            <div className="flex items-center gap-3 pb-4 border-b border-border-light dark:border-border-dark">
+              <div className="size-10 rounded bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <Box className="w-5 h-5" />
+              </div>
+              <div className="overflow-hidden">
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                  {activeTool.charAt(0).toUpperCase() + activeTool.slice(1)} Tool
+                </h4>
+                <p className="text-xs text-slate-500">
+                  Default Properties
+                </p>
+              </div>
+            </div>
+
+            <VisualPropertiesForm
+              entityId={null}
+              bridge={bridge}
+            />
+          </div>
+          <ShapeHistory />
+        </aside>
+      );
+    }
+
     return (
       <aside className={cn(
-        "w-80 bg-surface-dark border-l border-white/5 flex flex-col items-center justify-center p-6 transition-all duration-300",
+        "w-80 bg-surface-light dark:bg-surface-dark border-l border-border-light dark:border-border-dark flex flex-col transition-all duration-300",
         className
       )}>
-        <div className="text-center text-gray-500">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/5 flex items-center justify-center">
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-gray-500 dark:text-gray-400">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center">
             <AlertCircle className="w-8 h-8" />
           </div>
-          <p className="text-sm font-medium">No Entity Selected</p>
-          <p className="text-xs mt-1 text-gray-600">
+          <p className="text-sm font-medium text-slate-900 dark:text-white mb-2">
+            No Entity Selected
+          </p>
+          <p className="text-xs text-gray-600 dark:text-gray-500">
             Select an entity to view its properties
           </p>
         </div>
+        <ShapeHistory />
       </aside>
     );
   }
@@ -752,7 +901,7 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-hidden relative flex flex-col">
+      <div className="flex-1 overflow-y-auto relative flex flex-col">
         {/* PROPERTIES TAB */}
         {activeTab === "properties" && (
           <div className="flex flex-col h-full">
@@ -766,6 +915,11 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
+              <VisualPropertiesForm
+                entityId={selectedId}
+                bridge={bridge}
+              />
+
               {/* Identity Section */}
               <div className="space-y-3">
                 <div className="flex items-center gap-3">

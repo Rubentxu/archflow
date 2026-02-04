@@ -186,7 +186,7 @@ export interface EngineOptions {
  */
 export interface WasmBridge {
   // Lifecycle
-  new (): WasmBridge;
+  new(): WasmBridge;
   initialize(canvasWidth: number, canvasHeight: number): void;
 
   // Input
@@ -221,6 +221,17 @@ export interface WasmBridge {
   clear(): void;
   delete_selected(): void;
   duplicate_entity(entityIndex: EntityId): EntityId;
+  set_stroke_color(
+    entityIndex: EntityId,
+    r: number,
+    g: number,
+    b: number,
+    a: number,
+  ): void;
+  set_stroke_width(entityIndex: EntityId, width: number): void;
+  set_active_color(r: number, g: number, b: number, a: number): void;
+  set_active_stroke_color(r: number, g: number, b: number, a: number): void;
+  set_active_stroke_width(width: number): void;
 
   // Query operations
   get_alive_entities(): EntityId[];
