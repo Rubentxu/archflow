@@ -38,8 +38,10 @@ pub mod camera;
 /// Render errors
 pub mod error;
 /// GPU resource management
+#[cfg(feature = "webgpu")]
 pub mod gpu_resources;
 /// Render pipelines
+#[cfg(feature = "webgpu")]
 pub mod pipelines;
 /// Multi-phase instancing renderer
 pub mod renderer;
@@ -57,12 +59,15 @@ pub mod texture_loader;
 #[cfg(all(feature = "wasm-bindgen", feature = "webgl2"))]
 pub mod webgl2_renderer_real;
 /// WebGPU context wrapper
+#[cfg(feature = "webgpu")]
 pub mod webgpu_context;
 
 pub use atlas::{AtlasPacker, AtlasRect};
 pub use camera::{Camera, ZOOM_INTENSITY, ZOOM_MAX, ZOOM_MIN};
 pub use error::{RenderError, RenderErrorKind};
+#[cfg(feature = "webgpu")]
 pub use gpu_resources::GpuResources;
+#[cfg(feature = "webgpu")]
 pub use pipelines::RenderPipelines;
 pub use renderer::{CameraUniforms, GpuInstance, GpuRenderer, RenderPhase, Renderer};
 pub use selector::{Backend, RendererSelector};
@@ -76,4 +81,8 @@ pub use texture_loader::{
     TextureLoadResult, TextureLoadStatus, TextureLoader, TextureLoaderConfig, TextureSource,
 };
 
+#[cfg(feature = "webgpu")]
 pub use webgpu_context::WebGpuContext;
+
+#[cfg(all(feature = "wasm-bindgen", feature = "webgl2"))]
+pub use webgl2_renderer_real::WebGL2Renderer;

@@ -6,13 +6,13 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 fn main() {
-    println!("cargo:rerun-if-changed=shaders");
+    println!("cargo:rerun-if-changed=src/shaders");
 
     let out_dir = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap());
 
     #[cfg(feature = "webgl2")]
     {
-        let shaders_dir = std::path::Path::new("shaders");
+        let shaders_dir = std::path::Path::new("src/shaders");
         compile_shaders(shaders_dir, &out_dir);
     }
 }
@@ -27,6 +27,7 @@ struct ShaderConfig {
 
 #[cfg(feature = "webgl2")]
 fn compile_shaders(shaders_dir: &std::path::Path, out_dir: &std::path::PathBuf) {
+    use naga::ShaderStage;
     use naga::back::glsl;
     use naga::front::wgsl;
     use naga::valid::{Capabilities, ValidationFlags};
@@ -66,38 +67,42 @@ fn compile_shaders(shaders_dir: &std::path::Path, out_dir: &std::path::PathBuf) 
             .unwrap_or_else(|e| panic!("Failed to parse {}: {}", config.wgsl_filename, e));
 
         // Validate module
-        let validator = naga::valid::Validator::new(ValidationFlags::all(), Capabilities::empty());
+        let mut validator =
+            naga::valid::Validator::new(ValidationFlags::all(), Capabilities::all());
         let module_info = validator
             .validate(&module)
-            .unwrap_or_else(|e| panic!("Failed to validate {}: {}", config.wgsl_filename, e));
+            .unwrap_or_else(|e| panic!("Failed to validate {}: {:#?}", config.wgsl_filename, e));
 
         // Determine shader stage from entry point name convention
         let shader_stage = if config.entry_point.starts_with("vs_") {
-            glsl::ShaderStage::Vertex
+            ShaderStage::Vertex
         } else if config.entry_point.starts_with("fs_") {
-            glsl::ShaderStage::Fragment
+            ShaderStage::Fragment
         } else {
-            glsl::ShaderStage::Vertex
+            ShaderStage::Vertex
         };
 
         // Compile to GLSL
         let mut glsl_output = String::new();
+        let mut options = glsl::Options::default();
+        options.version = glsl::Version::Embedded {
+            version: 310,
+            is_webgl: false,
+        };
+
+        let pipeline_options = glsl::PipelineOptions {
+            entry_point: config.entry_point.to_string(),
+            shader_stage,
+            multiview: None,
+        };
+
         let mut writer = glsl::Writer::new(
             &mut glsl_output,
             &module,
             &module_info,
-            &glsl::Options {
-                version: glsl::Version::Embedded {
-                    version: glsl::Version::ES_300,
-                },
-                ..Default::default()
-            },
-            &glsl::PipelineOptions {
-                entry_point: config.entry_point.into(),
-                shader_stage,
-                multiview: None,
-            },
-            naga::proc::BoundsCheckPolicies::default(),
+            &options,
+            &pipeline_options,
+            Default::default(),
         )
         .unwrap_or_else(|e| panic!("Failed to create GLSL writer for {}: {}", config.name, e));
 

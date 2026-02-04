@@ -9,6 +9,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 use alloc::vec::Vec;
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::JsCast;
 
 /// Configuration constants for shader compilation and runtime behavior.
 ///
@@ -315,8 +317,6 @@ impl PipelineOptions {
 /// Feature flags that can be queried at runtime.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FeatureFlags {
-    /// Supports WebGPU
-    pub webgpu_available: bool,
     /// Supports WebGL2
     pub webgl2_available: bool,
     /// Supports float32 textures
@@ -333,35 +333,20 @@ impl FeatureFlags {
     /// Detect available features from browser capabilities.
     #[cfg(target_arch = "wasm32")]
     pub fn detect() -> Self {
-        use wasm_bindgen::prelude::*;
-
-        let webgpu_available = if let Some(window) = web_sys::window() {
-            if let Some(navigator) = window.navigator() {
-                if let Some(gpu) = navigator.gpu() {
-                    match gpu.validate_shader_binary_compatibility() {
-                        Ok(_) => true,
-                        Err(_) => false,
-                    }
-                } else {
-                    false
-                }
-            } else {
-                false
-            }
-        } else {
-            false
-        };
-
-        let webgl2_available = webgpu_available || {
+        // WebGPU detection requires web-sys 0.4+ which has Gpu feature
+        // For now, we detect WebGL2 and assume WebGPU is not available
+        // This will be updated when web-sys 0.4+ is available
+        let webgl2_available = {
             // Check for WebGL2 support
             if let Some(window) = web_sys::window() {
                 if let Some(document) = window.document() {
-                    if let Some(canvas) = document
+                    if let Ok(canvas) = document
                         .create_element("canvas")
-                        .ok()
-                        .and_then(|el| el.dyn_into::<web_sys::HtmlCanvasElement>().ok())
+                        .map_err(|_| ())
+                        .and_then(|el| el.dyn_into::<web_sys::HtmlCanvasElement>().map_err(|_| ()))
                     {
-                        canvas.get_context("webgl2").is_some()
+                        // get_context returns Result<Option<Object>, JsValue>
+                        canvas.get_context("webgl2").ok().flatten().is_some()
                     } else {
                         false
                     }
@@ -374,10 +359,9 @@ impl FeatureFlags {
         };
 
         Self {
-            webgpu_available,
             webgl2_available,
             float_textures: true, // Most browsers support this
-            instancing: true,     // WebGPU and WebGL2 both support it
+            instancing: true,     // WebGL2 supports instancing
             max_texture_size: 4096,
             max_vertex_attribs: 16,
         }
@@ -386,7 +370,6 @@ impl FeatureFlags {
     /// Create feature flags for native/testing.
     pub fn native() -> Self {
         Self {
-            webgpu_available: true,
             webgl2_available: true,
             float_textures: true,
             instancing: true,

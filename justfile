@@ -144,7 +144,7 @@ build-release:
 [doc("Build WASM module only")]
 build-wasm: sync-wasm-types
     @echo "Building WASM..."
-    @cd {{WEB_PKG_DIR}} && wasm-pack build --target web --debug
+    @cd crates/archflow-web && wasm-pack build --target web --debug
     @echo "WASM built!"
 
 # Sync WASM types to frontend

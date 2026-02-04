@@ -13,7 +13,7 @@ use super::{RenderError, Renderer};
 #[cfg(all(feature = "wasm-bindgen", feature = "webgl2"))]
 use crate::WebGL2Renderer;
 
-#[cfg(feature = "wasm-bindgen")]
+#[cfg(all(feature = "wasm-bindgen", feature = "webgpu"))]
 use crate::WebGpuContext;
 
 /// Available rendering backends
@@ -60,6 +60,7 @@ impl RendererSelector {
         canvas: web_sys::HtmlCanvasElement,
     ) -> Result<Box<dyn Renderer>, RenderError> {
         // Try WebGPU first
+        #[cfg(feature = "webgpu")]
         if Self::has_webgpu() {
             #[cfg(debug_assertions)]
             tracing::info!(
