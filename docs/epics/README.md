@@ -8,19 +8,26 @@ Las épicas están diseñadas siguiendo la metodología **TDD (Test-Driven Devel
 
 ---
 
-## 🗺️ Mapa de Épicas
+---
 
-| Épica | ID | Enfoque | Estimación | Estado | Dependencias | Optimizaciones |
-|-------|----|---------|------------|--------|--------------|----------------|
-| Sensores de Entrada | EPIC-001 | Input Perception | XL | 🔴 No iniciada | Ninguna | SharedArrayBuffer + Fallback |
-| Sensores de Física | EPIC-002 | **Snap & Alignment** | XL | 🔴 No iniciada | EPIC-001 | Spatial Hashing O(n) |
-| Actuadores y Animaciones | EPIC-003 | Action Execution | XXL | 🔴 No iniciada | EPIC-001, EPIC-002 | **Phased SIMD (measure first)** |
-| Sincronización de Red | EPIC-004 | Real-Time Collaboration | XXXL | 🔴 No iniciada | EPIC-001 | **5 Fases Incrementales** |
-| **SDK Public API** | EPIC-SDK-API | **Developer Experience** | **L** | **✅ Completada** | **Ninguna** | **Ergonomics > Optimization** |
+## 🗺️ Mapa de Épicas Existentes
+
+| Épica | ID | Enfoque | Estimación | Estado | Dependencias |
+|-------|----|---------|------------|--------|--------------|
+| Sensores de Entrada | EPIC-001 | Input Perception | XL | 🔴 No iniciada | Ninguna |
+| Sensores de Física | EPIC-002 | **Snap & Alignment** | XL | 🔴 No iniciada | EPIC-001 |
+| Actuadores y Animaciones | EPIC-003 | Action Execution | XXL | 🔴 No iniciada | EPIC-001, EPIC-002 |
+| Sincronización de Red | EPIC-004 | Real-Time Collaboration | XXXL | 🔴 No iniciada | EPIC-001 |
+| **Render Fix & wgpu 28.0** | **EPIC-RENDER-001** | **WebGL2/wgpu Compatibility** | **L** | 🔴 No iniciada | Ninguna |
+| **ECS Query Layer** | **EPIC-ECS-001** | **Query Abstraction** | **XL** | 🔴 No iniciada | Ninguna |
+| **ECS Scheduler** | **EPIC-ECS-002** | **System Scheduling** | **XL** | 🔴 No iniciada | EPIC-ECS-001 |
+| **ECS Parallel** | **EPIC-ECS-003** | **Parallel Execution** | **XXL** | 🔴 No iniciada | EPIC-ECS-002 |
+| **ECS Documentation** | **EPIC-ECS-004** | **Documentation** | **M** | 🔴 No iniciada | EPIC-ECS-001 |
+| **SDK Public API** | EPIC-SDK-API | Developer Experience | L | ✅ Completada | Ninguna |
 
 ---
 
-## 📚 Épicas Individuales
+## 📚 Épicas Existentes
 
 ### [EPIC-001: Sensores de Entrada](./EPIC-001-input-sensors.md)
 
@@ -219,6 +226,28 @@ networking-crdt = ["networking"]
 
 ---
 
+### [EPIC-RENDER-001: Render Fix & wgpu 28.0](./RENDER_FIX_wgpu28_webgl2.md) ⭐ NUEVA CRÍTICA
+
+**Objetivo**: Corregir todos los errores de compilación y runtime que impiden que ArchFlow renderice correctamente, actualizando la compatibilidad con wgpu 28.0 y corrigiendo los shaders WebGL2.
+
+**Problemas Identificados:**
+- WebGL2: `#version` no es primera línea del shader
+- WebGL2: Sintaxis GLSL inválida (`layout(std430) buffer;` sin nombre)
+- wgpu 28.0: `Instance::new()` ahora toma referencia
+- wgpu 28.0: `DeviceDescriptor` requiere campos nuevos (`experimental_features`, `trace`)
+- Feature flags insuficientes para compilación condicional
+
+**Entregables Clave:**
+- Shaders WebGL2 sintácticamente válidos
+- API wgpu 28.0 actualizada en `webgpu_context.rs`
+- Feature flags correctamente configurados
+- WASM compilado y funcionando
+- Aplicación renderiza shapes en el canvas
+
+**Estimación**: 2-3 días (L)
+
+---
+
 ## 📊 Métricas de Éxito
 
 ### Rendimiento (Actualizado 2026)
@@ -340,6 +369,12 @@ EPIC-004 (Network Synchronization)
 ---
 
 ## 🎯 Próximos Pasos
+
+### Inmediatos - ECS Evolution (Nuevo)
+1. **EPIC-ECS-QUERY**: Implementar Query Abstraction Layer (XL)
+2. **EPIC-ECS-SCHEDULER**: Implementar Render Scheduler (XL)
+3. **EPIC-ECS-PARALLEL**: Implementar Parallel Execution (XXL)
+4. **EPIC-ECS-DOCS**: Documentación completa (M)
 
 ### Inmediatos
 1. **✅ Completar investigación**: Actuadores BGE + optimizaciones 2026

@@ -65,7 +65,7 @@ impl WebGpuContext {
     /// For async initialization, use `new_async()` instead.
     pub fn new() -> Result<Self, String> {
         // Create instance with all available backends
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
             ..Default::default()
         });
@@ -81,7 +81,7 @@ impl WebGpuContext {
                 })
                 .await
         })
-        .ok_or_else(|| "Failed to request WebGPU adapter".to_string())?;
+        .ok_or("Failed to request WebGPU adapter".to_string())?;
 
         // Create device and queue
         let (device, queue) = pollster::block_on(async {
@@ -96,6 +96,7 @@ impl WebGpuContext {
                             wgpu::Limits::default()
                         },
                         memory_hints: Default::default(),
+                        experimental_features: Default::default(),
                     },
                     None, // trace_path
                 )

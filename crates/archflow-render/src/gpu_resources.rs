@@ -11,8 +11,9 @@
 // - Uniform buffer: Camera uniforms for view-projection matrix
 // - Texture atlases: Placeholder for icons, images, and text
 // - Efficient buffer updates with write_buffer
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════════════════════════===
 
+#![cfg(feature = "webgpu")]
 #![allow(dead_code)]
 
 use alloc::string::String;

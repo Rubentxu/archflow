@@ -104,7 +104,7 @@ for file in "${TYPE_FILES[@]}"; do
             if ! diff -q "$source_file" "$dest_file" > /dev/null 2>&1; then
                 cp "$source_file" "$dest_file"
                 print_success "Actualizado: $file"
-                ((types_synced++))
+                types_synced=$((types_synced + 1))
             else
                 print_status "Sin cambios: $file"
             fi
@@ -112,11 +112,11 @@ for file in "${TYPE_FILES[@]}"; do
             # Archivo nuevo
             cp "$source_file" "$dest_file"
             print_success "Nuevo archivo: $file"
-            ((types_synced++))
+            types_synced=$((types_synced + 1))
         fi
     else
         print_warning "No encontrado: $file"
-        ((types_failed++))
+        types_failed=$((types_failed + 1))
     fi
 done
 
@@ -139,7 +139,7 @@ for file in "${JS_FILES[@]}"; do
             if ! diff -q "$source_file" "$dest_file" > /dev/null 2>&1; then
                 cp "$source_file" "$dest_file"
                 print_success "Actualizado: $file"
-                ((js_synced++))
+                js_synced=$((js_synced + 1))
             else
                 print_status "Sin cambios: $file"
             fi
@@ -147,11 +147,11 @@ for file in "${JS_FILES[@]}"; do
             # Archivo nuevo
             cp "$source_file" "$dest_file"
             print_success "Nuevo archivo: $file"
-            ((js_synced++))
+            js_synced=$((js_synced + 1))
         fi
     else
         print_warning "No encontrado: $file"
-        ((js_failed++))
+        js_failed=$((js_failed + 1))
     fi
 done
 
@@ -177,7 +177,7 @@ for file in "${WASM_FILES[@]}"; do
             if [ "$source_size" != "$dest_size" ]; then
                 cp "$source_file" "$dest_file"
                 print_success "Actualizado WASM: $file ($source_size bytes)"
-                ((wasm_synced++))
+                wasm_synced=$((wasm_synced + 1))
             else
                 print_status "Sin cambios: $file"
             fi
@@ -185,11 +185,11 @@ for file in "${WASM_FILES[@]}"; do
             # Archivo nuevo
             cp "$source_file" "$dest_file"
             print_success "Nuevo archivo WASM: $file"
-            ((wasm_synced++))
+            wasm_synced=$((wasm_synced + 1))
         fi
     else
         print_warning "No encontrado: $file"
-        ((wasm_failed++))
+        wasm_failed=$((wasm_failed + 1))
     fi
 done
 

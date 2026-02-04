@@ -17,7 +17,7 @@ use alloc::rc::Rc;
 use alloc::string::{String, ToString};
 use alloc::sync::Arc;
 use alloc::vec::Vec;
-use core::cell::RefCell;
+use core::cell::{Cell, RefCell};
 use wasm_bindgen::prelude::*;
 
 #[cfg(target_arch = "wasm32")]
@@ -30,7 +30,7 @@ use archflow_engine::store::MAX_ENTITIES;
 use archflow_render::Renderer;
 
 #[cfg(target_arch = "wasm32")]
-use archflow_render::WebGl2Context2D;
+use archflow_render::WebGL2Renderer;
 
 // Tracing support (conditionally compiled)
 #[cfg(feature = "tracing-logging")]
@@ -292,25 +292,20 @@ impl WasmBridge {
             height
         )));
 
-        // Create WebGL2 context (will use Canvas 2D under the hood)
-        let context = match archflow_render::WebGl2Context2D::try_from_canvas(canvas) {
-            Ok(ctx) => ctx,
+        // Create WebGL2 renderer directly from canvas
+        let mut renderer = match archflow_render::WebGL2Renderer::new(canvas.clone()) {
+            Ok(renderer) => renderer,
             Err(e) => {
                 web_sys::console::error_1(&JsValue::from_str(&alloc::format!(
-                    "Context creation error: {:?}",
+                    "Renderer creation error: {:?}",
                     e
                 )));
                 return Err(JsValue::from_str(&alloc::format!(
-                    "Failed to create WebGL2 context: {:?}",
+                    "Failed to create WebGL2 renderer: {:?}",
                     e
                 )));
             }
         };
-
-        web_sys::console::log_1(&JsValue::from_str("Context created successfully"));
-
-        // Create renderer
-        let mut renderer = archflow_render::WebGl2Renderer::new(context);
         renderer.resize(width, height);
 
         web_sys::console::log_1(&JsValue::from_str("Renderer created, setting in engine..."));
@@ -360,6 +355,9 @@ impl WasmBridge {
         // Store canvas for recovery
         self.pending_canvas.set(Some(canvas.clone()));
 
+        // Clone canvas for use in closure (avoiding lifetime issues)
+        let canvas_for_recovery = canvas.clone();
+
         // Context lost handler
         let on_lost = Closure::wrap(Box::new(move |event: web_sys::Event| {
             event.prevent_default();
@@ -371,10 +369,10 @@ impl WasmBridge {
                 "WebGL context lost - attempting recovery",
             ));
 
-            // Schedule recovery asynchronously (can't do sync recovery)
-            let canvas_clone = canvas.clone();
+            // Schedule recovery asynchronously
+            let canvas = canvas_for_recovery.clone();
             let closure = Closure::wrap(Box::new(move || {
-                let _ = Self::recover_context_internal(&canvas_clone);
+                let _ = Self::recover_context_internal(&canvas);
             }) as Box<dyn FnMut()>);
 
             web_sys::window()

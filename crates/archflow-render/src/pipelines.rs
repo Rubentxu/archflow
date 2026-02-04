@@ -12,8 +12,9 @@
 // - Icons pipeline: Texture atlas lookup for icon rendering
 // - Images pipeline: Texture2D array for PNG/jpeg images
 // - Text pipeline: MTSDF text rendering with crisp edges
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════════════════════════===
 
+#![cfg(feature = "webgpu")]
 #![allow(dead_code)]
 
 use alloc::string::String;
