@@ -362,9 +362,10 @@ impl EntityStore {
         // shape=1 (Rectangle) in bits 0-3, visible=true in bit 8
         self.metadata[index] = 0x0101; // shape=1 (bits 0-3), visible=true (bit 8)
 
-        // Mark dirty
+        // Don't mark dirty on spawn - entities are clean when first created
+        // The renderer will pick up new entities during sync_from_store
+        // Mark transform dirty for hierarchy updates if needed
         self.dirty_transform.insert(index);
-        self.dirty_render.insert(index);
         self.dirty_z_order = true;
 
         // Add to draw order
@@ -611,6 +612,53 @@ impl EntityStore {
         self.dirty_text.clear();
         self.dirty_hierarchy.clear();
         self.dirty_z_order = false;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // DIRTY TRACKING API (for Renderer - HU-RENDER-007)
+    // ═══════════════════════════════════════════════════════════
+
+    /// Mark an entity as needing GPU update
+    #[inline(always)]
+    pub fn mark_render_dirty(&mut self, idx: usize) {
+        self.dirty_render.insert(idx);
+    }
+
+    /// Mark an entity as needing transform update
+    #[inline(always)]
+    pub fn mark_transform_dirty(&mut self, idx: usize) {
+        self.dirty_transform.insert(idx);
+    }
+
+    /// Check if entity needs GPU update
+    #[inline(always)]
+    pub fn is_render_dirty(&self, idx: usize) -> bool {
+        self.dirty_render.contains(idx)
+    }
+
+    /// Take all dirty entities and clear the dirty flag
+    ///
+    /// Returns an iterator over indices that need GPU update.
+    /// This is more efficient than checking each entity individually.
+    #[inline(always)]
+    pub fn take_dirty_render_entities(&mut self) -> impl Iterator<Item = usize> + '_ {
+        // Collect dirty indices and clear the set
+        // FixedBitSet::ones() returns an iterator of set bit indices
+        let dirty: Vec<usize> = self.dirty_render.ones().collect();
+        self.dirty_render.clear();
+        dirty.into_iter()
+    }
+
+    /// Get count of dirty entities (for performance monitoring)
+    #[inline(always)]
+    pub fn dirty_render_count(&self) -> usize {
+        self.dirty_render.count_ones(..)
+    }
+
+    /// Check if any render data is dirty (quick check before full sync)
+    #[inline(always)]
+    pub fn has_render_dirty(&self) -> bool {
+        self.dirty_render.count_ones(..) > 0
     }
 
     /// Get number of alive entities
@@ -878,5 +926,96 @@ mod tests {
 
         assert_eq!(pool.get(0), "Hello");
         assert_eq!(pool.get(1), "World");
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // DIRTY TRACKING TESTS (HU-RENDER-007)
+    // ════════════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_mark_render_dirty() {
+        let mut store = EntityStore::new();
+        let id = store.spawn(Vec2::new(10.0, 20.0), Vec2::new(100.0, 50.0));
+        let idx = id.index().0 as usize;
+
+        // Entity should not be dirty initially (spawn clears dirty)
+        assert!(!store.is_render_dirty(idx));
+
+        // Mark dirty
+        store.mark_render_dirty(idx);
+        assert!(store.is_render_dirty(idx));
+    }
+
+    #[test]
+    fn test_take_dirty_render_entities() {
+        let mut store = EntityStore::new();
+
+        // Spawn multiple entities
+        let id1 = store.spawn(Vec2::new(0.0, 0.0), Vec2::new(10.0, 10.0));
+        let id2 = store.spawn(Vec2::new(20.0, 20.0), Vec2::new(10.0, 10.0));
+        let id3 = store.spawn(Vec2::new(40.0, 40.0), Vec2::new(10.0, 10.0));
+
+        let idx1 = id1.index().0 as usize;
+        let idx2 = id2.index().0 as usize;
+        let idx3 = id3.index().0 as usize;
+
+        // Mark some entities dirty
+        store.mark_render_dirty(idx1);
+        store.mark_render_dirty(idx3);
+
+        // Verify before take
+        assert_eq!(store.dirty_render_count(), 2);
+
+        // Take dirty entities
+        let dirty: Vec<usize> = store.take_dirty_render_entities().collect();
+
+        assert_eq!(dirty.len(), 2);
+        assert!(dirty.contains(&idx1));
+        assert!(dirty.contains(&idx3));
+        assert!(!dirty.contains(&idx2));
+
+        // Dirty flag should be cleared
+        assert_eq!(store.dirty_render_count(), 0);
+        assert!(!store.has_render_dirty());
+    }
+
+    #[test]
+    fn test_dirty_render_count() {
+        let mut store = EntityStore::new();
+
+        assert_eq!(store.dirty_render_count(), 0);
+
+        let id = store.spawn(Vec2::ZERO, Vec2::new(10.0, 10.0));
+        let idx = id.index().0 as usize;
+
+        store.mark_render_dirty(idx);
+        assert_eq!(store.dirty_render_count(), 1);
+
+        // Spawn more and mark dirty
+        for i in 0..5 {
+            let e = store.spawn(Vec2::new(i as f32 * 10.0, 0.0), Vec2::new(10.0, 10.0));
+            store.mark_render_dirty(e.index().0 as usize);
+        }
+        assert_eq!(store.dirty_render_count(), 6);
+    }
+
+    #[test]
+    fn test_has_render_dirty() {
+        let mut store = EntityStore::new();
+
+        assert!(!store.has_render_dirty());
+
+        let id = store.spawn(Vec2::ZERO, Vec2::new(10.0, 10.0));
+        let idx = id.index().0 as usize;
+
+        // After spawn, dirty flag should be cleared
+        assert!(!store.has_render_dirty());
+
+        store.mark_render_dirty(idx);
+        assert!(store.has_render_dirty());
+
+        // Clear dirty
+        store.take_dirty_render_entities().for_each(|_| {});
+        assert!(!store.has_render_dirty());
     }
 }
