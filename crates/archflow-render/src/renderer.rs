@@ -17,9 +17,10 @@
 
 #![allow(dead_code)]
 
+use alloc::string::String;
 use alloc::vec::Vec;
 
-use archflow_core::{MAX_ENTITIES, Vec2f64};
+use archflow_core::MAX_ENTITIES;
 use archflow_engine::EntityStore;
 
 use crate::camera::Camera;
@@ -323,6 +324,100 @@ impl GpuRenderer {
         }
         count
     }
+
+    /// Synchronize only dirty entities from EntityStore
+    ///
+    /// This is an optimized version of `sync_from_store` that only updates
+    /// entities marked as dirty since the last sync. This significantly
+    /// reduces CPU overhead when most entities are static.
+    ///
+    /// # Arguments
+    ///
+    /// * `store` - EntityStore containing the entity data
+    /// * `camera` - Camera for view-projection matrix
+    ///
+    /// # Returns
+    ///
+    /// Number of dirty entities that were updated. Returns 0 if nothing is dirty.
+    ///
+    /// # Notes
+    ///
+    /// This method should be called after an initial `sync_from_store()` call.
+    /// The EntityStore's dirty flags are cleared after processing.
+    pub fn sync_dirty(&mut self, store: &mut EntityStore, camera: &Camera) -> usize {
+        // Check if anything is dirty
+        if !store.has_render_dirty() {
+            return 0;
+        }
+
+        // Update camera uniforms (always needed)
+        self.camera_uniforms = CameraUniforms::from_camera(camera);
+
+        let viewport = camera.viewport_bounds();
+        let mut updated_count = 0;
+
+        // Get all dirty entity indices and clear flags
+        let dirty_indices: Vec<usize> = store.take_dirty_render_entities().collect();
+
+        for &idx in &dirty_indices {
+            // Skip if not visible (entities can become invisible)
+            if !store.is_visible(idx) {
+                continue;
+            }
+
+            let pos = store.pos(idx);
+            let size = store.size(idx);
+            let entity_min = pos - size / 2.0;
+            let entity_max = pos + size / 2.0;
+
+            // Skip if outside viewport (camera moved)
+            if !viewport.intersects(&archflow_core::Rect::new(
+                entity_min.x,
+                entity_min.y,
+                entity_max.x,
+                entity_max.y,
+            )) {
+                continue;
+            }
+
+            // Determine render phase
+            let texture_idx = store.texture_index[idx];
+            let phase = match texture_idx {
+                0 if store.text_glyph_count[idx] > 0 => RenderPhase::Text,
+                0 => RenderPhase::Shapes,
+                1..=1000 => RenderPhase::Icons,
+                _ => RenderPhase::Images,
+            };
+
+            // Create instance data
+            let instance = GpuInstance {
+                pos: [pos.x, pos.y],
+                size: [size.x, size.y],
+                color: store.colors[idx],
+                shape_type_or_texture_index: if texture_idx == 0 {
+                    store.shape_type(idx) as u32
+                } else {
+                    texture_idx as u32
+                },
+                _padding: [0, 0],
+                uv_rect: store.uv_rects[idx],
+            };
+
+            // Update instance in place (using entity index as instance index)
+            // This assumes entities keep stable indices and instances are 1:1 mapped
+            if idx < self.instances.len() {
+                self.instances[idx] = instance;
+            } else {
+                // Entity index is beyond current instances - need full resync
+                self.instances.push(instance);
+            }
+
+            self.batches.get_batch(phase).push(idx as u32);
+            updated_count += 1;
+        }
+
+        updated_count
+    }
 }
 
 impl Default for GpuRenderer {
@@ -412,9 +507,15 @@ impl Renderer for GpuRenderer {
     }
 
     fn render(&mut self) -> Result<(), super::RenderError> {
-        // GpuRenderer needs WebGPU context to render
-        // This will be implemented in HU-RENDER-001 continuation
-        Ok(())
+        // GpuRenderer is CPU-side: it prepares instance data for GPU upload.
+        // The actual rendering is performed by GPU-accelerated backends
+        // (WebGL2Renderer, WebGPURenderer, etc.).
+        //
+        // Use the RendererSelector to create an appropriate GPU backend,
+        // then call render() on that backend.
+        Err(super::RenderError::Generic(String::from(
+            "GpuRenderer is CPU-side only. Use a GPU-accelerated backend (WebGL2Renderer, WebGPURenderer) for actual rendering.",
+        )))
     }
 }
 
@@ -425,7 +526,7 @@ impl Renderer for GpuRenderer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use archflow_core::Vec2;
+    use archflow_core::{Vec2, Vec2f64};
 
     #[test]
     fn test_gpu_instance_size() {
@@ -619,5 +720,111 @@ mod tests {
 
         // Should have 2 draw calls: shapes + text
         assert_eq!(renderer.total_draw_calls(), 2);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // DIRTY SYNC TESTS (HU-RENDER-007 Optimization)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_sync_dirty_only_dirty_entities() {
+        // This test verifies that sync_dirty() only updates dirty entities
+        // when camera hasn't changed, optimizing performance
+        let mut renderer = GpuRenderer::new();
+        let mut store = EntityStore::new();
+        let mut camera = Camera::new(800.0, 600.0);
+
+        camera.center = Vec2f64::ZERO;
+        camera.zoom = 1.0;
+
+        // Spawn 5 entities
+        let id1 = store.spawn(Vec2::new(0.0, 0.0), Vec2::new(0.05, 0.05));
+        let _id2 = store.spawn(Vec2::new(0.5, 0.0), Vec2::new(0.05, 0.05));
+        let _id3 = store.spawn(Vec2::new(-0.5, 0.0), Vec2::new(0.05, 0.05));
+        let _id4 = store.spawn(Vec2::new(0.0, 0.5), Vec2::new(0.05, 0.05));
+        let _id5 = store.spawn(Vec2::new(0.0, -0.5), Vec2::new(0.05, 0.05));
+
+        // First sync - all visible
+        let count = renderer.sync_from_store(&store, &camera);
+        assert_eq!(count, 5);
+
+        // Move only one entity
+        let idx1 = id1.index().0 as usize;
+        store.move_by(idx1, Vec2::new(0.1, 0.0));
+
+        // Dirty tracking should have marked this entity
+        assert!(store.has_render_dirty());
+
+        // Sync dirty should only update the changed entity
+        let dirty_count = renderer.sync_dirty(&mut store, &camera);
+        assert_eq!(dirty_count, 1);
+    }
+
+    #[test]
+    fn test_sync_dirty_empty_when_nothing_changed() {
+        let mut renderer = GpuRenderer::new();
+        let mut store = EntityStore::new();
+        let camera = Camera::new(800.0, 600.0);
+
+        store.spawn(Vec2::new(0.0, 0.0), Vec2::new(0.1, 0.1));
+
+        // Initial sync
+        renderer.sync_from_store(&store, &camera);
+
+        // Nothing dirty
+        assert!(!store.has_render_dirty());
+
+        // Sync dirty should return 0
+        let count = renderer.sync_dirty(&mut store, &camera);
+        assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn test_sync_dirty_preserves_instance_data() {
+        let mut renderer = GpuRenderer::new();
+        let mut store = EntityStore::new();
+        let mut camera = Camera::new(800.0, 600.0);
+
+        camera.center = Vec2f64::ZERO;
+
+        let id = store.spawn(Vec2::new(0.0, 0.0), Vec2::new(0.1, 0.1));
+        let idx = id.index().0 as usize;
+
+        // Initial sync
+        renderer.sync_from_store(&store, &camera);
+        let initial_instances = renderer.instances().to_vec();
+
+        assert_eq!(initial_instances.len(), 1);
+        assert_eq!(initial_instances[0].pos, [0.0, 0.0]);
+
+        // Move entity
+        store.move_by(idx, Vec2::new(0.5, 0.0));
+
+        // Sync dirty
+        renderer.sync_dirty(&mut store, &camera);
+        let updated_instances = renderer.instances().to_vec();
+
+        assert_eq!(updated_instances.len(), 1);
+        assert_eq!(updated_instances[0].pos, [0.5, 0.0]);
+    }
+
+    #[test]
+    fn test_sync_dirty_clears_dirty_flags() {
+        let mut renderer = GpuRenderer::new();
+        let mut store = EntityStore::new();
+        let camera = Camera::new(800.0, 600.0);
+
+        let id = store.spawn(Vec2::new(0.0, 0.0), Vec2::new(0.1, 0.1));
+        let idx = id.index().0 as usize;
+
+        renderer.sync_from_store(&store, &camera);
+
+        // Mark dirty
+        store.move_by(idx, Vec2::new(0.1, 0.0));
+        assert!(store.has_render_dirty());
+
+        // Sync dirty should clear the flags
+        renderer.sync_dirty(&mut store, &camera);
+        assert!(!store.has_render_dirty());
     }
 }
