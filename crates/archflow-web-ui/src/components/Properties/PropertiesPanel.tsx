@@ -55,12 +55,26 @@ function VisualPropertiesForm({
   bridge: any;
   onUpdate?: () => void;
 }) {
+  console.log("🎨 VisualPropertiesForm: Montando componente", {
+    entityId,
+    hasBridge: !!bridge,
+  });
+
   // Local state for immediate feedback - initialize from bridge if available
   const [fillColor, setFillColor] = React.useState(() => {
     if (!bridge || entityId !== null) return "#3b82f6";
     try {
-      return bridge.get_active_color() || "#3b82f6";
-    } catch {
+      const color = bridge.get_active_color() || "#3b82f6";
+      console.log(
+        "🎨 VisualPropertiesForm: Color inicial desde bridge:",
+        color,
+      );
+      return color;
+    } catch (e) {
+      console.warn(
+        "🎨 VisualPropertiesForm: Error obteniendo color inicial:",
+        e,
+      );
       return "#3b82f6";
     }
   });
@@ -88,6 +102,9 @@ function VisualPropertiesForm({
       const activeColor = bridge.get_active_color();
       const activeStrokeColor = bridge.get_active_stroke_color();
       const activeStrokeWidth = bridge.get_active_stroke_width();
+      console.log(
+        `🔄 UI: Sincronizando colores desde bridge - Fill: ${activeColor}, Stroke: ${activeStrokeColor}, Width: ${activeStrokeWidth}`,
+      );
       if (activeColor) setFillColor(activeColor);
       if (activeStrokeColor) setStrokeColor(activeStrokeColor);
       if (activeStrokeWidth !== undefined) setStrokeWidth(activeStrokeWidth);
@@ -96,18 +113,35 @@ function VisualPropertiesForm({
     }
   }, [bridge, entityId]);
 
+  // Log cuando cambia el bridge o entityId
+  React.useEffect(() => {
+    console.log("🎨 VisualPropertiesForm: Props cambiadas", {
+      entityId,
+      hasBridge: !!bridge,
+      currentFillColor: fillColor,
+    });
+  }, [bridge, entityId, fillColor]);
+
   const handleFillChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
+    console.log(`🎨 UI: handleFillChange llamado con ${val}`);
     setFillColor(val);
-    if (!bridge) return;
+    if (!bridge) {
+      console.warn("🎨 UI: Bridge no disponible, no se puede aplicar color");
+      return;
+    }
 
     const r = parseInt(val.slice(1, 3), 16);
     const g = parseInt(val.slice(3, 5), 16);
     const b = parseInt(val.slice(5, 7), 16);
 
+    console.log(`🎨 UI: Cambiando color a ${val} (R=${r}, G=${g}, B=${b})`);
+
     if (entityId !== null) {
+      console.log(`🔧 UI: Aplicando a entidad ${entityId}`);
       bridge.set_color(entityId, r, g, b, 255);
     } else {
+      console.log(`🆕 UI: Aplicando como color activo (para nuevas shapes)`);
       bridge.set_active_color(r, g, b, 255);
     }
     onUpdate?.();
@@ -874,7 +908,11 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
               </div>
             </div>
 
-            <VisualPropertiesForm entityId={null} bridge={bridge} />
+            <VisualPropertiesForm
+              key={activeTool}
+              entityId={null}
+              bridge={bridge}
+            />
           </div>
           <ShapeHistory />
         </aside>
