@@ -1,3 +1,5 @@
+#![cfg(all(feature = "wasm-bindgen", feature = "webgl2"))]
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // ArchFlow Render - WebGL2 Rendering
 //
@@ -18,6 +20,7 @@ use alloc::vec::Vec;
 
 #[cfg(feature = "wasm-bindgen")]
 use archflow_core::MAX_ENTITIES;
+
 
 #[cfg(feature = "wasm-bindgen")]
 use archflow_engine::EntityStore;
@@ -258,6 +261,13 @@ pub struct WebGL2Renderer {
 
     /// Instance data organized by phase
     phased_instances: [Vec<GpuInstance>; 4],
+
+    /// Flattened instance buffer for Renderer trait compatibility
+    /// This is kept in sync with phased_instances for O(1) access
+    all_instances: Vec<GpuInstance>,
+
+    /// Indices into all_instances for each phase (offsets into the flat buffer)
+    phase_indices: [Vec<u32>; 4],
 }
 
 #[cfg(feature = "wasm-bindgen")]
@@ -368,6 +378,13 @@ impl WebGL2Renderer {
                 Vec::with_capacity(MAX_ENTITIES as usize),
                 Vec::with_capacity(MAX_ENTITIES as usize),
             ],
+            all_instances: Vec::with_capacity(MAX_ENTITIES as usize),
+            phase_indices: [
+                Vec::with_capacity(MAX_ENTITIES as usize),
+                Vec::with_capacity(MAX_ENTITIES as usize),
+                Vec::with_capacity(MAX_ENTITIES as usize),
+                Vec::with_capacity(MAX_ENTITIES as usize),
+            ],
         })
     }
 
@@ -379,6 +396,11 @@ impl WebGL2Renderer {
         }
         for count in &mut self.batch_counts {
             *count = 0;
+        }
+        // Clear flattened buffers
+        self.all_instances.clear();
+        for indices in &mut self.phase_indices {
+            indices.clear();
         }
 
         // Update camera uniforms
@@ -431,7 +453,14 @@ impl WebGL2Renderer {
                 uv_rect: store.uv_rects[idx],
             };
 
+            // Add to phased instances (for rendering)
             self.phased_instances[phase_idx].push(instance);
+
+            // Add to flattened buffers (for Renderer trait compatibility)
+            let instance_idx = self.all_instances.len() as u32;
+            self.all_instances.push(instance);
+            self.phase_indices[phase_idx].push(instance_idx);
+
             self.batch_counts[phase_idx] += 1;
             visible_count += 1;
         }
@@ -526,14 +555,8 @@ impl Renderer for WebGL2Renderer {
     }
 
     fn instances(&self) -> &[GpuInstance] {
-        // Return all instances flattened
-        let all_instances: Vec<GpuInstance> = self
-            .phased_instances
-            .iter()
-            .flat_map(|v| v.iter().copied())
-            .collect();
-        // This is a workaround - in production we'd use a flattened buffer
-        &[]
+        // Return flattened buffer for Renderer trait compatibility
+        &self.all_instances
     }
 
     fn camera_uniforms(&self) -> &CameraUniforms {
@@ -541,7 +564,8 @@ impl Renderer for WebGL2Renderer {
     }
 
     fn batch_indices(&self, phase: RenderPhase) -> &[u32] {
-        &[]
+        // Return phase indices from flattened buffer
+        &self.phase_indices[phase as usize]
     }
 
     fn total_draw_calls(&self) -> u32 {
