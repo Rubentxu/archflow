@@ -47,24 +47,27 @@ pub mod renderer;
 pub mod selector;
 /// Shader sources
 pub mod shaders;
-/// WebGL2 context for WASM
-#[cfg(feature = "wasm-bindgen")]
-pub mod webgl2_context;
+/// Texture layout and alignment utilities
+pub mod texture_layout;
 /// WebGL2 renderer (alternative backend)
-pub mod webgl2_renderer;
+#[cfg(all(feature = "wasm-bindgen", feature = "webgl2"))]
+pub mod webgl2_renderer_real;
 /// WebGPU context wrapper
 pub mod webgpu_context;
 
 pub use atlas::{AtlasPacker, AtlasRect};
 pub use camera::{Camera, ZOOM_INTENSITY, ZOOM_MAX, ZOOM_MIN};
-pub use error::RenderError;
+pub use error::{RenderError, RenderErrorKind};
 pub use gpu_resources::GpuResources;
 pub use pipelines::RenderPipelines;
 pub use renderer::{CameraUniforms, GpuInstance, GpuRenderer, RenderPhase, Renderer};
 pub use selector::{Backend, RendererSelector};
 pub use shaders::{SHADER_ICON_TEXTURE, SHADER_IMAGE_ARRAY, SHADER_MTSDF_TEXT, SHADER_SDF_SHAPES};
+pub use texture_layout::{
+    Alignment, PixelFormat, TextureLayout, calculate_optimal_alignment, pad_texture_data,
+};
 #[cfg(feature = "wasm-bindgen")]
-pub use webgl2_context::WebGl2Context2D;
-pub use webgl2_renderer::{WebGl2Context, WebGl2Program, WebGl2Renderer, draw_mode};
+#[cfg(all(feature = "wasm-bindgen", feature = "webgl2"))]
+pub use webgl2_renderer_real::{WebGL2Context, WebGL2Renderer};
 pub use webgpu_context::WebGpuContext;
 
