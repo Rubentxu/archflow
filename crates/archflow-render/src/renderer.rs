@@ -331,6 +331,93 @@ impl Default for GpuRenderer {
     }
 }
 
+/// Renderer trait for polymorphic rendering backends
+///
+/// This trait defines the interface that all rendering backends must implement.
+/// It allows the engine to work with different renderers (WebGPU, WebGL2, Canvas 2D)
+/// without knowing the specific implementation details.
+pub trait Renderer {
+    /// Sync renderer data from EntityStore
+    ///
+    /// Called every frame before rendering to prepare instance data.
+    /// Returns the number of visible entities prepared for rendering.
+    fn sync_from_store(&mut self, store: &EntityStore, camera: &Camera) -> usize;
+
+    /// Get the number of entities in a specific render phase
+    fn batch_count(&self, phase: RenderPhase) -> usize;
+
+    /// Get a reference to the instance data buffer
+    fn instances(&self) -> &[GpuInstance];
+
+    /// Get camera uniforms
+    fn camera_uniforms(&self) -> &CameraUniforms;
+
+    /// Get the indices for a render phase
+    fn batch_indices(&self, phase: RenderPhase) -> &[u32];
+
+    /// Calculate total draw calls
+    fn total_draw_calls(&self) -> u32;
+
+    /// Resize renderer
+    fn resize(&mut self, width: u32, height: u32);
+
+    /// Get the backend name
+    ///
+    /// Returns a static string identifier for the rendering backend.
+    /// Used for logging, debugging, and telemetry.
+    fn backend_name(&self) -> &'static str;
+
+    /// Render a frame
+    ///
+    /// Executes the actual draw calls using the prepared instance data.
+    /// Should be called after sync_from_store.
+    ///
+    /// Returns an error if rendering fails.
+    fn render(&mut self) -> Result<(), super::RenderError>;
+}
+
+// Implement Renderer for GpuRenderer
+impl Renderer for GpuRenderer {
+    fn sync_from_store(&mut self, store: &EntityStore, camera: &Camera) -> usize {
+        Self::sync_from_store(self, store, camera)
+    }
+
+    fn batch_count(&self, phase: RenderPhase) -> usize {
+        Self::batch_count(self, phase)
+    }
+
+    fn instances(&self) -> &[GpuInstance] {
+        Self::instances(self)
+    }
+
+    fn camera_uniforms(&self) -> &CameraUniforms {
+        Self::camera_uniforms(self)
+    }
+
+    fn batch_indices(&self, phase: RenderPhase) -> &[u32] {
+        Self::batch_indices(self, phase)
+    }
+
+    fn total_draw_calls(&self) -> u32 {
+        Self::total_draw_calls(self)
+    }
+
+    fn resize(&mut self, _width: u32, _height: u32) {
+        // GpuRenderer doesn't need resize in this implementation
+        // In a full implementation, this would update framebuffers
+    }
+
+    fn backend_name(&self) -> &'static str {
+        "WebGPU"
+    }
+
+    fn render(&mut self) -> Result<(), super::RenderError> {
+        // GpuRenderer needs WebGPU context to render
+        // This will be implemented in HU-RENDER-001 continuation
+        Ok(())
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // UNIT TESTS
 // ═══════════════════════════════════════════════════════════════════════════════
