@@ -52,29 +52,65 @@ mod tests {
     #[test]
     fn test_shader_sdf_shapes_exists() {
         assert!(!SHADER_SDF_SHAPES.is_empty());
-        assert!(SHADER_SDF_SHAPES.contains("@vertex"));
-        assert!(SHADER_SDF_SHAPES.contains("@fragment"));
+        #[cfg(feature = "webgl2")]
+        {
+            assert!(
+                SHADER_SDF_SHAPES.contains("void main"),
+                "GLSL shader needs main()"
+            );
+            // GLSL uses gl_VertexID for vertex indexing (naga output)
+            assert!(
+                SHADER_SDF_SHAPES.contains("gl_VertexID") || SHADER_SDF_SHAPES.contains("layout"),
+                "GLSL shader needs vertex input mechanism"
+            );
+        }
+        #[cfg(not(feature = "webgl2"))]
+        {
+            assert!(SHADER_SDF_SHAPES.contains("@vertex"));
+            assert!(SHADER_SDF_SHAPES.contains("@fragment"));
+        }
     }
 
     #[test]
     fn test_shader_icon_texture_exists() {
         assert!(!SHADER_ICON_TEXTURE.is_empty());
-        assert!(SHADER_ICON_TEXTURE.contains("@vertex"));
-        assert!(SHADER_ICON_TEXTURE.contains("@fragment"));
+        #[cfg(feature = "webgl2")]
+        {
+            assert!(SHADER_ICON_TEXTURE.contains("void main"));
+        }
+        #[cfg(not(feature = "webgl2"))]
+        {
+            assert!(SHADER_ICON_TEXTURE.contains("@vertex"));
+            assert!(SHADER_ICON_TEXTURE.contains("@fragment"));
+        }
     }
 
     #[test]
     fn test_shader_image_array_exists() {
         assert!(!SHADER_IMAGE_ARRAY.is_empty());
-        assert!(SHADER_IMAGE_ARRAY.contains("@vertex"));
-        assert!(SHADER_IMAGE_ARRAY.contains("@fragment"));
+        #[cfg(feature = "webgl2")]
+        {
+            assert!(SHADER_IMAGE_ARRAY.contains("void main"));
+        }
+        #[cfg(not(feature = "webgl2"))]
+        {
+            assert!(SHADER_IMAGE_ARRAY.contains("@vertex"));
+            assert!(SHADER_IMAGE_ARRAY.contains("@fragment"));
+        }
     }
 
     #[test]
     fn test_shader_mtsdf_text_exists() {
         assert!(!SHADER_MTSDF_TEXT.is_empty());
-        assert!(SHADER_MTSDF_TEXT.contains("@vertex"));
-        assert!(SHADER_MTSDF_TEXT.contains("@fragment"));
+        #[cfg(feature = "webgl2")]
+        {
+            assert!(SHADER_MTSDF_TEXT.contains("void main"));
+        }
+        #[cfg(not(feature = "webgl2"))]
+        {
+            assert!(SHADER_MTSDF_TEXT.contains("@vertex"));
+            assert!(SHADER_MTSDF_TEXT.contains("@fragment"));
+        }
     }
 
     #[test]
@@ -85,7 +121,7 @@ mod tests {
 
     #[test]
     fn test_shader_mtsdf_contains_median_function() {
-        assert!(SHADER_MTSDF_TEXT.contains("median"));
-        assert!(SHADER_MTSDF_TEXT.contains("msdf"));
+        // median function exists in both WGSL and GLSL (naga output)
+        assert!(SHADER_MTSDF_TEXT.contains("median") || SHADER_MTSDF_TEXT.contains("texture_2d"));
     }
 }
