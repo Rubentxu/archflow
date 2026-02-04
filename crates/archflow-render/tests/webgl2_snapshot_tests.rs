@@ -217,10 +217,10 @@ fn test_snapshot_camera_uniforms() {
 
     let uniforms = renderer.camera_uniforms();
 
-    // Camera uniforms should be 64 bytes
+    // Camera uniforms should be 80 bytes (64 for view_projection + 16 for camera_pos)
     assert_eq!(
         core::mem::size_of::<archflow_render::renderer::CameraUniforms>(),
-        64
+        80
     );
 
     // With zoom 2.0, view-projection matrix should be scaled

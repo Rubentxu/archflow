@@ -545,8 +545,11 @@ mod tests {
 
     #[test]
     fn test_camera_uniforms_size() {
-        // CameraUniforms should be 64 bytes (one cache line)
-        assert_eq!(core::mem::size_of::<CameraUniforms>(), 64);
+        // CameraUniforms should be 80 bytes (64 for view_projection + 16 for camera_pos + padding)
+        // view_projection: mat4x4 = 64 bytes
+        // camera_pos: vec2 = 8 bytes
+        // _padding: vec2 = 8 bytes (for 16-byte alignment)
+        assert_eq!(core::mem::size_of::<CameraUniforms>(), 80);
         assert_eq!(core::mem::align_of::<CameraUniforms>(), 16);
     }
 
