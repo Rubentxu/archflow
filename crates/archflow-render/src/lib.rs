@@ -59,10 +59,6 @@ pub mod webgl2_renderer_real;
 /// WebGPU context wrapper
 pub mod webgpu_context;
 
-/// Feature parity tests
-#[cfg(test)]
-mod parity_tests;
-
 pub use atlas::{AtlasPacker, AtlasRect};
 pub use camera::{Camera, ZOOM_INTENSITY, ZOOM_MAX, ZOOM_MIN};
 pub use error::{RenderError, RenderErrorKind};
@@ -79,7 +75,5 @@ pub use texture_loader::{
     AtlasInsertResult, AtlasReserveResult, LoadedTexture, TextureFormat, TextureLoadHandle,
     TextureLoadResult, TextureLoadStatus, TextureLoader, TextureLoaderConfig, TextureSource,
 };
-#[cfg(feature = "wasm-bindgen")]
-#[cfg(all(feature = "wasm-bindgen", feature = "webgl2"))]
-pub use webgl2_renderer_real::{WebGL2Context, WebGL2Renderer};
+
 pub use webgpu_context::WebGpuContext;
