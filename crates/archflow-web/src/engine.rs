@@ -15,10 +15,11 @@
 use alloc::vec;
 use alloc::vec::Vec;
 
+use alloc::boxed::Box;
 use archflow_core::{EntityId, Vec2};
 use archflow_engine::{Command, CommandQueue, ConnectionStore, EntityStore};
 use archflow_interaction::HistoryManager;
-use archflow_render::{Camera, GpuRenderer};
+use archflow_render::{Camera, GpuRenderer, Renderer};
 
 /// Main ArchFlow Engine combining all systems
 ///
@@ -28,8 +29,8 @@ pub struct ArchFlowEngine {
     /// Entity component system with SoA layout
     pub store: EntityStore,
 
-    /// GPU renderer with multi-phase instancing
-    pub renderer: GpuRenderer,
+    /// GPU renderer with multi-phase instancing (polymorphic)
+    pub renderer: Box<dyn Renderer>,
 
     /// Command queue for deferred execution
     pub command_queue: CommandQueue,
@@ -70,7 +71,7 @@ impl ArchFlowEngine {
 
         Self {
             store: EntityStore::new(),
-            renderer: GpuRenderer::new(),
+            renderer: Box::new(GpuRenderer::new()),
             command_queue: CommandQueue::new(),
             camera,
             connection_store: ConnectionStore::new(),
@@ -82,6 +83,11 @@ impl ArchFlowEngine {
             is_creating: false,
             drag_start: None,
         }
+    }
+
+    /// Set the renderer (for backend switching)
+    pub fn set_renderer(&mut self, new_renderer: Box<dyn Renderer>) {
+        self.renderer = new_renderer;
     }
 
     /// Resize the canvas
@@ -138,7 +144,7 @@ impl ArchFlowEngine {
     }
 
     fn prepare_render(&mut self) {
-        // Sync renderer with entity store
+        // Sync renderer with entity store using trait
         self.renderer.sync_from_store(&self.store, &self.camera);
     }
 

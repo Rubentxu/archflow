@@ -6,13 +6,24 @@ edition.workspace = true
 [dependencies]
 archflow-core = { path = "../archflow-core" }
 archflow-engine = { path = "../archflow-engine", features = ["tracing"] }
+glow = "0.15"
+naga = { version = "22", features = ["wgsl-in", "glsl-out"] }
 wgpu = { workspace = true }
 bytemuck = { workspace = true }
 pollster = "0.3"
 
+# WASM dependencies (only used on wasm32)
+wasm-bindgen = { workspace = true, optional = true }
+web-sys = { workspace = true, optional = true }
+
 # Diagnostics - tracing is not optional in workspace deps
 tracing = { workspace = true }
 
+[build-dependencies]
+naga = { version = "22", features = ["wgsl-in", "glsl-out"] }
+
 [features]
 default = []
-tracing = []  # Enable tracing instrumentation (always available, non-optional dependency)
+tracing = []
+wasm-bindgen = ["dep:wasm-bindgen", "dep:web-sys"]
+webgl2 = ["dep:wasm-bindgen", "dep:web-sys"]

@@ -965,6 +965,10 @@ export class WasmBridge {
      */
     delete_selected(): void;
     /**
+     * Detect available graphics backends
+     */
+    detect_available_backends(): object;
+    /**
      * Duplicate an entity (create a copy at a slight offset)
      */
     duplicate_entity(entity_index: number): number;
@@ -1033,6 +1037,18 @@ export class WasmBridge {
      * This should be called once when the application starts.
      */
     initialize(canvas_width: number, canvas_height: number): void;
+    /**
+     * Initialize graphics (uses WebGL2/Canvas 2D by default)
+     *
+     * This should be called after `initialize()` and after the canvas is mounted.
+     */
+    initialize_graphics(canvas: HTMLCanvasElement): void;
+    /**
+     * Initialize graphics with a specific backend
+     *
+     * Supported backends: "webgl2", "webgpu", "canvas2d", "auto"
+     */
+    initialize_graphics_with_backend(canvas: HTMLCanvasElement, backend: string): void;
     /**
      * Check if entity is selected
      */
@@ -1103,7 +1119,7 @@ export class WasmBridge {
     /**
      * Set the current tool type
      */
-    set_tool(_tool: string): void;
+    set_tool(tool: string): void;
     /**
      * Set the camera zoom level
      */
@@ -1218,6 +1234,7 @@ export interface InitOutput {
     readonly wasmbridge_clear: (a: number, b: number) => void;
     readonly wasmbridge_clear_selection: (a: number, b: number) => void;
     readonly wasmbridge_delete_selected: (a: number, b: number) => void;
+    readonly wasmbridge_detect_available_backends: (a: number, b: number) => void;
     readonly wasmbridge_duplicate_entity: (a: number, b: number, c: number) => void;
     readonly wasmbridge_entity_count: (a: number, b: number) => void;
     readonly wasmbridge_get_alive_entities: (a: number, b: number) => void;
@@ -1233,6 +1250,8 @@ export interface InitOutput {
     readonly wasmbridge_get_tool: (a: number, b: number) => void;
     readonly wasmbridge_get_zoom: (a: number, b: number) => void;
     readonly wasmbridge_initialize: (a: number, b: number, c: number, d: number) => void;
+    readonly wasmbridge_initialize_graphics: (a: number, b: number, c: number) => void;
+    readonly wasmbridge_initialize_graphics_with_backend: (a: number, b: number, c: number, d: number, e: number) => void;
     readonly wasmbridge_is_entity_selected: (a: number, b: number, c: number) => void;
     readonly wasmbridge_is_entity_visible: (a: number, b: number, c: number) => void;
     readonly wasmbridge_move_entity: (a: number, b: number, c: number, d: number, e: number) => void;
@@ -1259,8 +1278,9 @@ export interface InitOutput {
     readonly propertyvalue_value: (a: number, b: number) => void;
     readonly __wbindgen_export: (a: number, b: number) => number;
     readonly __wbindgen_export2: (a: number, b: number, c: number, d: number) => number;
+    readonly __wbindgen_export3: (a: number) => void;
+    readonly __wbindgen_export4: (a: number, b: number, c: number) => void;
     readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
-    readonly __wbindgen_export3: (a: number, b: number, c: number) => void;
 }
 
 export type SyncInitInput = BufferSource | WebAssembly.Module;

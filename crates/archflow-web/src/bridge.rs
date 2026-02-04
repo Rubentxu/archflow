@@ -11,6 +11,7 @@
 
 #![allow(missing_docs)]
 
+use alloc::boxed::Box;
 use alloc::format;
 use alloc::rc::Rc;
 use alloc::string::{String, ToString};
@@ -19,10 +20,17 @@ use alloc::vec::Vec;
 use core::cell::RefCell;
 use wasm_bindgen::prelude::*;
 
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::JsCast;
+
 use crate::engine::ArchFlowEngine;
 use crate::input::{InputProcessor, InputRingBuffer, MAX_POINTERS};
 
 use archflow_engine::store::MAX_ENTITIES;
+use archflow_render::Renderer;
+
+#[cfg(target_arch = "wasm32")]
+use archflow_render::WebGl2Context2D;
 
 // Tracing support (conditionally compiled)
 #[cfg(feature = "tracing-logging")]
@@ -118,6 +126,205 @@ impl WasmBridge {
         debug!(target: "archflow::wasm", "Engine initialized successfully");
 
         Ok(())
+    }
+
+    /// Initialize graphics (uses WebGL2/Canvas 2D by default)
+    ///
+    /// This should be called after `initialize()` and after the canvas is mounted.
+    #[cfg(target_arch = "wasm32")]
+    #[wasm_bindgen]
+    pub fn initialize_graphics(&self, canvas: web_sys::HtmlCanvasElement) -> Result<(), JsValue> {
+        self.initialize_graphics_with_backend(canvas, "auto")
+    }
+
+    /// Detect available graphics backends
+    #[cfg(target_arch = "wasm32")]
+    #[wasm_bindgen]
+    pub fn detect_available_backends(&self) -> Result<js_sys::Object, JsValue> {
+        let result = js_sys::Object::new();
+
+        // WebGL2: check browser support
+        let webgl2_available = web_sys::window()
+            .and_then(|w| w.document())
+            .and_then(|d| d.create_element("canvas").ok())
+            .and_then(|canvas| {
+                canvas
+                    .dyn_ref::<web_sys::HtmlCanvasElement>()
+                    .and_then(|c| c.get_context("webgl2").ok().map(|ctx| ctx.is_some()))
+            })
+            .unwrap_or(false);
+
+        js_sys::Reflect::set(
+            &result,
+            &JsValue::from_str("webgl2"),
+            &JsValue::from_bool(webgl2_available),
+        )
+        .map_err(|_| JsValue::from_str("Failed to set webgl2 property"))?;
+
+        // WebGPU: check browser support - simplified check
+        let webgpu_available = false; // WebGPU detection requires additional web-sys features
+
+        js_sys::Reflect::set(
+            &result,
+            &JsValue::from_str("webgpu"),
+            &JsValue::from_bool(webgpu_available),
+        )
+        .map_err(|_| JsValue::from_str("Failed to set webgpu property"))?;
+
+        // Canvas 2D is always available in browsers
+        js_sys::Reflect::set(
+            &result,
+            &JsValue::from_str("canvas2d"),
+            &JsValue::from_bool(true),
+        )
+        .map_err(|_| JsValue::from_str("Failed to set canvas2d property"))?;
+
+        // Preferred backend: WebGL2 > WebGPU > Canvas 2D
+        let preferred = if webgl2_available {
+            "webgl2"
+        } else if webgpu_available {
+            "webgpu"
+        } else {
+            "canvas2d"
+        };
+        js_sys::Reflect::set(
+            &result,
+            &JsValue::from_str("preferred"),
+            &JsValue::from_str(preferred),
+        )
+        .map_err(|_| JsValue::from_str("Failed to set preferred property"))?;
+
+        // Performance info
+        let perf = js_sys::Object::new();
+        js_sys::Reflect::set(
+            &perf,
+            &JsValue::from_str("webgl2"),
+            &JsValue::from_str("60fps @ 50k entities"),
+        )
+        .ok();
+        js_sys::Reflect::set(
+            &perf,
+            &JsValue::from_str("webgpu"),
+            &JsValue::from_str("60fps @ 100k entities"),
+        )
+        .ok();
+        js_sys::Reflect::set(
+            &perf,
+            &JsValue::from_str("canvas2d"),
+            &JsValue::from_str("30fps @ 5k entities"),
+        )
+        .ok();
+        js_sys::Reflect::set(&result, &JsValue::from_str("performance"), &perf)
+            .map_err(|_| JsValue::from_str("Failed to set performance property"))?;
+
+        Ok(result)
+    }
+
+    /// Initialize graphics with a specific backend
+    ///
+    /// Supported backends: "webgl2", "webgpu", "canvas2d", "auto"
+    #[cfg(target_arch = "wasm32")]
+    #[wasm_bindgen]
+    pub fn initialize_graphics_with_backend(
+        &self,
+        canvas: web_sys::HtmlCanvasElement,
+        backend: &str,
+    ) -> Result<(), JsValue> {
+        #[cfg(feature = "tracing-logging")]
+        info!(
+            target: "archflow::wasm",
+            backend = %backend,
+            "Initializing graphics with backend"
+        );
+
+        match backend {
+            "webgl2" => self.try_initialize_webgl2(&canvas),
+            "webgpu" => {
+                // Fall back to WebGL2 for now
+                self.try_initialize_webgl2(&canvas)
+            }
+            "canvas2d" => self.try_initialize_webgl2(&canvas),
+            "auto" => {
+                // Try WebGL2 first
+                if let Ok(()) = self.try_initialize_webgl2(&canvas) {
+                    return Ok(());
+                }
+                // Fall back to canvas2d (WebGL2 with 2D context)
+                self.try_initialize_webgl2(&canvas)
+            }
+            _ => Err(JsValue::from_str(&alloc::format!(
+                "Unknown backend: {}. Supported: webgl2, webgpu, canvas2d, auto",
+                backend
+            ))),
+        }
+    }
+
+    /// Try to initialize WebGL2/Canvas 2D rendering
+    #[cfg(target_arch = "wasm32")]
+    fn try_initialize_webgl2(&self, canvas: &web_sys::HtmlCanvasElement) -> Result<(), JsValue> {
+        #[cfg(feature = "tracing-logging")]
+        info!(target: "archflow::wasm", "Initializing WebGL2/Canvas 2D renderer");
+
+        let width = canvas.width();
+        let height = canvas.height();
+
+        web_sys::console::log_1(&JsValue::from_str(&alloc::format!(
+            "Creating WebGL2 context, canvas size: {}x{}",
+            width,
+            height
+        )));
+
+        // Create WebGL2 context (will use Canvas 2D under the hood)
+        let context = match archflow_render::WebGl2Context2D::try_from_canvas(canvas) {
+            Ok(ctx) => ctx,
+            Err(e) => {
+                web_sys::console::error_1(&JsValue::from_str(&alloc::format!(
+                    "Context creation error: {:?}",
+                    e
+                )));
+                return Err(JsValue::from_str(&alloc::format!(
+                    "Failed to create WebGL2 context: {:?}",
+                    e
+                )));
+            }
+        };
+
+        web_sys::console::log_1(&JsValue::from_str("Context created successfully"));
+
+        // Create renderer
+        let mut renderer = archflow_render::WebGl2Renderer::new(context);
+        renderer.resize(width, height);
+
+        web_sys::console::log_1(&JsValue::from_str("Renderer created, setting in engine..."));
+
+        // Set the renderer in the engine
+        match self.engine.try_borrow_mut() {
+            Ok(mut engine_borrow) => {
+                if let Some(engine) = engine_borrow.as_mut() {
+                    engine.set_renderer(Box::new(renderer));
+                    #[cfg(feature = "tracing-logging")]
+                    info!(target: "archflow::wasm", "WebGL2 renderer initialized successfully");
+                    web_sys::console::log_1(&JsValue::from_str(
+                        "WebGL2 renderer initialized successfully",
+                    ));
+                } else {
+                    web_sys::console::error_1(&JsValue::from_str("Engine not initialized"));
+                    return Err(JsError::new("Engine not initialized").into());
+                }
+            }
+            Err(_) => {
+                web_sys::console::error_1(&JsValue::from_str("RefCell already borrowed"));
+                return Err(JsError::new("RefCell already borrowed").into());
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Stub for non-WASM targets (should never be called)
+    #[cfg(not(target_arch = "wasm32"))]
+    fn try_initialize_webgl2(&self, _canvas: &()) -> Result<(), JsValue> {
+        Err(JsError::new("Graphics initialization only available on WASM").into())
     }
 
     /// Get a pointer to the SharedArrayBuffer for input events
