@@ -168,9 +168,9 @@ impl Camera {
     }
 
     /// Convert screen coordinates to world coordinates
+    /// Convert screen coordinates to world coordinates (returns f64)
     ///
-    /// Useful for:
-    /// - Hit testing (converting mouse position)
+    /// # Use cases
     /// - Positioning new entities
     /// - Snap to grid
     pub fn screen_to_world(&self, screen_pos: Vec2, screen_size: Vec2) -> Vec2f64 {
@@ -178,7 +178,10 @@ impl Camera {
         // Screen Y=0 is top (DOM), World Y-up means:
         // - Screen top (Y=0) → NDC Y=1 → World +Y
         // - Screen bottom (Y=max) → NDC Y=-1 → World -Y
-        let ndc = (screen_pos / screen_size) * 2.0 - Vec2::ONE;
+        let mut ndc = (screen_pos / screen_size) * 2.0 - Vec2::ONE;
+
+        // Invert Y-axis: Screen increases downward, World increases upward
+        ndc.y = -ndc.y;
 
         // Calculate viewport height in world units
         // At zoom=1.0: viewport = screen_height units
@@ -202,13 +205,16 @@ impl Camera {
         // World coordinates to NDC [-1, 1]
         // World +Y (top) → NDC Y=1 → Screen Y=0 (top)
         // World -Y (bottom) → NDC Y=-1 → Screen Y=height (bottom)
-        let ndc = Vec2::new(
+        let mut ndc = Vec2::new(
             ((world_pos.x - self.center.x) / half_width) as f32,
             ((world_pos.y - self.center.y) / half_height) as f32,
         );
 
+        // Invert Y-axis: World increases upward, Screen increases downward
+        ndc.y = -ndc.y;
+
         // NDC [-1, 1] to Screen [0, width/height]
-        (ndc * 0.5 + 0.5) * screen_size
+        (ndc + Vec2::ONE) * 0.5 * screen_size
     }
 
     /// Get the visible rectangle of the camera in world coordinates
@@ -270,9 +276,15 @@ mod tests {
         let center_world = camera.screen_to_world(Vec2::new(50.0, 50.0), screen_size);
         assert_eq!(center_world, Vec2f64::ZERO);
 
-        // Top-right corner of screen
-        let corner_world = camera.screen_to_world(Vec2::new(100.0, 100.0), screen_size);
+        // Top-right corner of screen (0 is top, Y increases downward in screen space)
+        // Should map to (+X, +Y) in world space (Y increases upward)
+        let corner_world = camera.screen_to_world(Vec2::new(100.0, 0.0), screen_size);
         assert!(corner_world.x > 0.0 && corner_world.y > 0.0);
+
+        // Bottom-right corner of screen (100, 100)
+        // Should map to (+X, -Y) in world space
+        let bottom_right = camera.screen_to_world(Vec2::new(100.0, 100.0), screen_size);
+        assert!(bottom_right.x > 0.0 && bottom_right.y < 0.0);
     }
 
     /// E2E test: Verify mouse → screen_to_world → hit test flow
@@ -282,6 +294,10 @@ mod tests {
     /// 2. Transform to world coordinates via screen_to_world
     /// 3. Perform AABB hit test
     /// 4. Verify correct entity is selected
+    ///
+    /// Coordinate system:
+    /// - Screen: Y=0 at top, increases downward
+    /// - World: Y increases upward (standard math convention)
     #[test]
     fn test_e2e_mouse_to_world_hit_test() {
         // Setup: 800x600 canvas, camera at origin, zoom=1.0
@@ -296,8 +312,9 @@ mod tests {
         // Test Case 1: Click at center of entity
         // For 800x600 camera, zoom=1.0:
         // - viewport: X[-400,400], Y[-300,300]
-        // - world (100, 100) → ndc (0.25, 0.333) → screen (500, 400)
-        let mouse_screen = Vec2::new(500.0, 400.0);
+        // - world (100, 100) → ndc (0.25, 0.333) → screen (500, 200)
+        // (Screen Y inverted: world +100 is above center, so screen Y < 300)
+        let mouse_screen = Vec2::new(500.0, 200.0);
         let mouse_world = camera.screen_to_world(mouse_screen, screen_size);
 
         // Verify coordinate transformation
@@ -322,8 +339,8 @@ mod tests {
         );
 
         // Test Case 2: Click outside entity (to the right)
-        // world (200, 100) → screen (600, 400)
-        let mouse_screen_outside = Vec2::new(600.0, 400.0);
+        // world (200, 100) → screen (600, 200)
+        let mouse_screen_outside = Vec2::new(600.0, 200.0);
         let mouse_world_outside = camera.screen_to_world(mouse_screen_outside, screen_size);
         assert!((mouse_world_outside.x - 200.0).abs() < 0.01);
         assert!((mouse_world_outside.y - 100.0).abs() < 0.01);
@@ -369,9 +386,10 @@ mod tests {
         let world_top_left = camera_zoomed.screen_to_world(mouse_at_top_left, screen_size);
 
         // At zoom=2.0 with 800x600 canvas: viewport is 400x300 world units
-        // Half: 200x150, so top-left should be (-200, -150) in world
+        // Half: 200x150
+        // Screen (0,0) is top-left, which maps to world (-200, +150) with Y inverted
         assert!((world_top_left.x - (-200.0)).abs() < 0.01);
-        assert!((world_top_left.y - (-150.0)).abs() < 0.01);
+        assert!((world_top_left.y - 150.0).abs() < 0.01);
     }
 
     /// Test roundtrip: world_to_screen(screen_to_world(x)) = x
@@ -497,15 +515,16 @@ mod tests {
         // At zoom=1.0 with PPU=1.0 and 800x600 canvas:
         // viewport is 800x600 world units (half: 400x300)
         // ndc = (0/800)*2-1 = -1 for X
-        // ndc = (0/600)*2-1 = -1 for Y (top in DOM)
-        // world = center + ndc * half = 0 + (-1)*400, (-1)*300 = (-400, -300)
+        // ndc = (0/600)*2-1 = -1 for Y (before inversion, top in DOM)
+        // After Y inversion: ndc.y = -(-1) = +1
+        // world = center + ndc * half = 0 + (-1)*400, (+1)*300 = (-400, +300)
         assert!(
             (world_top_left.x - (-400.0)).abs() < 0.01,
             "top_left.x = {}",
             world_top_left.x
         );
         assert!(
-            (world_top_left.y - (-300.0)).abs() < 0.01,
+            (world_top_left.y - 300.0).abs() < 0.01,
             "top_left.y = {}",
             world_top_left.y
         );

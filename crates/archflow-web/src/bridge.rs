@@ -13,9 +13,7 @@
 
 use alloc::boxed::Box;
 use alloc::format;
-use alloc::rc::Rc;
 use alloc::string::{String, ToString};
-use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::cell::{Cell, RefCell};
 use wasm_bindgen::prelude::*;
@@ -24,7 +22,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
 use crate::engine::ArchFlowEngine;
-use crate::input::{InputProcessor, InputRingBuffer, MAX_POINTERS};
+use crate::input::{InputProcessor, InputRingBuffer};
 
 use archflow_engine::store::MAX_ENTITIES;
 use archflow_render::Renderer;
@@ -516,16 +514,12 @@ impl WasmBridge {
         let button_flags = Buttons(buttons);
         let modifier_flags = Modifiers(modifiers);
 
-        if let Some(canvas) = self.canvas.borrow().as_ref() {
-            let rect = canvas.get_bounding_client_rect();
-
-            // Calculate coordinates relative to canvas (CSS pixels)
-            // We do NOT multiply by DPI here because screen_to_world likely expects
-            // logical coordinates or handles its own scaling if screen_size is logical.
-            // Even if screen_size is physical, using logical here and letting engine handle it
-            // is safer than double-applying DPI which causes coordinate explosion.
-            let canvas_x = x - rect.left() as f32;
-            let canvas_y = y - rect.top() as f32;
+        if self.canvas.borrow().is_some() {
+            // IMPORTANT: x, y are ALREADY canvas-relative coordinates from JS
+            // getCanvasPosition() in Canvas.tsx already computed (clientX - rect.left) * dpr
+            // So we must NOT subtract rect.left/top again or we get wrong coordinates!
+            let canvas_x = x;
+            let canvas_y = y;
 
             let event = RawInputEvent::new(
                 0,
@@ -591,7 +585,14 @@ impl WasmBridge {
                 let world_pos = engine.screen_to_world(event.x, event.y);
 
                 #[cfg(feature = "tracing-logging")]
-                info!(target: "archflow::wasm::input", world_pos = ?world_pos, tool = %tool, "Input: Down");
+                info!(target: "archflow::wasm::input",
+                    screen_pos = ?(event.x, event.y),
+                    world_pos = ?world_pos,
+                    camera_center = ?engine.camera.center,
+                    camera_zoom = engine.camera.zoom,
+                    canvas_size = ?(engine.canvas_width, engine.canvas_height),
+                    tool = %tool,
+                    "Input: Down");
 
                 if tool == "select" {
                     // Standard selection logic
@@ -624,6 +625,7 @@ impl WasmBridge {
                     #[cfg(feature = "tracing-logging")]
                     info!(target: "archflow::wasm::input", tool = %tool, "Creating shape");
 
+                    // Start with a small size that will be updated during drag
                     let default_size = Vec2::new(1.0, 1.0);
                     let id = engine.store.spawn(world_pos, default_size);
                     let idx = id.index().0 as usize;
@@ -691,6 +693,26 @@ impl WasmBridge {
                 if engine.is_creating {
                     #[cfg(feature = "tracing-logging")]
                     info!(target: "archflow::wasm::input", "Finished creating shape");
+
+                    // If the shape was created with a single click (no drag), apply default size
+                    if !engine.selected_entities.is_empty() {
+                        let id = engine.selected_entities[0];
+                        let idx = id.index().0 as usize;
+                        let current_size = engine.store.size(idx);
+
+                        // If size is still 1x1 (no drag occurred), apply a reasonable default
+                        if current_size.x <= 1.0 && current_size.y <= 1.0 {
+                            let default_shape_size = Vec2::new(150.0, 150.0);
+                            engine.store.set_size(idx, default_shape_size);
+
+                            #[cfg(feature = "tracing-logging")]
+                            info!(target: "archflow::wasm::input",
+                                entity_idx = idx,
+                                size = ?default_shape_size,
+                                "Applied default size for click-created shape");
+                        }
+                    }
+
                     engine.is_creating = false;
                     engine.drag_start = None;
                     // Reset tool to select after creation?
