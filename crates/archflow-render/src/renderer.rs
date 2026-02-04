@@ -19,7 +19,7 @@
 
 use alloc::vec::Vec;
 
-use archflow_core::MAX_ENTITIES;
+use archflow_core::{MAX_ENTITIES, Vec2f64};
 use archflow_engine::EntityStore;
 
 use crate::camera::Camera;
@@ -520,10 +520,10 @@ mod tests {
 
     #[test]
     fn test_camera_uniforms_from_camera() {
-        use archflow_core::Vec2;
+        use archflow_core::Vec2f64;
 
         let mut camera = Camera::new(800.0, 600.0);
-        camera.center = Vec2::new(100.0, 200.0);
+        camera.center = Vec2f64::new(100.0, 200.0);
         camera.zoom = 2.0;
 
         let uniforms = CameraUniforms::from_camera(&camera);
@@ -562,7 +562,7 @@ mod tests {
         let mut camera = Camera::new(800.0, 600.0);
 
         // Position camera to see entities around origin
-        camera.center = Vec2::new(0.0, 0.0);
+        camera.center = Vec2f64::ZERO;
         camera.zoom = 1.0;
 
         // Spawn some entities at origin (visible to default camera)
@@ -585,7 +585,7 @@ mod tests {
         let mut camera = Camera::new(800.0, 600.0);
 
         // Position camera to see entities around origin
-        camera.center = Vec2::new(0.0, 0.0);
+        camera.center = Vec2f64::ZERO;
 
         // Entity at origin, small size to be visible in 2x2 viewport
         store.spawn(Vec2::new(0.0, 0.0), Vec2::new(0.1, 0.06));
@@ -604,7 +604,7 @@ mod tests {
         let mut camera = Camera::new(800.0, 600.0);
 
         // Position camera to see entities around origin
-        camera.center = Vec2::new(0.0, 0.0);
+        camera.center = Vec2f64::ZERO;
 
         // Spawn entities that will go to different batches
         // Use small sizes to fit in 2x2 viewport at zoom 1.0
