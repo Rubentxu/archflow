@@ -90,25 +90,6 @@ impl core::fmt::Display for RenderError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for RenderError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            RenderError::WebGPU(_) => None,
-            RenderError::WebGL2(_) => None,
-            RenderError::Canvas2D(_) => None,
-            RenderError::ContextLost => None,
-            RenderError::ShaderCompilation(_) => None,
-            RenderError::BackendNotAvailable(_) => None,
-            RenderError::Generic(_) => None,
-        }
-    }
-
-    fn description(&self) -> Option<&str> {
-        Some("Rendering error occurred")
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
