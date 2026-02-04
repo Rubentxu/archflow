@@ -539,8 +539,15 @@ async fn main() -> Result<()> {
         }
 
         Commands::Start { wasm, frontend, test: _, verbose } => {
-            let with_frontend = frontend || (!wasm); // Default to frontend if not specified
-            start_dev_server(wasm || true, with_frontend, false, verbose).await?;
+            // If neither flag is provided, run both.
+            // If one is provided, run only that one.
+            let (run_wasm, run_frontend) = if !wasm && !frontend {
+                (true, true)
+            } else {
+                (wasm, frontend)
+            };
+            
+            start_dev_server(run_wasm, run_frontend, false, verbose).await?;
         }
 
         Commands::Test { watch, verbose } => {
