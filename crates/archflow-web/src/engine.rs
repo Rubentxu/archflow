@@ -77,12 +77,10 @@ impl ArchFlowEngine {
     pub fn new(canvas_width: f32, canvas_height: f32) -> Self {
         let mut camera = Camera::new(canvas_width, canvas_height);
 
-        // Initialize zoom based on PIXELS_PER_UNIT
-        // With PPU = 100: zoom = 1.0 means 1 world unit = 100 pixels
-        // At zoom=1.0, viewport height = canvas_height / PIXELS_PER_UNIT world units
-        // For example: 600px height / 100 = 6 world units total (spans -3 to +3)
+        // Initialize zoom for PPU=1.0 (1:1 pixels)
+        // At zoom=1.0: viewport height = canvas_height world units
+        // For example: 600px height = 600 world units (spans -300 to +300)
         if canvas_height > 0.0 {
-            // With PPU=1.0 (1:1 pixels), zoom=1 means 1 pixel = 1 world unit
             camera.zoom = 1.0;
         }
 

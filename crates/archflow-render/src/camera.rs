@@ -220,8 +220,8 @@ impl Camera {
     /// - Viewport culling (only render what's visible)
     /// - Determining which icons to lazy load
     pub fn viewport_bounds(&self, canvas_height: f32) -> Rect {
-        // Calculate viewport height in world units using PPU
-        let viewport_height = canvas_height / (PIXELS_PER_UNIT * self.zoom);
+        // Calculate viewport height in world units (PPU=1.0 means no conversion needed)
+        let viewport_height = canvas_height / self.zoom;
         let half_height = viewport_height / 2.0;
         let half_width = half_height * self.aspect_ratio;
 
