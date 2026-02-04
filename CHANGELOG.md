@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.38.0] - 2026-02-04
+
+### Added
+- **HU-RENDER-002**: Complete WebGL2Renderer implementation with instanced drawing
+  - GLSL ES 3.0 shaders for SDF-based shape rendering
+  - WebGL2Context for glow bindings management
+  - Quad vertex buffer and shader storage buffer
+  - Renderer trait implementation for backend compatibility
+- **HU-RENDER-004**: Shader compilation with Naga
+  - WGSL to GLSL compilation in build.rs
+  - ShaderConfig struct for shader pipeline management
+  - GLSL ES 3.0 output for WebGL2
+- **HU-RENDER-005**: Performance benchmarks framework
+  - render_bench.rs with criterion benchmarks
+  - Benchmarks for 1k, 10k, 100k entity sync
+  - Memory allocation and batch distribution benchmarks
+- **HU-RENDER-006**: Feature parity tests
+  - 14 comprehensive tests for render consistency
+  - Tests for batch distribution, viewport culling, shape types
+  - Tests for UV rect preservation, color packing, draw order
+
+### Changed
+- Updated shader constants to use consistent naming (SHADER_SDF_SHAPES instead of SHADER_SDF_SHAPES_GLSL)
+
+### Fixed
+- Fixed test visibility assertions for camera zoom viewport culling
+
 ### Expected
 - Performance profiling and optimization analysis
 - Bundle size reduction to <500KB gzipped target
