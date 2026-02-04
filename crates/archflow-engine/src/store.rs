@@ -195,6 +195,12 @@ pub struct EntityStore {
     /// Colors packed as 0xRRGGBBAA
     pub colors: Vec<u32>,
 
+    /// Stroke colors packed as 0xRRGGBBAA
+    pub stroke_colors: Vec<u32>,
+
+    /// Stroke width in world units
+    pub stroke_widths: Vec<f32>,
+
     /// Texture indices (0 = solid color, 1..N = atlas index)
     pub texture_index: Vec<u16>,
 
@@ -278,6 +284,8 @@ impl EntityStore {
             transforms: vec![[0.0, 0.0, 100.0, 60.0]; capacity],
             metadata: vec![0; capacity],
             colors: vec![0xFFCCDDEE; capacity], // Default light blue
+            stroke_colors: vec![0x000000FF; capacity], // Default black
+            stroke_widths: vec![0.0; capacity], // Default no stroke (0.0)
             texture_index: vec![0; capacity],
             uv_rects: vec![[0.0, 0.0, 1.0, 1.0]; capacity],
             color_tints: vec![[1.0, 1.0, 1.0, 1.0]; capacity],
@@ -795,6 +803,20 @@ impl EntityStore {
     #[inline(always)]
     pub fn set_color_tint(&mut self, idx: usize, tint: [f32; 4]) {
         self.color_tints[idx] = tint;
+    }
+
+    /// Set stroke color
+    #[inline(always)]
+    pub fn set_stroke_color(&mut self, idx: usize, color: u32) {
+        self.stroke_colors[idx] = color;
+        self.dirty_render.insert(idx);
+    }
+
+    /// Set stroke width
+    #[inline(always)]
+    pub fn set_stroke_width(&mut self, idx: usize, width: f32) {
+        self.stroke_widths[idx] = width;
+        self.dirty_render.insert(idx);
     }
 
     /// Get local transform array (for serialization)
