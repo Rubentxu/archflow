@@ -194,20 +194,17 @@ impl Camera {
 
     /// Convert world coordinates to screen coordinates (returns f32)
     pub fn world_to_screen(&self, world_pos: Vec2f64, screen_size: Vec2) -> Vec2 {
-        let half_height = 1.0 / self.zoom;
-        let half_width = half_height * self.aspect_ratio;
-
-        // Convert to f64 for precise computation
-        let half_width_f64 = half_width as f64;
-        let half_height_f64 = half_height as f64;
+        // Use same formula as screen_to_world for consistency
+        let viewport_height = screen_size.y as f64 / self.zoom as f64;
+        let half_height = viewport_height / 2.0;
+        let half_width = half_height * self.aspect_ratio as f64;
 
         // World coordinates to NDC [-1, 1]
         // World +Y (top) → NDC Y=1 → Screen Y=0 (top)
         // World -Y (bottom) → NDC Y=-1 → Screen Y=height (bottom)
-        // The NDC conversion naturally handles the Y-flip, NO extra flip needed!
         let ndc = Vec2::new(
-            ((world_pos.x - self.center.x) / half_width_f64) as f32,
-            ((world_pos.y - self.center.y) / half_height_f64) as f32,
+            ((world_pos.x - self.center.x) / half_width) as f32,
+            ((world_pos.y - self.center.y) / half_height) as f32,
         );
 
         // NDC [-1, 1] to Screen [0, width/height]
@@ -276,6 +273,140 @@ mod tests {
         // Top-right corner of screen
         let corner_world = camera.screen_to_world(Vec2::new(100.0, 100.0), screen_size);
         assert!(corner_world.x > 0.0 && corner_world.y > 0.0);
+    }
+
+    /// E2E test: Verify mouse → screen_to_world → hit test flow
+    ///
+    /// This test validates the complete coordinate transformation pipeline:
+    /// 1. Mouse click at screen position
+    /// 2. Transform to world coordinates via screen_to_world
+    /// 3. Perform AABB hit test
+    /// 4. Verify correct entity is selected
+    #[test]
+    fn test_e2e_mouse_to_world_hit_test() {
+        // Setup: 800x600 canvas, camera at origin, zoom=1.0
+        let camera = Camera::new(800.0, 600.0);
+        let screen_size = Vec2::new(800.0, 600.0);
+
+        // Entity at world position (100, 100) with size 50x50
+        let entity_pos = Vec2::new(100.0, 100.0);
+        let entity_size = Vec2::new(50.0, 50.0);
+        let entity_bounds = Rect::from_center_size(entity_pos, entity_size);
+
+        // Test Case 1: Click at center of entity
+        // For 800x600 camera, zoom=1.0:
+        // - viewport: X[-400,400], Y[-300,300]
+        // - world (100, 100) → ndc (0.25, 0.333) → screen (500, 400)
+        let mouse_screen = Vec2::new(500.0, 400.0);
+        let mouse_world = camera.screen_to_world(mouse_screen, screen_size);
+
+        // Verify coordinate transformation
+        assert!(
+            (mouse_world.x - 100.0).abs() < 0.01,
+            "X: {} != 100",
+            mouse_world.x
+        );
+        assert!(
+            (mouse_world.y - 100.0).abs() < 0.01,
+            "Y: {} != 100",
+            mouse_world.y
+        );
+
+        // Perform AABB hit test - convert f64 to f32
+        let mouse_world_f32 = Vec2::new(mouse_world.x as f32, mouse_world.y as f32);
+        let hit_test_result = entity_bounds.contains(mouse_world_f32);
+        assert!(
+            hit_test_result,
+            "Click at screen {:?} should hit entity at {:?}",
+            mouse_screen, entity_pos
+        );
+
+        // Test Case 2: Click outside entity (to the right)
+        // world (200, 100) → screen (600, 400)
+        let mouse_screen_outside = Vec2::new(600.0, 400.0);
+        let mouse_world_outside = camera.screen_to_world(mouse_screen_outside, screen_size);
+        assert!((mouse_world_outside.x - 200.0).abs() < 0.01);
+        assert!((mouse_world_outside.y - 100.0).abs() < 0.01);
+
+        let mouse_outside_f32 =
+            Vec2::new(mouse_world_outside.x as f32, mouse_world_outside.y as f32);
+        let hit_outside = entity_bounds.contains(mouse_outside_f32);
+        assert!(!hit_outside, "Click outside entity should not hit");
+
+        // Test Case 3: Camera panned away - entity should still be hittable
+        let mut camera_panned = Camera::new(800.0, 600.0);
+        camera_panned.set_center_f64(Vec2f64::new(1000.0, 1000.0)); // Camera far away
+
+        // Click where entity WOULD be if we scrolled to it
+        // When camera is at (1000,1000), world (100,100) is far from center
+        // Entity at (100,100) is NOT visible - test culling
+        let mouse_at_entity = Vec2::new(400.0, 500.0);
+        let world_from_panned = camera_panned.screen_to_world(mouse_at_entity, screen_size);
+
+        // Entity at (100,100) should NOT contain this world point (camera is far)
+        let entity_still_at_original = Rect::from_center_size(entity_pos, entity_size);
+        let world_panned_f32 = Vec2::new(world_from_panned.x as f32, world_from_panned.y as f32);
+        assert!(
+            !entity_still_at_original.contains(world_panned_f32),
+            "With camera at (1000,1000), world (100,100) should be outside viewport"
+        );
+
+        // Test Case 4: Zoom affects hit testing correctly
+        let mut camera_zoomed = Camera::new(800.0, 600.0);
+        camera_zoomed.zoom = 2.0; // 2x zoom
+
+        // At zoom=2.0, viewport is half the size (300 world units high instead of 600)
+        // Same screen position maps to different world position
+        let mouse_at_center = Vec2::new(400.0, 300.0);
+        let world_at_zoom2 = camera_zoomed.screen_to_world(mouse_at_center, screen_size);
+
+        // At zoom=2.0, center of screen (400,300) should still be world center (0,0)
+        assert!((world_at_zoom2.x - 0.0).abs() < 0.01);
+        assert!((world_at_zoom2.y - 0.0).abs() < 0.01);
+
+        // But edge of screen maps closer to center at zoom 2.0
+        let mouse_at_top_left = Vec2::new(0.0, 0.0);
+        let world_top_left = camera_zoomed.screen_to_world(mouse_at_top_left, screen_size);
+
+        // At zoom=2.0 with 800x600 canvas: viewport is 400x300 world units
+        // Half: 200x150, so top-left should be (-200, -150) in world
+        assert!((world_top_left.x - (-200.0)).abs() < 0.01);
+        assert!((world_top_left.y - (-150.0)).abs() < 0.01);
+    }
+
+    /// Test roundtrip: world_to_screen(screen_to_world(x)) = x
+    #[test]
+    fn test_screen_world_roundtrip() {
+        let camera = Camera::new(800.0, 600.0);
+        let screen_size = Vec2::new(800.0, 600.0);
+
+        // Test multiple screen positions
+        let test_positions = [
+            Vec2::new(0.0, 0.0),     // Top-left
+            Vec2::new(400.0, 300.0), // Center
+            Vec2::new(800.0, 600.0), // Bottom-right
+            Vec2::new(123.0, 456.0), // Arbitrary point
+        ];
+
+        for screen_pos in test_positions {
+            let world_pos = camera.screen_to_world(screen_pos, screen_size);
+            let back_to_screen = camera.world_to_screen(world_pos, screen_size);
+
+            assert!(
+                (back_to_screen.x - screen_pos.x).abs() < 0.001,
+                "Roundtrip X failed: {} -> {} -> {}",
+                screen_pos.x,
+                world_pos.x,
+                back_to_screen.x
+            );
+            assert!(
+                (back_to_screen.y - screen_pos.y).abs() < 0.001,
+                "Roundtrip Y failed: {} -> {} -> {}",
+                screen_pos.y,
+                world_pos.y,
+                back_to_screen.y
+            );
+        }
     }
 
     #[test]
