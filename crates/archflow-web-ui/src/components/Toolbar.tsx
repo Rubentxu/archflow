@@ -11,7 +11,7 @@ import {
   Circle,
   Type,
   Link,
-  PlayCircle
+  PlayCircle,
 } from "lucide-react";
 import { useUIStore } from "../store/useUIStore";
 import type { ToolType } from "../store/useUIStore";
@@ -38,9 +38,7 @@ interface ToolbarProps {
   position?: "left" | "top" | "floating"; // Kept for interface compatibility but unused log removed
 }
 
-export default function Toolbar({
-  className,
-}: ToolbarProps) {
+export default function Toolbar({ className }: ToolbarProps) {
   const { activeTool, setActiveTool } = useUIStore();
 
   return (
@@ -74,7 +72,9 @@ export default function Toolbar({
         title="Simulate"
       >
         <PlayCircle className="w-5 h-5" />
-        <span className="text-xs font-bold uppercase tracking-wide">Simulate</span>
+        <span className="text-xs font-bold uppercase tracking-wide">
+          Simulate
+        </span>
       </button>
     </div>
   );
