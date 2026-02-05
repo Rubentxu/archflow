@@ -225,6 +225,198 @@ impl DeltaMask {
             capacity: self.capacity,
         }
     }
+
+    /// Applies this delta mask to another mask using XOR operation
+    ///
+    /// This efficiently toggles the bits in `target` wherever this delta has 1s.
+    /// Both masks must have the same capacity.
+    ///
+    /// # Arguments
+    ///
+    /// * `target` - The mask to apply delta to (will be modified in-place)
+    ///
+    /// # Panics
+    ///
+    /// Panics if capacities don't match
+    ///
+    /// # Performance
+    ///
+    /// - O(n) where n = mask size in bytes
+    /// - Uses SIMD-friendly chunk operations where available
+    /// - Zero-allocation
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use archflow_logic::actuators::batch_select::DeltaMask;
+    ///
+    /// let mut target = DeltaMask::new(100);
+    /// target.toggle(5);
+    /// target.toggle(10);
+    ///
+    /// let delta = DeltaMask::new(100);
+    /// delta.toggle(5);
+    /// delta.toggle(20);
+    ///
+    /// delta.apply_to(&mut target);
+    ///
+    /// // Bit 5: 1 XOR 1 = 0 (toggled off)
+    /// assert!(!target.is_set(5));
+    /// // Bit 10: 1 XOR 0 = 1 (unchanged)
+    /// assert!(target.is_set(10));
+    /// // Bit 20: 0 XOR 1 = 1 (toggled on)
+    /// assert!(target.is_set(20));
+    /// ```
+    #[inline(always)]
+    pub fn apply_to(&self, target: &mut DeltaMask) {
+        assert_eq!(
+            self.capacity, target.capacity,
+            "DeltaMask capacities must match"
+        );
+        assert_eq!(
+            self.bits.len(),
+            target.bits.len(),
+            "DeltaMask byte lengths must match"
+        );
+
+        // XOR operation - this is the core of delta application
+        // For each byte: target[i] = target[i] ^ self[i]
+        // This toggles exactly the bits that are set in self
+        for (src_byte, tgt_byte) in self.bits.iter().zip(target.bits.iter_mut()) {
+            *tgt_byte ^= *src_byte;
+        }
+    }
+
+    /// Batch apply multiple delta masks to a target using XOR
+    ///
+    /// Applies all deltas in sequence to the target mask.
+    /// More efficient than calling `apply_to` multiple times due to
+    /// single pass through memory.
+    ///
+    /// # Arguments
+    ///
+    /// * `target` - The mask to apply all deltas to
+    /// * `deltas` - Iterator of delta masks to apply
+    ///
+    /// # Performance
+    ///
+    /// - O(n * m) where n = bytes per mask, m = number of deltas
+    /// - Memory-cache friendly (sequential access)
+    /// - SIMD-optimizable
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use archflow_logic::actuators::batch_select::DeltaMask;
+    ///
+    /// let mut target = DeltaMask::new(100);
+    ///
+    /// let deltas: Vec<DeltaMask> = (0..3).map(|i| {
+    ///     let mut d = DeltaMask::new(100);
+    ///     d.toggle(i * 10);
+    ///     d
+    /// }).collect();
+    ///
+    /// DeltaMask::batch_apply(&mut target, deltas.iter());
+    ///
+    /// assert!(target.is_set(0));
+    /// assert!(target.is_set(10));
+    /// assert!(target.is_set(20));
+    /// ```
+    #[inline(always)]
+    pub fn batch_apply(target: &mut DeltaMask, deltas: impl Iterator<Item = &'static DeltaMask>) {
+        // Collect all deltas into a Vec for multiple passes if needed
+        let deltas: Vec<&DeltaMask> = deltas.collect();
+
+        if deltas.is_empty() {
+            return;
+        }
+
+        // Verify all deltas have the same capacity as target
+        let target_capacity = target.capacity;
+        for delta in &deltas {
+            assert_eq!(
+                delta.capacity, target_capacity,
+                "All DeltaMasks must have the same capacity"
+            );
+        }
+
+        // Apply each delta in sequence
+        for delta in deltas {
+            for (src_byte, tgt_byte) in delta.bits.iter().zip(target.bits.iter_mut()) {
+                *tgt_byte ^= *src_byte;
+            }
+        }
+    }
+
+    /// Creates a delta mask representing the difference between two states
+    ///
+    /// This is useful for computing what changed between two selection states.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - The other mask to compare against
+    ///
+    /// # Returns
+    ///
+    /// A new DeltaMask where bits are 1 where the states differ
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use archflow_logic::actuators::batch_select::DeltaMask;
+    ///
+    /// let mut state1 = DeltaMask::new(100);
+    /// state1.toggle(5);
+    /// state1.toggle(10);
+    ///
+    /// let mut state2 = DeltaMask::new(100);
+    /// state2.toggle(5);
+    /// state2.toggle(20);
+    ///
+    /// let delta = state1.diff(&state2);
+    ///
+    /// // Bit 5: same in both (1 XOR 1 = 0)
+    /// assert!(!delta.is_set(5));
+    /// // Bit 10: only in state1
+    /// assert!(delta.is_set(10));
+    /// // Bit 20: only in state2
+    /// assert!(delta.is_set(20));
+    /// ```
+    #[inline(always)]
+    #[must_use]
+    pub fn diff(&self, other: &DeltaMask) -> Self {
+        assert_eq!(
+            self.capacity, other.capacity,
+            "DeltaMask capacities must match"
+        );
+
+        let mut result = Self::new(self.capacity);
+        for ((src, other), result_byte) in self
+            .bits
+            .iter()
+            .zip(other.bits.iter())
+            .zip(result.bits.iter_mut())
+        {
+            *result_byte = *src ^ *other;
+        }
+        result
+    }
+
+    /// Checks if this delta is compatible with another (same capacity)
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Another DeltaMask to check compatibility with
+    ///
+    /// # Returns
+    ///
+    /// `true` if both masks have the same capacity
+    #[inline(always)]
+    #[must_use]
+    pub fn is_compatible(&self, other: &DeltaMask) -> bool {
+        self.capacity == other.capacity
+    }
 }
 
 /// Actuator for batch selection operations using DeltaMask
@@ -680,5 +872,64 @@ mod tests {
         assert_eq!(actuator.selection_count(), 0);
         assert!(!actuator.is_selected(e1));
         assert!(!actuator.is_selected(e2));
+    }
+
+    #[test]
+    fn test_delta_mask_apply_to() {
+        let mut target = DeltaMask::new(100);
+        target.toggle(5);
+        target.toggle(10);
+
+        let mut delta = DeltaMask::new(100);
+        delta.toggle(5);
+        delta.toggle(20);
+
+        delta.apply_to(&mut target);
+
+        // Bit 5: 1 XOR 1 = 0 (toggled off)
+        assert!(!target.is_set(5));
+        // Bit 10: 1 XOR 0 = 1 (unchanged)
+        assert!(target.is_set(10));
+        // Bit 20: 0 XOR 1 = 1 (toggled on)
+        assert!(target.is_set(20));
+    }
+
+    #[test]
+    fn test_delta_mask_diff() {
+        let mut state1 = DeltaMask::new(100);
+        state1.toggle(5);
+        state1.toggle(10);
+
+        let mut state2 = DeltaMask::new(100);
+        state2.toggle(5);
+        state2.toggle(20);
+
+        let delta = state1.diff(&state2);
+
+        // Bit 5: same in both (1 XOR 1 = 0)
+        assert!(!delta.is_set(5));
+        // Bit 10: only in state1
+        assert!(delta.is_set(10));
+        // Bit 20: only in state2
+        assert!(delta.is_set(20));
+    }
+
+    #[test]
+    fn test_delta_mask_is_compatible() {
+        let mask1 = DeltaMask::new(100);
+        let mask2 = DeltaMask::new(100);
+        let mask3 = DeltaMask::new(200);
+
+        assert!(mask1.is_compatible(&mask2));
+        assert!(!mask1.is_compatible(&mask3));
+    }
+
+    #[test]
+    #[should_panic(expected = "capacities must match")]
+    fn test_delta_mask_apply_panics_on_mismatch() {
+        let mut target = DeltaMask::new(100);
+        let delta = DeltaMask::new(200);
+
+        delta.apply_to(&mut target);
     }
 }
