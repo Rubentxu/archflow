@@ -500,3 +500,7 @@ open:
 # Print justfile recipe count
 count:
     @just --list | grep -c "^[^ ]" | xargs echo "Recipes available:"
+
+# Test color conversion in WASM
+test-color-wasm:
+    cd crates/archflow-web && cargo test color_conversion --lib -- --nocapture

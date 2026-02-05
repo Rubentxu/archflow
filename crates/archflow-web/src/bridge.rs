@@ -1456,3 +1456,32 @@ mod tests {
         assert!(bridge.entity_count().is_ok());
     }
 }
+
+    #[test]
+    fn test_color_conversion_rgba_to_abgr() {
+        // Test con rojo puro
+        let red_rgba = archflow_core::Color::rgba(255, 0, 0, 255).0;
+        let red_abgr = rgba_to_abgr(red_rgba);
+        // RGBA: 0xFF0000FF
+        // ABGR: 0xFF0000FF (mismo porque R y A están en posiciones simétricas)
+        assert_eq!(red_rgba, 0xFF0000FF, "Red RGBA should be 0xFF0000FF");
+        assert_eq!(red_abgr, 0xFF0000FF, "Red ABGR should be 0xFF0000FF");
+        
+        // Test con verde puro
+        let green_rgba = archflow_core::Color::rgba(0, 255, 0, 255).0;
+        let green_abgr = rgba_to_abgr(green_rgba);
+        // RGBA: 0x00FF00FF
+        // ABGR: 0xFF00FF00
+        assert_eq!(green_rgba, 0x00FF00FF, "Green RGBA should be 0x00FF00FF");
+        assert_eq!(green_abgr, 0xFF00FF00, "Green ABGR should be 0xFF00FF00");
+        
+        // Test con azul por defecto
+        let blue_rgba = archflow_core::Color::rgba(59, 130, 246, 255).0;
+        let blue_abgr = rgba_to_abgr(blue_rgba);
+        // RGBA: 0x3B82F6FF
+        // ABGR: 0xFFF6823B
+        assert_eq!(blue_rgba, 0x3B82F6FF, "Blue RGBA should be 0x3B82F6FF");
+        assert_eq!(blue_abgr, 0xFFF6823B, "Blue ABGR should be 0xFFF6823B");
+        
+        println!("✅ Conversión RGBA → ABGR funciona correctamente");
+    }
