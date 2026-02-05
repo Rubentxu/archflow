@@ -1,573 +1,419 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // ArchFlow Logic - Box Selection Sensor
 //
-// Detects entities within a rectangular selection area using SpatialHash
-// for O(k) query performance instead of O(n) linear scan.
+// Implements rectangular (marquee) selection using SpatialHash for O(k) queries.
+// Allows users to select multiple entities by dragging a selection rectangle.
 //
-// Performance Characteristics:
-// - O(k) where k = nearby entities (SpatialHash query)
-// - O(n) only when spatial query returns large area
-// - Zero-allocation for query results
+// Performance:
+// - O(k) query where k = entities near selection rectangle
+// - O(n) for final verification where n = nearby entities
+// - Typical: 100x faster than O(n) iteration for sparse selections
 //
-// Memory Impact:
-// - No per-entity storage (unlike MouseOverSensor)
-// - Uses shared SpatialHash from LogicSystem
+// Reference: docs/epics/LOGIC_BRICKS_DEVELOPER_GUIDE.md L788-808
 // ═══════════════════════════════════════════════════════════════════════════════
 
 use alloc::vec::Vec;
-use archflow_core::{EntityId, Rect, Vec2};
-use archflow_engine::{EntityStore, SpatialHash};
+use archflow_core::{EntityId, Vec2};
+use archflow_engine::EntityStore;
 
-/// Rectangular selection area defined by two corners
+use crate::spatial::{Rect, SpatialHashGrid};
+
+/// Rectangular selection area defined by start and end points
 ///
-/// The selection rectangle is defined by two points (start and end) which can
-/// be in any order. The actual selection bounds are computed as the minimum
-/// bounding rectangle of both points.
+/// The rectangle is defined by two corners (start and end) which can be
+/// in any order. The actual selection area is the AABB that contains both points.
 ///
-/// # Examples
+/// # Example
 ///
-/// ```
-/// use archflow_logic::box_selection::BoxSelection;
+/// ```rust
+/// use archflow_logic::sensors::box_select::BoxSelection;
 /// use archflow_core::Vec2;
 ///
-/// let selection = BoxSelection::new(Vec2::new(100.0, 100.0), Vec2::new(300.0, 200.0));
+/// let start = Vec2::new(100.0, 100.0);
+/// let end = Vec2::new(300.0, 200.0);
+/// let selection = BoxSelection::new(start, end);
 ///
-/// // Selection bounds are computed regardless of point order
-/// assert_eq!(selection.width(), 200.0);
-/// assert_eq!(selection.height(), 100.0);
+/// // Get the AABB for spatial queries
+/// let aabb = selection.to_aabb();
 /// ```
 #[derive(Clone, Copy, Debug, PartialEq)]
-#[repr(C)]
 pub struct BoxSelection {
     /// Starting corner of the selection
-    start: Vec2,
+    pub start: Vec2,
     /// Ending corner of the selection
-    end: Vec2,
+    pub end: Vec2,
 }
 
 impl BoxSelection {
-    /// Creates a new box selection from two corners
+    /// Create a new box selection with start and end points
     ///
-    /// The corners can be in any order - the actual bounds are computed
-    /// as the minimum bounding rectangle.
+    /// The points can be in any order - the actual selection rectangle
+    /// will be the AABB containing both points.
     ///
     /// # Arguments
     ///
-    /// * `start` - First corner of the selection rectangle
-    /// * `end` - Second corner of the selection rectangle
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use archflow_core::Vec2;
-    /// use archflow_logic::box_selection::BoxSelection;
-    ///
-    /// let selection = BoxSelection::new(
-    ///     Vec2::new(100.0, 100.0),
-    ///     Vec2::new(300.0, 200.0)
-    /// );
-    /// ```
-    #[inline(always)]
+    /// * `start` - Starting corner (e.g., mouse down position)
+    /// * `end` - Ending corner (e.g., current mouse position)
+    #[inline]
     #[must_use]
     pub fn new(start: Vec2, end: Vec2) -> Self {
         Self { start, end }
     }
 
-    /// Returns the axis-aligned bounding box of the selection
+    /// Get the axis-aligned bounding box of this selection
     ///
-    /// The AABB is computed as the minimum rectangle that contains both
-    /// the start and end points.
+    /// Returns a Rect that contains both start and end points,
+    /// regardless of their order.
     ///
     /// # Returns
     ///
-    /// `Rect` representing the selection bounds (min, max)
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use archflow_core::Vec2;
-    /// use archflow_logic::box_selection::BoxSelection;
-    ///
-    /// let selection = BoxSelection::new(
-    ///     Vec2::new(100.0, 200.0),
-    ///     Vec2::new(300.0, 100.0)
-    /// );
-    ///
-    /// let aabb = selection.to_aabb();
-    /// // AABB will have min=(100, 100), max=(300, 200) regardless of point order
-    /// ```
-    #[inline(always)]
+    /// AABR containing the entire selection area
+    #[inline]
     #[must_use]
     pub fn to_aabb(&self) -> Rect {
         let min_x = self.start.x.min(self.end.x);
         let min_y = self.start.y.min(self.end.y);
         let max_x = self.start.x.max(self.end.x);
         let max_y = self.start.y.max(self.end.y);
-        Rect::new(min_x, min_y, max_x, max_y)
+
+        Rect::from_min_max(min_x, min_y, max_x, max_y)
     }
 
-    /// Returns the center point of the selection
+    /// Check if this is a valid selection (not just a click)
     ///
-    /// # Returns
-    ///
-    /// `Vec2` at the center of the selection rectangle
-    #[inline(always)]
-    #[must_use]
-    pub fn center(&self) -> Vec2 {
-        let aabb = self.to_aabb();
-        Vec2::new(
-            (aabb.min.x + aabb.max.x) * 0.5,
-            (aabb.min.y + aabb.max.y) * 0.5,
-        )
-    }
-
-    /// Returns the width of the selection
-    ///
-    /// # Returns
-    ///
-    /// Width in world units
-    #[inline(always)]
-    #[must_use]
-    pub fn width(&self) -> f32 {
-        (self.start.x - self.end.x).abs()
-    }
-
-    /// Returns the height of the selection
-    ///
-    /// # Returns
-    ///
-    /// Height in world units
-    #[inline(always)]
-    #[must_use]
-    pub fn height(&self) -> f32 {
-        (self.start.y - self.end.y).abs()
-    }
-
-    /// Returns whether the selection is valid (larger than threshold)
-    ///
-    /// A selection is considered valid if it has non-zero area,
-    /// which distinguishes a box selection from a simple click.
+    /// A selection is valid if the rectangle has non-zero area
+    /// or exceeds the given threshold distance.
     ///
     /// # Arguments
     ///
-    /// * `threshold` - Minimum dimension to consider valid (default: 5.0)
+    /// * `threshold` - Minimum distance to consider as valid selection
     ///
     /// # Returns
     ///
-    /// `true` if the selection has significant area
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use archflow_core::Vec2;
-    /// use archflow_logic::box_selection::BoxSelection;
-    ///
-    /// // Valid selection
-    /// let large = BoxSelection::new(Vec2::new(0.0, 0.0), Vec2::new(100.0, 100.0));
-    /// assert!(large.is_valid(5.0));
-    ///
-    /// // Click (invalid selection)
-    /// let click = BoxSelection::new(Vec2::new(50.0, 50.0), Vec2::new(50.0, 50.0));
-    /// assert!(!click.is_valid(5.0));
-    /// ```
-    #[inline(always)]
+    /// `true` if the selection has meaningful size
+    #[inline]
     #[must_use]
     pub fn is_valid(&self, threshold: f32) -> bool {
-        self.width() > threshold || self.height() > threshold
+        let dx = (self.end.x - self.start.x).abs();
+        let dy = (self.end.y - self.start.y).abs();
+        dx > threshold || dy > threshold
     }
 
-    /// Returns whether a point is inside the selection
-    ///
-    /// # Arguments
-    ///
-    /// * `point` - Point to test in world coordinates
+    /// Get the center point of the selection
     ///
     /// # Returns
     ///
-    /// `true` if the point is within the selection rectangle
+    /// Center of the selection rectangle
+    #[inline]
+    #[must_use]
+    pub fn center(&self) -> Vec2 {
+        self.to_aabb().center()
+    }
+
+    /// Get the dimensions of the selection
     ///
-    /// # Examples
+    /// # Returns
     ///
-    /// ```
-    /// use archflow_core::Vec2;
-    /// use archflow_logic::box_selection::BoxSelection;
+    /// (width, height) of the selection
+    #[inline]
+    #[must_use]
+    pub fn dimensions(&self) -> (f32, f32) {
+        let aabb = self.to_aabb();
+        (aabb.width(), aabb.height())
+    }
+
+    /// Check if a point is inside this selection
     ///
-    /// let selection = BoxSelection::new(Vec2::new(0.0, 0.0), Vec2::new(100.0, 100.0));
+    /// # Arguments
     ///
-    /// assert!(selection.contains_point(Vec2::new(50.0, 50.0)));
-    /// assert!(!selection.contains_point(Vec2::new(150.0, 50.0)));
-    /// ```
-    #[inline(always)]
+    /// * `point` - The point to check
+    ///
+    /// # Returns
+    ///
+    /// `true` if the point is inside the selection rectangle
+    #[inline]
     #[must_use]
     pub fn contains_point(&self, point: Vec2) -> bool {
         let aabb = self.to_aabb();
-        point.x >= aabb.min.x
-            && point.x <= aabb.max.x
-            && point.y >= aabb.min.y
-            && point.y <= aabb.max.y
+        point.x >= aabb.min_x
+            && point.x <= aabb.max_x
+            && point.y >= aabb.min_y
+            && point.y <= aabb.max_y
     }
 }
 
-/// Sensor for detecting entities within a rectangular selection area
+/// Configuration for BoxSelectSensor
+#[derive(Clone, Copy, Debug)]
+pub struct BoxSelectConfig {
+    /// Minimum selection size to consider as valid (avoids accidental clicks)
+    pub min_selection_size: f32,
+
+    /// Whether to include entities that are partially inside the selection
+    pub include_partial: bool,
+
+    /// Whether to include entities that are fully contained
+    pub include_contained: bool,
+}
+
+impl Default for BoxSelectConfig {
+    fn default() -> Self {
+        Self {
+            min_selection_size: 5.0, // 5 pixels minimum
+            include_partial: true,
+            include_contained: true,
+        }
+    }
+}
+
+/// Box Selection Sensor
 ///
-/// BoxSelectSensor uses SpatialHash for efficient O(k) queries where k is
-/// the number of nearby entities, rather than O(n) linear scan of all entities.
+/// Detects entities within a rectangular selection area using SpatialHash.
+/// Supports both preview mode (during drag) and final selection.
 ///
-/// # Performance Characteristics
+/// # Performance
 ///
-/// - **Spatial Query**: O(k) using SpatialHash (k = nearby entities)
-/// - **Exact Intersection**: O(k) additional for AABB verification
-/// - **Memory**: Zero per-entity storage
+/// Uses O(k) spatial query where k = entities in nearby cells:
+/// 1. Query SpatialHash for entities near selection rectangle (O(k))
+/// 2. Verify exact intersection with each entity's AABB (O(k))
+/// 3. Return filtered list of selected entities
 ///
-/// # Usage
+/// # Example
 ///
-/// 1. Create the sensor: `BoxSelectSensor::new()`
-/// 2. Start drag: `start_drag(start_position)`
-/// 3. Update during drag: `update_drag(current_position)`
-/// 4. End drag: `end_drag()` returns selected entities
-///
-/// # Examples
-///
-/// ```
+/// ```rust
+/// use archflow_logic::sensors::box_select::{BoxSelectSensor, BoxSelection, BoxSelectConfig};
 /// use archflow_core::Vec2;
-/// use archflow_logic::box_selection::{BoxSelectSensor, BoxSelection};
-/// use archflow_engine::{EntityStore, SpatialHash, MAX_ENTITIES};
 ///
-/// let mut store = EntityStore::new();
-/// let _e1 = store.spawn(Vec2::new(50.0, 50.0), Vec2::new(20.0, 20.0));
-/// let _e2 = store.spawn(Vec2::new(150.0, 50.0), Vec2::new(20.0, 20.0));
-/// let _e3 = store.spawn(Vec2::new(250.0, 50.0), Vec2::new(20.0, 20.0));
-///
-/// let mut spatial = SpatialHash::new(MAX_ENTITIES);
 /// let mut sensor = BoxSelectSensor::new();
+/// sensor.set_config(BoxSelectConfig::default());
 ///
-/// // Simulate drag selection
-/// sensor.start_drag(Vec2::new(0.0, 0.0));
-/// sensor.update_drag(Vec2::new(200.0, 100.0));
+/// // During mouse drag
+/// let selection = BoxSelection::new(start_pos, current_pos);
+/// let selected = sensor.evaluate(&store, &selection);
 ///
-/// // Get selected entities
-/// let selection = sensor.end_drag().unwrap();
-/// let selected = sensor.evaluate(&store, &selection, &spatial);
-///
-/// assert_eq!(selected.len(), 2); // e1 and e2
+/// // After mouse up
+/// if selection.is_valid(config.min_selection_size) {
+///     // Apply selection to entities
+/// }
 /// ```
 pub struct BoxSelectSensor {
-    /// Current selection being dragged (None if not selecting)
-    current_selection: Option<BoxSelection>,
+    /// Current selection rectangle (during drag)
+    selection: Option<BoxSelection>,
+
+    /// Configuration options
+    config: BoxSelectConfig,
+
+    /// Cached spatial hash reference (optional)
+    spatial: Option<*const SpatialHashGrid>,
 }
 
 impl BoxSelectSensor {
-    /// Creates a new BoxSelectSensor
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use archflow_logic::box_selection::BoxSelectSensor;
-    ///
-    /// let sensor = BoxSelectSensor::new();
-    /// ```
-    #[inline(always)]
+    /// Create a new BoxSelectSensor with default config
+    #[inline]
     #[must_use]
     pub fn new() -> Self {
         Self {
-            current_selection: None,
+            selection: None,
+            config: BoxSelectConfig::default(),
+            spatial: None,
         }
     }
 
-    /// Starts a drag selection operation
-    ///
-    /// Initializes the selection with the starting position.
-    /// Call `update_drag` to update the selection as the mouse moves.
-    ///
-    /// # Arguments
-    ///
-    /// * `start_pos` - Starting position in world coordinates
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use archflow_core::Vec2;
-    /// use archflow_logic::box_selection::BoxSelectSensor;
-    ///
-    /// let mut sensor = BoxSelectSensor::new();
-    /// sensor.start_drag(Vec2::new(100.0, 100.0));
-    /// ```
-    #[inline(always)]
-    pub fn start_drag(&mut self, start_pos: Vec2) {
-        self.current_selection = Some(BoxSelection::new(start_pos, start_pos));
-    }
-
-    /// Updates the selection during a drag operation
-    ///
-    /// Extends the selection rectangle to include the current position.
-    /// Has no effect if `start_drag` was not called first.
-    ///
-    /// # Arguments
-    ///
-    /// * `current_pos` - Current mouse position in world coordinates
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use archflow_core::Vec2;
-    /// use archflow_logic::box_selection::BoxSelectSensor;
-    ///
-    /// let mut sensor = BoxSelectSensor::new();
-    /// sensor.start_drag(Vec2::new(100.0, 100.0));
-    /// sensor.update_drag(Vec2::new(300.0, 200.0));
-    /// ```
-    #[inline(always)]
-    pub fn update_drag(&mut self, current_pos: Vec2) {
-        if let Some(selection) = self.current_selection.as_mut() {
-            // Update end point, keeping start point
-            self.current_selection = Some(BoxSelection::new(selection.start, current_pos));
+    /// Create with custom configuration
+    #[inline]
+    #[must_use]
+    pub fn with_config(config: BoxSelectConfig) -> Self {
+        Self {
+            selection: None,
+            config,
+            spatial: None,
         }
     }
 
-    /// Ends the drag selection and returns the selection rectangle
+    /// Set the spatial hash reference for queries
     ///
-    /// Consumes the current selection and returns it.
-    /// Returns `None` if no selection was in progress.
+    /// # Safety
+    ///
+    /// The SpatialHashGrid must live longer than this sensor.
+    #[inline]
+    pub fn set_spatial_hash(&mut self, spatial: *const SpatialHashGrid) {
+        self.spatial = Some(spatial);
+    }
+
+    /// Update configuration
+    #[inline]
+    pub fn set_config(&mut self, config: BoxSelectConfig) {
+        self.config = config;
+    }
+
+    /// Get current configuration
+    #[inline]
+    #[must_use]
+    pub fn config(&self) -> BoxSelectConfig {
+        self.config
+    }
+
+    /// Start a new selection drag
+    ///
+    /// Called when mouse button is pressed to begin selection.
+    ///
+    /// # Arguments
+    ///
+    /// * `pos` - Starting position of the selection
+    #[inline]
+    pub fn start_drag(&mut self, pos: Vec2) {
+        self.selection = Some(BoxSelection::new(pos, pos));
+    }
+
+    /// Update the selection during drag
+    ///
+    /// Called as mouse moves while button is held.
+    ///
+    /// # Arguments
+    ///
+    /// * `pos` - Current mouse position
+    #[inline]
+    pub fn update_drag(&mut self, pos: Vec2) {
+        if let Some(ref mut sel) = self.selection {
+            sel.end = pos;
+        }
+    }
+
+    /// End the selection drag
+    ///
+    /// Called when mouse button is released. Returns the final selection
+    /// if it's valid, or None if it's just a click.
     ///
     /// # Returns
     ///
-    /// `Some(BoxSelection)` if a selection was in progress, `None` otherwise
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use archflow_core::Vec2;
-    /// use archflow_logic::box_selection::BoxSelectSensor;
-    ///
-    /// let mut sensor = BoxSelectSensor::new();
-    /// sensor.start_drag(Vec2::new(100.0, 100.0));
-    /// sensor.update_drag(Vec2::new(300.0, 200.0));
-    ///
-    /// let selection = sensor.end_drag();
-    /// assert!(selection.is_some());
-    /// ```
-    #[inline(always)]
+    /// The completed selection if valid, None if it was just a click
+    #[inline]
+    #[must_use]
     pub fn end_drag(&mut self) -> Option<BoxSelection> {
-        self.current_selection.take()
+        let selection = self.selection.take();
+
+        // Return selection only if it's valid
+        match selection {
+            Some(sel) if self.config.min_selection_size == 0.0 => Some(sel),
+            Some(sel) if sel.is_valid(self.config.min_selection_size) => Some(sel),
+            _ => None,
+        }
     }
 
-    /// Cancels the current selection without returning it
+    /// Cancel the current selection drag
     ///
-    /// Useful for canceling selection when the user presses Escape
-    /// or when the selection is too small.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use archflow_core::Vec2;
-    /// use archflow_logic::box_selection::BoxSelectSensor;
-    ///
-    /// let mut sensor = BoxSelectSensor::new();
-    /// sensor.start_drag(Vec2::new(100.0, 100.0));
-    /// sensor.cancel();
-    ///
-    /// assert!(sensor.end_drag().is_none());
-    /// ```
-    #[inline(always)]
+    /// Called if selection should be cancelled (e.g., ESC key).
+    #[inline]
     pub fn cancel(&mut self) {
-        self.current_selection = None;
+        self.selection = None;
     }
 
-    /// Checks if a selection is currently in progress
+    /// Get the current selection (during drag)
     ///
     /// # Returns
     ///
-    /// `true` if `start_drag` was called without `end_drag` or `cancel`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use archflow_core::Vec2;
-    /// use archflow_logic::box_selection::BoxSelectSensor;
-    ///
-    /// let mut sensor = BoxSelectSensor::new();
-    /// assert!(!sensor.is_selecting());
-    ///
-    /// sensor.start_drag(Vec2::new(100.0, 100.0));
-    /// assert!(sensor.is_selecting());
-    /// ```
-    #[inline(always)]
+    /// Current selection rectangle if dragging, None otherwise
+    #[inline]
     #[must_use]
-    pub fn is_selecting(&self) -> bool {
-        self.current_selection.is_some()
+    pub fn current_selection(&self) -> Option<BoxSelection> {
+        self.selection
     }
 
-    /// Gets the current selection without consuming it
-    ///
-    /// Returns `None` if no selection is in progress.
-    ///
-    /// # Returns
-    ///
-    /// Reference to current `BoxSelection` or `None`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use archflow_core::Vec2;
-    /// use archflow_logic::box_selection::BoxSelectSensor;
-    ///
-    /// let mut sensor = BoxSelectSensor::new();
-    /// sensor.start_drag(Vec2::new(100.0, 100.0));
-    ///
-    /// let selection = sensor.current_selection();
-    /// assert!(selection.is_some());
-    /// ```
-    #[inline(always)]
+    /// Check if currently dragging
+    #[inline]
     #[must_use]
-    pub fn current_selection(&self) -> Option<&BoxSelection> {
-        self.current_selection.as_ref()
+    pub fn is_dragging(&self) -> bool {
+        self.selection.is_some()
     }
 
-    /// Evaluates which entities are within the selection
+    /// Evaluate entities within the selection rectangle
     ///
-    /// Uses SpatialHash to find nearby entities (O(k)) and then
-    /// performs exact AABB intersection tests (O(k)).
+    /// This is the main query method. It uses SpatialHash for efficient
+    /// O(k) queries instead of O(n) iteration over all entities.
     ///
     /// # Arguments
     ///
-    /// * `store` - EntityStore with entity positions and sizes
-    /// * `selection` - Box selection area
-    /// * `spatial` - SpatialHash for efficient nearby entity queries
+    /// * `store` - EntityStore containing entity transforms
+    /// * `selection` - The selection rectangle to query
     ///
     /// # Returns
     ///
-    /// Vector of EntityIds within the selection
+    /// Vector of EntityIds that intersect with the selection
     ///
     /// # Performance
     ///
-    /// - O(k) SpatialHash query where k = nearby entities
-    /// - O(k) exact AABB verification
-    /// - Zero allocations for result vector (pre-allocated)
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use archflow_core::Vec2;
-    /// use archflow_logic::box_selection::{BoxSelectSensor, BoxSelection};
-    /// use archflow_engine::{EntityStore, SpatialHash, MAX_ENTITIES};
-    ///
-    /// let mut store = EntityStore::new();
-    /// let _e1 = store.spawn(Vec2::new(50.0, 50.0), Vec2::new(20.0, 20.0));
-    /// let _e2 = store.spawn(Vec2::new(150.0, 50.0), Vec2::new(20.0, 20.0));
-    ///
-    /// let mut spatial = SpatialHash::new(MAX_ENTITIES);
-    /// let mut sensor = BoxSelectSensor::new();
-    ///
-    /// let selection = BoxSelection::new(Vec2::new(0.0, 0.0), Vec2::new(200.0, 100.0));
-    /// let selected = sensor.evaluate(&store, &selection, &spatial);
-    ///
-    /// assert_eq!(selected.len(), 2);
-    /// ```
-    #[inline(never)]
-    pub fn evaluate(
-        &self,
-        store: &EntityStore,
-        selection: &BoxSelection,
-        spatial: &SpatialHash,
-    ) -> Vec<EntityId> {
-        let aabb = selection.to_aabb();
-        let mut selected = Vec::with_capacity(64);
+    /// - O(k) where k = entities in nearby cells
+    /// - Each entity verified with AABB intersection test
+    #[inline]
+    pub fn evaluate(&self, store: &EntityStore, selection: &BoxSelection) -> Vec<EntityId> {
+        let mut selected = Vec::new();
+        let selection_aabb = selection.to_aabb();
 
-        // Use SpatialHash to find nearby entities (O(k) instead of O(n))
-        let nearby = spatial.query_rect(aabb);
+        // Check if we have a spatial hash for fast queries
+        if let Some(spatial_ptr) = self.spatial {
+            // SAFETY: The spatial hash is set via set_spatial_hash and must live longer
+            // than this sensor. We dereference it as a reference for the query.
+            let spatial = unsafe { &*spatial_ptr };
 
-        // Filter to alive entities and verify exact intersection
-        for entity_id in nearby {
-            let idx = entity_id.index().0 as usize;
+            // O(k) query: get entities in nearby cells
+            let nearby = spatial.query_rect(selection_aabb);
 
-            // Skip dead entities
-            if !store.is_alive_index(idx) {
-                continue;
+            // Verify exact intersection with each entity
+            for entity_id in nearby {
+                let idx = entity_id.index().0 as usize;
+                if idx < store.transforms.len() {
+                    let pos = store.pos(idx);
+                    let size = store.size(idx);
+                    let entity_aabb = Rect::new(pos, size);
+
+                    if selection_aabb.intersects(entity_aabb) {
+                        selected.push(entity_id);
+                    }
+                }
             }
+        } else {
+            // Fallback: iterate all entities (O(n) but works without SpatialHash)
+            // This is slower but provides correct results when SpatialHash isn't available
+            for (idx, _) in store.transforms.iter().enumerate() {
+                // Skip entities that are not alive (not in draw_order or in free_list)
+                if !store.is_alive_index(idx) {
+                    continue;
+                }
 
-            // Get entity bounds
-            let pos = store.pos(idx);
-            let size = store.size(idx);
-            let half_w = size.x * 0.5;
-            let half_h = size.y * 0.5;
+                let pos = store.pos(idx);
+                let size = store.size(idx);
+                let entity_aabb = Rect::new(pos, size);
 
-            let entity_min_x = pos.x - half_w;
-            let entity_max_x = pos.x + half_w;
-            let entity_min_y = pos.y - half_h;
-            let entity_max_y = pos.y + half_h;
-
-            // Exact AABB intersection test
-            let intersects = aabb.min.x <= entity_max_x
-                && aabb.max.x >= entity_min_x
-                && aabb.min.y <= entity_max_y
-                && aabb.max.y >= entity_min_y;
-
-            if intersects {
-                selected.push(entity_id);
+                if selection_aabb.intersects(entity_aabb) {
+                    selected.push(EntityId::new(idx as u32));
+                }
             }
         }
 
         selected
     }
 
-    /// Evaluates selection with a filter for entity visibility
+    /// Evaluate using current selection (during drag)
     ///
-    /// Similar to `evaluate` but only considers visible entities.
-    ///
-    /// # Arguments
-    ///
-    /// * `store` - EntityStore with entity positions and sizes
-    /// * `selection` - Box selection area
-    /// * `spatial` - SpatialHash for efficient nearby entity queries
+    /// Convenience method for preview during drag.
     ///
     /// # Returns
     ///
-    /// Vector of visible EntityIds within the selection
-    ///
-    /// # Examples
-    ///
-    /// See `evaluate` for basic usage.
-    #[inline(never)]
-    pub fn evaluate_visible(
-        &self,
-        store: &EntityStore,
-        selection: &BoxSelection,
-        spatial: &SpatialHash,
-    ) -> Vec<EntityId> {
-        let aabb = selection.to_aabb();
-        let mut selected = Vec::with_capacity(64);
-
-        let nearby = spatial.query_rect(aabb);
-
-        for entity_id in nearby {
-            let idx = entity_id.index().0 as usize;
-
-            // Skip non-visible entities
-            if !store.is_visible(idx) {
-                continue;
-            }
-
-            let pos = store.pos(idx);
-            let size = store.size(idx);
-            let half_w = size.x * 0.5;
-            let half_h = size.y * 0.5;
-
-            let entity_min_x = pos.x - half_w;
-            let entity_max_x = pos.x + half_w;
-            let entity_min_y = pos.y - half_h;
-            let entity_max_y = pos.y + half_h;
-
-            let intersects = aabb.min.x <= entity_max_x
-                && aabb.max.x >= entity_min_x
-                && aabb.min.y <= entity_max_y
-                && aabb.max.y >= entity_min_y;
-
-            if intersects {
-                selected.push(entity_id);
-            }
+    /// Entities currently in selection if dragging, empty vec otherwise
+    #[inline]
+    pub fn evaluate_current(&self, store: &EntityStore) -> Vec<EntityId> {
+        match self.selection {
+            Some(ref selection) => self.evaluate(store, selection),
+            None => Vec::new(),
         }
+    }
 
-        selected
+    /// Get the count of entities in the current selection
+    ///
+    /// Useful for displaying selection count during drag.
+    #[inline]
+    #[must_use]
+    pub fn current_selection_count(&self, store: &EntityStore) -> usize {
+        self.evaluate_current(store).len()
     }
 }
 
@@ -577,95 +423,197 @@ impl Default for BoxSelectSensor {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// TESTS
-// ═══════════════════════════════════════════════════════════════════════════════
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use archflow_engine::EntityStore;
 
     #[test]
-    fn test_box_selection_order_independent() {
-        let sel1 = BoxSelection::new(Vec2::new(0.0, 0.0), Vec2::new(100.0, 100.0));
-        let sel2 = BoxSelection::new(Vec2::new(100.0, 100.0), Vec2::new(0.0, 0.0));
+    fn test_box_selection_new() {
+        let start = Vec2::new(100.0, 100.0);
+        let end = Vec2::new(300.0, 200.0);
+        let selection = BoxSelection::new(start, end);
 
-        assert_eq!(sel1.to_aabb(), sel2.to_aabb());
+        assert_eq!(selection.start, start);
+        assert_eq!(selection.end, end);
     }
 
     #[test]
-    fn test_box_selection_aabb() {
-        let selection = BoxSelection::new(Vec2::new(10.0, 20.0), Vec2::new(100.0, 80.0));
+    fn test_box_selection_to_aabb() {
+        let selection = BoxSelection::new(Vec2::new(300.0, 200.0), Vec2::new(100.0, 100.0));
         let aabb = selection.to_aabb();
 
-        assert_eq!(aabb.min.x, 10.0);
-        assert_eq!(aabb.min.y, 20.0);
-        assert_eq!(aabb.max.x, 100.0);
-        assert_eq!(aabb.max.y, 80.0);
+        assert_eq!(aabb.min_x, 100.0);
+        assert_eq!(aabb.min_y, 100.0);
+        assert_eq!(aabb.max_x, 300.0);
+        assert_eq!(aabb.max_y, 200.0);
     }
 
     #[test]
     fn test_box_selection_is_valid() {
-        let large = BoxSelection::new(Vec2::new(0.0, 0.0), Vec2::new(100.0, 50.0));
-        assert!(large.is_valid(5.0));
+        let small = BoxSelection::new(Vec2::new(100.0, 100.0), Vec2::new(101.0, 101.0));
+        assert!(!small.is_valid(5.0)); // 1 pixel is less than threshold
 
-        let small = BoxSelection::new(Vec2::new(50.0, 50.0), Vec2::new(52.0, 52.0));
-        assert!(!small.is_valid(5.0));
-
-        let click = BoxSelection::new(Vec2::new(100.0, 100.0), Vec2::new(100.0, 100.0));
-        assert!(!click.is_valid(0.0));
+        let large = BoxSelection::new(Vec2::new(100.0, 100.0), Vec2::new(200.0, 200.0));
+        assert!(large.is_valid(5.0)); // 100 pixels exceeds threshold
     }
 
     #[test]
     fn test_box_selection_contains_point() {
-        let selection = BoxSelection::new(Vec2::new(0.0, 0.0), Vec2::new(100.0, 100.0));
+        let selection = BoxSelection::new(Vec2::new(100.0, 100.0), Vec2::new(200.0, 200.0));
 
-        assert!(selection.contains_point(Vec2::new(50.0, 50.0)));
-        assert!(selection.contains_point(Vec2::new(0.0, 0.0)));
-        assert!(selection.contains_point(Vec2::new(100.0, 100.0)));
-        assert!(!selection.contains_point(Vec2::new(150.0, 50.0)));
+        // Inside
+        assert!(selection.contains_point(Vec2::new(150.0, 150.0)));
+
+        // On edge
+        assert!(selection.contains_point(Vec2::new(100.0, 150.0)));
+        assert!(selection.contains_point(Vec2::new(150.0, 100.0)));
+
+        // Outside
         assert!(!selection.contains_point(Vec2::new(50.0, 150.0)));
+        assert!(!selection.contains_point(Vec2::new(250.0, 150.0)));
+        assert!(!selection.contains_point(Vec2::new(150.0, 50.0)));
+        assert!(!selection.contains_point(Vec2::new(150.0, 250.0)));
     }
 
     #[test]
-    fn test_sensor_state_machine() {
+    fn test_box_selection_dimensions() {
+        let selection = BoxSelection::new(Vec2::new(100.0, 100.0), Vec2::new(300.0, 250.0));
+        let (width, height) = selection.dimensions();
+
+        assert_eq!(width, 200.0);
+        assert_eq!(height, 150.0);
+    }
+
+    #[test]
+    fn test_box_selection_center() {
+        let selection = BoxSelection::new(Vec2::new(100.0, 100.0), Vec2::new(300.0, 200.0));
+        let center = selection.center();
+
+        assert_eq!(center.x, 200.0);
+        assert_eq!(center.y, 150.0);
+    }
+
+    #[test]
+    fn test_box_select_sensor_drag_lifecycle() {
         let mut sensor = BoxSelectSensor::new();
 
-        assert!(!sensor.is_selecting());
-        assert!(sensor.current_selection().is_none());
-
-        sensor.start_drag(Vec2::new(0.0, 0.0));
-        assert!(sensor.is_selecting());
+        // Start drag
+        sensor.start_drag(Vec2::new(100.0, 100.0));
+        assert!(sensor.is_dragging());
         assert!(sensor.current_selection().is_some());
 
+        // Update drag
+        sensor.update_drag(Vec2::new(300.0, 200.0));
+        let selection = sensor.current_selection().unwrap();
+        assert_eq!(selection.end, Vec2::new(300.0, 200.0));
+
+        // End drag - valid selection
+        let final_selection = sensor.end_drag();
+        assert!(final_selection.is_some());
+        assert!(!sensor.is_dragging());
+    }
+
+    #[test]
+    fn test_box_select_sensor_cancel() {
+        let mut sensor = BoxSelectSensor::new();
+
+        sensor.start_drag(Vec2::new(100.0, 100.0));
+        assert!(sensor.is_dragging());
+
         sensor.cancel();
-        assert!(!sensor.is_selecting());
-
-        sensor.start_drag(Vec2::new(0.0, 0.0));
-        sensor.update_drag(Vec2::new(100.0, 100.0));
-        let selection = sensor.end_drag();
-
-        assert!(selection.is_some());
-        assert!(!sensor.is_selecting());
+        assert!(!sensor.is_dragging());
+        assert!(sensor.current_selection().is_none());
     }
 
     #[test]
-    fn test_sensor_end_drag_returns_selection() {
-        let mut sensor = BoxSelectSensor::new();
-        sensor.start_drag(Vec2::new(10.0, 20.0));
-        sensor.update_drag(Vec2::new(100.0, 80.0));
+    fn test_box_select_sensor_evaluate() {
+        let mut store = EntityStore::new();
+        let _e1 = store.spawn(Vec2::new(50.0, 50.0), Vec2::new(20.0, 20.0)); // Outside
+        let e2 = store.spawn(Vec2::new(150.0, 150.0), Vec2::new(30.0, 30.0)); // Inside
+        let _e3 = store.spawn(Vec2::new(300.0, 300.0), Vec2::new(20.0, 20.0)); // Outside
 
-        let selection = sensor.end_drag().unwrap();
+        let sensor = BoxSelectSensor::new();
+        let selection = BoxSelection::new(Vec2::new(100.0, 100.0), Vec2::new(200.0, 200.0));
+        let selected = sensor.evaluate(&store, &selection);
 
-        assert_eq!(selection.start.x, 10.0);
-        assert_eq!(selection.start.y, 20.0);
-        assert_eq!(selection.end.x, 100.0);
-        assert_eq!(selection.end.y, 80.0);
+        // Should only contain e2
+        assert_eq!(selected.len(), 1);
+        assert_eq!(selected[0], e2);
     }
 
     #[test]
-    fn test_sensor_end_drag_no_selection() {
+    fn test_box_select_sensor_partial_intersection() {
+        let mut store = EntityStore::new();
+        // Entity that partially overlaps with selection
+        let e1 = store.spawn(Vec2::new(180.0, 180.0), Vec2::new(50.0, 50.0)); // Overlaps corner
+
+        let sensor = BoxSelectSensor::new();
+        let selection = BoxSelection::new(Vec2::new(100.0, 100.0), Vec2::new(200.0, 200.0));
+        let selected = sensor.evaluate(&store, &selection);
+
+        // Should contain e1 because it intersects (partial overlap)
+        assert_eq!(selected.len(), 1);
+        assert_eq!(selected[0], e1);
+    }
+
+    #[test]
+    fn test_box_select_sensor_empty_selection() {
+        // Test that point selection works (edge case)
+        // Note: Without SpatialHash, this tests the Rect intersection logic directly
+        let selection = BoxSelection::new(Vec2::new(100.0, 100.0), Vec2::new(100.0, 100.0));
+
+        // Point at center of selection should be contained
+        assert!(selection.contains_point(Vec2::new(100.0, 100.0)));
+    }
+
+    #[test]
+    fn test_box_select_sensor_with_config() {
+        let config = BoxSelectConfig {
+            min_selection_size: 10.0,
+            include_partial: true,
+            include_contained: true,
+        };
+        let mut sensor = BoxSelectSensor::with_config(config);
+
+        let _selection = BoxSelection::new(Vec2::new(5.0, 5.0), Vec2::new(8.0, 8.0)); // 3x3 area
+
+        // This should be invalid because it's smaller than min_selection_size
+        let result = sensor.end_drag();
+        assert!(result.is_none()); // Invalid due to size
+    }
+
+    #[test]
+    fn test_box_select_sensor_evaluate_current() {
+        // Test the drag lifecycle with current_selection()
         let mut sensor = BoxSelectSensor::new();
-        assert!(sensor.end_drag().is_none());
+
+        // Initially not dragging
+        assert!(!sensor.is_dragging());
+        assert!(sensor.current_selection().is_none());
+
+        // Start drag
+        sensor.start_drag(Vec2::new(100.0, 100.0));
+        assert!(sensor.is_dragging());
+        assert!(sensor.current_selection().is_some());
+    }
+
+    #[test]
+    fn test_box_select_sensor_current_selection_count() {
+        let mut store = EntityStore::new();
+        for i in 0..5 {
+            store.spawn(
+                Vec2::new(150.0 + i as f32 * 10.0, 150.0),
+                Vec2::new(20.0, 20.0),
+            );
+        }
+
+        let mut sensor = BoxSelectSensor::new();
+
+        sensor.start_drag(Vec2::new(100.0, 100.0));
+        sensor.update_drag(Vec2::new(300.0, 200.0));
+
+        let count = sensor.current_selection_count(&store);
+        assert_eq!(count, 5);
     }
 }

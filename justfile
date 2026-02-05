@@ -144,10 +144,8 @@ build-release:
 [doc("Build WASM module only")]
 build-wasm: sync-wasm-types
     @echo "Building WASM..."
-    @cd crates/archflow-web && wasm-pack build --target web --debug
+    @cd crates/archflow-web && wasm-pack build --out-dir ../archflow-web-ui/src/wasm --target web --debug
     @echo "WASM built!"
-    @cp crates/archflow-web/pkg/archflow_web_bg.wasm crates/archflow-web-ui/src/wasm/
-
 
 # Sync WASM types to frontend
 [doc("Sync WASM types from Rust to TypeScript frontend")]

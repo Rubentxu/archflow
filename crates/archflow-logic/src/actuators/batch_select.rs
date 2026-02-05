@@ -520,6 +520,64 @@ impl BatchSelectActuator {
         entities: &[EntityId],
         mode: SelectMode,
     ) -> usize {
+        self.execute_with_events(store, entities, mode, |_, _| {})
+    }
+
+    /// Executes a batch selection operation with event emission
+    ///
+    /// This is the recommended method when a LogicSystem is available.
+    /// Events are emitted for selection changes, enabling UI updates.
+    ///
+    /// # Arguments
+    ///
+    /// * `store` - EntityStore to update
+    /// * `entities` - List of entities to select/deselect
+    /// * `mode` - Selection mode (Single, Multi, Replace)
+    /// * `on_selection_change` - Callback for each entity whose selection changed
+    ///                           Receives (entity_index: usize, now_selected: bool)
+    ///
+    /// # Returns
+    ///
+    /// Number of entities whose selection state changed
+    ///
+    /// # Panics
+    ///
+    /// Panics if entity index >= MAX_ENTITIES
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use archflow_logic::actuators::batch_select::{BatchSelectActuator, SelectMode};
+    /// use archflow_core::Vec2;
+    /// use archflow_engine::EntityStore;
+    ///
+    /// let mut store = EntityStore::new();
+    /// let entity = store.spawn(Vec2::ZERO, Vec2::ONE);
+    ///
+    /// let mut actuator = BatchSelectActuator::new();
+    ///
+    /// // Execute with event emission
+    /// let changes = actuator.execute_with_events(
+    ///     &mut store,
+    ///     &[entity],
+    ///     SelectMode::Single,
+    ///     |idx, now_selected| {
+    ///         // Emit EntitySelected event for UI
+    ///         logic_system.emit_entity_selected(idx as u32);
+    ///     }
+    /// );
+    /// ```
+    #[inline(never)]
+    pub fn execute_with_events<F>(
+        &mut self,
+        store: &mut EntityStore,
+        entities: &[EntityId],
+        mode: SelectMode,
+        mut on_selection_change: F,
+    ) -> usize
+    where
+        F: FnMut(usize, bool),
+    {
         // Clear redo stack on new operation
         self.redo_stack.clear();
 
@@ -534,6 +592,8 @@ impl BatchSelectActuator {
                     store.set_selected(idx, false);
                     self.selection_mask.toggle(idx);
                     changes += 1;
+                    // Emit event for deselection
+                    on_selection_change(idx, false);
                 }
             }
             self.last_delta = Some(delta);
@@ -556,9 +616,12 @@ impl BatchSelectActuator {
                     delta.toggle(idx);
                     // Apply toggle to selection state
                     let currently_selected = self.selection_mask.is_set(idx);
-                    store.set_selected(idx, !currently_selected);
+                    let now_selected = !currently_selected;
+                    store.set_selected(idx, now_selected);
                     self.selection_mask.toggle(idx);
                     changes += 1;
+                    // Emit event for selection change
+                    on_selection_change(idx, now_selected);
                 }
             } else {
                 // Single/Replace: just set
@@ -567,6 +630,8 @@ impl BatchSelectActuator {
                     store.set_selected(idx, true);
                     self.selection_mask.toggle(idx);
                     changes += 1;
+                    // Emit event for selection
+                    on_selection_change(idx, true);
                 }
             }
         }
@@ -931,5 +996,143 @@ mod tests {
         let delta = DeltaMask::new(200);
 
         delta.apply_to(&mut target);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // EVENT EMISSION TESTS (HU-CONSOL-002)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_execute_with_events_emits_selection_change() {
+        let mut store = EntityStore::new();
+        let e1 = store.spawn(Vec2::new(50.0, 50.0), Vec2::new(20.0, 20.0));
+        let e2 = store.spawn(Vec2::new(150.0, 50.0), Vec2::new(20.0, 20.0));
+
+        let mut actuator = BatchSelectActuator::new();
+
+        // Track events emitted using Cell
+        let event_count = core::cell::Cell::new(0usize);
+        let e1_idx = e1.index().0 as usize;
+        let e2_idx = e2.index().0 as usize;
+        let e1_selected = core::cell::Cell::new(false);
+        let e2_selected = core::cell::Cell::new(false);
+
+        // Execute with event emission
+        let entities = vec![e1, e2];
+        actuator.execute_with_events(
+            &mut store,
+            &entities,
+            SelectMode::Multi,
+            |idx, now_selected| {
+                event_count.set(event_count.get() + 1);
+                if idx == e1_idx {
+                    e1_selected.set(now_selected);
+                }
+                if idx == e2_idx {
+                    e2_selected.set(now_selected);
+                }
+            },
+        );
+
+        assert_eq!(event_count.get(), 2, "Should emit 2 events");
+        assert!(e1_selected.get(), "e1 should be selected");
+        assert!(e2_selected.get(), "e2 should be selected");
+    }
+
+    #[test]
+    fn test_execute_with_events_single_mode_clears_previous() {
+        let mut store = EntityStore::new();
+        let e1 = store.spawn(Vec2::new(50.0, 50.0), Vec2::new(20.0, 20.0));
+        let e2 = store.spawn(Vec2::new(150.0, 50.0), Vec2::new(20.0, 20.0));
+        let e3 = store.spawn(Vec2::new(250.0, 50.0), Vec2::new(20.0, 20.0));
+
+        let mut actuator = BatchSelectActuator::new();
+        let event_count = core::cell::Cell::new(0usize);
+
+        // First select e1 and e2
+        actuator.execute_with_events(&mut store, &vec![e1, e2], SelectMode::Multi, |_, _| {
+            event_count.set(event_count.get() + 1);
+        });
+        assert_eq!(event_count.get(), 2);
+        assert_eq!(actuator.selection_count(), 2);
+
+        // Now select e3 in Single mode - should clear e1 and e2
+        event_count.set(0);
+        let clear_count = core::cell::Cell::new(0usize);
+        actuator.execute_with_events(&mut store, &vec![e3], SelectMode::Single, |_, _| {
+            event_count.set(event_count.get() + 1);
+            clear_count.set(clear_count.get() + 1);
+        });
+
+        // Should emit: 2 for clearing (e1, e2) + 1 for selecting e3 = 3 events
+        assert_eq!(event_count.get(), 3);
+        assert_eq!(actuator.selection_count(), 1);
+    }
+
+    #[test]
+    fn test_execute_without_events_still_works() {
+        // Verify backward compatibility - execute() without events works
+        let mut store = EntityStore::new();
+        let e1 = store.spawn(Vec2::new(50.0, 50.0), Vec2::new(20.0, 20.0));
+        let e2 = store.spawn(Vec2::new(150.0, 50.0), Vec2::new(20.0, 20.0));
+
+        let mut actuator = BatchSelectActuator::new();
+
+        // Execute without events (backward compatible)
+        let changes = actuator.execute(&mut store, &vec![e1, e2], SelectMode::Multi);
+
+        assert_eq!(changes, 2);
+        assert!(actuator.is_selected(e1));
+        assert!(actuator.is_selected(e2));
+        assert_eq!(actuator.selection_count(), 2);
+    }
+
+    #[test]
+    fn test_execute_with_events_toggle_behavior() {
+        let mut store = EntityStore::new();
+        let e1 = store.spawn(Vec2::new(50.0, 50.0), Vec2::new(20.0, 20.0));
+
+        let mut actuator = BatchSelectActuator::new();
+        let event_count = core::cell::Cell::new(0usize);
+
+        // First select
+        actuator.execute_with_events(&mut store, &vec![e1], SelectMode::Multi, |_, _| {
+            event_count.set(event_count.get() + 1);
+        });
+        assert_eq!(event_count.get(), 1);
+        assert!(actuator.is_selected(e1));
+
+        // Toggle off
+        event_count.set(0);
+        actuator.execute_with_events(&mut store, &vec![e1], SelectMode::Multi, |_, _| {
+            event_count.set(event_count.get() + 1);
+        });
+        assert_eq!(event_count.get(), 1); // Still emits event even though already selected
+        assert!(!actuator.is_selected(e1));
+    }
+
+    #[test]
+    fn test_execute_with_events_empty_selection() {
+        let mut store = EntityStore::new();
+        let e1 = store.spawn(Vec2::new(50.0, 50.0), Vec2::new(20.0, 20.0));
+
+        let mut actuator = BatchSelectActuator::new();
+        let event_count = core::cell::Cell::new(0usize);
+
+        // Select e1 first
+        actuator.execute(&mut store, &vec![e1], SelectMode::Single);
+
+        // Now select empty list in Single mode
+        let changes = actuator.execute_with_events(
+            &mut store,
+            &alloc::vec::Vec::new(),
+            SelectMode::Single,
+            |_, _| {
+                event_count.set(event_count.get() + 1);
+            },
+        );
+
+        // Should emit events for clearing previous selection
+        assert!(changes > 0 || event_count.get() > 0);
     }
 }
