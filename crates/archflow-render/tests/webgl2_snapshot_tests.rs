@@ -168,7 +168,8 @@ fn test_snapshot_instance_alignment() {
         size: [10.0, 20.0],
         color: 0xFF0000FF,
         shape_type_or_texture_index: 0,
-        _padding: [0, 0],
+        stroke_color: 0x00000000,
+        stroke_width_bits: 0,
         uv_rect: [0.0, 0.0, 1.0, 1.0],
     };
 

@@ -59,6 +59,10 @@ impl CameraController {
     ) {
         let old_zoom = camera.zoom;
 
+        // IMPORTANT: Calculate mouse world position BEFORE changing zoom
+        // This is the key to zoom-to-cursor functionality
+        let mouse_world = camera.screen_to_world(mouse_screen, screen_size);
+
         // Calculate new zoom with limits and intensity
         let zoom_factor = 1.0 + (-delta_y * ZOOM_INTENSITY);
         camera.zoom *= zoom_factor;
@@ -68,7 +72,6 @@ impl CameraController {
         // center_new = center_old + (mouse_world - center_old) * (1 - old_zoom/new_zoom)
         //
         // This ensures that the point under the mouse cursor remains stationary
-        let mouse_world = camera.screen_to_world(mouse_screen, screen_size);
         let zoom_ratio = old_zoom / camera.zoom;
 
         camera.center = camera.center + (mouse_world - camera.center) * ((1.0 - zoom_ratio) as f64);
