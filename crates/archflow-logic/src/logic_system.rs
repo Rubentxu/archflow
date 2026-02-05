@@ -17,7 +17,7 @@ use alloc::vec::Vec;
 use archflow_core::{EntityId, Generation, Index};
 use archflow_engine::EntityStore;
 
-use crate::events::{EventRingBuffer, LogicEvent};
+use crate::events::{EventRingBuffer, LogicEvent, LogicEventType};
 use crate::input::{InputEvent, InputSampler};
 use crate::mapping::LogicMappingTable;
 use crate::pulse::{Pulse, PulseBus};
@@ -206,6 +206,53 @@ impl LogicSystem {
         let mut event = LogicEvent::entity_destroyed(entity_id);
         event.timestamp_us = self.timestamp as u64;
         self.event_buffer.push(event);
+    }
+
+    /// Handle entity destruction - cleans up sensor state and emits event
+    ///
+    /// This method should be called when an entity is destroyed to:
+    /// 1. Emit an EntityDestroyed event for JavaScript
+    /// 2. Reset sensor state for the destroyed entity
+    /// 3. Clear wiring connections for the entity
+    /// 4. Remove from SpatialHash
+    ///
+    /// # Arguments
+    ///
+    /// * `entity_id` - EntityId of the destroyed entity
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// // In entity destruction handler
+    /// logic_system.on_entity_destroyed(entity_id);
+    /// ```
+    #[inline(always)]
+    pub fn on_entity_destroyed(&mut self, entity_id: EntityId) {
+        let idx = entity_id.index().0 as u32;
+
+        // Emit EntityDestroyed event
+        self.emit_entity_destroyed(idx);
+
+        // Reset sensor state for this entity
+        let entity_idx = entity_id.index().0 as usize;
+        self.touch_sensor.reset_entity(entity_idx);
+        self.proximity_sensor.reset_entity(entity_idx);
+        self.radar_sensor.reset_entity(entity_idx);
+        self.mouse_click.reset_entity(entity_idx);
+
+        // Clear wiring connections for this entity
+        self.wiring.clear_entity(entity_id);
+
+        // Remove from spatial hash
+        self.spatial_hash.remove(entity_id);
+
+        #[cfg(feature = "tracing")]
+        debug!(
+            target: "archflow::logic",
+            entity_id = ?entity_id,
+            index = idx,
+            "Entity destruction handled"
+        );
     }
 
     /// Get the input sampler (for JavaScript bridge to set SAB pointer)
@@ -647,5 +694,59 @@ mod tests {
         // At least Touch and Proximity should trigger for overlapping entities
         assert!(has_touch, "TouchSensor should trigger");
         assert!(has_proximity, "ProximitySensor should trigger");
+    }
+
+    #[test]
+    fn test_emit_entity_destroyed() {
+        let mut system = LogicSystem::new();
+        system.set_timestamp(1000);
+
+        system.emit_entity_destroyed(42);
+
+        // Check that event was pushed to buffer
+        let events = system.event_buffer.peek();
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].entity_id, 42);
+        assert_eq!(events[0].event_type, LogicEventType::EntityDestroyed);
+    }
+
+    #[test]
+    fn test_on_entity_destroyed() {
+        use archflow_core::{Generation, Index};
+
+        let mut system = LogicSystem::new();
+        system.set_timestamp(1000);
+
+        // Create an entity
+        let entity = EntityId::from_parts(Index(0), Generation(1));
+
+        // Simulate entity destruction
+        system.on_entity_destroyed(entity);
+
+        // Check that event was emitted
+        let events = system.event_buffer.drain();
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].event_type, LogicEventType::EntityDestroyed);
+        assert_eq!(events[0].entity_id, 0); // Index part of entity_id
+    }
+
+    #[test]
+    fn test_on_entity_destroyed_multiple_times() {
+        let mut system = LogicSystem::new();
+        system.set_timestamp(1000);
+
+        // Create multiple entities
+        let entity1 = EntityId::from_parts(Index(5), Generation(1));
+        let entity2 = EntityId::from_parts(Index(10), Generation(1));
+
+        // Destroy both
+        system.on_entity_destroyed(entity1);
+        system.on_entity_destroyed(entity2);
+
+        // Check events
+        let events = system.event_buffer.drain();
+        assert_eq!(events.len(), 2);
+        assert_eq!(events[0].entity_id, 5);
+        assert_eq!(events[1].entity_id, 10);
     }
 }
