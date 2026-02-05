@@ -31,6 +31,7 @@
 //! }
 //! ```
 
+pub mod box_select;
 pub mod collision;
 pub mod double_tap;
 pub mod key_shortcut;
@@ -44,10 +45,11 @@ pub mod radar;
 pub mod right_click;
 pub mod touch;
 
+pub use box_select::{BoxSelectSensor, BoxSelection};
 pub use collision::CollisionSensor;
-pub use double_tap::{DoubleTapSensor, DOUBLE_TAP_MS, TAP_TIMEOUT_MS};
+pub use double_tap::{DOUBLE_TAP_MS, DoubleTapSensor, TAP_TIMEOUT_MS};
 pub use key_shortcut::KeyShortcutSensor;
-pub use long_press::{LongPressSensor, LONG_PRESS_MS};
+pub use long_press::{LONG_PRESS_MS, LongPressSensor};
 pub use mouse::{MouseConfig, MouseMode, MouseSensor};
 pub use mouse_click::{MouseClickSensor, PointerButtons};
 pub use mouse_over::MouseOverSensor;

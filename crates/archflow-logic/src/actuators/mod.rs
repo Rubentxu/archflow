@@ -9,6 +9,7 @@
 // - Each actuator generates zero or more commands per update
 // ═══════════════════════════════════════════════════════════════════════════════
 
+pub mod batch_select;
 pub mod camera;
 pub mod highlight;
 pub mod message;
@@ -17,6 +18,7 @@ pub mod property;
 pub mod select;
 pub mod state;
 
+pub use batch_select::{BatchSelectActuator, DeltaMask, SelectMode as BatchSelectMode};
 pub use camera::{
     CameraActuator, CameraActuatorConfig, CameraConstraints, CameraTransform, Smoother,
 };
