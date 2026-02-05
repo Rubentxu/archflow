@@ -11,8 +11,8 @@
 
 use alloc::string::String;
 use archflow_logic::actuators::{
-    CameraActuatorConfig, HighlightActuator, MoveActuator, PropertyActuator, SelectActuator,
-    SelectMode, StateActuator,
+    BatchSelectActuator, HighlightActuator, MoveActuator, PropertyActuator,
+    SelectMode as CoreSelectMode, StateActuator,
 };
 use wasm_bindgen::prelude::*;
 
@@ -70,22 +70,22 @@ pub enum SelectModeWasm {
     Replace = 2,
 }
 
-impl From<SelectModeWasm> for SelectMode {
+impl From<SelectModeWasm> for CoreSelectMode {
     fn from(wasm: SelectModeWasm) -> Self {
         match wasm {
-            SelectModeWasm::Single => SelectMode::Single,
-            SelectModeWasm::Multi => SelectMode::Multi,
-            SelectModeWasm::Replace => SelectMode::Replace,
+            SelectModeWasm::Single => CoreSelectMode::Single,
+            SelectModeWasm::Multi => CoreSelectMode::Multi,
+            SelectModeWasm::Replace => CoreSelectMode::Replace,
         }
     }
 }
 
-impl From<SelectMode> for SelectModeWasm {
-    fn from(core: SelectMode) -> Self {
+impl From<CoreSelectMode> for SelectModeWasm {
+    fn from(core: CoreSelectMode) -> Self {
         match core {
-            SelectMode::Single => SelectModeWasm::Single,
-            SelectMode::Multi => SelectModeWasm::Multi,
-            SelectMode::Replace => SelectModeWasm::Replace,
+            CoreSelectMode::Single => SelectModeWasm::Single,
+            CoreSelectMode::Multi => SelectModeWasm::Multi,
+            CoreSelectMode::Replace => SelectModeWasm::Replace,
         }
     }
 }
@@ -296,6 +296,7 @@ pub enum ExtendedActuatorType {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use archflow_logic::SelectMode;
 
     #[test]
     fn test_highlight_config() {

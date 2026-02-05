@@ -15,10 +15,9 @@ pub mod highlight;
 pub mod message;
 pub mod move_;
 pub mod property;
-pub mod select;
 pub mod state;
 
-pub use batch_select::{BatchSelectActuator, DeltaMask, SelectMode as BatchSelectMode};
+pub use batch_select::{BatchSelectActuator, DeltaMask, SelectMode};
 pub use camera::{
     CameraActuator, CameraActuatorConfig, CameraConstraints, CameraTransform, Smoother,
 };
@@ -26,7 +25,6 @@ pub use highlight::HighlightActuator;
 pub use message::{Message, MessageActuator, MessageBus, MessagePayload};
 pub use move_::MoveActuator;
 pub use property::{Property, PropertyActuator};
-pub use select::{SelectActuator, SelectMode};
 pub use state::{
     EntityState, StateActuator, StateBitset, StateId, StateMachine, StateManager, StateTransition,
     StateTransitionTable,

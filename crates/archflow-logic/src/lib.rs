@@ -40,11 +40,14 @@ pub mod visibility;
 pub use events::{EventData, EventRingBuffer, LogicEvent, LogicEventType};
 
 pub use actuators::{
+    // Batch selection (replaces legacy SelectActuator)
+    BatchSelectActuator,
     // Camera types
     CameraActuator,
     CameraActuatorConfig,
     CameraConstraints,
     CameraTransform,
+    DeltaMask,
     // State machine types
     EntityState,
     HighlightActuator,
@@ -55,7 +58,6 @@ pub use actuators::{
     MoveActuator,
     Property,
     PropertyActuator,
-    SelectActuator,
     SelectMode,
     Smoother,
     StateActuator,

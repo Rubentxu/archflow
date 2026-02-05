@@ -20,7 +20,7 @@ use alloc::vec::Vec;
 use archflow_core::EntityId;
 use archflow_engine::EntityStore;
 
-use crate::actuators::{HighlightActuator, MoveActuator, SelectActuator, SelectMode};
+use crate::actuators::{BatchSelectActuator, HighlightActuator, MoveActuator, SelectMode};
 use crate::mapping::controller::{
     Controller, ControllerContext, CustomPropertyMap, HysteresisStateMap,
 };
@@ -384,7 +384,7 @@ impl LogicMappingTable {
         // These actuators are stored internally for evaluation
         // In a real implementation, they would be passed in or registered
         let mut highlight = HighlightActuator::new();
-        let mut select = SelectActuator::new();
+        let mut select = BatchSelectActuator::new();
         let _move_actuator = MoveActuator::new();
 
         // Prepare controller context (for stateful controllers like Hysteresis)
@@ -430,7 +430,9 @@ impl LogicMappingTable {
                             .map(|(_, signal)| signal.is_steady_high(6))
                             .unwrap_or(false);
 
-                        let _ = select.update(store, entity, active, SelectMode::Single);
+                        // Build single-entity vector for batch selection
+                        let entities = alloc::vec![entity];
+                        let _ = select.execute(store, &entities, SelectMode::Single);
                         executed_count += 1;
                     }
 
