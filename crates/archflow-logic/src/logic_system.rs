@@ -208,6 +208,51 @@ impl LogicSystem {
         self.event_buffer.push(event);
     }
 
+    /// Poll all events from the buffer and clear it
+    ///
+    /// This is the main interface for JavaScript to receive events.
+    /// Should be called once per frame to drain all accumulated events.
+    ///
+    /// # Returns
+    ///
+    /// A vector containing all events that occurred since the last poll.
+    /// The returned vector is owned by the caller.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// // In JS polling loop (one per frame)
+    /// let events = logic_system.poll_events();
+    ///
+    /// for event in events {
+    ///     match event.event_type {
+    ///         LogicEventType::EntitySelected => { /* handle selection */ }
+    ///         LogicEventType::ProximityAlert => { /* handle proximity */ }
+    ///         _ => { /* handle other events */ }
+    ///     }
+    /// }
+    /// ```
+    #[inline(always)]
+    pub fn poll_events(&mut self) -> Vec<LogicEvent> {
+        self.event_buffer.drain()
+    }
+
+    /// Check if there are any events waiting to be polled
+    ///
+    /// # Returns
+    ///
+    /// `true` if there are events in the buffer
+    #[inline(always)]
+    pub fn has_events(&self) -> bool {
+        !self.event_buffer.is_empty()
+    }
+
+    /// Get the number of events waiting to be polled
+    #[inline(always)]
+    pub fn pending_event_count(&self) -> usize {
+        self.event_buffer.len()
+    }
+
     /// Handle entity destruction - cleans up sensor state and emits event
     ///
     /// This method should be called when an entity is destroyed to:
@@ -443,7 +488,7 @@ impl LogicSystem {
     /// Execute actuators based on pulses
     ///
     /// This processes all pulses and executes the connected actuators
-    pub fn execute_actuators(&mut self, _store: &mut EntityStore, pulses: &[Pulse]) {
+    pub fn execute_actuators(&mut self, store: &mut EntityStore, pulses: &[Pulse]) {
         #[cfg(feature = "tracing")]
         debug!(
             target: "archflow::logic::actuators",
@@ -459,7 +504,28 @@ impl LogicSystem {
                 "Processing pulse"
             );
             // Process each pulse through the wiring table
-            // This will be implemented when we have the full wiring table
+            // TODO: Implement full wiring table integration
+            //
+            // Event emission integration points:
+            //
+            // When BatchSelectActuator completes:
+            //   - Emit EntitySelected for each entity whose selection changed
+            //   - Or emit BoxSelectionCompleted for batch operations
+            //
+            // Example integration when wiring is implemented:
+            //   if let Some(controller) = self.wiring.get_controller(pulse.controller_id) {
+            //       controller.execute(store, &mut |event_type, entity_id| {
+            //           match event_type {
+            //               ActuatorEventType::SelectionChanged => {
+            //                   self.emit_entity_selected(entity_id);
+            //               }
+            //               ActuatorEventType::DragStarted => {
+            //                   self.emit_drag_started(entity_id, ...);
+            //               }
+            //               _ => {}
+            //           }
+            //       });
+            //   }
         }
 
         #[cfg(feature = "tracing")]
