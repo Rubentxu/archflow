@@ -202,6 +202,14 @@ impl ArchFlowEngine {
     /// PHASE IMPLEMENTATIONS
     /// ═══════════════════════════════════════════════════════════════════════════
 
+    /// Flush all pending commands from the queue
+    ///
+    /// This is called automatically by `tick()`, but can be called manually
+    /// if you need immediate command execution.
+    pub fn flush_commands(&mut self) {
+        self.execute_commands();
+    }
+
     fn execute_commands(&mut self) {
         // Drain all commands from the queue
         let commands = self.command_queue.drain();
