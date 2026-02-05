@@ -369,6 +369,49 @@ pub enum Command {
     } = 23,
 
     // ═══════════════════════════════════════════════════════════════════════════════
+    // ANCHOR VISIBILITY (US-041 - Connection Points)
+    // ═══════════════════════════════════════════════════════════════════════════════
+    /// Show anchor points for an entity
+    ShowAnchor {
+        /// Entity to show anchors for
+        entity_id: EntityId,
+        /// Anchor index (0-7)
+        anchor_index: u8,
+        /// World position of anchor
+        position: Vec2,
+        /// Dot radius
+        radius: f32,
+        /// ARGB color
+        color: u32,
+    } = 24,
+
+    /// Hide all anchor points for an entity
+    HideAnchors {
+        /// Entity to hide anchors for
+        entity_id: EntityId,
+    } = 25,
+
+    /// Highlight a specific anchor point
+    HighlightAnchor {
+        /// Entity with anchor
+        entity_id: EntityId,
+        /// Anchor index to highlight
+        anchor_index: u8,
+        /// World position
+        position: Vec2,
+        /// Highlight radius
+        radius: f32,
+        /// Highlight color (ARGB)
+        color: u32,
+    } = 26,
+
+    /// Clear anchor highlight
+    ClearAnchorHighlight {
+        /// Entity to clear highlight for
+        entity_id: EntityId,
+    } = 27,
+
+    // ═══════════════════════════════════════════════════════════════════════════════
     // Z-ORDER (TEMA 5)
     // ═══════════════════════════════════════════════════════════════════════════════
     /// Change entity z-order (draw order)
@@ -379,7 +422,7 @@ pub enum Command {
         old_z_index: usize,
         /// New z-index in draw_order
         new_z_index: usize,
-    } = 24,
+    } = 28,
 
     /// Maximum discriminant value (ensures enum fits in u8)
     _Max = 255,
@@ -417,7 +460,11 @@ impl Command {
             Command::DeleteConnection { .. }
             | Command::UpdateConnectionPath { .. }
             | Command::UnbindConnection { .. }
-            | Command::SetConnectionLabel { .. } => None,
+            | Command::SetConnectionLabel { .. }
+            | Command::ShowAnchor { .. }
+            | Command::HideAnchors { .. }
+            | Command::HighlightAnchor { .. }
+            | Command::ClearAnchorHighlight { .. } => None,
             Command::ZOrder { entity, .. } => Some(*entity),
             Command::_Max => None,
         }
@@ -613,6 +660,11 @@ impl Command {
             Command::UnbindConnection { .. } => None,
             // SetConnectionLabel → Need original label hash (not stored)
             Command::SetConnectionLabel { .. } => None,
+            // ShowAnchor/HideAnchors/HighlightAnchor → Visual-only, not reversible
+            Command::ShowAnchor { .. }
+            | Command::HideAnchors { .. }
+            | Command::HighlightAnchor { .. }
+            | Command::ClearAnchorHighlight { .. } => None,
             // ZOrder → Reverse by swapping old and new z-indices
             Command::ZOrder {
                 entity,
@@ -749,6 +801,11 @@ impl Command {
             } => {
                 store.set_connection_label(*connection_id, *label_hash);
             }
+            // Anchor visibility commands - visual-only, handled by renderer
+            Command::ShowAnchor { .. }
+            | Command::HideAnchors { .. }
+            | Command::HighlightAnchor { .. }
+            | Command::ClearAnchorHighlight { .. } => {}
             Command::ZOrder {
                 entity,
                 old_z_index: _,

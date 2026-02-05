@@ -20,7 +20,9 @@ pub mod highlight;
 pub mod message;
 pub mod move_;
 pub mod property;
+pub mod selection;
 pub mod state;
+pub mod swimlane;
 pub mod z_order;
 
 pub use alignment::{Alignment, AlignmentActuator, DistributionActuator, DistributionAxis};
@@ -33,8 +35,10 @@ pub use clipboard::{
     DuplicateActuator, PasteActuator,
 };
 pub use connections::{
-    AnchorConfig, AnchorPoint, ArrowBindActuator, AutoRouteActuator, ConnectionLabelActuator,
-    ConnectionStyle, ElbowConfig, ElbowRoutingActuator,
+    AnchorConfig, AnchorPoint, AnchorVisibilityActuator, AnchorVisibilityState, AnchorVisualConfig,
+    ArrowBindActuator, AutoRouteActuator, ConnectionLabelActuator, ConnectionStyle, ElbowConfig,
+    ElbowRoutingActuator, PathOptimizationActuator, PathOptimizationConfig, PathOptimizationResult,
+    PathOptimizationState,
 };
 pub use container::{ContainerActuator, ContainerOp, ContainerOpData};
 pub use gizmos::{
@@ -46,8 +50,12 @@ pub use highlight::HighlightActuator;
 pub use message::{Message, MessageActuator, MessageBus, MessagePayload};
 pub use move_::MoveActuator;
 pub use property::{Property, PropertyActuator};
+pub use selection::{
+    SelectActuator, SelectionConfig, SelectionMode, SelectionResult, SelectionState,
+};
 pub use state::{
     EntityState, StateActuator, StateBitset, StateId, StateMachine, StateManager, StateTransition,
     StateTransitionTable,
 };
+pub use swimlane::{SwimlaneActuator, SwimlaneConfig, SwimlaneOp, SwimlaneOrientation};
 pub use z_order::{ZOrderActuator, ZOrderDirection, ZOrderOp};

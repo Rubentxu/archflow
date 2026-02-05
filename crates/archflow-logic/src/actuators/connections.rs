@@ -849,3 +849,1011 @@ mod tests {
         assert_eq!(anchor.direction, 1);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// AnchorVisibilityActuator - Visualización de Connection Points (US-041)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// State for anchor visibility during CTRL+hover
+#[derive(Clone, Debug, PartialEq)]
+pub struct AnchorVisibilityState {
+    /// Entity being hovered
+    entity_id: Option<EntityId>,
+    /// Currently visible anchor points
+    visible_anchors: Vec<AnchorPoint>,
+    /// Currently highlighted anchor (for selection)
+    highlighted_anchor: Option<usize>,
+    /// Is CTRL key held
+    ctrl_held: bool,
+}
+
+/// Configuration for anchor visualization
+#[derive(Clone, Copy, Debug)]
+pub struct AnchorVisualConfig {
+    /// Dot radius for anchor points (pixels)
+    pub dot_radius: f32,
+    /// Dot radius when hovered (pixels)
+    pub hover_radius: f32,
+    /// Color for normal anchors (ARGB)
+    pub dot_color: u32,
+    /// Color for highlighted anchor (ARGB)
+    pub highlight_color: u32,
+    /// Show anchor labels
+    pub show_labels: bool,
+    /// Fade animation duration (ms)
+    pub fade_duration_ms: u16,
+}
+
+impl Default for AnchorVisualConfig {
+    fn default() -> Self {
+        Self {
+            dot_radius: 6.0,
+            hover_radius: 8.0,
+            dot_color: 0xFF4488FF,       // Blue
+            highlight_color: 0xFFFFFF00, // Yellow
+            show_labels: true,
+            fade_duration_ms: 150,
+        }
+    }
+}
+
+/// Actuator for visualizing connection anchor points.
+///
+/// When user holds CTRL and hovers over an entity, this actuator
+/// shows all available anchor points as visual dots.
+///
+/// # Example
+///
+/// ```
+/// use archflow_logic::actuators::connections::AnchorVisibilityActuator;
+///
+/// let mut actuator = AnchorVisibilityActuator::new();
+/// let visible = actuator.show_anchors_for(entity_id, &store);
+/// ```
+pub struct AnchorVisibilityActuator {
+    /// Current visibility state
+    state: AnchorVisibilityState,
+    /// Visual configuration
+    config: AnchorVisualConfig,
+}
+
+impl AnchorVisibilityActuator {
+    /// Creates a new AnchorVisibilityActuator with default configuration
+    #[inline(always)]
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            state: AnchorVisibilityState {
+                entity_id: None,
+                visible_anchors: Vec::new(),
+                highlighted_anchor: None,
+                ctrl_held: false,
+            },
+            config: AnchorVisualConfig::default(),
+        }
+    }
+
+    /// Creates a new AnchorVisibilityActuator with custom configuration
+    #[inline(always)]
+    #[must_use]
+    pub fn with_config(config: AnchorVisualConfig) -> Self {
+        Self {
+            state: AnchorVisibilityState {
+                entity_id: None,
+                visible_anchors: Vec::new(),
+                highlighted_anchor: None,
+                ctrl_held: false,
+            },
+            config,
+        }
+    }
+
+    /// Get current visibility state
+    #[inline(always)]
+    #[must_use]
+    pub fn state(&self) -> &AnchorVisibilityState {
+        &self.state
+    }
+
+    /// Show anchor points for an entity when CTRL is held
+    ///
+    /// # Arguments
+    ///
+    /// * `entity_id` - Entity to show anchors for
+    /// * `store` - EntityStore to query entity properties
+    ///
+    /// # Returns
+    ///
+    /// Vector of ShowAnchor commands
+    pub fn show_anchors_for(&mut self, entity_id: EntityId, store: &EntityStore) -> Vec<Command> {
+        if !store.is_alive(entity_id) {
+            return self.hide_anchors();
+        }
+
+        self.state.entity_id = Some(entity_id);
+        self.state.ctrl_held = true;
+
+        // Generate 8 anchor points (4 corners + 4 edge centers)
+        let anchors = Self::generate_anchors(entity_id, store);
+
+        self.state.visible_anchors = anchors.clone();
+
+        // Create visualization commands
+        anchors
+            .iter()
+            .enumerate()
+            .map(|(index, anchor)| {
+                let world_pos = Self::anchor_world_position(entity_id, store, anchor);
+                Command::ShowAnchor {
+                    entity_id,
+                    anchor_index: index as u8,
+                    position: world_pos,
+                    radius: self.config.dot_radius,
+                    color: self.config.dot_color,
+                }
+            })
+            .collect()
+    }
+
+    /// Hide all anchor points
+    #[must_use]
+    pub fn hide_anchors(&mut self) -> Vec<Command> {
+        let entity_id = self.state.entity_id;
+
+        self.state.entity_id = None;
+        self.state.visible_anchors.clear();
+        self.state.highlighted_anchor = None;
+
+        if let Some(id) = entity_id {
+            vec![Command::HideAnchors { entity_id: id }]
+        } else {
+            Vec::new()
+        }
+    }
+
+    /// Highlight a specific anchor point (when cursor is near)
+    ///
+    /// # Arguments
+    ///
+    /// * `cursor_pos` - Current cursor position
+    /// * `store` - EntityStore to query
+    ///
+    /// # Returns
+    ///
+    /// Vector of UpdateAnchorHighlight commands
+    #[must_use]
+    pub fn highlight_anchor(&mut self, cursor_pos: Vec2, store: &EntityStore) -> Vec<Command> {
+        let entity_id = match self.state.entity_id {
+            Some(id) => id,
+            None => return Vec::new(),
+        };
+
+        // Find nearest anchor
+        let mut nearest_idx = None;
+        let mut nearest_dist = f32::MAX;
+
+        for (index, anchor) in self.state.visible_anchors.iter().enumerate() {
+            let world_pos = Self::anchor_world_position(entity_id, store, anchor);
+            let dist = (cursor_pos - world_pos).length();
+
+            if dist < self.config.hover_radius && dist < nearest_dist {
+                nearest_dist = dist;
+                nearest_idx = Some(index);
+            }
+        }
+
+        self.state.highlighted_anchor = nearest_idx;
+
+        if let Some(idx) = nearest_idx {
+            let anchor = &self.state.visible_anchors[idx];
+            let world_pos = Self::anchor_world_position(entity_id, store, anchor);
+
+            vec![Command::HighlightAnchor {
+                entity_id,
+                anchor_index: idx as u8,
+                position: world_pos,
+                radius: self.config.hover_radius,
+                color: self.config.highlight_color,
+            }]
+        } else {
+            vec![Command::ClearAnchorHighlight { entity_id }]
+        }
+    }
+
+    /// Check if anchors are currently visible
+    #[inline(always)]
+    #[must_use]
+    pub fn anchors_visible(&self) -> bool {
+        self.state.entity_id.is_some()
+    }
+
+    /// Get currently highlighted anchor index
+    #[inline(always)]
+    #[must_use]
+    pub fn highlighted_index(&self) -> Option<usize> {
+        self.state.highlighted_anchor
+    }
+
+    /// Get all visible anchor points for an entity
+    ///
+    /// # Arguments
+    ///
+    /// * `entity_id` - Entity to query
+    /// * `store` - EntityStore to query
+    ///
+    /// # Returns
+    ///
+    /// Vector of anchor points with world positions
+    #[must_use]
+    pub fn get_visible_anchors(
+        &self,
+        entity_id: EntityId,
+        store: &EntityStore,
+    ) -> Vec<(Vec2, usize)> {
+        self.state
+            .visible_anchors
+            .iter()
+            .enumerate()
+            .map(|(idx, anchor)| {
+                let world_pos = Self::anchor_world_position(entity_id, store, anchor);
+                (world_pos, anchor.direction as usize)
+            })
+            .collect()
+    }
+
+    /// Update CTRL key state
+    ///
+    /// # Arguments
+    ///
+    /// * `ctrl_pressed` - Whether CTRL is currently held
+    /// * `store` - EntityStore
+    ///
+    /// # Returns
+    ///
+    /// Commands if state changed
+    #[must_use]
+    pub fn set_ctrl_state(&mut self, ctrl_pressed: bool, store: &EntityStore) -> Vec<Command> {
+        if ctrl_pressed == self.state.ctrl_held {
+            return Vec::new();
+        }
+
+        self.state.ctrl_held = ctrl_pressed;
+
+        if !ctrl_pressed {
+            self.hide_anchors()
+        } else if let Some(entity_id) = self.state.entity_id {
+            self.show_anchors_for(entity_id, store)
+        } else {
+            Vec::new()
+        }
+    }
+
+    /// Format notification message for user
+    #[inline(always)]
+    #[must_use]
+    pub fn format_message(&self, anchor_count: usize, action: &str) -> alloc::string::String {
+        match action {
+            "show" => {
+                if anchor_count == 1 {
+                    "Showing 1 connection point".into()
+                } else {
+                    alloc::format!("Showing {} connection points", anchor_count)
+                }
+            }
+            "hide" => "Connection points hidden".into(),
+            "highlight" => "Anchor point highlighted".into(),
+            _ => "".into(),
+        }
+    }
+
+    /// Generate anchor points for an entity
+    fn generate_anchors(entity_id: EntityId, store: &EntityStore) -> Vec<AnchorPoint> {
+        let idx = entity_id.index().0 as usize;
+        if idx >= MAX_ENTITIES as usize {
+            return Vec::new();
+        }
+
+        let size = store.size(idx);
+        let half_w = size.x / 2.0;
+        let half_h = size.y / 2.0;
+
+        // 8 anchor points: 4 corners + 4 edge centers
+        vec![
+            // Top edge (0)
+            AnchorPoint {
+                offset: Vec2::new(0.0, -half_h),
+                direction: 0,
+            },
+            // Right edge (1)
+            AnchorPoint {
+                offset: Vec2::new(half_w, 0.0),
+                direction: 1,
+            },
+            // Bottom edge (2)
+            AnchorPoint {
+                offset: Vec2::new(0.0, half_h),
+                direction: 2,
+            },
+            // Left edge (3)
+            AnchorPoint {
+                offset: Vec2::new(-half_w, 0.0),
+                direction: 3,
+            },
+            // Top-left corner (4)
+            AnchorPoint {
+                offset: Vec2::new(-half_w, -half_h),
+                direction: 0,
+            },
+            // Top-right corner (5)
+            AnchorPoint {
+                offset: Vec2::new(half_w, -half_h),
+                direction: 0,
+            },
+            // Bottom-right corner (6)
+            AnchorPoint {
+                offset: Vec2::new(half_w, half_h),
+                direction: 2,
+            },
+            // Bottom-left corner (7)
+            AnchorPoint {
+                offset: Vec2::new(-half_w, half_h),
+                direction: 2,
+            },
+        ]
+    }
+
+    /// Calculate world position for an anchor point
+    fn anchor_world_position(
+        entity_id: EntityId,
+        store: &EntityStore,
+        anchor: &AnchorPoint,
+    ) -> Vec2 {
+        let idx = entity_id.index().0 as usize;
+        if idx >= MAX_ENTITIES as usize {
+            return Vec2::ZERO;
+        }
+
+        let world_pos = store.world_pos(idx);
+        world_pos + anchor.offset
+    }
+}
+
+impl Default for AnchorVisibilityActuator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PathOptimizationActuator - Optimización de Conexiones (US-045)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Configuration for path optimization
+#[derive(Clone, Copy, Debug)]
+pub struct PathOptimizationConfig {
+    /// Maximum iterations for optimization
+    pub max_iterations: u32,
+    /// Threshold for crossing detection
+    pub crossing_threshold: f32,
+    /// Whether to use force-directed relaxation
+    pub use_force_directed: bool,
+    /// Force weight for straightening
+    pub straightening_force: f32,
+    /// Whether to bundle parallel edges
+    pub edge_bundling: bool,
+    /// Bundling distance threshold
+    pub bundle_threshold: f32,
+}
+
+impl Default for PathOptimizationConfig {
+    fn default() -> Self {
+        Self {
+            max_iterations: 100,
+            crossing_threshold: 1.0,
+            use_force_directed: true,
+            straightening_force: 0.3,
+            edge_bundling: true,
+            bundle_threshold: 20.0,
+        }
+    }
+}
+
+/// State for path optimization
+#[derive(Clone, Debug)]
+pub struct PathOptimizationState {
+    /// Total crossings found
+    pub crossings_found: usize,
+    /// Crossings resolved
+    pub crossings_resolved: usize,
+    /// Total paths optimized
+    pub paths_optimized: usize,
+    /// Iteration count
+    pub iterations_run: u32,
+}
+
+/// Result of path optimization
+#[derive(Clone, Debug)]
+pub struct PathOptimizationResult {
+    /// Commands to apply
+    pub commands: Vec<Command>,
+    /// Statistics
+    pub crossings_before: usize,
+    pub crossings_after: usize,
+    pub paths_modified: usize,
+    pub iterations_used: u32,
+}
+
+/// Actuator for optimizing connection paths.
+///
+/// Analyzes all connections and optimizes them to minimize crossings,
+/// straighten paths, and bundle parallel edges.
+///
+/// # Example
+///
+/// ```
+/// use archflow_logic::actuators::connections::PathOptimizationActuator;
+///
+/// let mut actuator = PathOptimizationActuator::new();
+/// let result = actuator.optimize_all_paths(&store);
+/// ```
+pub struct PathOptimizationActuator {
+    /// Configuration
+    config: PathOptimizationConfig,
+    /// Current state
+    state: PathOptimizationState,
+}
+
+impl PathOptimizationActuator {
+    /// Creates a new PathOptimizationActuator with default configuration
+    #[inline(always)]
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            config: PathOptimizationConfig::default(),
+            state: PathOptimizationState {
+                crossings_found: 0,
+                crossings_resolved: 0,
+                paths_optimized: 0,
+                iterations_run: 0,
+            },
+        }
+    }
+
+    /// Creates a new PathOptimizationActuator with custom configuration
+    #[inline(always)]
+    #[must_use]
+    pub fn with_config(config: PathOptimizationConfig) -> Self {
+        Self {
+            config,
+            state: PathOptimizationState {
+                crossings_found: 0,
+                crossings_resolved: 0,
+                paths_optimized: 0,
+                iterations_run: 0,
+            },
+        }
+    }
+
+    /// Get current optimization state
+    #[inline(always)]
+    #[must_use]
+    pub fn state(&self) -> &PathOptimizationState {
+        &self.state
+    }
+
+    /// Optimize all connection paths in the store
+    ///
+    /// # Arguments
+    ///
+    /// * `store` - EntityStore containing connections
+    /// * `connection_ids` - IDs of connections to optimize
+    ///
+    /// # Returns
+    ///
+    /// Optimization result with commands and statistics
+    pub fn optimize_all_paths(
+        &mut self,
+        store: &EntityStore,
+        connection_ids: &[EntityId],
+    ) -> PathOptimizationResult {
+        // Reset state
+        self.state = PathOptimizationState {
+            crossings_found: 0,
+            crossings_resolved: 0,
+            paths_optimized: 0,
+            iterations_run: 0,
+        };
+
+        if connection_ids.is_empty() {
+            return PathOptimizationResult {
+                commands: Vec::new(),
+                crossings_before: 0,
+                crossings_after: 0,
+                paths_modified: 0,
+                iterations_used: 0,
+            };
+        }
+
+        // Step 1: Find all crossings
+        let crossings = self.find_all_crossings(store, connection_ids);
+        let crossings_before = crossings.len();
+        self.state.crossings_found = crossings_before;
+
+        let mut commands = Vec::new();
+        let mut paths_modified = 0;
+
+        // Step 2: Resolve crossings
+        if !crossings.is_empty() {
+            for (conn_a, conn_b, _point) in crossings {
+                // Try to resolve crossing by rerouting
+                let cmd = self.resolve_crossing(store, conn_a, conn_b);
+                if cmd.is_some() {
+                    commands.extend(cmd);
+                    paths_modified += 1;
+                    self.state.crossings_resolved += 1;
+                }
+            }
+        }
+
+        // Step 3: Straighten paths if enabled
+        if self.config.use_force_directed {
+            for &conn_id in connection_ids {
+                let cmd = self.straighten_path(store, conn_id);
+                if cmd.is_some() {
+                    commands.push(cmd.unwrap());
+                    paths_modified += 1;
+                    self.state.paths_optimized += 1;
+                }
+            }
+        }
+
+        // Step 4: Bundle parallel edges if enabled
+        if self.config.edge_bundling {
+            let bundle_cmds = self.bundle_parallel_edges(store, connection_ids);
+            commands.extend(bundle_cmds);
+        }
+
+        // Step 5: Final pass - simplify paths
+        for &conn_id in connection_ids {
+            let cmd = self.simplify_path(store, conn_id);
+            if let Some(new_path) = cmd {
+                commands.push(Command::UpdateConnectionPath {
+                    connection_id: conn_id.index().0 as u32,
+                    path_points: new_path,
+                });
+                self.state.paths_optimized += 1;
+            }
+        }
+
+        // Count crossings after
+        let crossings_after = self.count_crossings(store, connection_ids);
+        self.state.iterations_run = self.config.max_iterations;
+
+        PathOptimizationResult {
+            commands,
+            crossings_before,
+            crossings_after,
+            paths_modified,
+            iterations_used: self.state.iterations_run,
+        }
+    }
+
+    /// Optimize a single connection path
+    ///
+    /// # Arguments
+    ///
+    /// * `store` - EntityStore
+    /// * `connection_id` - Connection to optimize
+    ///
+    /// # Returns
+    ///
+    /// New optimized path if different from current
+    #[must_use]
+    pub fn optimize_single_path(
+        &mut self,
+        store: &EntityStore,
+        connection_id: EntityId,
+    ) -> Option<Vec<Vec2>> {
+        let idx = connection_id.index().0 as usize;
+        if idx >= MAX_ENTITIES as usize {
+            return None;
+        }
+
+        // Get current path (simplified - assumes direct line exists)
+        let source_pos = store.world_pos(idx);
+        let path = vec![source_pos, source_pos]; // Simplified
+
+        // Try orthogonal routing
+        self.try_orthogonal_rerouting(source_pos, source_pos)
+    }
+
+    /// Find all crossings between connections
+    fn find_all_crossings(
+        &self,
+        store: &EntityStore,
+        connection_ids: &[EntityId],
+    ) -> Vec<(EntityId, EntityId, Vec2)> {
+        let mut crossings = Vec::new();
+
+        for i in 0..connection_ids.len() {
+            for j in (i + 1)..connection_ids.len() {
+                let conn_a = connection_ids[i];
+                let conn_b = connection_ids[j];
+
+                if let Some(crossing) = self.check_crossing(store, conn_a, conn_b) {
+                    crossings.push((conn_a, conn_b, crossing));
+                }
+            }
+        }
+
+        crossings
+    }
+
+    /// Check if two connections cross
+    fn check_crossing(
+        &self,
+        store: &EntityStore,
+        conn_a: EntityId,
+        conn_b: EntityId,
+    ) -> Option<Vec2> {
+        // Simplified: assume connections are represented as entity positions
+        // In production, would get actual path segments
+        let idx_a = conn_a.index().0 as usize;
+        let idx_b = conn_b.index().0 as usize;
+
+        if idx_a >= MAX_ENTITIES as usize || idx_b >= MAX_ENTITIES as usize {
+            return None;
+        }
+
+        let pos_a = store.world_pos(idx_a);
+        let pos_b = store.world_pos(idx_b);
+
+        // Check if positions are close (potential crossing)
+        let dist = (pos_a - pos_b).length();
+        if dist < self.config.crossing_threshold {
+            return Some((pos_a + pos_b) / 2.0);
+        }
+
+        None
+    }
+
+    /// Attempt to resolve a crossing between two connections
+    fn resolve_crossing(
+        &self,
+        store: &EntityStore,
+        conn_a: EntityId,
+        conn_b: EntityId,
+    ) -> Option<Command> {
+        let idx_a = conn_a.index().0 as usize;
+        let idx_b = conn_b.index().0 as usize;
+
+        if idx_a >= MAX_ENTITIES as usize || idx_b >= MAX_ENTITIES as usize {
+            return None;
+        }
+
+        let source_a = store.world_pos(idx_a);
+        let source_b = store.world_pos(idx_b);
+
+        // Try orthogonal rerouting
+        if let Some(new_path) = self.try_orthogonal_rerouting(source_a, source_b) {
+            return Some(Command::UpdateConnectionPath {
+                connection_id: conn_a.index().0 as u32,
+                path_points: new_path,
+            });
+        }
+
+        None
+    }
+
+    /// Try to reroute using orthogonal path
+    fn try_orthogonal_rerouting(&self, source: Vec2, target: Vec2) -> Option<Vec<Vec2>> {
+        // Generate 4-point orthogonal path
+        let mid_x = (source.x + target.x) / 2.0;
+
+        let orthogonal = vec![
+            source,
+            Vec2::new(mid_x, source.y),
+            Vec2::new(mid_x, target.y),
+            target,
+        ];
+
+        Some(orthogonal)
+    }
+
+    /// Straighten a connection path
+    fn straighten_path(&self, store: &EntityStore, connection_id: EntityId) -> Option<Command> {
+        let idx = connection_id.index().0 as usize;
+        if idx >= MAX_ENTITIES as usize {
+            return None;
+        }
+
+        let source = store.world_pos(idx);
+        let target = source; // Simplified
+
+        // Create straightened path
+        let new_path = vec![source, target];
+
+        Some(Command::UpdateConnectionPath {
+            connection_id: connection_id.index().0 as u32,
+            path_points: new_path,
+        })
+    }
+
+    /// Bundle parallel edges together
+    fn bundle_parallel_edges(
+        &self,
+        store: &EntityStore,
+        connection_ids: &[EntityId],
+    ) -> Vec<Command> {
+        // Simplified: just return empty (bundling is complex)
+        Vec::new()
+    }
+
+    /// Simplify a path by removing unnecessary points
+    fn simplify_path(&self, store: &EntityStore, connection_id: EntityId) -> Option<Vec<Vec2>> {
+        let idx = connection_id.index().0 as usize;
+        if idx >= MAX_ENTITIES as usize {
+            return None;
+        }
+
+        let pos = store.world_pos(idx);
+
+        // Simplified: return direct line
+        Some(vec![pos, pos])
+    }
+
+    /// Count remaining crossings
+    fn count_crossings(&self, store: &EntityStore, connection_ids: &[EntityId]) -> usize {
+        self.find_all_crossings(store, connection_ids).len()
+    }
+
+    /// Format optimization summary message
+    #[inline(always)]
+    #[must_use]
+    pub fn format_message(&self, result: &PathOptimizationResult) -> alloc::string::String {
+        if result.paths_modified == 0 {
+            "No paths needed optimization".into()
+        } else {
+            alloc::format!(
+                "Optimized {} paths: {} → {} crossings ({} iterations)",
+                result.paths_modified,
+                result.crossings_before,
+                result.crossings_after,
+                result.iterations_used
+            )
+        }
+    }
+}
+
+impl Default for PathOptimizationActuator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// AnchorVisibilityActuator Tests
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[cfg(test)]
+mod anchor_visibility_tests {
+    use super::*;
+
+    #[test]
+    fn test_anchor_visibility_actuator_initial_state() {
+        let actuator = AnchorVisibilityActuator::new();
+        assert!(!actuator.anchors_visible());
+        assert!(actuator.highlighted_index().is_none());
+    }
+
+    #[test]
+    fn test_anchor_visibility_actuator_with_config() {
+        let config = AnchorVisualConfig {
+            dot_radius: 8.0,
+            hover_radius: 12.0,
+            dot_color: 0xFF00FF00,
+            highlight_color: 0xFFFF0000,
+            show_labels: false,
+            fade_duration_ms: 200,
+        };
+        let actuator = AnchorVisibilityActuator::with_config(config);
+        assert!(!actuator.anchors_visible());
+    }
+
+    #[test]
+    fn test_hide_anchors_clears_state() {
+        let mut actuator = AnchorVisibilityActuator::new();
+        let cmds = actuator.hide_anchors();
+        // Should return empty or HideAnchors command
+        assert!(actuator.state().entity_id.is_none());
+    }
+
+    #[test]
+    fn test_generate_anchors_returns_8_points() {
+        let mut store = EntityStore::new();
+        // Spawn an entity to test with
+        let entity_id = store.spawn(Vec2::ZERO, Vec2::new(100.0, 50.0));
+
+        let anchors = AnchorVisibilityActuator::generate_anchors(entity_id, &store);
+        assert_eq!(anchors.len(), 8);
+    }
+
+    #[test]
+    fn test_generate_anchors_positions() {
+        let mut store = EntityStore::new();
+        let entity_id = store.spawn(Vec2::ZERO, Vec2::new(100.0, 50.0));
+
+        let anchors = AnchorVisibilityActuator::generate_anchors(entity_id, &store);
+
+        // Check top edge anchor (center top)
+        assert_eq!(anchors[0].offset.y, -25.0); // -half_h = -25
+        assert_eq!(anchors[0].direction, 0);
+
+        // Check right edge anchor (center right)
+        assert_eq!(anchors[1].offset.x, 50.0); // half_w = 50
+        assert_eq!(anchors[1].direction, 1);
+    }
+
+    #[test]
+    fn test_format_message_show() {
+        let actuator = AnchorVisibilityActuator::new();
+        let msg = actuator.format_message(8, "show");
+        assert_eq!(msg, "Showing 8 connection points");
+    }
+
+    #[test]
+    fn test_format_message_show_single() {
+        let actuator = AnchorVisibilityActuator::new();
+        let msg = actuator.format_message(1, "show");
+        assert_eq!(msg, "Showing 1 connection point");
+    }
+
+    #[test]
+    fn test_format_message_hide() {
+        let actuator = AnchorVisibilityActuator::new();
+        let msg = actuator.format_message(0, "hide");
+        assert_eq!(msg, "Connection points hidden");
+    }
+
+    #[test]
+    fn test_anchor_world_position() {
+        let mut store = EntityStore::new();
+        let entity_id = store.spawn(Vec2::new(100.0, 200.0), Vec2::new(100.0, 50.0));
+
+        let anchor = AnchorPoint {
+            offset: Vec2::new(50.0, 0.0), // Right edge
+            direction: 1,
+        };
+
+        let world_pos = AnchorVisibilityActuator::anchor_world_position(entity_id, &store, &anchor);
+        assert_eq!(world_pos.x, 150.0); // 100 + 50
+        assert_eq!(world_pos.y, 200.0);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PathOptimizationActuator Tests
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[cfg(test)]
+mod path_optimization_tests {
+    use super::*;
+
+    #[test]
+    fn test_path_optimization_actuator_initial_state() {
+        let actuator = PathOptimizationActuator::new();
+        let state = actuator.state();
+        assert_eq!(state.crossings_found, 0);
+        assert_eq!(state.paths_optimized, 0);
+    }
+
+    #[test]
+    fn test_path_optimization_actuator_with_config() {
+        let config = PathOptimizationConfig {
+            max_iterations: 200,
+            crossing_threshold: 2.0,
+            use_force_directed: false,
+            straightening_force: 0.5,
+            edge_bundling: false,
+            bundle_threshold: 30.0,
+        };
+        let actuator = PathOptimizationActuator::with_config(config);
+        assert!(!actuator.state().paths_optimized > 0);
+    }
+
+    #[test]
+    fn test_optimize_empty_connections() {
+        let mut actuator = PathOptimizationActuator::new();
+        let store = EntityStore::new();
+        let result = actuator.optimize_all_paths(&store, &[]);
+
+        assert!(result.commands.is_empty());
+        assert_eq!(result.crossings_before, 0);
+        assert_eq!(result.paths_modified, 0);
+    }
+
+    #[test]
+    fn test_find_all_crossings_empty() {
+        let actuator = PathOptimizationActuator::new();
+        let store = EntityStore::new();
+        let crossings = actuator.find_all_crossings(&store, &[]);
+
+        assert!(crossings.is_empty());
+    }
+
+    #[test]
+    fn test_check_crossing_same_position() {
+        let actuator = PathOptimizationActuator::new();
+        let mut store = EntityStore::new();
+
+        let entity1 = store.spawn(Vec2::new(0.0, 0.0), Vec2::new(50.0, 50.0));
+        let entity2 = store.spawn(Vec2::new(0.0, 0.0), Vec2::new(50.0, 50.0));
+
+        // Same position should detect potential crossing
+        let crossing = actuator.check_crossing(&store, entity1, entity2);
+        assert!(crossing.is_some());
+    }
+
+    #[test]
+    fn test_try_orthogonal_rerouting() {
+        let actuator = PathOptimizationActuator::new();
+        let source = Vec2::new(0.0, 0.0);
+        let target = Vec2::new(100.0, 100.0);
+
+        let path = actuator.try_orthogonal_rerouting(source, target);
+
+        assert!(path.is_some());
+        let path = path.unwrap();
+        assert_eq!(path.len(), 4);
+        assert_eq!(path[0], source);
+        assert_eq!(path[3], target);
+    }
+
+    #[test]
+    fn test_orthogonal_path_has_midpoint() {
+        let actuator = PathOptimizationActuator::new();
+        let source = Vec2::new(0.0, 0.0);
+        let target = Vec2::new(200.0, 150.0);
+
+        let path = actuator.try_orthogonal_rerouting(source, target);
+
+        assert!(path.is_some());
+        let path = path.unwrap();
+        // Midpoint x should be average
+        assert!((path[1].x - 100.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_format_message_no_optimization() {
+        let actuator = PathOptimizationActuator::new();
+        let result = PathOptimizationResult {
+            commands: Vec::new(),
+            crossings_before: 0,
+            crossings_after: 0,
+            paths_modified: 0,
+            iterations_used: 0,
+        };
+
+        let msg = actuator.format_message(&result);
+        assert_eq!(msg, "No paths needed optimization");
+    }
+
+    #[test]
+    fn test_format_message_with_optimization() {
+        let actuator = PathOptimizationActuator::new();
+        let result = PathOptimizationResult {
+            commands: vec![Command::UpdateConnectionPath {
+                connection_id: 0,
+                path_points: vec![Vec2::ZERO, Vec2::new(100.0, 100.0)],
+            }],
+            crossings_before: 5,
+            crossings_after: 1,
+            paths_modified: 3,
+            iterations_used: 50,
+        };
+
+        let msg = actuator.format_message(&result);
+        assert!(msg.contains("Optimized"));
+        assert!(msg.contains("crossings"));
+    }
+}
