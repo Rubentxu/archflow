@@ -12,6 +12,7 @@
 pub mod batch_select;
 pub mod camera;
 pub mod connections;
+pub mod gizmos;
 pub mod highlight;
 pub mod message;
 pub mod move_;
@@ -25,6 +26,11 @@ pub use camera::{
 pub use connections::{
     AnchorConfig, AnchorPoint, ArrowBindActuator, AutoRouteActuator, ConnectionLabelActuator,
     ConnectionStyle, ElbowConfig, ElbowRoutingActuator,
+};
+pub use gizmos::{
+    GizmoAxis, GizmoConfig, GizmoHandle, GizmoHandleType, GizmoHitResult, GizmoHitTest,
+    GizmoMoveActuator, GizmoRotateActuator, GizmoScaleActuator, GizmoState, GizmoType,
+    TransformGizmoActuator,
 };
 pub use highlight::HighlightActuator;
 pub use message::{Message, MessageActuator, MessageBus, MessagePayload};
