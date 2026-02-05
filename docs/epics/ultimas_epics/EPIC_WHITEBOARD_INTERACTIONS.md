@@ -38,7 +38,7 @@ Esta épica define la implementación completa de todas las interacciones de usu
 | **Visual Feedback** | 4 | 4 (100%) | 0 | 0 |
 | **Camera Actuators** | 4 | 4 (100%) | 0 | 0 |
 | **Connection Actuators** | 5 | 5 (100%) | 0 | 0 |
-| **Gizmo Actuators** | 4 | 0 (0%) | 0 | 4 (100%) |
+| **Gizmo Actuators** | 4 | 4 (100%) | 0 | 0 |
 | **Hierarchy Actuators** | 4 | 2 (50%) | 0 | 2 (50%) |
 | **Alignment Actuators** | 2 | 0 (0%) | 0 | 2 (100%) |
 
@@ -117,14 +117,14 @@ Esta épica define la implementación completa de todas las interacciones de usu
 | US-033 | Auto-Routing (A*) | ✅ **DONE** | AutoRouteActuator con avoidance |
 | US-034 | Connection Labels | ✅ **DONE** | ConnectionLabelActuator implementado |
 
-### 🎯 TEMA 8: Gizmos de Transformación Profesionales (18 SP)
+### 🎯 TEMA 8: Gizmos de Transformación Profesionales (18 SP) ✅ COMPLETADO (Sprint 9)
 
 | US | Historia | Estado | Notas |
 |----|----------|--------|-------|
-| US-035 | Transform Gizmo Visual | ❌ **PENDIENTE** | Sprint 9 |
-| US-036 | Gizmo Move | ❌ **PENDIENTE** | Sprint 9 |
-| US-037 | Gizmo Scale | ❌ **PENDIENTE** | Sprint 9 |
-| US-038 | Gizmo Rotate | ❌ **PENDIENTE** | Sprint 9 |
+| US-035 | Transform Gizmo Visual | ✅ **DONE** | TransformGizmoActuator implementado |
+| US-036 | Gizmo Move | ✅ **DONE** | GizmoMoveActuator con约束 X/Y/XY |
+| US-037 | Gizmo Scale | ✅ **DONE** | GizmoScaleActuator uniform y non-uniform |
+| US-038 | Gizmo Rotate | ✅ **DONE** | GizmoRotateActuator con snapping 15°/1° |
 
 ### 🎯 TEMA 9: Características Avanzadas (15 SP)
 
@@ -241,7 +241,7 @@ pub struct TouchSensor            // Touch events
 - Sprint 6.1: Grouping & Z-Index ✅ (Group/Lock/Align done, Reorder pendiente)
 
 ### ❌ Phase 7: Conexiones Magnéticas (PENDIENTE - Sprint 7-8)
-### ❌ Phase 8: Transform Gizmos (PENDIENTE - Sprint 9)
+### ✅ Phase 8: Transform Gizmos (COMPLETADO - Sprint 9)
 ### ❌ Phase 9: Advanced Features (PENDIENTE - Sprint 10)
 ### ❌ Phase 10: Smart Features (PENDIENTE - Sprint 11)
 ### ❌ Phase 11: Polish & Testing (PENDIENTE - Sprint 12)
@@ -258,28 +258,28 @@ FASES COMPLETADAS: 6/11 (55%)
 ├── ✅ Phase 4: Canvas Navigation
 └── ✅ Phase 5: Advanced Transform
 
-FASES PENDIENTES: 5/11 (45%)
+FASES PENDIENTES: 4/11 (36%)
 ├── ✅ Phase 7: Connections & Arrows (Sprint 7-8)
-├── ❌ Phase 8: Transform Gizmos (Sprint 9)
+├── ✅ Phase 8: Transform Gizmos (Sprint 9)
 ├── ❌ Phase 9: Advanced Features (Sprint 10)
 └── ❌ Phase 10+: Smart Features & Polish (Sprints 11-12)
 
 SENSORS: 14/14 ✅ (100%)
-ACTUATORS: 17/34 ✅ (35%)
-└── Selection: 4/4 ✅
+ACTUATORS: 21/38 ✅ (55%)
+├── Selection: 4/4 ✅
 ├── Transform: 2/3 🔄
 ├── Editing: 0/4 ❌
 ├── Visual: 4/4 ✅
 ├── Camera: 4/4 ✅
 ├── Connections: 5/5 ✅ (Sprint 7-8)
-├── Gizmos: 0/4 ❌
+├── Gizmos: 4/4 ✅ (Sprint 9)
 ├── Hierarchy: 2/4 ✅
 └── Alignment: 0/2 ❌
 ```
 
 ---
 
-**Última actualización:** 2026-02-05 (Connections Sprint 7-8: +5 actuadores)  
+**Última actualización:** 2026-02-05 (Gizmo Sprint 9: +4 actuadores)  
 **Versión:** 1.1  
 **Actualizado por:** Claude Code Agent
 
@@ -1100,9 +1100,9 @@ Label Position: Center of path, con offset configurable
 
 ---
 
-#### 🎯 **TEMA 8: Gizmos de Transformación Profesionales** (18 SP) ❌ PENDIENTE (Sprint 9)
+#### 🎯 **TEMA 8: Gizmos de Transformación Profesionales** (18 SP) ✅ COMPLETADO (Sprint 9)
 
-##### **US-035: Transform Gizmo Visual** ❌ (4 SP)
+##### **US-035: Transform Gizmo Visual** ✅ (4 SP)
 ```gherkin
 Como usuario
 Quiero ver un gizmo 3D-style cuando selecciono elementos
@@ -1128,7 +1128,7 @@ Visual:
   - All screen-space (no zoom scaling)
 ```
 
-##### **US-036: Gizmo Move (Constrained Axis)** ❌ (5 SP)
+##### **US-036: Gizmo Move (Constrained Axis)** ✅ (5 SP)
 ```gherkin
 Como usuario
 Quiero arrastrar las flechas del gizmo
@@ -1150,7 +1150,7 @@ Constraint: Lock to axis, ignore perpendicular movement
 Display: "X: +45.2px" overlay durante drag
 ```
 
-##### **US-037: Gizmo Scale (Uniform & Non-Uniform)** (5 SP)
+##### **US-037: Gizmo Scale (Uniform & Non-Uniform)** ✅ (5 SP)
 ```gherkin
 Como usuario
 Quiero arrastrar los handles de escala del gizmo
@@ -1171,7 +1171,7 @@ Actuators: GizmoScaleActuator
 Display: "Scale: 1.25x" o "Scale: 1.5x × 0.8x" (non-uniform)
 ```
 
-##### **US-038: Gizmo Rotate (Precise Angle)** ❌ (4 SP)
+##### **US-038: Gizmo Rotate (Precise Angle)** ✅ (4 SP)
 ```gherkin
 Como usuario
 Quiero arrastrar el círculo exterior del gizmo
