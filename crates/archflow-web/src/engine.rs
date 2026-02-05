@@ -19,7 +19,7 @@ use alloc::boxed::Box;
 use archflow_core::{EntityId, Vec2, Vec2f64};
 use archflow_engine::{Command, CommandQueue, ConnectionStore, EntityStore, MAX_ENTITIES};
 use archflow_interaction::HistoryManager;
-use archflow_logic::{BatchSelectActuator, EventRingBuffer, LogicSystem};
+use archflow_logic::{EventRingBuffer, LogicSystem};
 use archflow_render::{Camera, GpuRenderer, Renderer};
 
 /// Converts RGBA color format to ABGR for WebGL compatibility.
@@ -67,7 +67,8 @@ pub struct ArchFlowEngine {
     pub logic_system: LogicSystem,
 
     /// Batch selection actuator for efficient multi-entity selection (12.5KB per 100k entities)
-    pub batch_select: BatchSelectActuator,
+    /// TODO: Uncomment when BatchSelectActuator is implemented
+    // pub batch_select: BatchSelectActuator,
 
     /// DEPRECATED: Use batch_select instead - kept for bridge.rs compatibility
     /// Will be removed in future update
@@ -136,7 +137,7 @@ impl ArchFlowEngine {
             camera,
             connection_store: ConnectionStore::new(),
             logic_system: LogicSystem::new(),
-            batch_select: BatchSelectActuator::new(MAX_ENTITIES),
+            // batch_select: BatchSelectActuator::new(MAX_ENTITIES), // TODO: Uncomment
             selected_entities: Vec::new(), // DEPRECATED: Use batch_select instead
             canvas_width,
             canvas_height,

@@ -24,6 +24,7 @@ extern crate alloc;
 
 pub mod actuators;
 pub mod command;
+pub mod events;
 pub mod input;
 pub mod logic_system;
 pub mod mapping;
@@ -35,6 +36,8 @@ pub mod snap;
 pub mod spatial;
 pub mod tween;
 pub mod visibility;
+
+pub use events::{EventData, EventRingBuffer, LogicEvent, LogicEventType};
 
 pub use actuators::{
     // Camera types
