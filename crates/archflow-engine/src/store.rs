@@ -243,7 +243,24 @@ pub struct EntityStore {
     /// String pool for entity names and labels
     pub string_pool: StringPool,
 
-    // ═══════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════════════════
+    // CONNECTIONS (Sprint 7-8)
+    // ═══════════════════════════════════════════════════════════════════════════════════
+    /// Connection source entities (None = deleted)
+    pub connection_source: Vec<Option<EntityId>>,
+    /// Connection target entities (None = deleted)
+    pub connection_target: Vec<Option<EntityId>>,
+    /// Connection anchor offsets [source_offset, target_offset]
+    pub connection_anchors: Vec<[Vec2; 2]>,
+    /// Connection styles (0=straight, 1=orthogonal, 2=bezier, 3=elbow)
+    pub connection_style: Vec<u8>,
+    /// Connection path points stored as flat Vec<f32>: [x0, y0, x1, y1, ...]
+    pub connection_paths: Vec<Vec<f32>>,
+    /// Connection label hashes (0 = no label)
+    pub connection_labels: Vec<u32>,
+    /// Dirty connections that need path recalculation
+    pub dirty_connections: FixedBitSet,
+
     // MANAGEMENT (Infrastructure)
     // ═══════════════════════════════════════════════════════════
     /// Generation counter for EntityId validation
@@ -302,6 +319,15 @@ impl EntityStore {
             // Cold data
             arch_data: vec![None; capacity],
             string_pool: StringPool::with_capacity(capacity, MAX_TEXT_LENGTH),
+
+            // Connections (Sprint 7-8)
+            connection_source: vec![None; MAX_CONNECTIONS],
+            connection_target: vec![None; MAX_CONNECTIONS],
+            connection_anchors: vec![[Vec2::ZERO, Vec2::ZERO]; MAX_CONNECTIONS],
+            connection_style: vec![0; MAX_CONNECTIONS],
+            connection_paths: vec![Vec::new(); MAX_CONNECTIONS],
+            connection_labels: vec![0; MAX_CONNECTIONS],
+            dirty_connections: FixedBitSet::with_capacity(MAX_CONNECTIONS),
 
             // Management
             generations: vec![0; capacity],
@@ -1143,6 +1169,295 @@ impl EntityStore {
 
         // Clear dirty flags
         self.dirty_hierarchy.clear();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // CONNECTION STORE METHODS (Sprint 7-8)
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    /// Create a new connection between two entities
+    /// Returns the connection ID
+    pub fn create_connection(
+        &mut self,
+        connection_id: u32,
+        source_id: EntityId,
+        target_id: EntityId,
+        style: u8,
+    ) -> u32 {
+        let idx = connection_id as usize;
+        if idx >= MAX_CONNECTIONS {
+            return u32::MAX;
+        }
+
+        self.connection_source[idx] = Some(source_id);
+        self.connection_target[idx] = Some(target_id);
+        self.connection_style[idx] = style;
+        self.connection_paths[idx].clear();
+        self.connection_labels[idx] = 0;
+        self.connection_anchors[idx] = [Vec2::ZERO, Vec2::ZERO];
+        self.dirty_connections.insert(idx);
+
+        connection_id
+    }
+
+    /// Delete a connection by ID
+    pub fn delete_connection(&mut self, connection_id: u32) {
+        let idx = connection_id as usize;
+        if idx >= MAX_CONNECTIONS {
+            return;
+        }
+
+        self.connection_source[idx] = None;
+        self.connection_target[idx] = None;
+        self.connection_paths[idx].clear();
+        self.connection_labels[idx] = 0;
+    }
+
+    /// Update connection path points
+    pub fn update_connection_path(&mut self, connection_id: u32, path_points: &[Vec2]) {
+        let idx = connection_id as usize;
+        if idx >= MAX_CONNECTIONS {
+            return;
+        }
+
+        self.connection_paths[idx].clear();
+        for point in path_points {
+            self.connection_paths[idx].push(point.x);
+            self.connection_paths[idx].push(point.y);
+        }
+        self.dirty_connections.remove(idx);
+    }
+
+    /// Bind a connection endpoint to an entity anchor
+    /// endpoint: 0 = source, 1 = target
+    pub fn bind_connection_endpoint(
+        &mut self,
+        connection_id: u32,
+        endpoint: u8,
+        entity_id: EntityId,
+        anchor_offset: Vec2,
+    ) {
+        let idx = connection_id as usize;
+        if idx >= MAX_CONNECTIONS {
+            return;
+        }
+
+        if endpoint == 0 {
+            self.connection_source[idx] = Some(entity_id);
+            self.connection_anchors[idx][0] = anchor_offset;
+        } else {
+            self.connection_target[idx] = Some(entity_id);
+            self.connection_anchors[idx][1] = anchor_offset;
+        }
+        self.dirty_connections.insert(idx);
+    }
+
+    /// Unbind a connection endpoint
+    /// endpoint: 0 = source, 1 = target
+    pub fn unbind_connection_endpoint(&mut self, connection_id: u32, endpoint: u8) {
+        let idx = connection_id as usize;
+        if idx >= MAX_CONNECTIONS {
+            return;
+        }
+
+        if endpoint == 0 {
+            self.connection_source[idx] = None;
+        } else {
+            self.connection_target[idx] = None;
+        }
+    }
+
+    /// Set connection label
+    pub fn set_connection_label(&mut self, connection_id: u32, label_hash: u32) {
+        let idx = connection_id as usize;
+        if idx >= MAX_CONNECTIONS {
+            return;
+        }
+
+        self.connection_labels[idx] = label_hash;
+    }
+
+    /// Get connection source entity
+    pub fn connection_source_entity(&self, connection_id: u32) -> Option<EntityId> {
+        let idx = connection_id as usize;
+        if idx >= MAX_CONNECTIONS {
+            return None;
+        }
+        self.connection_source[idx]
+    }
+
+    /// Get connection target entity
+    pub fn connection_target_entity(&self, connection_id: u32) -> Option<EntityId> {
+        let idx = connection_id as usize;
+        if idx >= MAX_CONNECTIONS {
+            return None;
+        }
+        self.connection_target[idx]
+    }
+
+    /// Get connection path as Vec<Vec2>
+    pub fn connection_path(&self, connection_id: u32) -> alloc::vec::Vec<Vec2> {
+        let idx = connection_id as usize;
+        if idx >= MAX_CONNECTIONS || self.connection_paths[idx].is_empty() {
+            return alloc::vec::Vec::new();
+        }
+
+        let mut path = alloc::vec::Vec::new();
+        let points = &self.connection_paths[idx];
+        for i in (0..points.len()).step_by(2) {
+            if i + 1 < points.len() {
+                path.push(Vec2::new(points[i], points[i + 1]));
+            }
+        }
+        path
+    }
+
+    /// Get connection style
+    pub fn connection_style(&self, connection_id: u32) -> u8 {
+        let idx = connection_id as usize;
+        if idx >= MAX_CONNECTIONS {
+            return 0;
+        }
+        self.connection_style[idx]
+    }
+
+    /// Get connection label hash
+    pub fn connection_label_hash(&self, connection_id: u32) -> u32 {
+        let idx = connection_id as usize;
+        if idx >= MAX_CONNECTIONS {
+            return 0;
+        }
+        self.connection_labels[idx]
+    }
+
+    /// Get anchor offset for connection endpoint
+    pub fn connection_anchor_offset(&self, connection_id: u32, endpoint: u8) -> Vec2 {
+        let idx = connection_id as usize;
+        if idx >= MAX_CONNECTIONS {
+            return Vec2::ZERO;
+        }
+        self.connection_anchors[idx][endpoint as usize]
+    }
+
+    /// Check if connection exists and is valid
+    pub fn is_connection_valid(&self, connection_id: u32) -> bool {
+        let idx = connection_id as usize;
+        if idx >= MAX_CONNECTIONS {
+            return false;
+        }
+        self.connection_source[idx].is_some() && self.connection_target[idx].is_some()
+    }
+
+    /// Recalculate all dirty connection paths
+    pub fn recalculate_dirty_connections(&mut self) {
+        // Collect dirty connection IDs first to avoid borrow conflict
+        let dirty_ids: Vec<u32> = self
+            .dirty_connections
+            .ones()
+            .filter(|&idx| idx < MAX_CONNECTIONS && self.is_connection_valid(idx as u32))
+            .map(|idx| idx as u32)
+            .collect();
+
+        // Now recalculate each connection
+        for conn_id in dirty_ids {
+            self.recalculate_connection_path(conn_id);
+        }
+
+        self.dirty_connections.clear();
+    }
+
+    /// Recalculate path for a single connection
+    fn recalculate_connection_path(&mut self, connection_id: u32) {
+        let idx = connection_id as usize;
+        let style = self.connection_style[idx];
+
+        // Get source and target positions
+        let src = self.entity_world_center(self.connection_source[idx]);
+        let tgt = self.entity_world_center(self.connection_target[idx]);
+
+        match (src, tgt) {
+            (Some(s), Some(t)) => {
+                match style {
+                    1 | 3 => {
+                        // Orthogonal or Elbow
+                        self.calculate_orthogonal_path(connection_id, s, t);
+                    }
+                    2 => {
+                        // Bezier
+                        self.calculate_bezier_path(connection_id, s, t);
+                    }
+                    _ => {
+                        // Straight
+                        self.connection_paths[idx].clear();
+                        self.connection_paths[idx].push(s.x);
+                        self.connection_paths[idx].push(s.y);
+                        self.connection_paths[idx].push(t.x);
+                        self.connection_paths[idx].push(t.y);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// Calculate orthogonal (elbow) path between two points
+    fn calculate_orthogonal_path(&mut self, connection_id: u32, src: Vec2, tgt: Vec2) {
+        let idx = connection_id as usize;
+        let mid_x = (src.x + tgt.x) / 2.0;
+
+        self.connection_paths[idx].clear();
+        // Source -> Midpoint (horizontal first) -> Target
+        self.connection_paths[idx].push(src.x);
+        self.connection_paths[idx].push(src.y);
+        self.connection_paths[idx].push(mid_x);
+        self.connection_paths[idx].push(src.y);
+        self.connection_paths[idx].push(mid_x);
+        self.connection_paths[idx].push(tgt.y);
+        self.connection_paths[idx].push(tgt.x);
+        self.connection_paths[idx].push(tgt.y);
+    }
+
+    /// Calculate Bezier curve path between two points
+    fn calculate_bezier_path(&mut self, connection_id: u32, src: Vec2, tgt: Vec2) {
+        let idx = connection_id as usize;
+
+        // Control points for smooth curve
+        let cp1_x = src.x + (tgt.x - src.x) / 2.0;
+        let cp1 = Vec2::new(cp1_x, src.y);
+        let cp2_x = tgt.x - (tgt.x - src.x) / 2.0;
+        let cp2 = Vec2::new(cp2_x, tgt.y);
+
+        self.connection_paths[idx].clear();
+        // Source -> Control1 -> Control2 -> Target (Bezier cubic needs 4 points)
+        self.connection_paths[idx].push(src.x);
+        self.connection_paths[idx].push(src.y);
+        self.connection_paths[idx].push(cp1.x);
+        self.connection_paths[idx].push(cp1.y);
+        self.connection_paths[idx].push(cp2.x);
+        self.connection_paths[idx].push(cp2.y);
+        self.connection_paths[idx].push(tgt.x);
+        self.connection_paths[idx].push(tgt.y);
+    }
+
+    /// Get entity world center position
+    fn entity_world_center(&self, entity: Option<EntityId>) -> Option<Vec2> {
+        match entity {
+            Some(e) => {
+                let idx = e.index().0 as usize;
+                if idx >= MAX_ENTITIES || !self.is_alive(e) {
+                    return None;
+                }
+                let pos = self.world_pos(idx);
+                let size = self.entity_size(idx);
+                Some(Vec2::new(pos.x + size.x / 2.0, pos.y + size.y / 2.0))
+            }
+            None => None,
+        }
+    }
+
+    /// Get entity size
+    fn entity_size(&self, idx: usize) -> Vec2 {
+        Vec2::new(self.transforms[idx][2], self.transforms[idx][3])
     }
 }
 
