@@ -4,7 +4,7 @@
 **Prioridad:** 🔴 Alta
 **Versión:** 1.1
 **Fecha Creación:** 2026-01-21
-**Última Actualización:** 2026-02-05
+**Última Actualización:** 2026-02-05 (Actualizado: SelectActuator + Path Optimization completados)
 
 ---
 
@@ -32,7 +32,7 @@ Esta épica define la implementación completa de todas las interacciones de usu
 | Categoría | Total | ✅ Implementado | 🔄 En Progreso | ❌ Pendiente |
 |-----------|-------|----------------|----------------|--------------|
 | **Sensors** | 14 | 14 (100%) | 0 | 0 |
-| **Selection Actuators** | 6 | 5 (83%) | 0 | 1 |
+| **Selection Actuators** | 6 | 6 (100%) | 0 | 0 |
 | **Transform Actuators** | 5 | 2 (40%) | 3 (60%) | 0 |
 | **Editing Actuators** | 4 | 4 (100%) | 0 | 0 |
 | **Visual Feedback** | 4 | 4 (100%) | 0 | 0 |
@@ -41,9 +41,9 @@ Esta épica define la implementación completa de todas las interacciones de usu
 | **Gizmo Actuators** | 4 | 4 (100%) | 0 | 0 |
 | **Hierarchy Actuators** | 4 | 3 (75%) | 0 | 1 |
 | **Alignment Actuators** | 2 | 2 (100%) | 0 | 0 |
-| **Advanced Features** | 4 | 1 (25%) | 0 | 3 |
+| **Advanced Features** | 4 | 4 (100%) | 0 | 0 |
 
-**Progreso General:** ~65% de las funcionalidades core implementadas
+**Progreso General:** ~73% de las funcionalidades core implementadas
 
 ---
 
@@ -132,8 +132,8 @@ Esta épica define la implementación completa de todas las interacciones de usu
 | US | Historia | Estado | Notas |
 |----|----------|--------|-------|
 | US-039 | Containers | ✅ **DONE** | ContainerActuator implementado |
-| US-040 | Swimlanes | ❌ **PENDIENTE** | Sprint 10 |
-| US-041 | Connection Points | ❌ **PENDIENTE** | Sprint 10 |
+| US-040 | Swimlanes | ✅ **DONE** | SwimlaneActuator implementado |
+| US-041 | Connection Points | ✅ **DONE** | AnchorVisibilityActuator implementado |
 | US-042 | Edge Routing Styles | ✅ **DONE** | ConnectionRenderer existe |
 
 ### 🎯 TEMA 10: Smart Features (12 SP)
@@ -142,7 +142,7 @@ Esta épica define la implementación completa de todas las interacciones de usu
 |----|----------|--------|-------|
 | US-043 | Auto-Alignment | ✅ **DONE** | AlignmentActuator implementado |
 | US-044 | Smart Distribute | ✅ **DONE** | DistributionActuator implementado |
-| US-045 | Path Optimization | ❌ **PENDIENTE** | Sprint 11 |
+| US-045 | Path Optimization | ✅ **DONE** | PathOptimizationActuator implementado |
 
 ---
 
