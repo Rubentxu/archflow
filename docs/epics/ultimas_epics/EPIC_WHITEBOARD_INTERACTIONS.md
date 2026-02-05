@@ -40,9 +40,9 @@ Esta épica define la implementación completa de todas las interacciones de usu
 | **Connection Actuators** | 5 | 5 (100%) | 0 | 0 |
 | **Gizmo Actuators** | 4 | 4 (100%) | 0 | 0 |
 | **Hierarchy Actuators** | 4 | 3 (75%) | 0 | 1 |
-| **Alignment Actuators** | 2 | 0 (0%) | 0 | 2 (100%) |
+| **Alignment Actuators** | 2 | 2 (100%) | 0 | 0 |
 
-**Progreso General:** ~58% de las funcionalidades core implementadas
+**Progreso General:** ~62% de las funcionalidades core implementadas
 
 ---
 
@@ -139,8 +139,8 @@ Esta épica define la implementación completa de todas las interacciones de usu
 
 | US | Historia | Estado | Notas |
 |----|----------|--------|-------|
-| US-043 | Auto-Alignment | ❌ **PENDIENTE** | Sprint 11 |
-| US-044 | Smart Distribute | ❌ **PENDIENTE** | Sprint 11 |
+| US-043 | Auto-Alignment | ✅ **DONE** | AlignmentActuator implementado |
+| US-044 | Smart Distribute | ✅ **DONE** | DistributionActuator implementado |
 | US-045 | Path Optimization | ❌ **PENDIENTE** | Sprint 11 |
 
 ---
