@@ -19,6 +19,7 @@ pub mod message;
 pub mod move_;
 pub mod property;
 pub mod state;
+pub mod z_order;
 
 pub use batch_select::{BatchSelectActuator, DeltaMask, SelectMode};
 pub use camera::{
@@ -45,3 +46,4 @@ pub use state::{
     EntityState, StateActuator, StateBitset, StateId, StateMachine, StateManager, StateTransition,
     StateTransitionTable,
 };
+pub use z_order::{ZOrderActuator, ZOrderDirection, ZOrderOp};

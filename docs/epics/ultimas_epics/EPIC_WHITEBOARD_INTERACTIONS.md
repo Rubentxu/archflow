@@ -39,10 +39,10 @@ Esta épica define la implementación completa de todas las interacciones de usu
 | **Camera Actuators** | 4 | 4 (100%) | 0 | 0 |
 | **Connection Actuators** | 5 | 5 (100%) | 0 | 0 |
 | **Gizmo Actuators** | 4 | 4 (100%) | 0 | 0 |
-| **Hierarchy Actuators** | 4 | 2 (50%) | 0 | 2 (50%) |
+| **Hierarchy Actuators** | 4 | 3 (75%) | 0 | 1 |
 | **Alignment Actuators** | 2 | 0 (0%) | 0 | 2 (100%) |
 
-**Progreso General:** ~55% de las funcionalidades core implementadas
+**Progreso General:** ~58% de las funcionalidades core implementadas
 
 ---
 
@@ -88,13 +88,13 @@ Esta épica define la implementación completa de todas las interacciones de usu
 | US-019 | Zoom to Fit | ✅ **DONE** | ZoomToFitActuator |
 | US-020 | Zoom to Selection | ✅ **DONE** | ZoomToSelectionActuator |
 
-### 🎯 TEMA 5: Jerarquía y Organización (12 SP)
+### 🎯 TEMA 5: Jerarquía y Organización (12 SP) ✅ COMPLETADO (Sprint 9)
 
 | US | Historia | Estado | Notas |
 |----|----------|--------|-------|
 | US-021 | Group (CTRL+G) | ✅ **DONE** | Via StateMachine |
 | US-022 | Ungroup (CTRL+SHIFT+G) | ✅ **DONE** | Via StateMachine |
-| US-023 | Bring/Send Forward/Backward | ❌ **PENDIENTE** | No implementado |
+| US-023 | Bring/Send Forward/Backward | ✅ **DONE** | ZOrderActuator implementado |
 | US-024 | Lock/Unlock | ✅ **DONE** | Via StateMachine |
 | US-025 | Alignment Tools | ✅ **DONE** | AlignmentTools.tsx |
 
@@ -237,8 +237,8 @@ pub struct TouchSensor            // Touch events
 ### ✅ Phase 5: Advanced Transform (COMPLETADO)
 - Sprint 5.1: Rotation & Snap ✅
 
-### ✅ Phase 6: Hierarchy & Organization (COMPLETADO PARCIAL)
-- Sprint 6.1: Grouping & Z-Index ✅ (Group/Lock/Align done, Reorder pendiente)
+### ✅ Phase 6: Hierarchy & Organization (COMPLETADO)
+- Sprint 6.1: Grouping & Z-Index ✅ (All features implemented)
 
 ### ❌ Phase 7: Conexiones Magnéticas (PENDIENTE - Sprint 7-8)
 ### ✅ Phase 8: Transform Gizmos (COMPLETADO - Sprint 9)
