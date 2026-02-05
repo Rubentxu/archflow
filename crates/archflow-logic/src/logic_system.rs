@@ -17,6 +17,7 @@ use alloc::vec::Vec;
 use archflow_core::{EntityId, Generation, Index};
 use archflow_engine::EntityStore;
 
+use crate::events::{EventRingBuffer, LogicEvent};
 use crate::input::{InputEvent, InputSampler};
 use crate::mapping::LogicMappingTable;
 use crate::pulse::{Pulse, PulseBus};
@@ -120,6 +121,9 @@ pub struct LogicSystem {
     touch_sensor: TouchSensor,
     proximity_sensor: ProximitySensor,
     radar_sensor: RadarSensor,
+
+    /// Event ring buffer for output to JavaScript
+    event_buffer: EventRingBuffer,
 }
 
 impl LogicSystem {
@@ -146,7 +150,62 @@ impl LogicSystem {
                 45.0,
                 0,
             ),
+            event_buffer: EventRingBuffer::new(1024),
         }
+    }
+
+    /// Get mutable reference to event buffer (for emitting events)
+    pub fn event_buffer(&mut self) -> &mut EventRingBuffer {
+        &mut self.event_buffer
+    }
+
+    /// Emit an entity selected event
+    pub fn emit_entity_selected(&mut self, entity_id: u32) {
+        let mut event = LogicEvent::new(crate::LogicEventType::EntitySelected, entity_id);
+        event.timestamp_us = self.timestamp as u64;
+        self.event_buffer.push(event);
+    }
+
+    /// Emit a proximity alert event
+    pub fn emit_proximity_alert(&mut self, entity_id: u32, distance: f32) {
+        let mut event = LogicEvent::proximity_alert(entity_id, distance);
+        event.timestamp_us = self.timestamp as u64;
+        self.event_buffer.push(event);
+    }
+
+    /// Emit a drag started event
+    pub fn emit_drag_started(&mut self, entity_id: u32, start_pos: (f32, f32)) {
+        let mut event = LogicEvent::drag_started(entity_id, start_pos);
+        event.timestamp_us = self.timestamp as u64;
+        self.event_buffer.push(event);
+    }
+
+    /// Emit a drag ended event
+    pub fn emit_drag_ended(&mut self, entity_id: u32, end_pos: (f32, f32)) {
+        let mut event = LogicEvent::drag_ended(entity_id, end_pos);
+        event.timestamp_us = self.timestamp as u64;
+        self.event_buffer.push(event);
+    }
+
+    /// Emit a box selection completed event
+    pub fn emit_box_selection_completed(&mut self, entity_count: u32) {
+        let mut event = LogicEvent::box_selection_completed(entity_count);
+        event.timestamp_us = self.timestamp as u64;
+        self.event_buffer.push(event);
+    }
+
+    /// Emit a hover changed event
+    pub fn emit_hover_changed(&mut self, entity_id: Option<u32>) {
+        let mut event = LogicEvent::hover_changed(entity_id);
+        event.timestamp_us = self.timestamp as u64;
+        self.event_buffer.push(event);
+    }
+
+    /// Emit an entity destroyed event
+    pub fn emit_entity_destroyed(&mut self, entity_id: u32) {
+        let mut event = LogicEvent::entity_destroyed(entity_id);
+        event.timestamp_us = self.timestamp as u64;
+        self.event_buffer.push(event);
     }
 
     /// Get the input sampler (for JavaScript bridge to set SAB pointer)

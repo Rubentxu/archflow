@@ -578,6 +578,146 @@ impl WasmBridge {
         Ok(())
     }
 
+    /// Poll all events from the logic system
+    ///
+    /// Returns a JavaScript array of events emitted by the logic system
+    /// during the current frame. Call this once per frame after `tick()`.
+    ///
+    /// # Returns
+    ///
+    /// A JS array where each event is an object with:
+    /// - `type`: Event type (0=EntitySelected, 1=ProximityAlert, 2=DragStarted, 3=DragEnded, 4=EntityDestroyed, 5=BoxSelectionCompleted, 6=HoverChanged)
+    /// - `entityId`: Entity ID (or 0 for global events)
+    /// - `timestamp`: Timestamp in microseconds
+    /// - `data`: Event-specific data (varies by type)
+    ///
+    /// # Example
+    ///
+    /// ```javascript
+    /// // In your JavaScript/TypeScript code
+    /// const events = bridge.poll_events();
+    /// for (const event of events) {
+    ///     console.log('Event:', event.type, event.entityId);
+    /// }
+    /// ```
+    #[wasm_bindgen]
+    pub fn poll_events(&self) -> JsValue {
+        // Create a JS array
+        let js_array = js_sys::Array::new();
+
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            let events = engine.logic_system.event_buffer().drain();
+
+            for event in events {
+                let js_object = js_sys::Object::new();
+
+                // Set type
+                js_sys::Reflect::set(
+                    &js_object,
+                    &JsValue::from_str("type"),
+                    &JsValue::from(event.event_type as u32),
+                )
+                .unwrap_or(false);
+
+                // Set entityId
+                js_sys::Reflect::set(
+                    &js_object,
+                    &JsValue::from_str("entityId"),
+                    &JsValue::from(event.entity_id),
+                )
+                .unwrap_or(false);
+
+                // Set timestamp
+                js_sys::Reflect::set(
+                    &js_object,
+                    &JsValue::from_str("timestamp"),
+                    &JsValue::from(event.timestamp_us),
+                )
+                .unwrap_or(false);
+
+                // Set data based on event type
+                match event.data {
+                    archflow_logic::EventData::None => {
+                        js_sys::Reflect::set(
+                            &js_object,
+                            &JsValue::from_str("data"),
+                            &js_sys::Object::new(),
+                        )
+                        .unwrap_or(false);
+                    }
+                    archflow_logic::EventData::Proximity { distance } => {
+                        let data_obj = js_sys::Object::new();
+                        js_sys::Reflect::set(
+                            &data_obj,
+                            &JsValue::from_str("distance"),
+                            &JsValue::from(distance),
+                        )
+                        .unwrap_or(false);
+                        js_sys::Reflect::set(&js_object, &JsValue::from_str("data"), &data_obj)
+                            .unwrap_or(false);
+                    }
+                    archflow_logic::EventData::Drag {
+                        start_pos,
+                        current_pos,
+                    } => {
+                        let data_obj = js_sys::Object::new();
+                        let start_arr = js_sys::Array::new();
+                        start_arr.push(&JsValue::from(start_pos.0));
+                        start_arr.push(&JsValue::from(start_pos.1));
+                        js_sys::Reflect::set(&data_obj, &JsValue::from_str("startPos"), &start_arr)
+                            .unwrap_or(false);
+                        let current_arr = js_sys::Array::new();
+                        current_arr.push(&JsValue::from(current_pos.0));
+                        current_arr.push(&JsValue::from(current_pos.1));
+                        js_sys::Reflect::set(
+                            &data_obj,
+                            &JsValue::from_str("currentPos"),
+                            &current_arr,
+                        )
+                        .unwrap_or(false);
+                        js_sys::Reflect::set(&js_object, &JsValue::from_str("data"), &data_obj)
+                            .unwrap_or(false);
+                    }
+                    archflow_logic::EventData::BoxSelection { count } => {
+                        let data_obj = js_sys::Object::new();
+                        js_sys::Reflect::set(
+                            &data_obj,
+                            &JsValue::from_str("count"),
+                            &JsValue::from(count),
+                        )
+                        .unwrap_or(false);
+                        js_sys::Reflect::set(&js_object, &JsValue::from_str("data"), &data_obj)
+                            .unwrap_or(false);
+                    }
+                    archflow_logic::EventData::Hover { entity_id } => {
+                        let data_obj = js_sys::Object::new();
+                        if let Some(id) = entity_id {
+                            js_sys::Reflect::set(
+                                &data_obj,
+                                &JsValue::from_str("entityId"),
+                                &JsValue::from(id),
+                            )
+                            .unwrap_or(false);
+                        } else {
+                            js_sys::Reflect::set(
+                                &data_obj,
+                                &JsValue::from_str("entityId"),
+                                &JsValue::NULL,
+                            )
+                            .unwrap_or(false);
+                        }
+                        js_sys::Reflect::set(&js_object, &JsValue::from_str("data"), &data_obj)
+                            .unwrap_or(false);
+                    }
+                }
+
+                js_array.push(&js_object);
+            }
+        }
+
+        js_array.into()
+    }
+
     /// Process a single input event and update the engine
     fn process_input_event(engine: &mut ArchFlowEngine, event: &crate::input::RawInputEvent) {
         use crate::input::InputEventType;
@@ -1457,31 +1597,31 @@ mod tests {
     }
 }
 
-    #[test]
-    fn test_color_conversion_rgba_to_abgr() {
-        // Test con rojo puro
-        let red_rgba = archflow_core::Color::rgba(255, 0, 0, 255).0;
-        let red_abgr = rgba_to_abgr(red_rgba);
-        // RGBA: 0xFF0000FF
-        // ABGR: 0xFF0000FF (mismo porque R y A están en posiciones simétricas)
-        assert_eq!(red_rgba, 0xFF0000FF, "Red RGBA should be 0xFF0000FF");
-        assert_eq!(red_abgr, 0xFF0000FF, "Red ABGR should be 0xFF0000FF");
-        
-        // Test con verde puro
-        let green_rgba = archflow_core::Color::rgba(0, 255, 0, 255).0;
-        let green_abgr = rgba_to_abgr(green_rgba);
-        // RGBA: 0x00FF00FF
-        // ABGR: 0xFF00FF00
-        assert_eq!(green_rgba, 0x00FF00FF, "Green RGBA should be 0x00FF00FF");
-        assert_eq!(green_abgr, 0xFF00FF00, "Green ABGR should be 0xFF00FF00");
-        
-        // Test con azul por defecto
-        let blue_rgba = archflow_core::Color::rgba(59, 130, 246, 255).0;
-        let blue_abgr = rgba_to_abgr(blue_rgba);
-        // RGBA: 0x3B82F6FF
-        // ABGR: 0xFFF6823B
-        assert_eq!(blue_rgba, 0x3B82F6FF, "Blue RGBA should be 0x3B82F6FF");
-        assert_eq!(blue_abgr, 0xFFF6823B, "Blue ABGR should be 0xFFF6823B");
-        
-        println!("✅ Conversión RGBA → ABGR funciona correctamente");
-    }
+#[test]
+fn test_color_conversion_rgba_to_abgr() {
+    // Test con rojo puro
+    let red_rgba = archflow_core::Color::rgba(255, 0, 0, 255).0;
+    let red_abgr = rgba_to_abgr(red_rgba);
+    // RGBA: 0xFF0000FF
+    // ABGR: 0xFF0000FF (mismo porque R y A están en posiciones simétricas)
+    assert_eq!(red_rgba, 0xFF0000FF, "Red RGBA should be 0xFF0000FF");
+    assert_eq!(red_abgr, 0xFF0000FF, "Red ABGR should be 0xFF0000FF");
+
+    // Test con verde puro
+    let green_rgba = archflow_core::Color::rgba(0, 255, 0, 255).0;
+    let green_abgr = rgba_to_abgr(green_rgba);
+    // RGBA: 0x00FF00FF
+    // ABGR: 0xFF00FF00
+    assert_eq!(green_rgba, 0x00FF00FF, "Green RGBA should be 0x00FF00FF");
+    assert_eq!(green_abgr, 0xFF00FF00, "Green ABGR should be 0xFF00FF00");
+
+    // Test con azul por defecto
+    let blue_rgba = archflow_core::Color::rgba(59, 130, 246, 255).0;
+    let blue_abgr = rgba_to_abgr(blue_rgba);
+    // RGBA: 0x3B82F6FF
+    // ABGR: 0xFFF6823B
+    assert_eq!(blue_rgba, 0x3B82F6FF, "Blue RGBA should be 0x3B82F6FF");
+    assert_eq!(blue_abgr, 0xFFF6823B, "Blue ABGR should be 0xFFF6823B");
+
+    println!("✅ Conversión RGBA → ABGR funciona correctamente");
+}
