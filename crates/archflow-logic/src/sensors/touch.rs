@@ -364,6 +364,30 @@ impl TouchSensor {
 
         entity_aabb.intersects(&candidate_aabb)
     }
+
+    /// Reset the sensor state for a specific entity
+    ///
+    /// Called when an entity is destroyed to clean up sensor state.
+    /// This prevents stale signals from destroyed entities affecting
+    /// collision detection.
+    ///
+    /// # Arguments
+    ///
+    /// * `entity_idx` - Index of the entity to reset
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// // When entity is destroyed
+    /// sensor.reset_entity(entity_idx);
+    /// ```
+    #[inline(always)]
+    pub fn reset_entity(&mut self, entity_idx: usize) {
+        if entity_idx < self.signals.len() {
+            self.signals[entity_idx] = SignalByte::default();
+            self.hit_lists[entity_idx].clear();
+        }
+    }
 }
 
 impl Default for TouchSensor {
