@@ -34,7 +34,7 @@ Esta épica define la implementación completa de todas las interacciones de usu
 | **Sensors** | 14 | 14 (100%) | 0 | 0 |
 | **Selection Actuators** | 6 | 5 (83%) | 0 | 1 |
 | **Transform Actuators** | 5 | 2 (40%) | 3 (60%) | 0 |
-| **Editing Actuators** | 4 | 0 (0%) | 0 | 4 (100%) |
+| **Editing Actuators** | 4 | 4 (100%) | 0 | 0 |
 | **Visual Feedback** | 4 | 4 (100%) | 0 | 0 |
 | **Camera Actuators** | 4 | 4 (100%) | 0 | 0 |
 | **Connection Actuators** | 5 | 5 (100%) | 0 | 0 |
@@ -42,7 +42,7 @@ Esta épica define la implementación completa de todas las interacciones de usu
 | **Hierarchy Actuators** | 4 | 2 (50%) | 0 | 2 (50%) |
 | **Alignment Actuators** | 2 | 0 (0%) | 0 | 2 (100%) |
 
-**Progreso General:** ~50% de las funcionalidades core implementadas
+**Progreso General:** ~55% de las funcionalidades core implementadas
 
 ---
 
@@ -69,15 +69,15 @@ Esta épica define la implementación completa de todas las interacciones de usu
 | US-010 | Snap to Grid | ✅ **DONE** | SnapToGridActuator implementado |
 | US-011 | Smart Guides | ✅ **DONE** | ProximitySensor + SmartGuidesActuator |
 
-### 🎯 TEMA 3: Edición y Clipboard (12 SP)
+### 🎯 TEMA 3: Edición y Clipboard (12 SP) ✅ COMPLETADO (Sprint 9)
 
 | US | Historia | Estado | Notas |
 |----|----------|--------|-------|
-| US-012 | Copy (CTRL+C) | ❌ **PENDIENTE** | CopyActuator no implementado |
-| US-013 | Paste (CTRL+V) | ❌ **PENDIENTE** | PasteActuator no implementado |
-| US-014 | Duplicate (CTRL+D) | ❌ **PENDIENTE** | DuplicateActuator no implementado |
-| US-015 | Delete (DEL) | ❌ **PENDIENTE** | DeleteActuator no implementado |
-| US-016 | Undo/Redo | 🔄 **EN PROGRESO** | HistoryManager parcial |
+| US-012 | Copy (CTRL+C) | ✅ **DONE** | CopyActuator implementado |
+| US-013 | Paste (CTRL+V) | ✅ **DONE** | PasteActuator implementado |
+| US-014 | Duplicate (CTRL+D) | ✅ **DONE** | DuplicateActuator implementado |
+| US-015 | Delete (DEL) | ✅ **DONE** | DeleteActuator implementado |
+| US-016 | Undo/Redo | ✅ **DONE** | HistoryManager integrado |
 
 ### 🎯 TEMA 4: Navegación del Canvas (10 SP)
 
@@ -194,11 +194,11 @@ pub struct TouchSensor            // Touch events
 |-----------|-------------|----------------|----------------|--------------|
 | **Selección** | 4 | 4 | 0 | 0 |
 | **Transformación** | 3 | 2 | 1 | 0 |
-| **Edición** | 4 | 0 | 0 | 4 |
+| **Edición** | 4 | 4 | 0 | 0 |
 | **Feedback Visual** | 4 | 4 | 0 | 0 |
 | **Cámara** | 4 | 4 | 0 | 0 |
-| **Conexiones** | 5 | 0 | 0 | 5 |
-| **Gizmos** | 4 | 0 | 0 | 4 |
+| **Conexiones** | 5 | 5 | 0 | 0 |
+| **Gizmos** | 4 | 4 | 0 | 0 |
 | **Jerarquía** | 4 | 2 | 0 | 2 |
 | **Alineación** | 2 | 0 | 0 | 2 |
 
@@ -228,8 +228,8 @@ pub struct TouchSensor            // Touch events
 - Sprint 2.1: Box & Lasso Selection ✅
 - Sprint 2.2: Deep Select ✅
 
-### 🔄 Phase 3: Editing & Clipboard (EN PROGRESO)
-- Sprint 3.1: Clipboard Operations 🔄 (Copy/Paste/Undo parcial)
+### ✅ Phase 3: Editing & Clipboard (COMPLETADO - Sprint 9)
+- Sprint 3.1: Clipboard Operations ✅ (Copy/Paste/Duplicate/Delete implementados)
 
 ### ✅ Phase 4: Canvas Navigation (COMPLETADO)
 - Sprint 4.1: Pan & Zoom ✅
