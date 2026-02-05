@@ -11,6 +11,7 @@
 
 pub mod batch_select;
 pub mod camera;
+pub mod connections;
 pub mod highlight;
 pub mod message;
 pub mod move_;
@@ -20,6 +21,10 @@ pub mod state;
 pub use batch_select::{BatchSelectActuator, DeltaMask, SelectMode};
 pub use camera::{
     CameraActuator, CameraActuatorConfig, CameraConstraints, CameraTransform, Smoother,
+};
+pub use connections::{
+    AnchorConfig, AnchorPoint, ArrowBindActuator, AutoRouteActuator, ConnectionLabelActuator,
+    ConnectionStyle, ElbowConfig, ElbowRoutingActuator,
 };
 pub use highlight::HighlightActuator;
 pub use message::{Message, MessageActuator, MessageBus, MessagePayload};

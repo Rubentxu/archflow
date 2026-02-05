@@ -311,6 +311,63 @@ pub enum Command {
     /// Memory: 12.5KB per 100k entities (vs ~400KB for Vec<u32>)
     Select(DeltaMask) = 17,
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // CONNECTIONS (Sprint 7-8)
+    // ═══════════════════════════════════════════════════════════════════════
+    /// Create a new connection between two entities
+    CreateConnection {
+        /// Connection ID (allocated by store)
+        connection_id: u32,
+        /// Source entity
+        source_id: EntityId,
+        /// Target entity
+        target_id: EntityId,
+        /// Connection style (0=straight, 1=orthogonal, 2=bezier, 3=elbow)
+        style: u8,
+    } = 18,
+
+    /// Delete an existing connection
+    DeleteConnection {
+        /// Connection ID to delete
+        connection_id: u32,
+    } = 19,
+
+    /// Update connection path/routing
+    UpdateConnectionPath {
+        /// Connection ID to update
+        connection_id: u32,
+        /// New path as sequence of points
+        path_points: alloc::vec::Vec<Vec2>,
+    } = 20,
+
+    /// Bind connection endpoint to entity anchor
+    BindConnection {
+        /// Connection ID
+        connection_id: u32,
+        /// Which endpoint: 0 = source, 1 = target
+        endpoint: u8,
+        /// Entity to bind to
+        entity_id: EntityId,
+        /// Anchor offset relative to entity center
+        anchor_offset: Vec2,
+    } = 21,
+
+    /// Unbind connection endpoint
+    UnbindConnection {
+        /// Connection ID
+        connection_id: u32,
+        /// Which endpoint: 0 = source, 1 = target
+        endpoint: u8,
+    } = 22,
+
+    /// Set connection label
+    SetConnectionLabel {
+        /// Connection ID
+        connection_id: u32,
+        /// Label text hash (0 = no label)
+        label_hash: u32,
+    } = 23,
+
     /// Maximum discriminant value (ensures enum fits in u8)
     _Max = 255,
 }
@@ -337,6 +394,17 @@ impl Command {
             | Command::ClearParent(id) => Some(*id),
             Command::MoveGroup { root_id, .. } => Some(*root_id),
             Command::Select(_) => None, // Affects multiple entities
+            // Connection commands - return associated entity if applicable
+            Command::CreateConnection {
+                source_id,
+                target_id,
+                ..
+            } => Some(*source_id),
+            Command::BindConnection { entity_id, .. } => Some(*entity_id),
+            Command::DeleteConnection { .. }
+            | Command::UpdateConnectionPath { .. }
+            | Command::UnbindConnection { .. }
+            | Command::SetConnectionLabel { .. } => None,
             Command::_Max => None,
         }
     }
@@ -509,6 +577,29 @@ impl Command {
             // Select → Same delta (XOR is its own inverse)
             Command::Select(mask) => Some(Command::Select(mask.clone())),
 
+            // Connection commands (Sprint 7-8)
+            // CreateConnection → DeleteConnection (need connection_id from store)
+            Command::CreateConnection { connection_id, .. } => Some(Command::DeleteConnection {
+                connection_id: *connection_id,
+            }),
+            // DeleteConnection → Cannot reverse (connection is gone)
+            Command::DeleteConnection { .. } => None,
+            // UpdateConnectionPath → Cannot reverse without original path
+            Command::UpdateConnectionPath { .. } => None,
+            // BindConnection → UnbindConnection
+            Command::BindConnection {
+                connection_id,
+                endpoint,
+                ..
+            } => Some(Command::UnbindConnection {
+                connection_id: *connection_id,
+                endpoint: *endpoint,
+            }),
+            // UnbindConnection → Cannot reverse without original binding
+            Command::UnbindConnection { .. } => None,
+            // SetConnectionLabel → Need original label hash (not stored)
+            Command::SetConnectionLabel { .. } => None,
+
             Command::_Max => None,
         }
     }
@@ -590,6 +681,49 @@ impl Command {
             // Selection uses XOR toggle semantics (applying same delta twice restores original)
             Command::Select(mask) => {
                 mask.apply(store);
+            }
+            // Connection commands (Sprint 7-8) - delegate to ConnectionStore
+            Command::CreateConnection {
+                connection_id,
+                source_id,
+                target_id,
+                style,
+            } => {
+                store.create_connection(*connection_id, *source_id, *target_id, *style);
+            }
+            Command::DeleteConnection { connection_id } => {
+                store.delete_connection(*connection_id);
+            }
+            Command::UpdateConnectionPath {
+                connection_id,
+                path_points,
+            } => {
+                store.update_connection_path(*connection_id, path_points);
+            }
+            Command::BindConnection {
+                connection_id,
+                endpoint,
+                entity_id,
+                anchor_offset,
+            } => {
+                store.bind_connection_endpoint(
+                    *connection_id,
+                    *endpoint,
+                    *entity_id,
+                    *anchor_offset,
+                );
+            }
+            Command::UnbindConnection {
+                connection_id,
+                endpoint,
+            } => {
+                store.unbind_connection_endpoint(*connection_id, *endpoint);
+            }
+            Command::SetConnectionLabel {
+                connection_id,
+                label_hash,
+            } => {
+                store.set_connection_label(*connection_id, *label_hash);
             }
             Command::_Max => {}
         }
