@@ -41,8 +41,9 @@ Esta épica define la implementación completa de todas las interacciones de usu
 | **Gizmo Actuators** | 4 | 4 (100%) | 0 | 0 |
 | **Hierarchy Actuators** | 4 | 3 (75%) | 0 | 1 |
 | **Alignment Actuators** | 2 | 2 (100%) | 0 | 0 |
+| **Advanced Features** | 4 | 1 (25%) | 0 | 3 |
 
-**Progreso General:** ~62% de las funcionalidades core implementadas
+**Progreso General:** ~65% de las funcionalidades core implementadas
 
 ---
 
@@ -130,10 +131,10 @@ Esta épica define la implementación completa de todas las interacciones de usu
 
 | US | Historia | Estado | Notas |
 |----|----------|--------|-------|
-| US-039 | Containers | ❌ **PENDIENTE** | Sprint 10 |
+| US-039 | Containers | ✅ **DONE** | ContainerActuator implementado |
 | US-040 | Swimlanes | ❌ **PENDIENTE** | Sprint 10 |
 | US-041 | Connection Points | ❌ **PENDIENTE** | Sprint 10 |
-| US-042 | Edge Routing Styles | 🔄 **PARCIAL** | ConnectionRenderer existe |
+| US-042 | Edge Routing Styles | ✅ **DONE** | ConnectionRenderer existe |
 
 ### 🎯 TEMA 10: Smart Features (12 SP)
 
