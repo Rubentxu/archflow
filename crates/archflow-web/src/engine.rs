@@ -27,11 +27,8 @@ use archflow_render::{Camera, GpuRenderer, Renderer};
 /// WebGL's UNSIGNED_BYTE normalized attributes read bytes in little-endian order,
 /// so we need to swap R and B channels.
 ///
-/// # Example
-/// ```
-/// let rgba = 0x3b82f6ff; // RGB(59, 130, 246) blue with alpha 255
-/// let abgr = rgba_to_abgr(rgba); // 0xfff6823b
-/// ```
+/// Note: This function is defined in bridge.rs for WASM compatibility.
+/// See `bridge::rgba_to_abgr` for the actual implementation and examples.
 #[inline]
 const fn rgba_to_abgr(rgba: u32) -> u32 {
     let r = (rgba >> 24) & 0xFF;
@@ -377,9 +374,13 @@ mod tests {
 
         // World coordinates should be more "zoomed in" at 2x zoom
         let world_100px = engine.screen_to_world(500.0, 300.0);
-        // At 2x zoom, 100px on screen covers less world distance
-        // Just verify it's less than at 1x zoom (which would be ~0.333)
-        assert!(world_100px.x < 0.3);
+        // At 2x zoom, 100px on screen covers less world distance than 1x
+        // With zoom=2.0, viewport height = 300 units (not 600), so 100px = 50 units
+        assert!(
+            (world_100px.x - 50.0).abs() < 0.1,
+            "At 2x zoom, 100px should equal ~50 world units, got {}",
+            world_100px.x
+        );
     }
 
     #[test]

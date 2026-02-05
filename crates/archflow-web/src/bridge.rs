@@ -505,6 +505,7 @@ impl WasmBridge {
     ///
     /// This is a higher-level alternative to directly writing to SharedArrayBuffer.
     /// JavaScript can call this function to push input events.
+    #[cfg(target_arch = "wasm32")]
     #[wasm_bindgen]
     pub fn push_input_event(
         &self,
@@ -1597,6 +1598,7 @@ mod tests {
     }
 }
 
+#[cfg(target_arch = "wasm32")]
 #[test]
 fn test_color_conversion_rgba_to_abgr() {
     // Test con rojo puro
@@ -1623,5 +1625,7 @@ fn test_color_conversion_rgba_to_abgr() {
     assert_eq!(blue_rgba, 0x3B82F6FF, "Blue RGBA should be 0x3B82F6FF");
     assert_eq!(blue_abgr, 0xFFF6823B, "Blue ABGR should be 0xFFF6823B");
 
-    println!("✅ Conversión RGBA → ABGR funciona correctamente");
+    web_sys::console::log_1(&JsValue::from_str(
+        "✅ Conversión RGBA → ABGR funciona correctamente",
+    ));
 }
