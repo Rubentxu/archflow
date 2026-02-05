@@ -25,6 +25,7 @@ use crate::engine::ArchFlowEngine;
 use crate::input::{InputProcessor, InputRingBuffer};
 
 use archflow_engine::store::MAX_ENTITIES;
+use archflow_engine::{Command, DeltaMask};
 use archflow_render::Renderer;
 
 #[cfg(target_arch = "wasm32")]
@@ -1362,32 +1363,49 @@ impl WasmBridge {
         }
     }
 
-    /// Clear all selected entities
+    /// Clear all selections (deselect all entities)
     #[wasm_bindgen]
     pub fn clear_selection(&self) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
-            for &entity_id in &engine.selected_entities {
-                let idx = entity_id.index().0 as usize;
-                engine.store.set_selected(idx, false);
+            // Build delta mask from current selection
+            let indices: Vec<u32> = engine
+                .selected_entities
+                .iter()
+                .map(|e| e.index().0)
+                .collect();
+
+            if !indices.is_empty() {
+                // Create and queue selection command using DeltaMask
+                let mask = DeltaMask::from_indices(&indices, MAX_ENTITIES);
+                engine.command_queue.push(Command::Select(mask));
+                engine.flush_commands();
             }
-            engine.selected_entities.clear();
+
             Ok(())
         } else {
             Err(JsError::new("Engine not initialized").into())
         }
     }
 
-    /// Add an entity to the selection
+    /// Add an entity to the selection (toggle mode)
     #[wasm_bindgen]
     pub fn select_entity(&self, entity_index: u32) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            // Use DeltaMask for toggle selection
+            let mask = DeltaMask::from_indices(&[entity_index], MAX_ENTITIES);
+            engine.command_queue.push(Command::Select(mask));
+            engine.flush_commands();
+
+            // Also update selected_entities tracking for JS queries
             use archflow_core::EntityId;
             let id = EntityId::new(entity_index);
-            engine.selected_entities.push(id);
-            let idx = id.index().0 as usize;
-            if idx < MAX_ENTITIES {
-                engine.store.set_selected(idx, true);
+            let current_selected = engine.store.is_selected(entity_index as usize);
+            if current_selected {
+                engine.selected_entities.retain(|e| *e != id);
+            } else if !engine.selected_entities.contains(&id) {
+                engine.selected_entities.push(id);
             }
+
             Ok(())
         } else {
             Err(JsError::new("Engine not initialized").into())
@@ -1409,6 +1427,8 @@ impl WasmBridge {
     }
 
     /// Set the selection state of an entity directly
+    ///
+    /// Uses DeltaMask for memory-efficient undo/redo via command queue.
     #[wasm_bindgen]
     pub fn set_entity_selected(&self, entity_index: u32, selected: bool) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
@@ -1416,18 +1436,30 @@ impl WasmBridge {
             if idx >= MAX_ENTITIES {
                 return Err(JsError::new("Invalid entity index").into());
             }
-            engine.store.set_selected(idx, selected);
+
+            let currently_selected = engine.store.is_selected(idx);
+
+            // Only create command if state needs to change
+            if currently_selected != selected {
+                // Calculate delta: toggle if state differs from current
+                let mask = DeltaMask::from_indices(&[entity_index], MAX_ENTITIES);
+                engine.command_queue.push(Command::Select(mask));
+                engine.flush_commands();
+            }
+
+            // Sync tracking for JS queries
+            use archflow_core::EntityId;
+            let id = EntityId::new(entity_index);
             if selected {
-                use archflow_core::EntityId;
-                let id = EntityId::new(entity_index);
                 if !engine.selected_entities.contains(&id) {
                     engine.selected_entities.push(id);
                 }
             } else {
                 engine
                     .selected_entities
-                    .retain(|id| id.index().0 != entity_index as u32);
+                    .retain(|e| e.index().0 != entity_index as u32);
             }
+
             Ok(())
         } else {
             Err(JsError::new("Engine not initialized").into())
