@@ -11,6 +11,7 @@
 
 pub mod batch_select;
 pub mod camera;
+pub mod clipboard;
 pub mod connections;
 pub mod gizmos;
 pub mod highlight;
@@ -22,6 +23,10 @@ pub mod state;
 pub use batch_select::{BatchSelectActuator, DeltaMask, SelectMode};
 pub use camera::{
     CameraActuator, CameraActuatorConfig, CameraConstraints, CameraTransform, Smoother,
+};
+pub use clipboard::{
+    ClipboardData, ClipboardEntity, ClipboardState, CopyActuator, DeleteActuator,
+    DuplicateActuator, PasteActuator,
 };
 pub use connections::{
     AnchorConfig, AnchorPoint, ArrowBindActuator, AutoRouteActuator, ConnectionLabelActuator,
