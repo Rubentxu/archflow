@@ -29,27 +29,27 @@ Esta épica define la implementación completa de todas las interacciones de usu
 
 **Estado de Implementación (Actualizado: 2026-02-05):**
 
-| Categoría | Total | ✅ Implementado | 🔄 En Progreso | ❌ Pendiente |
-|-----------|-------|----------------|----------------|--------------|
-| **Sensors** | 14 | 14 (100%) | 0 | 0 |
-| **Selection Actuators** | 6 | 6 (100%) | 0 | 0 |
-| **Transform Actuators** | 5 | 2 (40%) | 3 (60%) | 0 |
-| **Editing Actuators** | 4 | 4 (100%) | 0 | 0 |
-| **Visual Feedback** | 4 | 4 (100%) | 0 | 0 |
-| **Camera Actuators** | 4 | 4 (100%) | 0 | 0 |
-| **Connection Actuators** | 5 | 5 (100%) | 0 | 0 |
-| **Gizmo Actuators** | 4 | 4 (100%) | 0 | 0 |
-| **Hierarchy Actuators** | 4 | 3 (75%) | 0 | 1 |
-| **Alignment Actuators** | 2 | 2 (100%) | 0 | 0 |
-| **Advanced Features** | 4 | 4 (100%) | 0 | 0 |
+| Categoría | Total | ✅ Implementado | 🔄 En Progreso | ❌ Pendiente | Notas |
+|-----------|-------|----------------|----------------|--------------|-------|
+| **Sensors** | 14 | 14 (100%) | 0 | 0 | Todos implementados |
+| **Selection Actuators** | 2 | 2 (100%) | 0 | 0 | SelectActuator + BatchSelectActuator |
+| **Transform Actuators** | 5 | 1 (20%) | 0 | 4 | Move✅, Resize❌, Rotate❌, Snap❌, SmartGuides❌ |
+| **Editing Actuators** | 4 | 4 (100%) | 0 | 0 | Copy, Paste, Duplicate, Delete |
+| **Visual Feedback** | 1 | 1 (100%) | 0 | 0 | HighlightActuator |
+| **Camera Actuators** | 1 | 1 (100%) | 0 | 0 | CameraActuator |
+| **Connection Actuators** | 6 | 6 (100%) | 0 | 0 | Arrow, Elbow, AutoRoute, Label, Anchor, PathOpt |
+| **Gizmo Actuators** | 4 | 4 (100%) | 0 | 0 | Transform, Move, Scale, Rotate |
+| **Hierarchy Actuators** | 2 | 1 (50%) | 0 | 1 | ZOrder✅, Group/Ungroup❌ |
+| **Alignment Actuators** | 2 | 2 (100%) | 0 | 0 | Alignment, Distribution |
+| **Advanced Features** | 3 | 3 (100%) | 0 | 0 | Container, Swimlane, Property |
 
-**Progreso General:** ~73% de las funcionalidades core implementadas
+**Progreso General:** ~58% de actuators planificados implementados (27/47)
 
 ---
 
 ## Estado de Implementación por Tema
 
-### 🎯 TEMA 1: Selección de Elementos (20 SP)
+### 🎯 TEMA 1: Selección de Elementos (20 SP) ✅ COMPLETADO
 
 | US | Historia | Estado | Notas |
 |----|----------|--------|-------|
@@ -58,17 +58,17 @@ Esta épica define la implementación completa de todas las interacciones de usu
 | US-003 | Box Selection | ✅ **DONE** | BoxSelectSensor con O(k) spatial hash |
 | US-004 | Lasso Selection | ✅ **DONE** | LassoSelectSensor implementado |
 | US-005 | Deep Select (CTRL+Click) | ✅ **DONE** | Hierarchical hit-testing implementado |
-| US-006 | Deselect All | ✅ **DONE** | ESC + click vacío |
+| US-006 | Deselect All | ✅ **DONE** | Via SelectActuator |
 
-### 🎯 TEMA 2: Transformación de Elementos (18 SP)
+### 🎯 TEMA 2: Transformación de Elementos (18 SP) 🔄 EN PROGRESO
 
 | US | Historia | Estado | Notas |
 |----|----------|--------|-------|
 | US-007 | Move (Drag Elementos) | ✅ **DONE** | MoveActuator con hysteresis (6 ticks) |
-| US-008 | Resize con Handles | ✅ **DONE** | TransformHandles.tsx con 8 handles |
-| US-009 | Rotate con Handle | ✅ **DONE** | Rotate handle implementado |
-| US-010 | Snap to Grid | ✅ **DONE** | SnapToGridActuator implementado |
-| US-011 | Smart Guides | ✅ **DONE** | ProximitySensor + SmartGuidesActuator |
+| US-008 | Resize con Handles | 🔲 **PENDIENTE** | GizmoScaleActuator existe, falta integración UI |
+| US-009 | Rotate con Handle | 🔲 **PENDIENTE** | GizmoRotateActuator existe, falta integración UI |
+| US-010 | Snap to Grid | 🔲 **PENDIENTE** | No existe actuator dedicado |
+| US-011 | Smart Guides | 🔲 **PENDIENTE** | No existe actuator dedicado |
 
 ### 🎯 TEMA 3: Edición y Clipboard (12 SP) ✅ COMPLETADO (Sprint 9)
 
@@ -89,26 +89,26 @@ Esta épica define la implementación completa de todas las interacciones de usu
 | US-019 | Zoom to Fit | ✅ **DONE** | ZoomToFitActuator |
 | US-020 | Zoom to Selection | ✅ **DONE** | ZoomToSelectionActuator |
 
-### 🎯 TEMA 5: Jerarquía y Organización (12 SP) ✅ COMPLETADO (Sprint 9)
+### 🎯 TEMA 5: Jerarquía y Organización (12 SP) 🔄 EN PROGRESO
 
 | US | Historia | Estado | Notas |
 |----|----------|--------|-------|
-| US-021 | Group (CTRL+G) | ✅ **DONE** | Via StateMachine |
-| US-022 | Ungroup (CTRL+SHIFT+G) | ✅ **DONE** | Via StateMachine |
+| US-021 | Group (CTRL+G) | 🔲 **PENDIENTE** | No existe actuator dedicado |
+| US-022 | Ungroup (CTRL+SHIFT+G) | 🔲 **PENDIENTE** | No existe actuator dedicado |
 | US-023 | Bring/Send Forward/Backward | ✅ **DONE** | ZOrderActuator implementado |
 | US-024 | Lock/Unlock | ✅ **DONE** | Via StateMachine |
-| US-025 | Alignment Tools | ✅ **DONE** | AlignmentTools.tsx |
+| US-025 | Alignment Tools | ✅ **DONE** | AlignmentActuator + DistributionActuator |
 
-### 🎯 TEMA 6: Feedback Visual y UX (8 SP)
+### 🎯 TEMA 6: Feedback Visual y UX (8 SP) ✅ COMPLETADO
 
 | US | Historia | Estado | Notas |
 |----|----------|--------|-------|
 | US-026 | Hover Highlight | ✅ **DONE** | HighlightActuator |
-| US-027 | Selection Box Visual | ✅ **DONE** | SelectionBoxActuator |
-| US-028 | Transform Handles | ✅ **DONE** | TransformHandlesActuator |
-| US-029 | Cursor Feedback | ✅ **DONE** | CursorActuator |
+| US-027 | Selection Box Visual | ✅ **DONE** | SelectionBoxActuator existe |
+| US-028 | Transform Handles | ✅ **DONE** | TransformGizmoActuator |
+| US-029 | Cursor Feedback | ✅ **DONE** | CursorActuator existe |
 
-### 🎯 TEMA 7: Conexiones Magnéticas y Flechas (25 SP)
+### 🎯 TEMA 7: Conexiones Magnéticas y Flechas (25 SP) ✅ COMPLETADO
 
 | US | Historia | Estado | Notas |
 |----|----------|--------|-------|
@@ -118,7 +118,7 @@ Esta épica define la implementación completa de todas las interacciones de usu
 | US-033 | Auto-Routing (A*) | ✅ **DONE** | AutoRouteActuator con avoidance |
 | US-034 | Connection Labels | ✅ **DONE** | ConnectionLabelActuator implementado |
 
-### 🎯 TEMA 8: Gizmos de Transformación Profesionales (18 SP) ✅ COMPLETADO (Sprint 9)
+### 🎯 TEMA 8: Gizmos de Transformación Profesionales (18 SP) ✅ COMPLETADO
 
 | US | Historia | Estado | Notas |
 |----|----------|--------|-------|
@@ -127,7 +127,7 @@ Esta épica define la implementación completa de todas las interacciones de usu
 | US-037 | Gizmo Scale | ✅ **DONE** | GizmoScaleActuator uniform y non-uniform |
 | US-038 | Gizmo Rotate | ✅ **DONE** | GizmoRotateActuator con snapping 15°/1° |
 
-### 🎯 TEMA 9: Características Avanzadas (15 SP)
+### 🎯 TEMA 9: Características Avanzadas (15 SP) ✅ COMPLETADO
 
 | US | Historia | Estado | Notas |
 |----|----------|--------|-------|
@@ -136,7 +136,7 @@ Esta épica define la implementación completa de todas las interacciones de usu
 | US-041 | Connection Points | ✅ **DONE** | AnchorVisibilityActuator implementado |
 | US-042 | Edge Routing Styles | ✅ **DONE** | ConnectionRenderer existe |
 
-### 🎯 TEMA 10: Smart Features (12 SP)
+### 🎯 TEMA 10: Smart Features (12 SP) ✅ COMPLETADO
 
 | US | Historia | Estado | Notas |
 |----|----------|--------|-------|
@@ -189,19 +189,20 @@ pub struct TouchSensor            // Touch events
 // (Ninguno crítico para funcionalidad core)
 ```
 
-### Actuadores Implementados vs Plan
+### Actuadores Implementados vs Plan (Realidad)
 
 | Categoría | Planificado | ✅ Implementado | 🔄 En Progreso | ❌ Pendiente |
 |-----------|-------------|----------------|----------------|--------------|
-| **Selección** | 4 | 4 | 0 | 0 |
-| **Transformación** | 3 | 2 | 1 | 0 |
-| **Edición** | 4 | 4 | 0 | 0 |
-| **Feedback Visual** | 4 | 4 | 0 | 0 |
-| **Cámara** | 4 | 4 | 0 | 0 |
-| **Conexiones** | 5 | 5 | 0 | 0 |
-| **Gizmos** | 4 | 4 | 0 | 0 |
-| **Jerarquía** | 4 | 2 | 0 | 2 |
-| **Alineación** | 2 | 0 | 0 | 2 |
+| **Selección** | 2 | 2 | 0 | 0 | SelectActuator, BatchSelectActuator |
+| **Transformación** | 5 | 1 | 0 | 4 | Move✅, Resize❌, Rotate❌, Snap❌, SmartGuides❌ |
+| **Edición** | 4 | 4 | 0 | 0 | Copy, Paste, Duplicate, Delete |
+| **Feedback Visual** | 1 | 1 | 0 | 0 | HighlightActuator |
+| **Cámara** | 1 | 1 | 0 | 0 | CameraActuator |
+| **Conexiones** | 6 | 6 | 0 | 0 | Arrow, Elbow, AutoRoute, Label, Anchor, PathOpt |
+| **Gizmos** | 4 | 4 | 0 | 0 | Transform, Move, Scale, Rotate |
+| **Jerarquía** | 2 | 1 | 0 | 1 | ZOrder✅, Group/Ungroup❌ |
+| **Alineación** | 2 | 2 | 0 | 0 | Alignment, Distribution |
+| **Avanzadas** | 3 | 3 | 0 | 0 | Container, Swimlane, Property |
 
 ---
 
