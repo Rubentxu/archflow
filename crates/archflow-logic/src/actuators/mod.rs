@@ -14,6 +14,7 @@ pub mod batch_select;
 pub mod camera;
 pub mod clipboard;
 pub mod connections;
+pub mod container;
 pub mod gizmos;
 pub mod highlight;
 pub mod message;
@@ -35,6 +36,7 @@ pub use connections::{
     AnchorConfig, AnchorPoint, ArrowBindActuator, AutoRouteActuator, ConnectionLabelActuator,
     ConnectionStyle, ElbowConfig, ElbowRoutingActuator,
 };
+pub use container::{ContainerActuator, ContainerOp, ContainerOpData};
 pub use gizmos::{
     GizmoAxis, GizmoConfig, GizmoHandle, GizmoHandleType, GizmoHitResult, GizmoHitTest,
     GizmoMoveActuator, GizmoRotateActuator, GizmoScaleActuator, GizmoState, GizmoType,
