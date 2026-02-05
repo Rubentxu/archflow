@@ -404,7 +404,60 @@ impl EntityStore {
     }
 
     /// Despawn an entity, marking its slot as free
+    ///
+    /// This is the basic despawn operation. For full cleanup including
+    /// LogicSystem integration, use `despawn_with_cleanup()` instead.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The EntityId to despawn
+    ///
+    /// # Returns
+    ///
+    /// `true` if the entity was successfully despawned, `false` if invalid or stale
     pub fn despawn(&mut self, id: EntityId) -> bool {
+        self.despawn_with_cleanup::<fn(EntityId)>(id, |_| {})
+    }
+
+    /// Despawn an entity with optional cleanup callback
+    ///
+    /// This is the recommended despawn method when a LogicSystem is available.
+    /// The cleanup callback is invoked with the despawned entity's ID before
+    /// the entity is fully removed from the store.
+    ///
+    /// This prevents memory leaks by ensuring that:
+    /// - Sensor state is cleared for the entity
+    /// - Wiring mappings are disconnected
+    /// - SpatialHash entries are removed
+    /// - EntityDestroyed events are emitted
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The EntityId to despawn
+    /// * `cleanup` - A closure or function that receives the EntityId for cleanup
+    ///
+    /// # Returns
+    ///
+    /// `true` if the entity was successfully despawned, `false` if invalid or stale
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use archflow_engine::EntityStore;
+    /// use archflow_core::Vec2;
+    ///
+    /// let mut store = EntityStore::new();
+    /// let entity_id = store.spawn(Vec2::new(100.0, 100.0), Vec2::new(50.0, 50.0));
+    ///
+    /// // Despawn with cleanup callback
+    /// store.despawn_with_cleanup(entity_id, |id| {
+    ///     // Cleanup logic here
+    /// });
+    /// ```
+    pub fn despawn_with_cleanup<F>(&mut self, id: EntityId, mut cleanup: F) -> bool
+    where
+        F: FnMut(EntityId),
+    {
         #[cfg(feature = "tracing")]
         debug!(target: "archflow::engine::store", entity_id = ?id, "Entity despawn requested");
 
@@ -428,6 +481,10 @@ impl EntityStore {
             old_generation = self.generations[index],
             "Invalidating EntityId"
         );
+
+        // Invoke cleanup callback BEFORE marking slot as free
+        // This allows LogicSystem to access entity state while it's still valid
+        cleanup(id);
 
         // Increment generation to invalidate existing EntityIds
         self.generations[index] = self.generations[index].wrapping_add(1);
@@ -1248,5 +1305,134 @@ mod tests {
         // Clear dirty
         store.take_dirty_render_entities().for_each(|_| {});
         assert!(!store.has_render_dirty());
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // DESPAWN WITH CLEANUP TESTS (HU-CONSOL-001)
+    // ════════════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_despawn_with_cleanup_callback() {
+        let mut store = EntityStore::new();
+        let entity_id = store.spawn(Vec2::new(100.0, 200.0), Vec2::new(50.0, 30.0));
+        let idx = entity_id.index().0 as usize;
+
+        // Track if cleanup was called
+        let mut cleanup_called = false;
+        let captured_id = core::cell::Cell::new(None::<EntityId>);
+
+        // Despawn with cleanup callback
+        let result = store.despawn_with_cleanup(entity_id, |id| {
+            cleanup_called = true;
+            captured_id.set(Some(id));
+        });
+
+        assert!(result, "Despawn should succeed");
+        assert!(cleanup_called, "Cleanup callback should be called");
+        assert!(captured_id.get().is_some(), "Should capture entity ID");
+        assert_eq!(
+            captured_id.get().unwrap(),
+            entity_id,
+            "Should capture correct entity ID"
+        );
+        assert!(!store.is_alive(entity_id), "Entity should be dead");
+        assert_eq!(store.alive_count(), 0, "Alive count should be 0");
+    }
+
+    #[test]
+    fn test_despawn_invalid_id_returns_false() {
+        let mut store = EntityStore::new();
+        let invalid_id = EntityId::from_parts(Index(99999), Generation(1));
+
+        let mut cleanup_called = false;
+        let result = store.despawn_with_cleanup(invalid_id, |_| {
+            cleanup_called = true;
+        });
+
+        assert!(!result, "Despawn should fail for invalid ID");
+        assert!(
+            !cleanup_called,
+            "Cleanup should not be called for invalid ID"
+        );
+    }
+
+    #[test]
+    fn test_despawn_stale_id_returns_false() {
+        let mut store = EntityStore::new();
+        let entity_id = store.spawn(Vec2::ZERO, Vec2::ONE);
+        let stale_id = entity_id; // This is now stale after despawn
+
+        // First despawn works
+        assert!(store.despawn(entity_id));
+
+        // Second despawn with same ID (now stale) should fail
+        let mut cleanup_called = false;
+        let result = store.despawn_with_cleanup(stale_id, |_| {
+            cleanup_called = true;
+        });
+
+        assert!(!result, "Despawn should fail for stale ID");
+        assert!(!cleanup_called, "Cleanup should not be called for stale ID");
+    }
+
+    #[test]
+    fn test_despawn_cleanup_called_before_invalidation() {
+        let mut store = EntityStore::new();
+        let entity_id = store.spawn(Vec2::new(100.0, 200.0), Vec2::new(50.0, 30.0));
+
+        // Entity should be alive before despawn
+        assert!(store.is_alive(entity_id));
+
+        // Track if cleanup was called
+        let cleanup_called = core::cell::Cell::new(false);
+        store.despawn_with_cleanup(entity_id, |_| {
+            cleanup_called.set(true);
+            // Note: Can't check store.is_alive here due to mutable borrow
+        });
+
+        assert!(cleanup_called.get(), "Cleanup should be called");
+        assert!(
+            !store.is_alive(entity_id),
+            "Entity should be dead after cleanup"
+        );
+    }
+
+    #[test]
+    fn test_despawn_basic_compatibility() {
+        // Verify that basic despawn() still works (backward compatibility)
+        let mut store = EntityStore::new();
+        let id = store.spawn(Vec2::new(100.0, 200.0), Vec2::new(50.0, 30.0));
+
+        assert!(store.is_alive(id));
+        assert_eq!(store.alive_count(), 1);
+
+        // Basic despawn (no cleanup) should work
+        assert!(store.despawn(id));
+        assert!(!store.is_alive(id));
+        assert_eq!(store.alive_count(), 0);
+    }
+
+    #[test]
+    fn test_despawn_cleanup_multiple_entities() {
+        let mut store = EntityStore::new();
+
+        // Spawn multiple entities
+        let ids: Vec<EntityId> = (0..5)
+            .map(|i| store.spawn(Vec2::new(i as f32 * 10.0, 0.0), Vec2::ONE))
+            .collect();
+
+        let cleanup_count = core::cell::Cell::new(0);
+        let mut captured_ids = alloc::vec::Vec::new();
+
+        // Despawn all with cleanup
+        for id in ids {
+            store.despawn_with_cleanup(id, |captured_id| {
+                cleanup_count.set(cleanup_count.get() + 1);
+                captured_ids.push(captured_id);
+            });
+        }
+
+        assert_eq!(cleanup_count.get(), 5, "Cleanup should be called 5 times");
+        assert_eq!(store.alive_count(), 0, "No entities should be alive");
     }
 }

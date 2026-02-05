@@ -14,13 +14,20 @@ getrandom = { version = "0.2", features = ["js"] }
 constant_time_eq = "0.3"
 hmac = "0.12"
 
-# Diagnostics - tracing is not optional in workspace deps
-tracing = { workspace = true }
+# Diagnostics - make tracing optional for benchmarks
+tracing = { workspace = true, optional = true }
 
 [features]
 default = []
 std = []
-tracing = []  # Enable tracing instrumentation (always available, non-optional dependency)
+tracing = ["dep:tracing"]  # Enable tracing instrumentation
 
 [dev-dependencies]
 archflow-core = { path = "../archflow-core", features = ["std", "serde"] }
+archflow-logic = { path = "../archflow-logic" }
+criterion = "0.5"
+rand = "0.8"
+
+[[bench]]
+name = "engine_bench"
+harness = false
