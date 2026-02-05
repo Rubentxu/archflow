@@ -368,6 +368,19 @@ pub enum Command {
         label_hash: u32,
     } = 23,
 
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // Z-ORDER (TEMA 5)
+    // ═══════════════════════════════════════════════════════════════════════════════
+    /// Change entity z-order (draw order)
+    ZOrder {
+        /// Entity to move in z-order
+        entity: EntityId,
+        /// Previous z-index in draw_order
+        old_z_index: usize,
+        /// New z-index in draw_order
+        new_z_index: usize,
+    } = 24,
+
     /// Maximum discriminant value (ensures enum fits in u8)
     _Max = 255,
 }
@@ -405,6 +418,7 @@ impl Command {
             | Command::UpdateConnectionPath { .. }
             | Command::UnbindConnection { .. }
             | Command::SetConnectionLabel { .. } => None,
+            Command::ZOrder { entity, .. } => Some(*entity),
             Command::_Max => None,
         }
     }
@@ -599,6 +613,16 @@ impl Command {
             Command::UnbindConnection { .. } => None,
             // SetConnectionLabel → Need original label hash (not stored)
             Command::SetConnectionLabel { .. } => None,
+            // ZOrder → Reverse by swapping old and new z-indices
+            Command::ZOrder {
+                entity,
+                old_z_index,
+                new_z_index,
+            } => Some(Command::ZOrder {
+                entity: *entity,
+                old_z_index: *new_z_index,
+                new_z_index: *old_z_index,
+            }),
 
             Command::_Max => None,
         }
@@ -724,6 +748,14 @@ impl Command {
                 label_hash,
             } => {
                 store.set_connection_label(*connection_id, *label_hash);
+            }
+            Command::ZOrder {
+                entity,
+                old_z_index: _,
+                new_z_index: _,
+            } => {
+                // ZOrder is informational for undo/redo - actual z-order
+                // changes are applied through the ZOrderActuator
             }
             Command::_Max => {}
         }
