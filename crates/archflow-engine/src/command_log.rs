@@ -407,7 +407,7 @@ impl CommandLog {
         let _commands: Vec<Command> = self
             .commands
             .get(start..end)
-            .map(|slice| slice.iter().map(|(_, cmd)| *cmd).collect())
+            .map(|slice| slice.iter().map(|(_, cmd)| cmd.clone()).collect())
             .unwrap_or_default();
 
         // Convert to CommandGroup (needs internal access)

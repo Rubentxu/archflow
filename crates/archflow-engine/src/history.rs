@@ -43,8 +43,11 @@ const MAX_HISTORY: usize = 256;
 /// - `redo_count` + `undo_count` <= MAX_HISTORY
 /// - When head reaches MAX_HISTORY, it wraps to 0 (circular)
 pub struct CommandHistory {
-    /// Circular buffer of executed commands
+    /// Circular buffer of commands (using MaybeUninit for efficiency)
     buffer: [MaybeUninit<Command>; MAX_HISTORY],
+
+    /// Track which slots are initialized
+    initialized: usize,
 
     /// Index of the newest command (0 if empty)
     head: usize,
@@ -60,9 +63,9 @@ impl CommandHistory {
     /// Create a new empty command history
     #[must_use]
     pub const fn new() -> Self {
-        // SAFETY: MaybeUninit arrays are allowed to contain uninitialized values
         Self {
             buffer: unsafe { MaybeUninit::uninit().assume_init() },
+            initialized: 0,
             head: 0,
             undo_count: 0,
             redo_count: 0,
@@ -81,27 +84,35 @@ impl CommandHistory {
     pub fn push(&mut self, command: Command) -> bool {
         // If redo stack exists, clear it (standard behavior)
         if self.redo_count > 0 {
-            // Clear redo slots by setting them to uninit
-            // We don't need to actually drop them since Command is Copy
+            // Clear redo slots
+            for i in 0..self.redo_count {
+                let idx = (self.head + 1 + i) % MAX_HISTORY;
+                unsafe {
+                    self.buffer[idx].assume_init_drop();
+                }
+            }
             self.redo_count = 0;
         }
 
         // Calculate next head position
         let next_head = (self.head + 1) % MAX_HISTORY;
 
-        // If buffer is full, we need to drop the oldest command
-        // and move tail forward
+        // If buffer is full, drop oldest command
         if self.undo_count == MAX_HISTORY {
-            // Buffer full: overwrite oldest (head doesn't change, wraps around)
-            // But since Command is Copy, no drop needed
-            // Tail implicitly moves forward when we wrap
+            // Drop the oldest command before overwriting
+            let tail_idx = (self.head + 1) % MAX_HISTORY;
+            unsafe {
+                self.buffer[tail_idx].assume_init_drop();
+            }
+            self.initialized = self.initialized.saturating_sub(1);
         } else {
-            self.head = next_head;
-            self.undo_count = self.undo_count.saturating_add(1);
+            self.undo_count += 1;
         }
 
         // Write command to buffer
-        self.buffer[self.head].write(command);
+        self.buffer[next_head].write(command);
+        self.head = next_head;
+        self.initialized = self.initialized.saturating_add(1);
 
         true
     }
@@ -118,9 +129,8 @@ impl CommandHistory {
             return None;
         }
 
-        // Get current command
-        let idx = self.head;
-        let command = unsafe { self.buffer[idx].assume_init_read() };
+        // Clone the command before modifying buffer
+        let command = unsafe { self.buffer[self.head].assume_init_ref().clone() };
 
         // Move head back
         self.head = if self.head == 0 {
@@ -147,13 +157,14 @@ impl CommandHistory {
         }
 
         // Move head forward
-        self.head = (self.head + 1) % MAX_HISTORY;
+        let new_head = (self.head + 1) % MAX_HISTORY;
+
+        // Clone the command before modifying buffer
+        let command = unsafe { self.buffer[new_head].assume_init_ref().clone() };
+
+        self.head = new_head;
         self.redo_count = self.redo_count.saturating_sub(1);
         self.undo_count = self.undo_count.saturating_add(1);
-
-        // Get command at new head
-        let idx = self.head;
-        let command = unsafe { self.buffer[idx].assume_init_read() };
 
         Some(command)
     }
@@ -161,10 +172,19 @@ impl CommandHistory {
     /// Clear all history (undo and redo stacks)
     #[inline]
     pub fn clear(&mut self) {
+        // Drop all initialized commands
+        if self.initialized > 0 {
+            for i in 0..self.initialized {
+                let idx = (self.head + 1 + i) % MAX_HISTORY;
+                unsafe {
+                    self.buffer[idx].assume_init_drop();
+                }
+            }
+        }
         self.head = 0;
         self.undo_count = 0;
         self.redo_count = 0;
-        // No need to drop commands since Command is Copy
+        self.initialized = 0;
     }
 
     /// Get number of commands available for undo

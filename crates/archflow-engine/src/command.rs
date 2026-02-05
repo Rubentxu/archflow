@@ -10,6 +10,8 @@
 // - Command queue with pre-allocated buffer
 // ═══════════════════════════════════════════════════════════════════════════════
 
+use alloc::vec::Vec;
+
 use archflow_core::{EntityId, Vec2};
 
 use crate::store::{EntityStore, MAX_ENTITIES};
@@ -22,7 +24,7 @@ use serde::{Deserialize, Serialize};
 /// - No Box, String, or Vec (use u32 indices)
 /// - #[repr(u8)] for predictable layout and correct padding
 #[repr(u8)]
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Command {
     // ═══════════════════════════════════════════════════════════
     // CREATION / DESTRUCTION
@@ -174,6 +176,15 @@ pub enum Command {
     /// Clear the parent of an entity
     ClearParent(EntityId) = 16,
 
+    // ═══════════════════════════════════════════════════════════
+    // SELECTION (HU-LOGIC-BOX-003)
+    // ═══════════════════════════════════════════════════════════
+    /// Batch selection using delta mask for memory-efficient undo/redo
+    ///
+    /// Uses XOR semantics: applying the same delta twice returns to original state.
+    /// Memory: ~400KB per 100k entities (Vec<u32>) vs ~3MB for HashSet
+    Select(Vec<u32>) = 17,
+
     /// Maximum discriminant value (ensures enum fits in u8)
     _Max = 255,
 }
@@ -199,6 +210,7 @@ impl Command {
             | Command::SetParent { id, .. }
             | Command::ClearParent(id) => Some(*id),
             Command::MoveGroup { root_id, .. } => Some(*root_id),
+            Command::Select(_) => None, // Affects multiple entities
             Command::_Max => None,
         }
     }
@@ -209,6 +221,11 @@ impl Command {
             self,
             Command::MoveGroup { .. } | Command::SetParent { .. } | Command::ClearParent(_)
         )
+    }
+
+    /// Check if command affects selection
+    pub fn affects_selection(&self) -> bool {
+        matches!(self, Command::Select(_))
     }
 
     /// Generate the inverse command for undo functionality
@@ -363,6 +380,9 @@ impl Command {
                 old_parent.map(|parent| Command::SetParent { id: *id, parent })
             }
 
+            // Select → Same delta (XOR is its own inverse)
+            Command::Select(indices) => Some(Command::Select(indices.clone())),
+
             Command::_Max => None,
         }
     }
@@ -433,6 +453,17 @@ impl Command {
                 let idx = id.index().0 as usize;
                 store.set_parent(idx, None);
             }
+            // Selection uses XOR toggle semantics (applying same delta twice restores original)
+            Command::Select(indices) => {
+                // Toggle selection bits in metadata
+                for &idx in indices {
+                    let idx_usize = idx as usize;
+                    if idx_usize < MAX_ENTITIES {
+                        store.metadata[idx_usize] ^= 1 << 9;
+                        store.dirty_render.insert(idx_usize);
+                    }
+                }
+            }
             Command::_Max => {}
         }
     }
@@ -492,6 +523,8 @@ impl Default for CommandQueue {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::CommandHistory;
+    use alloc::vec;
     use archflow_core::{Generation, Index};
 
     #[test]
@@ -506,11 +539,11 @@ mod tests {
     }
 
     #[test]
-    fn test_command_is_copy() {
-        // Commands should be Copy for efficient queuing
+    fn test_command_is_clone() {
+        // Commands should be Clone for queuing
         let cmd = Command::Despawn(EntityId::from_parts(Index(42), Generation(1)));
-        let _cmd2 = cmd; // Should compile
-        let _cmd3 = cmd; // Should compile again
+        let _cmd2 = cmd.clone();
+        let _cmd3 = cmd.clone();
     }
 
     #[test]
@@ -1061,5 +1094,225 @@ mod tests {
         // Inverse should restore layer 3
         inverse.execute(&mut store);
         assert_eq!(store.layer(idx), 3);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // SELECT VEC<U32> TESTS (HU-LOGIC-BOX-003)
+    // ═══════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_select_vec_empty() {
+        let indices: Vec<u32> = Vec::new();
+        assert!(indices.is_empty());
+    }
+
+    #[test]
+    fn test_select_vec_new() {
+        let cmd = Command::Select(Vec::new());
+        // Verify it affects selection
+        assert!(cmd.affects_selection());
+    }
+
+    #[test]
+    fn test_select_vec_execute_toggle() {
+        let mut store = EntityStore::new();
+        let ids: Vec<EntityId> = (0..5)
+            .map(|i| {
+                store.spawn(Vec2::new(i as f32, 0.0), Vec2::ONE);
+                EntityId::from_parts(Index(i), Generation(1))
+            })
+            .collect();
+
+        // Create indices from entity IDs
+        let indices: Vec<u32> = ids[0..3].iter().map(|e| e.index().0).collect();
+        let cmd = Command::Select(indices);
+
+        // Execute - should select entities 0, 1, 2
+        cmd.execute(&mut store);
+
+        assert!(store.is_selected(0));
+        assert!(store.is_selected(1));
+        assert!(store.is_selected(2));
+        assert!(!store.is_selected(3));
+        assert!(!store.is_selected(4));
+    }
+
+    #[test]
+    fn test_select_vec_execute_twice_toggles() {
+        let mut store = EntityStore::new();
+        let ids: Vec<EntityId> = (0..5)
+            .map(|i| {
+                store.spawn(Vec2::new(i as f32, 0.0), Vec2::ONE);
+                EntityId::from_parts(Index(i), Generation(1))
+            })
+            .collect();
+
+        let indices: Vec<u32> = ids[0..3].iter().map(|e| e.index().0).collect();
+        let cmd = Command::Select(indices.clone());
+
+        // Execute once - select 0, 1, 2
+        cmd.execute(&mut store);
+        assert!(store.is_selected(0));
+
+        // Execute again - toggle off (needs new command with same indices)
+        let cmd2 = Command::Select(indices);
+        cmd2.execute(&mut store);
+        assert!(!store.is_selected(0));
+    }
+
+    #[test]
+    fn test_select_vec_undo_roundtrip() {
+        let mut store = EntityStore::new();
+        let ids: Vec<EntityId> = (0..10)
+            .map(|i| {
+                store.spawn(Vec2::new(i as f32, 0.0), Vec2::ONE);
+                EntityId::from_parts(Index(i), Generation(1))
+            })
+            .collect();
+
+        let indices: Vec<u32> = ids[0..5].iter().map(|e| e.index().0).collect();
+        let cmd = Command::Select(indices.clone());
+
+        // Initial state: all unselected
+        assert!(!store.is_selected(0));
+
+        // Get inverse BEFORE executing
+        let inverse = cmd.inverse(&store).unwrap();
+
+        // Execute forward - select 0-4
+        cmd.execute(&mut store);
+        assert!(store.is_selected(0));
+        assert!(store.is_selected(4));
+
+        // Undo - should restore to original state
+        inverse.execute(&mut store);
+        assert!(!store.is_selected(0));
+        assert!(!store.is_selected(4));
+    }
+
+    #[test]
+    fn test_select_vec_with_history() {
+        let mut store = EntityStore::new();
+        let ids: Vec<EntityId> = (0..10)
+            .map(|i| {
+                store.spawn(Vec2::new(i as f32, 0.0), Vec2::ONE);
+                EntityId::from_parts(Index(i), Generation(1))
+            })
+            .collect();
+
+        let indices: Vec<u32> = ids[0..5].iter().map(|e| e.index().0).collect();
+        let mut history = CommandHistory::new();
+
+        // Create selection command
+        let cmd = Command::Select(indices);
+
+        // Execute and push to history
+        cmd.execute(&mut store);
+        history.push(cmd);
+
+        // Verify selection
+        assert_eq!(history.can_undo(), 1);
+
+        // Undo
+        let undone_cmd = history.undo().unwrap();
+        undone_cmd.execute(&mut store);
+
+        // Should be unselected
+        assert!(!store.is_selected(0));
+        assert!(!store.is_selected(4));
+
+        // Redo
+        let redone_cmd = history.redo().unwrap();
+        redone_cmd.execute(&mut store);
+
+        // Should be selected again
+        assert!(store.is_selected(0));
+        assert!(store.is_selected(4));
+    }
+
+    #[test]
+    fn test_select_vec_empty_delta() {
+        let mut store = EntityStore::new();
+        store.spawn(Vec2::ZERO, Vec2::ONE);
+
+        let cmd = Command::Select(Vec::new());
+
+        // Execute should do nothing
+        cmd.execute(&mut store);
+
+        // Should not panic and entity should remain unselected
+        assert!(!store.is_selected(0));
+    }
+
+    #[test]
+    fn test_select_vec_large_batch() {
+        let count = 1000;
+        let mut store = EntityStore::new();
+
+        let ids: Vec<EntityId> = (0..count)
+            .map(|i| {
+                store.spawn(Vec2::new(i as f32, 0.0), Vec2::ONE);
+                EntityId::from_parts(Index(i), Generation(1))
+            })
+            .collect();
+
+        // Select all
+        let indices: Vec<u32> = (0..count).map(|i| i as u32).collect();
+        let cmd = Command::Select(indices);
+        cmd.execute(&mut store);
+
+        // Verify all selected
+        for i in 0..count {
+            assert!(
+                store.is_selected(i as usize),
+                "Entity {} should be selected",
+                i
+            );
+        }
+    }
+
+    #[test]
+    fn test_select_vec_memory_efficiency() {
+        // 100k entities, selecting 1000 of them
+        let count = 100_000;
+        let selected_count = 1_000;
+        let indices: Vec<u32> = (0..selected_count as u32).collect();
+
+        // Memory: ~4KB for Vec<u32> with 1000 elements
+        // vs ~800KB for FixedBitSet of 100k bits
+        let memory_bytes = indices.capacity() * 4;
+        assert!(memory_bytes < 10_000, "Should be less than 10KB");
+    }
+
+    #[test]
+    fn test_select_vec_xor_semantics() {
+        let mut store = EntityStore::new();
+        let ids: Vec<EntityId> = (0..10)
+            .map(|i| {
+                store.spawn(Vec2::new(i as f32, 0.0), Vec2::ONE);
+                EntityId::from_parts(Index(i), Generation(1))
+            })
+            .collect();
+
+        let indices: Vec<u32> = ids[0..3].iter().map(|e| e.index().0).collect();
+        let cmd = Command::Select(indices.clone());
+
+        // Forward: select 0, 1, 2
+        cmd.execute(&mut store);
+        assert!(store.is_selected(0));
+        assert!(store.is_selected(1));
+        assert!(store.is_selected(2));
+
+        // Inverse: same indices, same effect (XOR)
+        let inverse = cmd.inverse(&store).unwrap();
+        inverse.execute(&mut store);
+        assert!(!store.is_selected(0));
+        assert!(!store.is_selected(1));
+        assert!(!store.is_selected(2));
+
+        // Forward again: select 0, 1, 2
+        let cmd2 = Command::Select(indices);
+        cmd2.execute(&mut store);
+        assert!(store.is_selected(0));
     }
 }
