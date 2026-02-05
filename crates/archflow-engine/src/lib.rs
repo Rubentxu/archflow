@@ -61,7 +61,7 @@ pub mod spatial;
 /// Entity store with SoA layout.
 pub mod store;
 
-pub use command::{Command, CommandQueue};
+pub use command::{Command, CommandQueue, DeltaMask};
 pub use command_log::{CommandError, CommandLog, CommandLogMetadata};
 pub use compression::{BatchBuilder, CompressedBatch, CompressionResult, CompressionSettings};
 pub use connection_store::{AnchorSide, ConnectionStore, LineStyle, MAX_CONNECTIONS};
