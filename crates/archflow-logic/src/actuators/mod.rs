@@ -46,13 +46,21 @@ pub use gizmos::{
     GizmoMoveActuator, GizmoRotateActuator, GizmoScaleActuator, GizmoState, GizmoType,
     TransformGizmoActuator,
 };
+pub mod group;
+pub use group::{GroupActuator, GroupConfig, GroupOp, GroupOpType, GroupResult};
 pub use highlight::HighlightActuator;
 pub use message::{Message, MessageActuator, MessageBus, MessagePayload};
 pub use move_::MoveActuator;
 pub use property::{Property, PropertyActuator};
+pub mod smart_guides;
+pub mod snap;
 pub use selection::{
     SelectActuator, SelectionConfig, SelectionMode, SelectionResult, SelectionState,
 };
+pub use smart_guides::{
+    AlignmentType, SmartGuide, SmartGuidesActuator, SmartGuidesConfig, SmartGuidesResult,
+};
+pub use snap::{SnapConfig, SnapResult, SnapToGridActuator};
 pub use state::{
     EntityState, StateActuator, StateBitset, StateId, StateMachine, StateManager, StateTransition,
     StateTransitionTable,

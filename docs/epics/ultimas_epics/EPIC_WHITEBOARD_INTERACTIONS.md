@@ -4,7 +4,7 @@
 **Prioridad:** 🔴 Alta
 **Versión:** 1.1
 **Fecha Creación:** 2026-01-21
-**Última Actualización:** 2026-02-05 (Actualizado: SelectActuator + Path Optimization completados)
+**Última Actualización:** 2026-02-06 (Actualizado: SelectActuator + Path Optimization completados)
 
 ---
 
@@ -27,23 +27,23 @@
 
 Esta épica define la implementación completa de todas las interacciones de usuario necesarias para un whiteboard profesional de clase mundial, utilizando el **Logic Bricks SDK** y el **API de ArchFlow**.
 
-**Estado de Implementación (Actualizado: 2026-02-05):**
+**Estado de Implementación (Actualizado: 2026-02-06):**
 
 | Categoría | Total | ✅ Implementado | 🔄 En Progreso | ❌ Pendiente | Notas |
 |-----------|-------|----------------|----------------|--------------|-------|
 | **Sensors** | 14 | 14 (100%) | 0 | 0 | Todos implementados |
 | **Selection Actuators** | 2 | 2 (100%) | 0 | 0 | SelectActuator + BatchSelectActuator |
-| **Transform Actuators** | 5 | 1 (20%) | 0 | 4 | Move✅, Resize❌, Rotate❌, Snap❌, SmartGuides❌ |
+| **Transform Actuators** | 5 | 1 (20%) | 0 | 4 | Move✅, Snap✅, Resize❌, Rotate❌, SmartGuides✅ |
 | **Editing Actuators** | 4 | 4 (100%) | 0 | 0 | Copy, Paste, Duplicate, Delete |
 | **Visual Feedback** | 1 | 1 (100%) | 0 | 0 | HighlightActuator |
 | **Camera Actuators** | 1 | 1 (100%) | 0 | 0 | CameraActuator |
 | **Connection Actuators** | 6 | 6 (100%) | 0 | 0 | Arrow, Elbow, AutoRoute, Label, Anchor, PathOpt |
 | **Gizmo Actuators** | 4 | 4 (100%) | 0 | 0 | Transform, Move, Scale, Rotate |
-| **Hierarchy Actuators** | 2 | 1 (50%) | 0 | 1 | ZOrder✅, Group/Ungroup❌ |
+| **Hierarchy Actuators** | 2 | 1 (50%) | 0 | 1 | ZOrder✅, Group/Ungroup✅ |
 | **Alignment Actuators** | 2 | 2 (100%) | 0 | 0 | Alignment, Distribution |
 | **Advanced Features** | 3 | 3 (100%) | 0 | 0 | Container, Swimlane, Property |
 
-**Progreso General:** ~58% de actuators planificados implementados (27/47)
+**Progreso General:** ~66% de actuators planificados implementados (31/47)
 
 ---
 
@@ -67,8 +67,8 @@ Esta épica define la implementación completa de todas las interacciones de usu
 | US-007 | Move (Drag Elementos) | ✅ **DONE** | MoveActuator con hysteresis (6 ticks) |
 | US-008 | Resize con Handles | 🔲 **PENDIENTE** | GizmoScaleActuator existe, falta integración UI |
 | US-009 | Rotate con Handle | 🔲 **PENDIENTE** | GizmoRotateActuator existe, falta integración UI |
-| US-010 | Snap to Grid | 🔲 **PENDIENTE** | No existe actuator dedicado |
-| US-011 | Smart Guides | 🔲 **PENDIENTE** | No existe actuator dedicado |
+| US-010 | Snap to Grid | ✅ **DONE** | SnapToGridActuator implementado |
+| US-011 | Smart Guides | ✅ **DONE** | SmartGuidesActuator implementado |
 
 ### 🎯 TEMA 3: Edición y Clipboard (12 SP) ✅ COMPLETADO (Sprint 9)
 
@@ -89,12 +89,12 @@ Esta épica define la implementación completa de todas las interacciones de usu
 | US-019 | Zoom to Fit | ✅ **DONE** | ZoomToFitActuator |
 | US-020 | Zoom to Selection | ✅ **DONE** | ZoomToSelectionActuator |
 
-### 🎯 TEMA 5: Jerarquía y Organización (12 SP) 🔄 EN PROGRESO
+### 🎯 TEMA 5: Jerarquía y Organización (12 SP) ✅ COMPLETADO
 
 | US | Historia | Estado | Notas |
 |----|----------|--------|-------|
-| US-021 | Group (CTRL+G) | 🔲 **PENDIENTE** | No existe actuator dedicado |
-| US-022 | Ungroup (CTRL+SHIFT+G) | 🔲 **PENDIENTE** | No existe actuator dedicado |
+| US-021 | Group (CTRL+G) | ✅ **DONE** | GroupActuator implementado |
+| US-022 | Ungroup (CTRL+SHIFT+G) | ✅ **DONE** | Ungroup funcionalidad en GroupActuator |
 | US-023 | Bring/Send Forward/Backward | ✅ **DONE** | ZOrderActuator implementado |
 | US-024 | Lock/Unlock | ✅ **DONE** | Via StateMachine |
 | US-025 | Alignment Tools | ✅ **DONE** | AlignmentActuator + DistributionActuator |
@@ -194,13 +194,13 @@ pub struct TouchSensor            // Touch events
 | Categoría | Planificado | ✅ Implementado | 🔄 En Progreso | ❌ Pendiente |
 |-----------|-------------|----------------|----------------|--------------|
 | **Selección** | 2 | 2 | 0 | 0 | SelectActuator, BatchSelectActuator |
-| **Transformación** | 5 | 1 | 0 | 4 | Move✅, Resize❌, Rotate❌, Snap❌, SmartGuides❌ |
+| **Transformación** | 5 | 1 | 0 | 4 | Move✅, Snap✅, Resize❌, Rotate❌, SmartGuides✅ |
 | **Edición** | 4 | 4 | 0 | 0 | Copy, Paste, Duplicate, Delete |
 | **Feedback Visual** | 1 | 1 | 0 | 0 | HighlightActuator |
 | **Cámara** | 1 | 1 | 0 | 0 | CameraActuator |
 | **Conexiones** | 6 | 6 | 0 | 0 | Arrow, Elbow, AutoRoute, Label, Anchor, PathOpt |
 | **Gizmos** | 4 | 4 | 0 | 0 | Transform, Move, Scale, Rotate |
-| **Jerarquía** | 2 | 1 | 0 | 1 | ZOrder✅, Group/Ungroup❌ |
+| **Jerarquía** | 2 | 1 | 0 | 1 | ZOrder✅, Group/Ungroup✅ |
 | **Alineación** | 2 | 2 | 0 | 0 | Alignment, Distribution |
 | **Avanzadas** | 3 | 3 | 0 | 0 | Container, Swimlane, Property |
 
@@ -281,7 +281,7 @@ ACTUATORS: 21/38 ✅ (55%)
 
 ---
 
-**Última actualización:** 2026-02-05 (Gizmo Sprint 9: +4 actuadores)  
+**Última actualización:** 2026-02-06 (Gizmo Sprint 9: +4 actuadores)  
 **Versión:** 1.1  
 **Actualizado por:** Claude Code Agent
 
