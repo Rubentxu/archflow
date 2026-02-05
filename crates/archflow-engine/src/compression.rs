@@ -180,7 +180,7 @@ impl CompressedBatch {
             } else {
                 write_idx += 1;
                 if write_idx != read_idx {
-                    commands[write_idx] = commands[read_idx];
+                    commands[write_idx] = commands[read_idx].clone();
                 }
             }
         }

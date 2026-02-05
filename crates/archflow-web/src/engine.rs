@@ -17,8 +17,9 @@ use alloc::vec::Vec;
 
 use alloc::boxed::Box;
 use archflow_core::{EntityId, Vec2, Vec2f64};
-use archflow_engine::{Command, CommandQueue, ConnectionStore, EntityStore};
+use archflow_engine::{Command, CommandQueue, ConnectionStore, EntityStore, MAX_ENTITIES};
 use archflow_interaction::HistoryManager;
+use archflow_logic::{BatchSelectActuator, EventRingBuffer, LogicSystem};
 use archflow_render::{Camera, GpuRenderer, Renderer};
 
 /// Converts RGBA color format to ABGR for WebGL compatibility.
@@ -62,7 +63,15 @@ pub struct ArchFlowEngine {
     /// Connection store with magnetic anchors
     pub connection_store: ConnectionStore,
 
-    /// Currently selected entities (for drag operations)
+    /// Logic Bricks system (sensors, actuators, controllers)
+    pub logic_system: LogicSystem,
+
+    /// Batch selection actuator for efficient multi-entity selection (12.5KB per 100k entities)
+    pub batch_select: BatchSelectActuator,
+
+    /// DEPRECATED: Use batch_select instead - kept for bridge.rs compatibility
+    /// Will be removed in future update
+    #[deprecated(note = "Use batch_select instead")]
     pub selected_entities: Vec<EntityId>,
 
     /// Canvas width in pixels
@@ -78,10 +87,20 @@ pub struct ArchFlowEngine {
     pub active_tool: alloc::string::String,
 
     /// Flag indicating if we are currently creating a new entity (drag-to-create)
+    /// TODO: Migrate to creation logic in Logic Bricks
     pub is_creating: bool,
 
     /// Starting world position of the drag operation
+    /// TODO: Migrate to MoveActuator in LogicSystem
     pub drag_start: Option<Vec2>,
+
+    /// Flag indicating if we are currently dragging selected entities
+    /// TODO: Migrate to MoveActuator in LogicSystem
+    pub is_dragging: bool,
+
+    /// Last mouse screen position for calculating deltas during drag
+    /// TODO: Migrate to MoveActuator in LogicSystem
+    pub last_mouse_screen_pos: Option<Vec2>,
 
     /// Active fill color for new shapes (RGBA packed)
     pub active_color: u32,
@@ -91,6 +110,9 @@ pub struct ArchFlowEngine {
 
     /// Active stroke width for new shapes
     pub active_stroke_width: f32,
+
+    /// Event output buffer for JavaScript (HU-LOGIC-EVENTS-002)
+    pub events: EventRingBuffer,
 }
 
 impl ArchFlowEngine {
@@ -113,16 +135,21 @@ impl ArchFlowEngine {
             command_queue: CommandQueue::new(),
             camera,
             connection_store: ConnectionStore::new(),
-            selected_entities: Vec::new(),
+            logic_system: LogicSystem::new(),
+            batch_select: BatchSelectActuator::new(MAX_ENTITIES),
+            selected_entities: Vec::new(), // DEPRECATED: Use batch_select instead
             canvas_width,
             canvas_height,
             history: HistoryManager::with_default_depth(),
             active_tool: alloc::string::String::from("select"),
             is_creating: false,
             drag_start: None,
+            is_dragging: false,
+            last_mouse_screen_pos: None,
             active_color: rgba_to_abgr(0x3b82f6ff), // Blue color converted to ABGR
             active_stroke_color: rgba_to_abgr(0x000000ff), // Black stroke converted to ABGR
             active_stroke_width: 2.0,
+            events: EventRingBuffer::new(1024),
         }
     }
 
@@ -186,7 +213,8 @@ impl ArchFlowEngine {
             // For reversible commands, store the undo command
             if let Some(undo_cmd) = cmd.inverse(&self.store) {
                 // Record both the redo (original cmd) and undo in history
-                self.history.record(cmd, undo_cmd);
+                // Clone cmd since we need to execute it after recording
+                self.history.record(cmd.clone(), undo_cmd);
             }
 
             // Execute the command
