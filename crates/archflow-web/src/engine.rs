@@ -251,17 +251,11 @@ impl ArchFlowEngine {
 
     /// Convert screen delta to world delta
     pub fn screen_delta_to_world(&self, screen_dx: f32, screen_dy: f32) -> Vec2 {
-        let width = self.canvas_width;
-        let height = self.canvas_height;
+        let zoom = self.camera.zoom;
 
-        let aspect_ratio = width / height;
-        let world_width = 2.0 * aspect_ratio / self.camera.zoom;
-        let world_height = 2.0 / self.camera.zoom;
-
-        Vec2::new(
-            (screen_dx / width) * world_width,
-            (screen_dy / height) * world_height,
-        )
+        // Correct conversion: 1 screen pixel = 1/zoom world units
+        // screen_dy is inverted because screen +Y is down, world +Y is up
+        Vec2::new(screen_dx / zoom, -screen_dy / zoom)
     }
 
     /// Convert world coordinates to screen coordinates
