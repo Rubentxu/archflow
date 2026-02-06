@@ -20,7 +20,9 @@ struct InstanceInput {
     @location(1) size: vec2<f32>,
     @location(2) color: u32,
     @location(3) shape_type: u32,
-    @location(4) uv_rect: vec4<f32>,
+    @location(4) stroke_color: u32,
+    @location(5) stroke_width_bits: u32,
+    @location(6) uv_rect: vec4<f32>,
 };
 
 struct VertexOutput {
@@ -30,6 +32,8 @@ struct VertexOutput {
     @location(2) instance_size: vec2<f32>,
     @location(3) color: vec4<f32>,
     @location(4) shape_type: u32,
+    @location(5) stroke_color: vec4<f32>,
+    @location(6) stroke_width: f32,
 };
 
 struct CameraUniforms {
@@ -57,24 +61,26 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     let instance = instances[instance_idx];
     let quad_vert = QUAD_VERTICES[vert_idx];
 
+    let stroke_width = bitcast<f32>(instance.stroke_width_bits);
+    let expansion = stroke_width + 2.0;
+    
     // Relative Rendering: Calculate position relative to camera center
-    // This avoids float32 precision issues at large coordinates
     let relative_instance_pos = instance.pos - camera.camera_pos;
     
-    // Apply vertex offset (quad expansion) for relative position
-    let final_pos = relative_instance_pos + (quad_vert - 0.5) * instance.size;
-    
-    // Calculate true world position for logic that needs it (like SDF in fragment shader)
-    let world_pos = instance.pos + (quad_vert - 0.5) * instance.size;
+    // Apply expanded vertex offset
+    let expanded_offset = (quad_vert - 0.5) * (instance.size + 2.0 * expansion);
+    let final_pos = relative_instance_pos + expanded_offset;
+    let world_pos = instance.pos + expanded_offset;
 
     var output: VertexOutput;
-    // Projection matrix now only handles Zoom and Aspect Ratio, translation is done above
     output.clip_pos = camera.view_projection * vec4<f32>(final_pos, 0.0, 1.0);
     output.world_pos = world_pos;
     output.instance_pos = instance.pos;
     output.instance_size = instance.size;
     output.color = unpack4x8unorm(instance.color);
     output.shape_type = instance.shape_type;
+    output.stroke_color = unpack4x8unorm(instance.stroke_color);
+    output.stroke_width = stroke_width;
 
     return output;
 }
@@ -130,7 +136,16 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
 
     // Anti-aliased edge using smoothstep
     let edge_width = fwidth(distance);
-    let alpha = 1.0 - smoothstep(-edge_width, edge_width, distance);
+    let fill_alpha = 1.0 - smoothstep(-edge_width, edge_width, distance);
 
-    return vec4<f32>(input.color.rgb, input.color.a * alpha);
+    // Stroke calculation
+    let stroke_distance = abs(distance) - input.stroke_width;
+    let stroke_alpha = 1.0 - smoothstep(-edge_width, edge_width, stroke_distance);
+
+    // Combine fill and stroke
+    let fill_color = input.color * fill_alpha;
+    let stroke_color_final = input.stroke_color * stroke_alpha;
+
+    // Stroke on top of fill (mix using the inverse of fill alpha to prevent overlap artifacts)
+    return mix(fill_color, stroke_color_final, stroke_alpha * (1.0 - fill_alpha));
 }
