@@ -22,7 +22,7 @@ import {
   AlertCircle,
   CheckCircle2,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { cn } from "../../utils/cn";
 import { useSelectionStore } from "../../store/useSelectionStore";
 import { useEntityStore } from "../../hooks/useEntityStore";
@@ -252,6 +252,120 @@ function VisualPropertiesForm({
             <span className="text-xs w-8 text-right font-mono text-gray-300">
               {strokeWidth}px
             </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Transform Section - Direct World Coordinate Editing
+ */
+function TransformForm({
+  entityId,
+  bridge,
+  isInitialized = false,
+  onUpdate,
+}: {
+  entityId: number | null;
+  bridge: any;
+  isInitialized?: boolean;
+  onUpdate?: () => void;
+}) {
+  const [pos, setPos] = React.useState({ x: 0, y: 0 });
+  const [size, setSize] = React.useState({ w: 0, h: 0 });
+
+  // Sync from bridge
+  React.useEffect(() => {
+    if (!bridge || !isInitialized || entityId === null) return;
+
+    try {
+      const p = bridge.get_entity_position_world(entityId);
+      const s = bridge.get_entity_size_world(entityId);
+      setPos({ x: Math.round(p[0]), y: Math.round(p[1]) });
+      setSize({ w: Math.round(s[0]), h: Math.round(s[1]) });
+    } catch (e) {
+      console.warn("Failed to sync transform from bridge:", e);
+    }
+  }, [bridge, entityId, isInitialized]);
+
+  const handlePosChange = (axis: "x" | "y", val: number) => {
+    if (entityId === null || !bridge) return;
+    const nextPos = { ...pos, [axis]: val };
+    setPos(nextPos);
+    bridge.set_position(entityId, nextPos.x, nextPos.y);
+    onUpdate?.();
+  };
+
+  const handleSizeChange = (dim: "w" | "h", val: number) => {
+    if (entityId === null || !bridge) return;
+    const nextSize = { ...size, [dim]: val };
+    setSize(nextSize);
+    bridge.set_size(entityId, nextSize.w, nextSize.h);
+    onUpdate?.();
+  };
+
+  if (entityId === null) return null;
+
+  return (
+    <div className="space-y-4 mb-6 pt-2 pb-4 border-b border-border-light dark:border-border-dark/50">
+      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+        <Box className="w-3 h-3" />
+        Transform
+      </h4>
+
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+        <div className="space-y-1">
+          <label className="text-[10px] text-gray-500 font-bold uppercase">
+            X Position
+          </label>
+          <div className="relative">
+            <input
+              type="number"
+              value={pos.x}
+              onChange={(e) => handlePosChange("x", parseFloat(e.target.value))}
+              className="w-full px-2 py-1.5 bg-slate-100/50 dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded text-xs text-slate-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-primary/30"
+            />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <label className="text-[10px] text-gray-500 font-bold uppercase">
+            Y Position
+          </label>
+          <div className="relative">
+            <input
+              type="number"
+              value={pos.y}
+              onChange={(e) => handlePosChange("y", parseFloat(e.target.value))}
+              className="w-full px-2 py-1.5 bg-slate-100/50 dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded text-xs text-slate-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-primary/30"
+            />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <label className="text-[10px] text-gray-500 font-bold uppercase">
+            Width
+          </label>
+          <div className="relative">
+            <input
+              type="number"
+              value={size.w}
+              onChange={(e) => handleSizeChange("w", parseFloat(e.target.value))}
+              className="w-full px-2 py-1.5 bg-slate-100/50 dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded text-xs text-slate-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-primary/30"
+            />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <label className="text-[10px] text-gray-500 font-bold uppercase">
+            Height
+          </label>
+          <div className="relative">
+            <input
+              type="number"
+              value={size.h}
+              onChange={(e) => handleSizeChange("h", parseFloat(e.target.value))}
+              className="w-full px-2 py-1.5 bg-slate-100/50 dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded text-xs text-slate-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-primary/30"
+            />
           </div>
         </div>
       </div>
@@ -824,7 +938,7 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
   const { bridge, isInitialized } = useArchFlowWasm();
   const { activeTool } = useUIStore();
   const { selectedIds } = useSelectionStore();
-  const { updateProperty, getEntity } = useEntityStore();
+  const { updateProperty, getEntity, refreshEntities } = useEntityStore();
   const [isSaving, setIsSaving] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<
     "properties" | "logic" | "history"
@@ -890,12 +1004,6 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
     [selectedId, entityType, updateProperty, form],
   );
 
-  // Reset form to original values
-  const handleReset = useCallback(() => {
-    if (entity?.properties) {
-      form.reset(entity.properties);
-    }
-  }, [entity, form]);
 
   // Render appropriate form based on entity type
   const renderForm = () => {
@@ -1031,6 +1139,14 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
                 entityId={selectedId}
                 bridge={bridge}
                 isInitialized={isInitialized}
+                onUpdate={refreshEntities}
+              />
+
+              <TransformForm
+                entityId={selectedId}
+                bridge={bridge}
+                isInitialized={isInitialized}
+                onUpdate={refreshEntities}
               />
 
               {/* Identity Section */}

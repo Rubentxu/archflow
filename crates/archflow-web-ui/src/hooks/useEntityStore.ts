@@ -20,6 +20,7 @@ interface EntityStoreReturn {
     y: number,
     width?: number,
     height?: number,
+    metadata?: Partial<EntityData>,
   ) => EntityId;
   deleteEntity: (id: EntityId) => void;
   duplicateEntity: (id: EntityId) => EntityId | null;
@@ -37,6 +38,39 @@ function requireWasmBridge(): never {
     "WASM bridge is required but not loaded. " +
     "Please build the WASM module first: cd crates/archflow-web && wasm-pack build --target web",
   );
+}
+
+/**
+ * Helper to fetch entity data directly from bridge
+ */
+function fetchEntityFromBridge(bridge: WasmBridge, id: EntityId): EntityData | null {
+  try {
+    const position = bridge.get_entity_position_screen(id);
+    const size = bridge.get_entity_size_screen(id);
+    const worldPosition = bridge.get_entity_position_world(id);
+    const worldSize = bridge.get_entity_size_world(id);
+    const color = bridge.get_entity_color_hex(id);
+    const shape = bridge.get_entity_shape(id);
+    const label = bridge.get_entity_label(id);
+    const isVisible = bridge.is_entity_visible(id);
+    const isSelected = bridge.is_entity_selected(id);
+
+    return {
+      id,
+      position: { x: position[0], y: position[1] },
+      size: { w: size[0], h: size[1] },
+      worldPosition: { x: worldPosition[0], y: worldPosition[1] },
+      worldSize: { w: worldSize[0], h: worldSize[1] },
+      color,
+      shape,
+      label,
+      isVisible,
+      isSelected,
+    };
+  } catch (err) {
+    console.error(`Failed to fetch entity ${id} from bridge:`, err);
+    return null;
+  }
 }
 
 export function useEntityStore(): EntityStoreReturn {
@@ -62,23 +96,15 @@ export function useEntityStore(): EntityStoreReturn {
       const entitiesMap = new Map<EntityId, EntityData>();
 
       for (const id of aliveIds) {
-        const position = bridge.get_entity_position_screen(id);
-        const size = bridge.get_entity_size_screen(id);
-        const color = bridge.get_entity_color_hex(id);
-        const shape = bridge.get_entity_shape(id);
-        const label = bridge.get_entity_label(id);
-        const isVisible = bridge.is_entity_visible(id);
-        const isSelected = bridge.is_entity_selected(id);
+        const data = fetchEntityFromBridge(bridge, id);
+        if (!data) continue;
+
+        const existing = entities.get(id);
 
         entitiesMap.set(id, {
-          id,
-          position: { x: position[0], y: position[1] },
-          size: { w: size[0], h: size[1] },
-          color,
-          shape,
-          label,
-          isVisible,
-          isSelected,
+          ...data,
+          type: existing?.type,
+          properties: existing?.properties,
         });
       }
 
@@ -86,9 +112,8 @@ export function useEntityStore(): EntityStoreReturn {
       setEntityCount(aliveIds.length);
     } catch (err) {
       console.error("Failed to sync entities from WASM:", err);
-      throw err;
     }
-  }, [bridge, isInitialized]);
+  }, [bridge, isInitialized, entities]);
 
   useEffect(() => {
     if (isLoaded && isInitialized && bridge) {
@@ -102,9 +127,22 @@ export function useEntityStore(): EntityStoreReturn {
       y: number,
       width = DEFAULT_WIDTH,
       height = DEFAULT_HEIGHT,
+      metadata?: Partial<EntityData>,
     ): EntityId => {
       const wasmBridge = ensureBridge();
       const newId = wasmBridge.spawn_entity(x, y, width, height);
+
+      if (metadata) {
+        setEntities((prev) => {
+          const next = new Map(prev);
+          const data = fetchEntityFromBridge(wasmBridge, newId);
+          if (data) {
+            next.set(newId, { ...data, ...metadata });
+          }
+          return next;
+        });
+      }
+
       syncEntitiesFromWasm();
       return newId;
     },
@@ -160,6 +198,19 @@ export function useEntityStore(): EntityStoreReturn {
       if (updates.label !== undefined) {
         wasmBridge.set_label(id, updates.label);
       }
+
+      // Update local state immediately for metadata fields
+      if (updates.type !== undefined || updates.properties !== undefined) {
+        setEntities((prev) => {
+          const next = new Map(prev);
+          const current = next.get(id);
+          if (current) {
+            next.set(id, { ...current, ...updates });
+          }
+          return next;
+        });
+      }
+
       syncEntitiesFromWasm();
     },
     [ensureBridge, syncEntitiesFromWasm],
@@ -190,32 +241,12 @@ export function useEntityStore(): EntityStoreReturn {
   const getEntity = useCallback(
     (id: EntityId): EntityData | null => {
       const wasmBridge = ensureBridge();
+      const entity = entities.get(id);
+      if (entity) return entity;
 
-      try {
-        const position = wasmBridge.get_entity_position_screen(id);
-        const size = wasmBridge.get_entity_size_screen(id);
-        const color = wasmBridge.get_entity_color_hex(id);
-        const shape = wasmBridge.get_entity_shape(id);
-        const label = wasmBridge.get_entity_label(id);
-        const isVisible = wasmBridge.is_entity_visible(id);
-        const isSelected = wasmBridge.is_entity_selected(id);
-
-        return {
-          id,
-          position: { x: position[0], y: position[1] },
-          size: { w: size[0], h: size[1] },
-          color,
-          shape,
-          label,
-          isVisible,
-          isSelected,
-        };
-      } catch (err) {
-        console.error("Failed to get entity from WASM:", err);
-        throw err;
-      }
+      return fetchEntityFromBridge(wasmBridge, id);
     },
-    [ensureBridge],
+    [ensureBridge, entities],
   );
 
   const refreshEntities = useCallback(() => {

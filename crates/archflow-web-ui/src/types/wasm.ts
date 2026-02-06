@@ -7,10 +7,7 @@
  * Architecture Reference: ARQUITECTURA_FINAL_V3.md - Section 7, 21
  */
 
-/**
- * Import WasmBridge type from src/wasm directory
- */
-import type { WasmBridge } from "../wasm/archflow_web.js";
+// WasmBridge is defined as an interface below to match the Rust implementation
 
 /**
  * Entity identifier type used throughout the system
@@ -59,8 +56,10 @@ export interface CameraState {
  */
 export interface EntityData {
   id: EntityId;
-  position: Vec2;
-  size: Dimensions;
+  position: Vec2; // Screen coordinates
+  size: Dimensions; // Screen coordinates
+  worldPosition: Vec2; // World coordinates
+  worldSize: Dimensions; // World coordinates
   color: string; // Hex format "#RRGGBB"
   shape: number; // ShapeType as number (enum converted for erasable syntax)
   label: string;
@@ -187,11 +186,19 @@ export interface EngineOptions {
 export interface WasmBridge {
   // Lifecycle
   new(): WasmBridge;
+  free(): void;
+  [Symbol.dispose](): void;
   initialize(canvasWidth: number, canvasHeight: number): void;
+  initialize_graphics(canvas: HTMLCanvasElement): void;
+  initialize_graphics_with_backend(
+    canvas: HTMLCanvasElement,
+    backend: string,
+  ): Promise<void>;
+  is_recovering(): boolean;
+  resize(width: number, height: number): void;
 
   // Input
   get_input_buffer_ptr(): number;
-  get_input_buffer_size(): number;
   push_input_event(
     eventType: number,
     x: number,
@@ -202,6 +209,7 @@ export interface WasmBridge {
 
   // Main loop
   tick(timestamp: number): void;
+  poll_events(): any;
 
   // Entity operations
   spawn_entity(x: number, y: number, width: number, height: number): EntityId;
@@ -217,10 +225,6 @@ export interface WasmBridge {
   set_label(entityIndex: EntityId, label: string): void;
   set_size(entityIndex: EntityId, width: number, height: number): void;
   set_position(entityIndex: EntityId, x: number, y: number): void;
-  entity_count(): number;
-  clear(): void;
-  delete_selected(): void;
-  duplicate_entity(entityIndex: EntityId): EntityId;
   set_stroke_color(
     entityIndex: EntityId,
     r: number,
@@ -229,24 +233,39 @@ export interface WasmBridge {
     a: number,
   ): void;
   set_stroke_width(entityIndex: EntityId, width: number): void;
+  entity_count(): number;
+  clear(): void;
+  delete_selected(): void;
+  duplicate_entity(entityIndex: EntityId): EntityId;
+
+  // Active state
   set_active_color(r: number, g: number, b: number, a: number): void;
   set_active_stroke_color(r: number, g: number, b: number, a: number): void;
   set_active_stroke_width(width: number): void;
+  get_active_color(): string;
+  get_active_stroke_color(): string;
+  get_active_stroke_width(): number;
 
   // Query operations
-  get_alive_entities(): EntityId[];
+  get_alive_entities(): Uint32Array;
   get_entity_position_screen(entityIndex: EntityId): [number, number];
   get_entity_size_screen(entityIndex: EntityId): [number, number];
+  get_entity_position_world(entityIndex: EntityId): [number, number];
+  get_entity_size_world(entityIndex: EntityId): [number, number];
   get_entity_color_hex(entityIndex: EntityId): string;
+  get_color(entityIndex: EntityId): string;
+  get_stroke_color(entityIndex: EntityId): string;
+  get_stroke_width(entityIndex: EntityId): number;
   get_entity_shape(entityIndex: EntityId): number;
   get_entity_label(entityIndex: EntityId): string;
   is_entity_visible(entityIndex: EntityId): boolean;
   is_entity_selected(entityIndex: EntityId): boolean;
+  set_entity_visible(entityIndex: EntityId, visible: boolean): void;
 
   // Selection
   select_entity(entityIndex: EntityId): void;
   clear_selection(): void;
-  get_selection(): EntityId[];
+  get_selection(): any[];
   set_entity_selected(entityIndex: EntityId, selected: boolean): void;
 
   // Camera
@@ -268,6 +287,10 @@ export interface WasmBridge {
   // Tools
   set_tool(tool: string): void;
   get_tool(): string;
+
+  // Methods (for reference)
+  get_input_buffer_size(): number;
+  detect_available_backends(): any;
 }
 
 /**
