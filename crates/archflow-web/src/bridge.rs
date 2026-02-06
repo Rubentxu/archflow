@@ -608,7 +608,7 @@ impl WasmBridge {
         let js_array = js_sys::Array::new();
 
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
-            let events = engine.logic_system.event_buffer().drain();
+            let events = engine.logic_bricks.poll_events();
 
             for event in events {
                 let js_object = js_sys::Object::new();

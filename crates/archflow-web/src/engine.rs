@@ -19,7 +19,7 @@ use alloc::boxed::Box;
 use archflow_core::{EntityId, Vec2, Vec2f64};
 use archflow_engine::{Command, CommandQueue, ConnectionStore, EntityStore, MAX_ENTITIES};
 use archflow_interaction::HistoryManager;
-use archflow_logic::{EventRingBuffer, LogicSystem};
+use archflow_logic::{EventRingBuffer, LogicSystem, SelectMode};
 use archflow_render::{Camera, GpuRenderer, Renderer};
 
 /// Converts RGBA color format to ABGR for WebGL compatibility.
@@ -60,16 +60,13 @@ pub struct ArchFlowEngine {
     /// Connection store with magnetic anchors
     pub connection_store: ConnectionStore,
 
-    /// Logic Bricks system (sensors, actuators, controllers)
-    pub logic_system: LogicSystem,
+    /// Logic Bricks system (sensors, actuators, controllers, event ring-buffer)
+    /// Replaces the old logic_system and integrates BatchSelectActuator
+    pub logic_bricks: crate::logic_bricks_setup::LogicBricksSystem,
 
-    /// Batch selection actuator for efficient multi-entity selection (12.5KB per 100k entities)
-    /// TODO: Uncomment when BatchSelectActuator is implemented
-    // pub batch_select: BatchSelectActuator,
-
-    /// DEPRECATED: Use batch_select instead - kept for bridge.rs compatibility
+    /// DEPRECATED: Use logic_bricks.batch_select instead - kept for bridge.rs compatibility
     /// Will be removed in future update
-    #[deprecated(note = "Use batch_select instead")]
+    #[deprecated(note = "Use logic_bricks.batch_select instead")]
     pub selected_entities: Vec<EntityId>,
 
     /// Canvas width in pixels
@@ -133,9 +130,8 @@ impl ArchFlowEngine {
             command_queue: CommandQueue::new(),
             camera,
             connection_store: ConnectionStore::new(),
-            logic_system: LogicSystem::new(),
-            // batch_select: BatchSelectActuator::new(MAX_ENTITIES), // TODO: Uncomment
-            selected_entities: Vec::new(), // DEPRECATED: Use batch_select instead
+            logic_bricks: crate::logic_bricks_setup::LogicBricksSystem::new(),
+            selected_entities: Vec::new(), // DEPRECATED: Use logic_bricks.batch_select instead
             canvas_width,
             canvas_height,
             history: HistoryManager::with_default_depth(),
@@ -171,9 +167,20 @@ impl ArchFlowEngine {
     ///
     /// This is the main entry point called from JavaScript via requestAnimationFrame.
     /// It processes all subsystems in the correct order to maintain consistency.
-    pub fn tick(&mut self, _timestamp: f64) {
+    pub fn tick(&mut self, timestamp: f64) {
         // ═════════════════════════════════════════════════════════════════════
-        // PHASE 1: COMMAND EXECUTION
+        // PHASE 0: LOGIC BRICKS (Sensors → Controllers → Actuators)
+        // ═════════════════════════════════════════════════════════════════════
+        // Execute the 4-phase Logic Bricks pipeline:
+        // 1. SAMPLE: Sensors read EntityStore (immutable)
+        // 2. LOGIC: Controllers filter pulses
+        // 3. ACTUATE: Actuators write commands to CommandQueue
+        // 4. COMMIT: Commands will be executed in Phase 1 below
+        let timestamp_ms = (timestamp * 1000.0) as u32;
+        self.logic_bricks.tick(&mut self.store, timestamp_ms);
+
+        // ═════════════════════════════════════════════════════════════════════
+        // PHASE 1: COMMAND EXECUTION (includes Logic Bricks commands)
         // ═════════════════════════════════════════════════════════════════════
         self.execute_commands();
 
@@ -231,6 +238,76 @@ impl ArchFlowEngine {
     fn prepare_render(&mut self) {
         // Sync renderer with entity store using trait
         self.renderer.sync_from_store(&self.store, &self.camera);
+    }
+
+    /// ═══════════════════════════════════════════════════════════════════════════
+    /// SELECTION HELPERS (Logic Bricks Integration)
+    /// ═══════════════════════════════════════════════════════════════════════════
+
+    /// Get the current selection as a Vec (for backward compatibility)
+    ///
+    /// Note: This creates a Vec from the BatchSelectActuator's BitVec.
+    /// For performance-critical code, use `logic_bricks.batch_select` directly.
+    pub fn get_selected_entities(&self) -> Vec<EntityId> {
+        self.logic_bricks.batch_select.current_selection()
+    }
+
+    /// Check if an entity is selected
+    pub fn is_entity_selected(&self, entity_id: EntityId) -> bool {
+        self.logic_bricks.batch_select.is_selected(entity_id)
+    }
+
+    /// Get the number of selected entities
+    pub fn selection_count(&self) -> usize {
+        self.logic_bricks.batch_select.selection_count()
+    }
+
+    /// Check if selection is empty
+    pub fn is_selection_empty(&self) -> bool {
+        self.logic_bricks.batch_select.selection_count() == 0
+    }
+
+    /// Clear the selection
+    pub fn clear_selection(&mut self) {
+        self.logic_bricks.batch_select.clear(&mut self.store);
+        // Also clear deprecated field for backward compatibility
+        #[allow(deprecated)]
+        {
+            self.selected_entities.clear();
+        }
+    }
+
+    /// Select a single entity (clears previous selection)
+    pub fn select_entity(&mut self, entity_id: EntityId) {
+        self.logic_bricks.batch_select.clear(&mut self.store);
+        self.logic_bricks
+            .batch_select
+            .execute(&mut self.store, &[entity_id], SelectMode::Single);
+        // Also update deprecated field for backward compatibility
+        #[allow(deprecated)]
+        {
+            self.selected_entities.clear();
+            self.selected_entities.push(entity_id);
+        }
+    }
+
+    /// Toggle entity selection (multi-select)
+    pub fn toggle_entity_selection(&mut self, entity_id: EntityId) {
+        self.logic_bricks
+            .batch_select
+            .execute(&mut self.store, &[entity_id], SelectMode::Multi);
+
+        // Also update deprecated field
+        #[allow(deprecated)]
+        {
+            if self.logic_bricks.batch_select.is_selected(entity_id) {
+                if !self.selected_entities.contains(&entity_id) {
+                    self.selected_entities.push(entity_id);
+                }
+            } else {
+                self.selected_entities.retain(|e| *e != entity_id);
+            }
+        }
     }
 
     /// ═══════════════════════════════════════════════════════════════════════════

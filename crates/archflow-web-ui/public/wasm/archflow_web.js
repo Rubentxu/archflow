@@ -1572,7 +1572,7 @@ export class WasmBridge {
         }
     }
     /**
-     * Clear all selected entities
+     * Clear all selections (deselect all entities)
      */
     clear_selection() {
         try {
@@ -1662,6 +1662,81 @@ export class WasmBridge {
         }
     }
     /**
+     * Get the active fill color (returns RGBA as hex string)
+     * @returns {string}
+     */
+    get_active_color() {
+        let deferred2_0;
+        let deferred2_1;
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.wasmbridge_get_active_color(retptr, this.__wbg_ptr);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            var r3 = getDataViewMemory0().getInt32(retptr + 4 * 3, true);
+            var ptr1 = r0;
+            var len1 = r1;
+            if (r3) {
+                ptr1 = 0; len1 = 0;
+                throw takeObject(r2);
+            }
+            deferred2_0 = ptr1;
+            deferred2_1 = len1;
+            return getStringFromWasm0(ptr1, len1);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+            wasm.__wbindgen_export4(deferred2_0, deferred2_1, 1);
+        }
+    }
+    /**
+     * Get the active stroke color (returns RGBA as hex string)
+     * @returns {string}
+     */
+    get_active_stroke_color() {
+        let deferred2_0;
+        let deferred2_1;
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.wasmbridge_get_active_stroke_color(retptr, this.__wbg_ptr);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            var r3 = getDataViewMemory0().getInt32(retptr + 4 * 3, true);
+            var ptr1 = r0;
+            var len1 = r1;
+            if (r3) {
+                ptr1 = 0; len1 = 0;
+                throw takeObject(r2);
+            }
+            deferred2_0 = ptr1;
+            deferred2_1 = len1;
+            return getStringFromWasm0(ptr1, len1);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+            wasm.__wbindgen_export4(deferred2_0, deferred2_1, 1);
+        }
+    }
+    /**
+     * Get the active stroke width
+     * @returns {number}
+     */
+    get_active_stroke_width() {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.wasmbridge_get_active_stroke_width(retptr, this.__wbg_ptr);
+            var r0 = getDataViewMemory0().getFloat32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            if (r2) {
+                throw takeObject(r1);
+            }
+            return r0;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
      * Get list of alive entity indices
      * @returns {Uint32Array}
      */
@@ -1700,6 +1775,35 @@ export class WasmBridge {
             return takeObject(r0);
         } finally {
             wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+     * Get the color of an entity (returns hex string)
+     * @param {number} entity_index
+     * @returns {string}
+     */
+    get_color(entity_index) {
+        let deferred2_0;
+        let deferred2_1;
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.wasmbridge_get_color(retptr, this.__wbg_ptr, entity_index);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            var r3 = getDataViewMemory0().getInt32(retptr + 4 * 3, true);
+            var ptr1 = r0;
+            var len1 = r1;
+            if (r3) {
+                ptr1 = 0; len1 = 0;
+                throw takeObject(r2);
+            }
+            deferred2_0 = ptr1;
+            deferred2_1 = len1;
+            return getStringFromWasm0(ptr1, len1);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+            wasm.__wbindgen_export4(deferred2_0, deferred2_1, 1);
         }
     }
     /**
@@ -1781,6 +1885,26 @@ export class WasmBridge {
         }
     }
     /**
+     * Get entity position in world coordinates
+     * @param {number} entity_index
+     * @returns {Array<any>}
+     */
+    get_entity_position_world(entity_index) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.wasmbridge_get_entity_position_world(retptr, this.__wbg_ptr, entity_index);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            if (r2) {
+                throw takeObject(r1);
+            }
+            return takeObject(r0);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
      * Get entity shape type
      * @param {number} entity_index
      * @returns {number}
@@ -1809,6 +1933,26 @@ export class WasmBridge {
         try {
             const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
             wasm.wasmbridge_get_entity_size_screen(retptr, this.__wbg_ptr, entity_index);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            if (r2) {
+                throw takeObject(r1);
+            }
+            return takeObject(r0);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+     * Get entity size in world coordinates
+     * @param {number} entity_index
+     * @returns {Array<any>}
+     */
+    get_entity_size_world(entity_index) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.wasmbridge_get_entity_size_world(retptr, this.__wbg_ptr, entity_index);
             var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
             var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
             var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
@@ -1882,6 +2026,55 @@ export class WasmBridge {
                 throw takeObject(r1);
             }
             return takeObject(r0);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+     * Get the stroke color of an entity (returns hex string)
+     * @param {number} entity_index
+     * @returns {string}
+     */
+    get_stroke_color(entity_index) {
+        let deferred2_0;
+        let deferred2_1;
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.wasmbridge_get_stroke_color(retptr, this.__wbg_ptr, entity_index);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            var r3 = getDataViewMemory0().getInt32(retptr + 4 * 3, true);
+            var ptr1 = r0;
+            var len1 = r1;
+            if (r3) {
+                ptr1 = 0; len1 = 0;
+                throw takeObject(r2);
+            }
+            deferred2_0 = ptr1;
+            deferred2_1 = len1;
+            return getStringFromWasm0(ptr1, len1);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+            wasm.__wbindgen_export4(deferred2_0, deferred2_1, 1);
+        }
+    }
+    /**
+     * Get the stroke width of an entity
+     * @param {number} entity_index
+     * @returns {number}
+     */
+    get_stroke_width(entity_index) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.wasmbridge_get_stroke_width(retptr, this.__wbg_ptr, entity_index);
+            var r0 = getDataViewMemory0().getFloat32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            if (r2) {
+                throw takeObject(r1);
+            }
+            return r0;
         } finally {
             wasm.__wbindgen_add_to_stack_pointer(16);
         }
@@ -2035,6 +2228,14 @@ export class WasmBridge {
         }
     }
     /**
+     * Check if context recovery is in progress
+     * @returns {boolean}
+     */
+    is_recovering() {
+        const ret = wasm.wasmbridge_is_recovering(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
      * Move an entity by the given delta
      * @param {number} entity_index
      * @param {number} dx
@@ -2061,6 +2262,35 @@ export class WasmBridge {
         this.__wbg_ptr = ret >>> 0;
         WasmBridgeFinalization.register(this, this.__wbg_ptr, this);
         return this;
+    }
+    /**
+     * Poll all events from the logic system
+     *
+     * Returns a JavaScript array of events emitted by the logic system
+     * during the current frame. Call this once per frame after `tick()`.
+     *
+     * # Returns
+     *
+     * A JS array where each event is an object with:
+     * - `type`: Event type (0=EntitySelected, 1=ProximityAlert, 2=DragStarted, 3=DragEnded, 4=EntityDestroyed, 5=BoxSelectionCompleted, 6=HoverChanged)
+     * - `entityId`: Entity ID (or 0 for global events)
+     * - `timestamp`: Timestamp in microseconds
+     * - `data`: Event-specific data (varies by type)
+     *
+     * # Example
+     *
+     * ```javascript
+     * // In your JavaScript/TypeScript code
+     * const events = bridge.poll_events();
+     * for (const event of events) {
+     *     console.log('Event:', event.type, event.entityId);
+     * }
+     * ```
+     * @returns {any}
+     */
+    poll_events() {
+        const ret = wasm.wasmbridge_poll_events(this.__wbg_ptr);
+        return takeObject(ret);
     }
     /**
      * Push an input event from JavaScript
@@ -2103,7 +2333,25 @@ export class WasmBridge {
         }
     }
     /**
-     * Add an entity to the selection
+     * Resize the engine and renderer
+     * @param {number} width
+     * @param {number} height
+     */
+    resize(width, height) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.wasmbridge_resize(retptr, this.__wbg_ptr, width, height);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            if (r1) {
+                throw takeObject(r0);
+            }
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+     * Add an entity to the selection (toggle mode)
      * @param {number} entity_index
      */
     select_entity(entity_index) {
@@ -2134,6 +2382,63 @@ export class WasmBridge {
                 throw takeObject(r1);
             }
             return takeObject(r0);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+     * Set the active fill color for new shapes
+     * @param {number} r
+     * @param {number} g
+     * @param {number} b
+     * @param {number} a
+     */
+    set_active_color(r, g, b, a) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.wasmbridge_set_active_color(retptr, this.__wbg_ptr, r, g, b, a);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            if (r1) {
+                throw takeObject(r0);
+            }
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+     * Set the active stroke color for new shapes
+     * @param {number} r
+     * @param {number} g
+     * @param {number} b
+     * @param {number} a
+     */
+    set_active_stroke_color(r, g, b, a) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.wasmbridge_set_active_stroke_color(retptr, this.__wbg_ptr, r, g, b, a);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            if (r1) {
+                throw takeObject(r0);
+            }
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+     * Set the active stroke width for new shapes
+     * @param {number} width
+     */
+    set_active_stroke_width(width) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.wasmbridge_set_active_stroke_width(retptr, this.__wbg_ptr, width);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            if (r1) {
+                throw takeObject(r0);
+            }
         } finally {
             wasm.__wbindgen_add_to_stack_pointer(16);
         }
@@ -2179,6 +2484,8 @@ export class WasmBridge {
     }
     /**
      * Set the selection state of an entity directly
+     *
+     * Uses DeltaMask for memory-efficient undo/redo via command queue.
      * @param {number} entity_index
      * @param {boolean} selected
      */
@@ -2290,6 +2597,45 @@ export class WasmBridge {
         }
     }
     /**
+     * Set the stroke color of an entity
+     * @param {number} entity_index
+     * @param {number} r
+     * @param {number} g
+     * @param {number} b
+     * @param {number} a
+     */
+    set_stroke_color(entity_index, r, g, b, a) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.wasmbridge_set_stroke_color(retptr, this.__wbg_ptr, entity_index, r, g, b, a);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            if (r1) {
+                throw takeObject(r0);
+            }
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+     * Set the stroke width of an entity
+     * @param {number} entity_index
+     * @param {number} width
+     */
+    set_stroke_width(entity_index, width) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.wasmbridge_set_stroke_width(retptr, this.__wbg_ptr, entity_index, width);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            if (r1) {
+                throw takeObject(r0);
+            }
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
      * Set the current tool type
      * @param {string} tool
      */
@@ -2389,6 +2735,11 @@ if (Symbol.dispose) WasmBridge.prototype[Symbol.dispose] = WasmBridge.prototype.
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,
+        __wbg___wbindgen_boolean_get_bbbb1c18aa2f5e25: function(arg0) {
+            const v = getObject(arg0);
+            const ret = typeof(v) === 'boolean' ? v : undefined;
+            return isLikeNone(ret) ? 0xFFFFFF : ret ? 1 : 0;
+        },
         __wbg___wbindgen_debug_string_0bc8482c6e3508ae: function(arg0, arg1) {
             const ret = debugString(getObject(arg1));
             const ptr1 = passStringToWasm0(ret, wasm.__wbindgen_export, wasm.__wbindgen_export2);
@@ -2403,20 +2754,72 @@ function __wbg_get_imports() {
         __wbg___wbindgen_throw_be289d5034ed271b: function(arg0, arg1) {
             throw new Error(getStringFromWasm0(arg0, arg1));
         },
+        __wbg__wbg_cb_unref_d9b87ff7982e3b21: function(arg0) {
+            getObject(arg0)._wbg_cb_unref();
+        },
+        __wbg_addEventListener_3acb0aad4483804c: function() { return handleError(function (arg0, arg1, arg2, arg3) {
+            getObject(arg0).addEventListener(getStringFromWasm0(arg1, arg2), getObject(arg3));
+        }, arguments); },
+        __wbg_attachShader_b36058e5c9eeaf54: function(arg0, arg1, arg2) {
+            getObject(arg0).attachShader(getObject(arg1), getObject(arg2));
+        },
+        __wbg_bindBuffer_c9068e8712a034f5: function(arg0, arg1, arg2) {
+            getObject(arg0).bindBuffer(arg1 >>> 0, getObject(arg2));
+        },
+        __wbg_bindVertexArray_78220d1edb1d2382: function(arg0, arg1) {
+            getObject(arg0).bindVertexArray(getObject(arg1));
+        },
+        __wbg_blendFunc_2ef59299d10c662d: function(arg0, arg1, arg2) {
+            getObject(arg0).blendFunc(arg1 >>> 0, arg2 >>> 0);
+        },
+        __wbg_bufferData_98f6c413a8f0f139: function(arg0, arg1, arg2, arg3) {
+            getObject(arg0).bufferData(arg1 >>> 0, getObject(arg2), arg3 >>> 0);
+        },
         __wbg_call_389efe28435a9388: function() { return handleError(function (arg0, arg1) {
             const ret = getObject(arg0).call(getObject(arg1));
             return addHeapObject(ret);
         }, arguments); },
-        __wbg_clearRect_1eed255045515c55: function(arg0, arg1, arg2, arg3, arg4) {
-            getObject(arg0).clearRect(arg1, arg2, arg3, arg4);
+        __wbg_clearColor_404a3b16d43db93b: function(arg0, arg1, arg2, arg3, arg4) {
+            getObject(arg0).clearColor(arg1, arg2, arg3, arg4);
+        },
+        __wbg_clear_7187030f892c5ca0: function(arg0, arg1) {
+            getObject(arg0).clear(arg1 >>> 0);
+        },
+        __wbg_compileShader_94718a93495d565d: function(arg0, arg1) {
+            getObject(arg0).compileShader(getObject(arg1));
+        },
+        __wbg_createBuffer_26534c05e01b8559: function(arg0) {
+            const ret = getObject(arg0).createBuffer();
+            return isLikeNone(ret) ? 0 : addHeapObject(ret);
         },
         __wbg_createElement_49f60fdcaae809c8: function() { return handleError(function (arg0, arg1, arg2) {
             const ret = getObject(arg0).createElement(getStringFromWasm0(arg1, arg2));
             return addHeapObject(ret);
         }, arguments); },
+        __wbg_createProgram_9b7710a1f2701c2c: function(arg0) {
+            const ret = getObject(arg0).createProgram();
+            return isLikeNone(ret) ? 0 : addHeapObject(ret);
+        },
+        __wbg_createShader_e3ac08ed8c5b14b2: function(arg0, arg1) {
+            const ret = getObject(arg0).createShader(arg1 >>> 0);
+            return isLikeNone(ret) ? 0 : addHeapObject(ret);
+        },
+        __wbg_createVertexArray_ad5294951ae57497: function(arg0) {
+            const ret = getObject(arg0).createVertexArray();
+            return isLikeNone(ret) ? 0 : addHeapObject(ret);
+        },
         __wbg_document_ee35a3d3ae34ef6c: function(arg0) {
             const ret = getObject(arg0).document;
             return isLikeNone(ret) ? 0 : addHeapObject(ret);
+        },
+        __wbg_drawArraysInstanced_ec30adc616ec58d5: function(arg0, arg1, arg2, arg3, arg4) {
+            getObject(arg0).drawArraysInstanced(arg1 >>> 0, arg2, arg3, arg4);
+        },
+        __wbg_enableVertexAttribArray_475e06c31777296d: function(arg0, arg1) {
+            getObject(arg0).enableVertexAttribArray(arg1 >>> 0);
+        },
+        __wbg_enable_d1ac04dfdd2fb3ae: function(arg0, arg1) {
+            getObject(arg0).enable(arg1 >>> 0);
         },
         __wbg_error_7534b8e9a36f1ab4: function(arg0, arg1) {
             let deferred0_0;
@@ -2432,31 +2835,58 @@ function __wbg_get_imports() {
         __wbg_error_9a7fe3f932034cde: function(arg0) {
             console.error(getObject(arg0));
         },
-        __wbg_fillRect_d44afec47e3a3fab: function(arg0, arg1, arg2, arg3, arg4) {
-            getObject(arg0).fillRect(arg1, arg2, arg3, arg4);
-        },
         __wbg_getContext_2a5764d48600bc43: function() { return handleError(function (arg0, arg1, arg2) {
             const ret = getObject(arg0).getContext(getStringFromWasm0(arg1, arg2));
             return isLikeNone(ret) ? 0 : addHeapObject(ret);
         }, arguments); },
-        __wbg_height_38750dc6de41ee75: function(arg0) {
-            const ret = getObject(arg0).height;
+        __wbg_getError_bba8594facbfd5e1: function(arg0) {
+            const ret = getObject(arg0).getError();
             return ret;
         },
-        __wbg_instanceof_CanvasRenderingContext2d_4bb052fd1c3d134d: function(arg0) {
-            let result;
-            try {
-                result = getObject(arg0) instanceof CanvasRenderingContext2D;
-            } catch (_) {
-                result = false;
-            }
-            const ret = result;
+        __wbg_getProgramInfoLog_2ffa30e3abb8b5c2: function(arg0, arg1, arg2) {
+            const ret = getObject(arg1).getProgramInfoLog(getObject(arg2));
+            var ptr1 = isLikeNone(ret) ? 0 : passStringToWasm0(ret, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+            var len1 = WASM_VECTOR_LEN;
+            getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
+            getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
+        },
+        __wbg_getProgramParameter_92e4540ca9da06b2: function(arg0, arg1, arg2) {
+            const ret = getObject(arg0).getProgramParameter(getObject(arg1), arg2 >>> 0);
+            return addHeapObject(ret);
+        },
+        __wbg_getShaderInfoLog_9e0b96da4b13ae49: function(arg0, arg1, arg2) {
+            const ret = getObject(arg1).getShaderInfoLog(getObject(arg2));
+            var ptr1 = isLikeNone(ret) ? 0 : passStringToWasm0(ret, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+            var len1 = WASM_VECTOR_LEN;
+            getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
+            getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
+        },
+        __wbg_getShaderParameter_afa4a3dd9dd397c1: function(arg0, arg1, arg2) {
+            const ret = getObject(arg0).getShaderParameter(getObject(arg1), arg2 >>> 0);
+            return addHeapObject(ret);
+        },
+        __wbg_getUniformLocation_d06b3a5b3c60e95c: function(arg0, arg1, arg2, arg3) {
+            const ret = getObject(arg0).getUniformLocation(getObject(arg1), getStringFromWasm0(arg2, arg3));
+            return isLikeNone(ret) ? 0 : addHeapObject(ret);
+        },
+        __wbg_height_38750dc6de41ee75: function(arg0) {
+            const ret = getObject(arg0).height;
             return ret;
         },
         __wbg_instanceof_HtmlCanvasElement_3f2f6e1edb1c9792: function(arg0) {
             let result;
             try {
                 result = getObject(arg0) instanceof HTMLCanvasElement;
+            } catch (_) {
+                result = false;
+            }
+            const ret = result;
+            return ret;
+        },
+        __wbg_instanceof_WebGl2RenderingContext_4a08a94517ed5240: function(arg0) {
+            let result;
+            try {
+                result = getObject(arg0) instanceof WebGL2RenderingContext;
             } catch (_) {
                 result = false;
             }
@@ -2476,6 +2906,9 @@ function __wbg_get_imports() {
         __wbg_jserror_new: function(arg0) {
             const ret = JsError.__wrap(arg0);
             return addHeapObject(ret);
+        },
+        __wbg_linkProgram_6600dd2c0863bbfd: function(arg0, arg1) {
+            getObject(arg0).linkProgram(getObject(arg1));
         },
         __wbg_log_6b5ca2e6124b2808: function(arg0) {
             console.log(getObject(arg0));
@@ -2537,6 +2970,9 @@ function __wbg_get_imports() {
             const ret = new Function(getStringFromWasm0(arg0, arg1));
             return addHeapObject(ret);
         },
+        __wbg_preventDefault_cdcfcd7e301b9702: function(arg0) {
+            getObject(arg0).preventDefault();
+        },
         __wbg_push_8ffdcb2063340ba5: function(arg0, arg1) {
             const ret = getObject(arg0).push(getObject(arg1));
             return ret;
@@ -2545,12 +2981,16 @@ function __wbg_get_imports() {
             const ret = Math.random();
             return ret;
         },
+        __wbg_setTimeout_eff32631ea138533: function() { return handleError(function (arg0, arg1, arg2) {
+            const ret = getObject(arg0).setTimeout(getObject(arg1), arg2);
+            return ret;
+        }, arguments); },
         __wbg_set_6cb8631f80447a67: function() { return handleError(function (arg0, arg1, arg2) {
             const ret = Reflect.set(getObject(arg0), getObject(arg1), getObject(arg2));
             return ret;
         }, arguments); },
-        __wbg_set_fillStyle_4c9682826c3e231a: function(arg0, arg1) {
-            getObject(arg0).fillStyle = getObject(arg1);
+        __wbg_shaderSource_32425cfe6e5a1e52: function(arg0, arg1, arg2, arg3) {
+            getObject(arg0).shaderSource(getObject(arg1), getStringFromWasm0(arg2, arg3));
         },
         __wbg_stack_0ed75d68575b0f3c: function(arg0, arg1) {
             const ret = getObject(arg1).stack;
@@ -2575,23 +3015,64 @@ function __wbg_get_imports() {
             const ret = typeof window === 'undefined' ? null : window;
             return isLikeNone(ret) ? 0 : addHeapObject(ret);
         },
+        __wbg_uniform2f_1887b1268f65bfee: function(arg0, arg1, arg2, arg3) {
+            getObject(arg0).uniform2f(getObject(arg1), arg2, arg3);
+        },
+        __wbg_uniformMatrix4fv_0e724dbebd372526: function(arg0, arg1, arg2, arg3, arg4) {
+            getObject(arg0).uniformMatrix4fv(getObject(arg1), arg2 !== 0, getArrayF32FromWasm0(arg3, arg4));
+        },
+        __wbg_useProgram_fe720ade4d3b6edb: function(arg0, arg1) {
+            getObject(arg0).useProgram(getObject(arg1));
+        },
+        __wbg_vertexAttribDivisor_744c0ca468594894: function(arg0, arg1, arg2) {
+            getObject(arg0).vertexAttribDivisor(arg1 >>> 0, arg2 >>> 0);
+        },
+        __wbg_vertexAttribPointer_75f6ff47f6c9f8cb: function(arg0, arg1, arg2, arg3, arg4, arg5, arg6) {
+            getObject(arg0).vertexAttribPointer(arg1 >>> 0, arg2, arg3 >>> 0, arg4 !== 0, arg5, arg6);
+        },
+        __wbg_viewport_df236eac68bc7467: function(arg0, arg1, arg2, arg3, arg4) {
+            getObject(arg0).viewport(arg1, arg2, arg3, arg4);
+        },
+        __wbg_warn_f7ae1b2e66ccb930: function(arg0) {
+            console.warn(getObject(arg0));
+        },
         __wbg_width_5f66bde2e810fbde: function(arg0) {
             const ret = getObject(arg0).width;
             return ret;
         },
-        __wbindgen_cast_0000000000000001: function(arg0) {
+        __wbindgen_cast_0000000000000001: function(arg0, arg1) {
+            // Cast intrinsic for `Closure(Closure { dtor_idx: 1, function: Function { arguments: [NamedExternref("Event")], shim_idx: 3, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
+            const ret = makeMutClosure(arg0, arg1, wasm.__wasm_bindgen_func_elem_83, __wasm_bindgen_func_elem_425);
+            return addHeapObject(ret);
+        },
+        __wbindgen_cast_0000000000000002: function(arg0, arg1) {
+            // Cast intrinsic for `Closure(Closure { dtor_idx: 1, function: Function { arguments: [], shim_idx: 2, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
+            const ret = makeMutClosure(arg0, arg1, wasm.__wasm_bindgen_func_elem_83, __wasm_bindgen_func_elem_424);
+            return addHeapObject(ret);
+        },
+        __wbindgen_cast_0000000000000003: function(arg0) {
             // Cast intrinsic for `F64 -> Externref`.
             const ret = arg0;
             return addHeapObject(ret);
         },
-        __wbindgen_cast_0000000000000002: function(arg0, arg1) {
+        __wbindgen_cast_0000000000000004: function(arg0, arg1) {
+            // Cast intrinsic for `Ref(Slice(F32)) -> NamedExternref("Float32Array")`.
+            const ret = getArrayF32FromWasm0(arg0, arg1);
+            return addHeapObject(ret);
+        },
+        __wbindgen_cast_0000000000000005: function(arg0, arg1) {
             // Cast intrinsic for `Ref(Slice(U8)) -> NamedExternref("Uint8Array")`.
             const ret = getArrayU8FromWasm0(arg0, arg1);
             return addHeapObject(ret);
         },
-        __wbindgen_cast_0000000000000003: function(arg0, arg1) {
+        __wbindgen_cast_0000000000000006: function(arg0, arg1) {
             // Cast intrinsic for `Ref(String) -> Externref`.
             const ret = getStringFromWasm0(arg0, arg1);
+            return addHeapObject(ret);
+        },
+        __wbindgen_cast_0000000000000007: function(arg0) {
+            // Cast intrinsic for `U64 -> Externref`.
+            const ret = BigInt.asUintN(64, arg0);
             return addHeapObject(ret);
         },
         __wbindgen_object_clone_ref: function(arg0) {
@@ -2606,6 +3087,14 @@ function __wbg_get_imports() {
         __proto__: null,
         "./archflow_web_bg.js": import0,
     };
+}
+
+function __wasm_bindgen_func_elem_424(arg0, arg1) {
+    wasm.__wasm_bindgen_func_elem_424(arg0, arg1);
+}
+
+function __wasm_bindgen_func_elem_425(arg0, arg1, arg2) {
+    wasm.__wasm_bindgen_func_elem_425(arg0, arg1, addHeapObject(arg2));
 }
 
 const CameraConfigFinalization = (typeof FinalizationRegistry === 'undefined')
@@ -2659,6 +3148,10 @@ function _assertClass(instance, klass) {
         throw new Error(`expected instance of ${klass.name}`);
     }
 }
+
+const CLOSURE_DTORS = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(state => state.dtor(state.a, state.b));
 
 function debugString(val) {
     // primitive types
@@ -2731,6 +3224,11 @@ function dropObject(idx) {
     heap_next = idx;
 }
 
+function getArrayF32FromWasm0(ptr, len) {
+    ptr = ptr >>> 0;
+    return getFloat32ArrayMemory0().subarray(ptr / 4, ptr / 4 + len);
+}
+
 function getArrayU32FromWasm0(ptr, len) {
     ptr = ptr >>> 0;
     return getUint32ArrayMemory0().subarray(ptr / 4, ptr / 4 + len);
@@ -2747,6 +3245,14 @@ function getDataViewMemory0() {
         cachedDataViewMemory0 = new DataView(wasm.memory.buffer);
     }
     return cachedDataViewMemory0;
+}
+
+let cachedFloat32ArrayMemory0 = null;
+function getFloat32ArrayMemory0() {
+    if (cachedFloat32ArrayMemory0 === null || cachedFloat32ArrayMemory0.byteLength === 0) {
+        cachedFloat32ArrayMemory0 = new Float32Array(wasm.memory.buffer);
+    }
+    return cachedFloat32ArrayMemory0;
 }
 
 function getStringFromWasm0(ptr, len) {
@@ -2787,6 +3293,34 @@ let heap_next = heap.length;
 
 function isLikeNone(x) {
     return x === undefined || x === null;
+}
+
+function makeMutClosure(arg0, arg1, dtor, f) {
+    const state = { a: arg0, b: arg1, cnt: 1, dtor };
+    const real = (...args) => {
+
+        // First up with a closure we increment the internal reference
+        // count. This ensures that the Rust closure environment won't
+        // be deallocated while we're invoking it.
+        state.cnt++;
+        const a = state.a;
+        state.a = 0;
+        try {
+            return f(a, state.b, ...args);
+        } finally {
+            state.a = a;
+            real._wbg_cb_unref();
+        }
+    };
+    real._wbg_cb_unref = () => {
+        if (--state.cnt === 0) {
+            state.dtor(state.a, state.b);
+            state.a = 0;
+            CLOSURE_DTORS.unregister(state);
+        }
+    };
+    CLOSURE_DTORS.register(real, state, state);
+    return real;
 }
 
 function passStringToWasm0(arg, malloc, realloc) {
@@ -2866,6 +3400,7 @@ function __wbg_finalize_init(instance, module) {
     wasm = instance.exports;
     wasmModule = module;
     cachedDataViewMemory0 = null;
+    cachedFloat32ArrayMemory0 = null;
     cachedUint32ArrayMemory0 = null;
     cachedUint8ArrayMemory0 = null;
     return wasm;

@@ -133,6 +133,26 @@ impl Controller {
         }
     }
 
+    /// Creates an AND controller (combines all sensors)
+    ///
+    /// # JavaScript Example
+    /// ```javascript
+    /// const controller = Controller.And();
+    /// // Combines all sensors in the brick chain
+    /// ```
+    #[wasm_bindgen]
+    pub fn and_any() -> Self {
+        Self {
+            controller_type: ControllerType::And,
+            secondary_sensor: None,
+            numeric_param: 0,
+            float_param1: 0.0,
+            float_param2: 0.0,
+            custom_name: None,
+            custom_code: None,
+        }
+    }
+
     /// Creates an AND controller with a secondary sensor
     ///
     /// # Arguments
@@ -148,6 +168,26 @@ impl Controller {
         Self {
             controller_type: ControllerType::And,
             secondary_sensor: Some(sensor),
+            numeric_param: 0,
+            float_param1: 0.0,
+            float_param2: 0.0,
+            custom_name: None,
+            custom_code: None,
+        }
+    }
+
+    /// Creates an OR controller (any sensor activates)
+    ///
+    /// # JavaScript Example
+    /// ```javascript
+    /// const controller = Controller.Or();
+    /// // Activates if any sensor is active
+    /// ```
+    #[wasm_bindgen]
+    pub fn or_any() -> Self {
+        Self {
+            controller_type: ControllerType::Or,
+            secondary_sensor: None,
             numeric_param: 0,
             float_param1: 0.0,
             float_param2: 0.0,

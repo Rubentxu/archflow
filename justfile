@@ -123,7 +123,7 @@ build:
     @echo "Building ArchFlow..."
     @echo ""
     @echo "Building Rust workspace..."
-    @cargo build -p archflow-sdk -p archflow-core -p archflow-geometry -p archflow-spatial -p archflow-primitives -p archflow-renderers -p archflow-records -p archflow-collab -p archflow-workspace
+    @cargo build -p archflow-core -p archflow-engine -p archflow-logic -p archflow-render -p archflow-web
     @echo ""
     @echo "Building and syncing WASM..."
     @just build-wasm
