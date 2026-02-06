@@ -8,7 +8,7 @@
  */
 
 import { useState, useCallback, useMemo } from "react";
-import { useArchFlowWasm } from "./useArchFlowWasm";
+import { useArchFlowWasm } from "./useArchFlowWasm.tsx";
 import { useSelectionStore } from "../store/useSelectionStore";
 import { getTypedBridge } from "./wasm-bridge";
 import type { EntityId, Vec2, EntityData } from "../types/wasm";

@@ -7,7 +7,7 @@ import { useUIStore } from "../store/useUIStore";
 import { cn } from "../utils/cn";
 import BackendSelector from "./BackendSelector";
 import { useBackend } from "../hooks/useBackend";
-import { useArchFlowWasm } from "../hooks/useArchFlowWasm";
+import { useArchFlowWasm } from "../hooks/useArchFlowWasm.tsx";
 
 interface HeaderProps {
   className?: string;

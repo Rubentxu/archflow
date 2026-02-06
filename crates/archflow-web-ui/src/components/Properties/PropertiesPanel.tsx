@@ -37,7 +37,7 @@ import {
   type EntityPropertySchema,
 } from "../../types/entity-schemas";
 
-import { useArchFlowWasm } from "../../hooks/useArchFlowWasm";
+import { useArchFlowWasm } from "../../hooks/useArchFlowWasm.tsx";
 import { useUIStore } from "../../store/useUIStore";
 import { LogicPanel } from "./LogicPanel";
 import { HistoryPanel } from "./HistoryPanel";
@@ -49,15 +49,18 @@ import { ShapeHistory } from "./ShapeHistory";
 function VisualPropertiesForm({
   entityId,
   bridge,
+  isInitialized = false,
   onUpdate,
 }: {
   entityId: number | null;
   bridge: any;
+  isInitialized?: boolean;
   onUpdate?: () => void;
 }) {
   console.log("🎨 VisualPropertiesForm: Montando componente", {
     entityId,
     hasBridge: !!bridge,
+    isInitialized,
   });
 
   // Local state for immediate feedback - initialize from bridge if available
@@ -95,23 +98,45 @@ function VisualPropertiesForm({
     }
   });
 
-  // Sync with bridge when it becomes available
+  // Sync with bridge when it becomes available and initialized
   React.useEffect(() => {
-    if (!bridge || entityId !== null) return;
+    if (!bridge || !isInitialized) return;
+
     try {
-      const activeColor = bridge.get_active_color();
-      const activeStrokeColor = bridge.get_active_stroke_color();
-      const activeStrokeWidth = bridge.get_active_stroke_width();
-      console.log(
-        `🔄 UI: Sincronizando colores desde bridge - Fill: ${activeColor}, Stroke: ${activeStrokeColor}, Width: ${activeStrokeWidth}`,
-      );
-      if (activeColor) setFillColor(activeColor);
-      if (activeStrokeColor) setStrokeColor(activeStrokeColor);
-      if (activeStrokeWidth !== undefined) setStrokeWidth(activeStrokeWidth);
+      if (entityId !== null) {
+        // Selected Entity Mode: Fetch distinct properties
+        try {
+          const color = bridge.get_color(entityId);
+          if (color) setFillColor(color);
+        } catch (_) { }
+
+        try {
+          const stroke = bridge.get_stroke_color(entityId);
+          if (stroke) setStrokeColor(stroke);
+        } catch (_) { }
+
+        try {
+          const width = bridge.get_stroke_width(entityId);
+          if (width !== undefined) setStrokeWidth(width);
+        } catch (_) { }
+      } else {
+        // Active Tool Mode: Fetch global settings
+        const activeColor = bridge.get_active_color();
+        const activeStrokeColor = bridge.get_active_stroke_color();
+        const activeStrokeWidth = bridge.get_active_stroke_width();
+
+        console.log(
+          `🔄 UI: Syncing colors from bridge - Fill: ${activeColor}, Stroke: ${activeStrokeColor}, Width: ${activeStrokeWidth}`
+        );
+
+        if (activeColor) setFillColor(activeColor);
+        if (activeStrokeColor) setStrokeColor(activeStrokeColor);
+        if (activeStrokeWidth !== undefined) setStrokeWidth(activeStrokeWidth);
+      }
     } catch (e) {
-      console.warn("Failed to sync colors from bridge:", e);
+      console.warn("Failed to sync properties from bridge:", e);
     }
-  }, [bridge, entityId]);
+  }, [bridge, entityId, isInitialized]);
 
   // Log cuando cambia el bridge o entityId
   React.useEffect(() => {
@@ -796,7 +821,7 @@ function ContainerPropertiesForm({
  * Main PropertiesPanel component
  */
 export function PropertiesPanel({ className }: PropertiesPanelProps) {
-  const { bridge } = useArchFlowWasm();
+  const { bridge, isInitialized } = useArchFlowWasm();
   const { activeTool } = useUIStore();
   const { selectedIds } = useSelectionStore();
   const { updateProperty, getEntity } = useEntityStore();
@@ -912,6 +937,7 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
               key={activeTool}
               entityId={null}
               bridge={bridge}
+              isInitialized={isInitialized}
             />
           </div>
           <ShapeHistory />
@@ -1001,7 +1027,11 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
-              <VisualPropertiesForm entityId={selectedId} bridge={bridge} />
+              <VisualPropertiesForm
+                entityId={selectedId}
+                bridge={bridge}
+                isInitialized={isInitialized}
+              />
 
               {/* Identity Section */}
               <div className="space-y-3">

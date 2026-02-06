@@ -19,7 +19,7 @@ import { useRef, useEffect, useState, useCallback, memo } from "react";
 import { useCanvasStore } from "../store/useCanvasStore";
 import { useUIStore } from "../store/useUIStore";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
-import { useArchFlowWasm } from "../hooks/useArchFlowWasm";
+import { useArchFlowWasm } from "../hooks/useArchFlowWasm.tsx";
 import { useBackend } from "../hooks/useBackend";
 import { useContextMenuStore } from "../store/useContextMenuStore";
 import { useSelectionStore } from "../store/useSelectionStore";
@@ -74,7 +74,7 @@ export default memo(function Canvas({
   const activeTool = useUIStore((state) => state.activeTool);
 
   // WASM bridge access
-  const { bridge, isLoaded: wasmLoaded } = useArchFlowWasm();
+  const { bridge, isLoaded: wasmLoaded, initialize } = useArchFlowWasm();
   const { CanvasDroppable, DragOverlayContent, dragState } = useDragAndDrop();
 
   // Backend for graphics initialization - useBackend handles detection and initialization
@@ -390,11 +390,8 @@ export default memo(function Canvas({
         // Initialize WASM engine
         // canvas.width/height is already scaled by DPR in the ResizeObserver
         console.log("[Canvas] Calling bridge.initialize...");
-        (
-          bridge as {
-            initialize: (w: number, h: number) => void;
-          }
-        ).initialize(canvas.width, canvas.height);
+        console.log("[Canvas] Calling initialize...");
+        await initialize(canvas.width, canvas.height);
 
         // Initialize graphics with selected backend (WebGL2 by default)
         console.log(

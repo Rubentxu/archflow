@@ -8,7 +8,7 @@
  */
 
 import { useState, useCallback, useEffect } from "react";
-import { useArchFlowWasm } from "./useArchFlowWasm";
+import { useArchFlowWasm } from "./useArchFlowWasm.tsx";
 import { getTypedBridge } from "./wasm-bridge";
 
 interface UseCommandHistoryReturn {
