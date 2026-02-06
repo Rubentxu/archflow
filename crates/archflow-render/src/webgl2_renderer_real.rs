@@ -50,7 +50,9 @@ const VERTEX_SHADER_SOURCE: &str = "#version 300 es\n\
     out float v_stroke_width;\n\
     void main() {\n\
         vec2 centered_vert = a_position - 0.5;\n\
-        vec2 world_pos = a_instance_pos + centered_vert * a_instance_size;\n\
+        float expansion = a_stroke_width + 2.0;\n\
+        vec2 expanded_size = a_instance_size + 2.0 * expansion;\n\
+        vec2 world_pos = a_instance_pos + centered_vert * expanded_size;\n\
         vec2 camera_relative_pos = world_pos - u_camera_pos;\n\
         gl_Position = u_view_projection * vec4(camera_relative_pos, 0.0, 1.0);\n\
         v_color = a_instance_color;\n\
