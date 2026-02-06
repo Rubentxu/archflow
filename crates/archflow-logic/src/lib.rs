@@ -26,6 +26,7 @@ pub mod actuators;
 pub mod command;
 pub mod events;
 pub mod input;
+pub mod logic_driver;
 pub mod logic_system;
 pub mod mapping;
 pub mod physics_pulse;
@@ -69,10 +70,11 @@ pub use actuators::{
 };
 pub use command::{AnyCommand, Command, CommandHistory, DEFAULT_MAX_HISTORY};
 pub use input::{InputEvent, InputSampler, InputSnapshotSAB, MAX_KEYS, MouseButton};
+pub use logic_driver::LogicDriver;
 pub use logic_system::{LogicSystem, SensorId};
 pub use mapping::{Controller, LogicMappingTable, SensorType};
 pub use pulse::Pulse;
-pub use signals::SignalByte;
+pub use signals::{SensorOutput, SignalByte, SignalState};
 pub use snap::{
     DEFAULT_GRID_SIZE as SNAP_DEFAULT_GRID_SIZE, DEFAULT_THRESHOLD as SNAP_DEFAULT_THRESHOLD,
     EntityEdge, SnapConfig, SnapPoint, SnapResult, SnapTarget, Snapper,

@@ -19,23 +19,10 @@
 use alloc::vec;
 use alloc::vec::Vec;
 
-use archflow_core::{EntityId, Vec2};
+use archflow_core::{ConnectionStyle, EntityId, Vec2};
 use archflow_engine::{Command, EntityStore, MAX_ENTITIES};
 
 use crate::signals::SignalByte;
-
-/// Connection style types
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ConnectionStyle {
-    /// Straight line between points
-    Straight = 0,
-    /// Orthogonal with 90° turns
-    Orthogonal = 1,
-    /// Smooth Bezier curve
-    Bezier = 2,
-    /// Elbow routing (orthogonal with corner optimization)
-    Elbow = 3,
-}
 
 /// Anchor position relative to entity center
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -685,6 +672,259 @@ impl Default for ConnectionLabelActuator {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// LineStyleActuator - Edge Routing Styles (US-042)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Configuration for line style changes
+#[derive(Clone, Copy, Debug)]
+pub struct LineStyleConfig {
+    /// Corner radius for elbow/orthogonal bends
+    pub corner_radius: f32,
+    /// Bezier tension factor (0.0 = sharp, 1.0 = very curved)
+    pub bezier_tension: f32,
+    /// Minimum segment length for orthogonal paths
+    pub min_segment_length: f32,
+    /// Smoothness factor for segmented style
+    pub smoothness: f32,
+}
+
+impl Default for LineStyleConfig {
+    fn default() -> Self {
+        Self {
+            corner_radius: 8.0,
+            bezier_tension: 0.5,
+            min_segment_length: 20.0,
+            smoothness: 0.3,
+        }
+    }
+}
+
+/// Data for tracking style change operations
+#[derive(Clone, Debug, PartialEq)]
+pub struct LineStyleChange {
+    /// Connection that changed style
+    pub connection_id: EntityId,
+    /// Previous style
+    pub old_style: ConnectionStyle,
+    /// New style applied
+    pub new_style: ConnectionStyle,
+    /// Whether path was recalculated
+    pub path_recalculated: bool,
+}
+
+/// Actuator for changing connection line styles.
+///
+/// Provides functionality to change routing style for connections:
+/// - Direct: Straight line between points
+/// - Orthogonal: 90° turns only
+/// - Bezier: Smooth curves using cubic Bezier
+/// - Elbow: Orthogonal with corner optimization
+///
+/// # Example
+///
+/// ```
+/// use archflow_logic::actuators::connections::{LineStyleActuator, ConnectionStyle};
+///
+/// let mut actuator = LineStyleActuator::new();
+/// let cmd = actuator.set_connection_style(connection_id, ConnectionStyle::Elbow);
+/// ```
+pub struct LineStyleActuator {
+    /// Configuration
+    config: LineStyleConfig,
+    /// Elbow router for orthogonal/elbow styles
+    elbow_router: ElbowRoutingActuator,
+}
+
+impl LineStyleActuator {
+    /// Creates a new LineStyleActuator with default configuration
+    #[inline(always)]
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            config: LineStyleConfig::default(),
+            elbow_router: ElbowRoutingActuator::new(),
+        }
+    }
+
+    /// Creates a LineStyleActuator with custom configuration
+    #[inline(always)]
+    #[must_use]
+    pub fn with_config(config: LineStyleConfig) -> Self {
+        Self {
+            config,
+            elbow_router: ElbowRoutingActuator::new(),
+        }
+    }
+
+    /// Set the line style for a connection
+    ///
+    /// # Arguments
+    ///
+    /// * `connection_id` - ID of the connection to modify
+    /// * `new_style` - New routing style to apply
+    /// * `source_pos` - Source point position
+    /// * `target_pos` - Target point position
+    ///
+    /// # Returns
+    ///
+    /// Commands to apply the style change
+    pub fn set_connection_style(
+        &self,
+        connection_id: EntityId,
+        new_style: ConnectionStyle,
+        source_pos: Vec2,
+        target_pos: Vec2,
+    ) -> Vec<Command> {
+        let idx = connection_id.index().0 as usize;
+        if idx >= MAX_ENTITIES as usize {
+            return Vec::new();
+        }
+
+        // Calculate new path based on style
+        let new_path = self.calculate_path_for_style(new_style, source_pos, target_pos);
+
+        vec![
+            Command::SetConnectionStyle {
+                connection_id,
+                style: new_style,
+            },
+            Command::UpdateConnectionPath {
+                connection_id: idx as u32,
+                path_points: new_path,
+            },
+        ]
+    }
+
+    /// Calculate path points for a given style
+    ///
+    /// # Arguments
+    ///
+    /// * `style` - Connection style to use
+    /// * `source` - Starting point
+    /// * `target` - Ending point
+    ///
+    /// # Returns
+    ///
+    /// Vector of points defining the path
+    #[must_use]
+    pub fn calculate_path_for_style(
+        &self,
+        style: ConnectionStyle,
+        source: Vec2,
+        target: Vec2,
+    ) -> Vec<Vec2> {
+        match style {
+            ConnectionStyle::Straight => vec![source, target],
+            ConnectionStyle::Orthogonal => self.calculate_orthogonal_path(source, target),
+            ConnectionStyle::Bezier => self.calculate_bezier_path(source, target),
+            ConnectionStyle::Elbow => self.elbow_router.calculate_path(source, target, None),
+        }
+    }
+
+    /// Calculate orthogonal path (L-shaped or Z-shaped)
+    fn calculate_orthogonal_path(&self, source: Vec2, target: Vec2) -> Vec<Vec2> {
+        // Prefer horizontal-then-vertical
+        let mid_x = (source.x + target.x) / 2.0;
+
+        vec![
+            source,
+            Vec2::new(mid_x, source.y),
+            Vec2::new(mid_x, target.y),
+            target,
+        ]
+    }
+
+    /// Calculate smooth Bezier curve path
+    fn calculate_bezier_path(&self, source: Vec2, target: Vec2) -> Vec<Vec2> {
+        // Calculate control points for smooth curve
+        let dx = (target.x - source.x) * self.config.bezier_tension;
+        let dy = (target.y - source.y) * self.config.bezier_tension;
+
+        let cp1 = Vec2::new(source.x + dx, source.y + dy);
+        let cp2 = Vec2::new(target.x - dx, target.y - dy);
+
+        // Return control points for quadratic Bezier
+        // Frontend will use these to render the curve
+        vec![source, cp1, cp2, target]
+    }
+
+    /// Batch update multiple connections to the same style
+    ///
+    /// # Arguments
+    ///
+    /// * `connections` - Vector of (connection_id, source_pos, target_pos)
+    /// * `new_style` - Style to apply to all
+    ///
+    /// # Returns
+    ///
+    /// Commands for all connections
+    pub fn batch_set_style(
+        &self,
+        connections: &[(EntityId, Vec2, Vec2)],
+        new_style: ConnectionStyle,
+    ) -> Vec<Command> {
+        let mut commands = Vec::with_capacity(connections.len() * 2);
+
+        for &(connection_id, source_pos, target_pos) in connections {
+            commands.extend(self.set_connection_style(
+                connection_id,
+                new_style,
+                source_pos,
+                target_pos,
+            ));
+        }
+
+        commands
+    }
+
+    /// Get valid transitions between styles
+    ///
+    /// # Arguments
+    ///
+    /// * `current_style` - Current style
+    ///
+    /// # Returns
+    ///
+    /// Vector of valid target styles
+    #[inline(always)]
+    #[must_use]
+    pub fn valid_transitions(
+        &self,
+        current_style: ConnectionStyle,
+    ) -> alloc::vec::Vec<ConnectionStyle> {
+        // All styles can transition to any other style
+        use ConnectionStyle::*;
+        match current_style {
+            Straight => vec![Orthogonal, Bezier, Elbow],
+            Orthogonal => vec![Straight, Bezier, Elbow],
+            Bezier => vec![Straight, Orthogonal, Elbow],
+            Elbow => vec![Straight, Orthogonal, Bezier],
+        }
+    }
+
+    /// Format notification message for style change
+    #[inline(always)]
+    #[must_use]
+    pub fn format_message(
+        &self,
+        old_style: ConnectionStyle,
+        new_style: ConnectionStyle,
+    ) -> alloc::string::String {
+        alloc::format!(
+            "Changed connection style from {:?} to {:?}",
+            old_style,
+            new_style
+        )
+    }
+}
+
+impl Default for LineStyleActuator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // TESTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -820,6 +1060,144 @@ mod tests {
         let path = vec![Vec2::new(0.0, 0.0)];
         let pos = actuator.label_position(&path);
         assert!(pos.is_none());
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // LineStyleActuator Tests (US-042)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_line_style_actuator_new() {
+        let actuator = LineStyleActuator::new();
+        // Verify it can be created
+        assert!(true);
+    }
+
+    #[test]
+    fn test_line_style_actuator_with_config() {
+        let config = LineStyleConfig {
+            corner_radius: 12.0,
+            bezier_tension: 0.7,
+            min_segment_length: 30.0,
+            smoothness: 0.5,
+        };
+        let actuator = LineStyleActuator::with_config(config);
+        assert!(true);
+    }
+
+    #[test]
+    fn test_calculate_path_for_style_straight() {
+        let actuator = LineStyleActuator::new();
+        let source = Vec2::new(0.0, 0.0);
+        let target = Vec2::new(100.0, 100.0);
+
+        let path = actuator.calculate_path_for_style(ConnectionStyle::Straight, source, target);
+
+        assert_eq!(path.len(), 2);
+        assert_eq!(path[0], source);
+        assert_eq!(path[1], target);
+    }
+
+    #[test]
+    fn test_calculate_path_for_style_orthogonal() {
+        let actuator = LineStyleActuator::new();
+        let source = Vec2::new(0.0, 0.0);
+        let target = Vec2::new(100.0, 100.0);
+
+        let path = actuator.calculate_path_for_style(ConnectionStyle::Orthogonal, source, target);
+
+        // Orthogonal should produce 4 points: source, corner1, corner2, target
+        assert_eq!(path.len(), 4);
+        assert_eq!(path[0], source);
+        assert_eq!(path[3], target);
+        // Middle corner should be at mid x
+        assert!((path[1].x - 50.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_calculate_path_for_style_bezier() {
+        let actuator = LineStyleActuator::new();
+        let source = Vec2::new(0.0, 0.0);
+        let target = Vec2::new(100.0, 0.0);
+
+        let path = actuator.calculate_path_for_style(ConnectionStyle::Bezier, source, target);
+
+        // Bezier should produce 4 points: source, cp1, cp2, target
+        assert_eq!(path.len(), 4);
+        assert_eq!(path[0], source);
+        assert_eq!(path[3], target);
+    }
+
+    #[test]
+    fn test_calculate_path_for_style_elbow() {
+        let actuator = LineStyleActuator::new();
+        let source = Vec2::new(0.0, 0.0);
+        let target = Vec2::new(100.0, 100.0);
+
+        let path = actuator.calculate_path_for_style(ConnectionStyle::Elbow, source, target);
+
+        // Elbow should produce 4 points
+        assert_eq!(path.len(), 4);
+        assert_eq!(path[0], source);
+        assert_eq!(path[3], target);
+    }
+
+    #[test]
+    fn test_set_connection_style() {
+        let actuator = LineStyleActuator::new();
+        let mut store = EntityStore::new();
+        let source_pos = Vec2::new(0.0, 0.0);
+        let target_pos = Vec2::new(100.0, 100.0);
+
+        // Note: EntityId::new(0) creates an entity at index 0
+        let connection_id = EntityId::new(0);
+
+        let cmds = actuator.set_connection_style(
+            connection_id,
+            ConnectionStyle::Elbow,
+            source_pos,
+            target_pos,
+        );
+
+        // Should return 2 commands: SetConnectionStyle + UpdateConnectionPath
+        assert_eq!(cmds.len(), 2);
+    }
+
+    #[test]
+    fn test_batch_set_style() {
+        let actuator = LineStyleActuator::new();
+        let connections = vec![
+            (EntityId::new(0), Vec2::ZERO, Vec2::new(100.0, 0.0)),
+            (
+                EntityId::new(1),
+                Vec2::new(200.0, 0.0),
+                Vec2::new(300.0, 0.0),
+            ),
+        ];
+
+        let cmds = actuator.batch_set_style(&connections, ConnectionStyle::Orthogonal);
+
+        // 2 connections × 2 commands each = 4 commands
+        assert_eq!(cmds.len(), 4);
+    }
+
+    #[test]
+    fn test_valid_transitions() {
+        let actuator = LineStyleActuator::new();
+
+        let transitions = actuator.valid_transitions(ConnectionStyle::Straight);
+        assert!(transitions.contains(&ConnectionStyle::Orthogonal));
+        assert!(transitions.contains(&ConnectionStyle::Bezier));
+        assert!(transitions.contains(&ConnectionStyle::Elbow));
+        assert!(!transitions.contains(&ConnectionStyle::Straight));
+    }
+
+    #[test]
+    fn test_format_message() {
+        let actuator = LineStyleActuator::new();
+        let msg = actuator.format_message(ConnectionStyle::Straight, ConnectionStyle::Elbow);
+        assert!(msg.contains("Straight"));
+        assert!(msg.contains("Elbow"));
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

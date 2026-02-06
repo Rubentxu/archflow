@@ -13,7 +13,7 @@
 use alloc::vec;
 use alloc::vec::Vec;
 
-use archflow_core::{EntityId, Vec2};
+use archflow_core::{ConnectionStyle, EntityId, Vec2};
 
 use crate::store::{EntityStore, MAX_ENTITIES};
 use serde::{Deserialize, Serialize};
@@ -412,6 +412,17 @@ pub enum Command {
     } = 27,
 
     // ═══════════════════════════════════════════════════════════════════════════════
+    // CONNECTION STYLE (US-042 - Edge Routing Styles)
+    // ═══════════════════════════════════════════════════════════════════════════════
+    /// Change connection line style
+    SetConnectionStyle {
+        /// Connection ID
+        connection_id: EntityId,
+        /// New connection style
+        style: ConnectionStyle,
+    } = 28,
+
+    // ═══════════════════════════════════════════════════════════════════════════════
     // Z-ORDER (TEMA 5)
     // ═══════════════════════════════════════════════════════════════════════════════
     /// Change entity z-order (draw order)
@@ -422,7 +433,7 @@ pub enum Command {
         old_z_index: usize,
         /// New z-index in draw_order
         new_z_index: usize,
-    } = 28,
+    } = 29,
 
     /// Maximum discriminant value (ensures enum fits in u8)
     _Max = 255,
@@ -461,6 +472,7 @@ impl Command {
             | Command::UpdateConnectionPath { .. }
             | Command::UnbindConnection { .. }
             | Command::SetConnectionLabel { .. }
+            | Command::SetConnectionStyle { .. }
             | Command::ShowAnchor { .. }
             | Command::HideAnchors { .. }
             | Command::HighlightAnchor { .. }
@@ -660,6 +672,8 @@ impl Command {
             Command::UnbindConnection { .. } => None,
             // SetConnectionLabel → Need original label hash (not stored)
             Command::SetConnectionLabel { .. } => None,
+            // SetConnectionStyle → Need original style (not stored)
+            Command::SetConnectionStyle { .. } => None,
             // ShowAnchor/HideAnchors/HighlightAnchor → Visual-only, not reversible
             Command::ShowAnchor { .. }
             | Command::HideAnchors { .. }
@@ -800,6 +814,12 @@ impl Command {
                 label_hash,
             } => {
                 store.set_connection_label(*connection_id, *label_hash);
+            }
+            Command::SetConnectionStyle {
+                connection_id,
+                style,
+            } => {
+                store.set_connection_style(connection_id.index().0 as u32, *style);
             }
             // Anchor visibility commands - visual-only, handled by renderer
             Command::ShowAnchor { .. }
