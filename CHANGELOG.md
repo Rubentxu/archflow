@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.45.0] - 2026-02-06
+
+### Added
+- **feat(actuators): LineStyleActuator for edge routing styles**
+  - Support for Straight, Orthogonal, Bezier, and Elbow connection styles
+  - Path calculation for each style with elbow routing actuator
+  - Batch style operations for multiple connections
+  - 10 new unit tests for comprehensive coverage
+
+### Changed
+- **BREAKING CHANGE: Unified MouseSensor API**
+  - Consolidated 6 mouse sensors (double_tap, long_press, mouse_click, mouse_over, right_click) into single MouseSensor
+  - Removed 1,420 lines of redundant sensor code
+  - New MouseSensor handles all mouse interactions with state machine
+  - Refactored signals.rs to use unified sensor output
+
+### Refactor
+- **ConnectionStyle moved to Shared Kernel (archflow-core)**
+  - Avoids circular dependencies between archflow-logic and archflow-engine
+  - Now available across all crates without import cycles
+- **SetConnectionStyle command added to command.rs**
+  - Supports undo/redo for connection style changes
+
 ## [0.38.0] - 2026-02-04
 
 ### Added
