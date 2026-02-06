@@ -21,8 +21,11 @@ import { useUIStore } from "../store/useUIStore";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
 import { useArchFlowWasm } from "../hooks/useArchFlowWasm";
 import { useBackend } from "../hooks/useBackend";
+import { useContextMenuStore } from "../store/useContextMenuStore";
+import { useSelectionStore } from "../store/useSelectionStore";
 import { cn } from "../utils/cn";
 import { usePerformanceMonitor } from "../utils/performance";
+import { ContextMenu } from "./ContextMenu";
 
 /**
  * Canvas component props
@@ -227,6 +230,28 @@ export default memo(function Canvas({
     },
     [getCanvasPosition, onPointerUp, bridge, wasmLoaded],
   );
+
+  /**
+   * Handle context menu (right-click) - open context menu
+   */
+  const handleContextMenu = useCallback((event: React.MouseEvent) => {
+    event.preventDefault();
+
+    const position = { x: event.clientX, y: event.clientY };
+    const { selectedIds } = useSelectionStore.getState();
+
+    // Determine menu type based on selection
+    let menuType: "canvas" | "entity" | "selection" = "canvas";
+    if (selectedIds.length > 0) {
+      menuType = selectedIds.length === 1 ? "entity" : "selection";
+    }
+
+    // Open context menu
+    useContextMenuStore.getState().open(menuType, position, {
+      entityId: selectedIds.length === 1 ? selectedIds[0] : undefined,
+      entityIds: selectedIds,
+    });
+  }, []);
 
   /**
    * Handle wheel event - forward to WASM
@@ -511,6 +536,7 @@ export default memo(function Canvas({
               onPointerUp={handlePointerUp}
               onPointerLeave={handlePointerUp}
               onWheel={handleWheel}
+              onContextMenu={handleContextMenu}
             />
           </div>
 
@@ -532,6 +558,9 @@ export default memo(function Canvas({
 
           {/* Drag overlay for visual feedback */}
           <DragOverlayContent />
+
+          {/* Context Menu */}
+          <ContextMenu />
         </div>
       )}
     </CanvasDroppable>
