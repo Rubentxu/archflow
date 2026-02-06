@@ -753,6 +753,7 @@ impl WasmBridge {
 
                 if tool == "select" {
                     // Standard selection logic
+                    let mut hit = false;
                     for &entity_idx in &engine.store.draw_order[..engine.store.alive_count()] {
                         let idx = entity_idx as usize;
                         if !engine.store.is_visible(idx) {
@@ -772,11 +773,21 @@ impl WasmBridge {
                             engine.selected_entities.clear();
                             engine.selected_entities.push(entity_id);
                             engine.store.set_selected(idx, true);
+                            engine.is_dragging = true;
+                            hit = true;
                             #[cfg(feature = "tracing-logging")]
-                            debug!(target: "archflow::wasm::input", entity_idx, "Selected entity");
+                            debug!(target: "archflow::wasm::input", entity_idx, "Selected entity and started drag");
                             break;
                         }
                     }
+                    if !hit {
+                        for entity_id in engine.selected_entities.drain(..) {
+                            let idx = entity_id.index().0 as usize;
+                            engine.store.set_selected(idx, false);
+                        }
+                        engine.is_dragging = false;
+                    }
+                    engine.last_mouse_screen_pos = Some(Vec2::new(event.x, event.y));
                 } else if tool == "rectangle" || tool == "circle" || tool == "square" {
                     // Creation logic
                     #[cfg(feature = "tracing-logging")]
@@ -842,19 +853,30 @@ impl WasmBridge {
                             engine.store.set_size(idx, Vec2::new(width, height));
                         }
                     }
-                } else if !engine.selected_entities.is_empty() {
+                } else if engine.is_dragging && !engine.selected_entities.is_empty() {
                     // Standard move logic
-                    let world_delta = engine.screen_delta_to_world(event.x, event.y);
-                    for entity_id in &engine.selected_entities {
-                        let idx = archflow_core::EntityId::index(*entity_id);
-                        let current_pos = engine.store.pos(idx.0 as usize);
-                        engine
-                            .store
-                            .set_pos(idx.0 as usize, current_pos + world_delta);
+                    if let Some(last_pos) = engine.last_mouse_screen_pos {
+                        let dx = event.x - last_pos.x;
+                        let dy = event.y - last_pos.y;
+
+                        // Only move if there is actual mouse movement
+                        if dx.abs() > 0.01 || dy.abs() > 0.01 {
+                            let world_delta = engine.screen_delta_to_world(dx, dy);
+                            for entity_id in &engine.selected_entities {
+                                let idx = archflow_core::EntityId::index(*entity_id);
+                                let current_pos = engine.store.pos(idx.0 as usize);
+                                engine
+                                    .store
+                                    .set_pos(idx.0 as usize, current_pos + world_delta);
+                            }
+                        }
                     }
+                    // Update last position for next move event
+                    engine.last_mouse_screen_pos = Some(Vec2::new(event.x, event.y));
                 }
             }
             InputEventType::Up => {
+                engine.is_dragging = false;
                 if engine.is_creating {
                     #[cfg(feature = "tracing-logging")]
                     info!(target: "archflow::wasm::input", "Finished creating shape");
@@ -982,6 +1004,71 @@ impl WasmBridge {
         }
     }
 
+    /// Get the color of an entity (returns hex string)
+    #[wasm_bindgen]
+    pub fn get_color(&self, entity_index: u32) -> Result<String, JsValue> {
+        // web_sys::console::log_1(&format!("DEBUG: get_color called for index {}", entity_index).into());
+
+        match self.engine.try_borrow() {
+            Ok(engine_guard) => {
+                if let Some(engine) = engine_guard.as_ref() {
+                    let idx = entity_index as usize;
+                    if engine.store.is_alive_index(idx) {
+                        let abgr = engine.store.colors[idx];
+                        let r = abgr & 0xFF;
+                        let g = (abgr >> 8) & 0xFF;
+                        let b = (abgr >> 16) & 0xFF;
+                        Ok(format!("#{0:02x}{1:02x}{2:02x}", r, g, b))
+                    } else {
+                        // web_sys::console::log_1(&"DEBUG: Entity not found".into());
+                        Err(JsError::new("Entity not found").into())
+                    }
+                } else {
+                    // web_sys::console::log_1(&"DEBUG: Engine is None".into());
+                    Err(JsError::new("Engine not initialized").into())
+                }
+            }
+            Err(_) => {
+                // web_sys::console::log_1(&"DEBUG: Engine already borrowed".into());
+                Err(JsError::new("Engine is busy (borrowed)").into())
+            }
+        }
+    }
+
+    /// Get the stroke color of an entity (returns hex string)
+    #[wasm_bindgen]
+    pub fn get_stroke_color(&self, entity_index: u32) -> Result<String, JsValue> {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            let idx = entity_index as usize;
+            if engine.store.is_alive_index(idx) {
+                let abgr = engine.store.stroke_colors[idx];
+                let r = abgr & 0xFF;
+                let g = (abgr >> 8) & 0xFF;
+                let b = (abgr >> 16) & 0xFF;
+                Ok(format!("#{0:02x}{1:02x}{2:02x}", r, g, b))
+            } else {
+                Err(JsError::new("Entity not found").into())
+            }
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Get the stroke width of an entity
+    #[wasm_bindgen]
+    pub fn get_stroke_width(&self, entity_index: u32) -> Result<f32, JsValue> {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            let idx = entity_index as usize;
+            if engine.store.is_alive_index(idx) {
+                Ok(engine.store.stroke_widths[idx])
+            } else {
+                Err(JsError::new("Entity not found").into())
+            }
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
     /// Set the active fill color for new shapes
     #[wasm_bindgen]
     pub fn set_active_color(&self, r: u8, g: u8, b: u8, a: u8) -> Result<(), JsValue> {
@@ -1030,16 +1117,26 @@ impl WasmBridge {
     /// Get the active fill color (returns RGBA as hex string)
     #[wasm_bindgen]
     pub fn get_active_color(&self) -> Result<String, JsValue> {
-        if let Some(engine) = self.engine.borrow().as_ref() {
-            let abgr = engine.active_color;
-            // Convert ABGR back to RGBA for JavaScript
-            let r = abgr & 0xFF;
-            let g = (abgr >> 8) & 0xFF;
-            let b = (abgr >> 16) & 0xFF;
-            let a = (abgr >> 24) & 0xFF;
-            Ok(format!("#{:02x}{:02x}{:02x}", r, g, b))
-        } else {
-            Err(JsError::new("Engine not initialized").into())
+        web_sys::console::log_1(&"DEBUG: get_active_color called".into());
+        match self.engine.try_borrow() {
+            Ok(engine_guard) => {
+                if let Some(engine) = engine_guard.as_ref() {
+                    // web_sys::console::log_1(&"DEBUG: Engine found, returning color".into());
+                    let abgr = engine.active_color;
+                    // Convert ABGR back to RGBA for JavaScript
+                    let r = abgr & 0xFF;
+                    let g = (abgr >> 8) & 0xFF;
+                    let b = (abgr >> 16) & 0xFF;
+                    Ok(format!("#{0:02x}{1:02x}{2:02x}", r, g, b))
+                } else {
+                    web_sys::console::log_1(&"DEBUG: Engine is None in get_active_color".into());
+                    Err(JsError::new("Engine not initialized").into())
+                }
+            }
+            Err(_) => {
+                web_sys::console::log_1(&"DEBUG: Engine busy in get_active_color".into());
+                Err(JsError::new("Engine is busy (borrowed)").into())
+            }
         }
     }
 
@@ -1052,7 +1149,6 @@ impl WasmBridge {
             let r = abgr & 0xFF;
             let g = (abgr >> 8) & 0xFF;
             let b = (abgr >> 16) & 0xFF;
-            let a = (abgr >> 24) & 0xFF;
             Ok(format!("#{:02x}{:02x}{:02x}", r, g, b))
         } else {
             Err(JsError::new("Engine not initialized").into())
