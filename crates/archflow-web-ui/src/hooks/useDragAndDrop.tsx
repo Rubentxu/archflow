@@ -23,7 +23,7 @@ import type {
 import { useArchFlowWasm } from "./useArchFlowWasm.tsx";
 import { useCamera } from "./useCamera";
 import { useUIStore } from "../store/useUIStore";
-import { getTypedBridge } from "./wasm-bridge";
+import { useEntityStore } from "./useEntityStore";
 import type { EntityId, Vec2, CameraState } from "../types/wasm";
 
 /** Entity template for drag operations */
@@ -78,6 +78,7 @@ export function useDragAndDrop(): UseDragAndDropReturn {
   const { bridge, isLoaded } = useArchFlowWasm();
   const { camera } = useCamera();
   const { setActiveTool } = useUIStore();
+  const { spawnEntity } = useEntityStore();
 
   const [dragState, setDragState] = useState<DragState>({
     isDragging: false,
@@ -108,16 +109,17 @@ export function useDragAndDrop(): UseDragAndDropReturn {
 
   const spawnAtPosition = useCallback(
     (template: EntityTemplate, position: Vec2): EntityId => {
-      const typed = getTypedBridge(bridge);
-      if (!isLoaded || !typed) {
-        return Date.now() + Math.floor(Math.random() * 1000);
+      if (!isLoaded || !bridge) {
+        console.warn("Bridge not loaded, cannot spawn entity");
+        return -1;
       }
       try {
-        const entityId = typed.spawn_entity(
+        const entityId = spawnEntity(
           position.x,
           position.y,
           template.defaultSize.width,
           template.defaultSize.height,
+          { type: template.type }
         );
         return entityId;
       } catch (error) {
@@ -125,7 +127,7 @@ export function useDragAndDrop(): UseDragAndDropReturn {
         return -1;
       }
     },
-    [isLoaded, bridge],
+    [isLoaded, bridge, spawnEntity],
   );
 
   const handleDragStart = useCallback((event: DragStartEvent) => {

@@ -1326,6 +1326,24 @@ impl WasmBridge {
         }
     }
 
+    /// Get entity position in world coordinates
+    #[wasm_bindgen]
+    pub fn get_entity_position_world(&self, entity_index: u32) -> Result<js_sys::Array, JsValue> {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            let idx = entity_index as usize;
+            if idx >= MAX_ENTITIES || !engine.store.is_alive_index(idx) {
+                return Err(JsError::new("Invalid entity index").into());
+            }
+            let world_pos = engine.store.pos(idx);
+            let array = js_sys::Array::new();
+            array.push(&JsValue::from(world_pos.x));
+            array.push(&JsValue::from(world_pos.y));
+            Ok(array)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
     /// Get entity size in screen coordinates
     #[wasm_bindgen]
     pub fn get_entity_size_screen(&self, entity_index: u32) -> Result<js_sys::Array, JsValue> {
@@ -1340,6 +1358,24 @@ impl WasmBridge {
             let array = js_sys::Array::new();
             array.push(&JsValue::from(screen_width));
             array.push(&JsValue::from(screen_height));
+            Ok(array)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Get entity size in world coordinates
+    #[wasm_bindgen]
+    pub fn get_entity_size_world(&self, entity_index: u32) -> Result<js_sys::Array, JsValue> {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            let idx = entity_index as usize;
+            if idx >= MAX_ENTITIES || !engine.store.is_alive_index(idx) {
+                return Err(JsError::new("Invalid entity index").into());
+            }
+            let size = engine.store.size(idx);
+            let array = js_sys::Array::new();
+            array.push(&JsValue::from(size.x));
+            array.push(&JsValue::from(size.y));
             Ok(array)
         } else {
             Err(JsError::new("Engine not initialized").into())
