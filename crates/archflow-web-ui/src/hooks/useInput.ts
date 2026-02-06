@@ -4,7 +4,7 @@
  */
 
 import { useCallback } from "react";
-import { useArchFlowWasm } from "./useArchFlowWasm";
+import { useArchFlowWasm } from "./useArchFlowWasm.tsx";
 import { getTypedBridge } from "./wasm-bridge";
 
 // Input event types as numbers (matching Rust)

@@ -20,7 +20,7 @@ import type {
   DragEndEvent,
   DragOverEvent,
 } from "@dnd-kit/core";
-import { useArchFlowWasm } from "./useArchFlowWasm";
+import { useArchFlowWasm } from "./useArchFlowWasm.tsx";
 import { useCamera } from "./useCamera";
 import { useUIStore } from "../store/useUIStore";
 import { getTypedBridge } from "./wasm-bridge";

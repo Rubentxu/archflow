@@ -9,7 +9,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import type { EntityId, EntityData } from "../types/wasm";
-import { useArchFlowWasm } from "./useArchFlowWasm";
+import { useArchFlowWasm } from "./useArchFlowWasm.tsx";
 import type { WasmBridge } from "../wasm/archflow_web.js";
 
 interface EntityStoreReturn {
