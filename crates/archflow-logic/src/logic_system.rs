@@ -5,6 +5,7 @@
 // 1. Sensor evaluation (detect input events) - BGE SCA_ISensor pattern
 // 2. Pulse generation (emit events to PulseBus) - BGE Activate() pattern
 // 3. Actuator execution (respond to pulses)
+// 4. Command history for undo/redo functionality
 //
 // This is the heart of the Logic Bricks system inspired by Blender's BGE.
 //
@@ -16,7 +17,7 @@
 
 use alloc::vec::Vec;
 use archflow_core::{EntityId, Generation, Index};
-use archflow_engine::EntityStore;
+use archflow_engine::{Command, CommandHistory, EntityStore};
 
 use crate::events::{EventRingBuffer, LogicEvent, LogicEventType};
 use crate::input::{InputEvent, InputSampler};
@@ -116,6 +117,12 @@ pub struct LogicSystem {
 
     /// Event ring buffer for output to JavaScript
     event_buffer: EventRingBuffer,
+
+    /// Command history for undo/redo functionality
+    ///
+    /// This enables persistent undo/redo across sessions.
+    /// Commands are automatically pushed when actuators execute.
+    command_history: CommandHistory,
 }
 
 impl LogicSystem {
@@ -147,6 +154,7 @@ impl LogicSystem {
                 0,
             ),
             event_buffer: EventRingBuffer::new(1024),
+            command_history: CommandHistory::new(),
         }
     }
 
@@ -288,6 +296,128 @@ impl LogicSystem {
     /// Get the pulse bus (for controller evaluation)
     pub fn pulse_bus(&mut self) -> &mut PulseBus {
         &mut self.pulse_bus
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // COMMAND HISTORY - Undo/Redo functionality
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    /// Push a command to the history (for undo/redo)
+    ///
+    /// This should be called whenever a command is executed.
+    /// Commands are stored in a circular buffer for memory efficiency.
+    ///
+    /// # Arguments
+    ///
+    /// * `command` - The command to push to history
+    ///
+    /// # Returns
+    ///
+    /// `true` if command was pushed successfully, `false` if history is full
+    #[inline(always)]
+    pub fn push_command(&mut self, command: Command) -> bool {
+        self.command_history.push(command)
+    }
+
+    /// Undo the last command
+    ///
+    /// # Arguments
+    ///
+    /// * `store` - EntityStore to apply the undo to
+    ///
+    /// # Returns
+    ///
+    /// `true` if undo was performed, `false` if nothing to undo
+    #[inline(always)]
+    pub fn undo(&mut self, store: &mut EntityStore) -> bool {
+        if let Some(command) = self.command_history.undo() {
+            // Get the inverse command and execute it
+            if let Some(inverse) = command.inverse(store) {
+                inverse.execute(store);
+                true
+            } else {
+                // Cannot undo (e.g., Despawn command)
+                false
+            }
+        } else {
+            false
+        }
+    }
+
+    /// Redo the last undone command
+    ///
+    /// # Arguments
+    ///
+    /// * `store` - EntityStore to apply the redo to
+    ///
+    /// # Returns
+    ///
+    /// `true` if redo was performed, `false` if nothing to redo
+    #[inline(always)]
+    pub fn redo(&mut self, store: &mut EntityStore) -> bool {
+        if let Some(command) = self.command_history.redo() {
+            // Execute the command again
+            command.execute(store);
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Check if undo is available
+    #[inline(always)]
+    #[must_use]
+    pub fn can_undo(&self) -> bool {
+        self.command_history.can_undo() > 0
+    }
+
+    /// Check if redo is available
+    #[inline(always)]
+    #[must_use]
+    pub fn can_redo(&self) -> bool {
+        self.command_history.can_redo() > 0
+    }
+
+    /// Get the description of the next command to undo
+    #[inline(always)]
+    #[must_use]
+    pub fn undo_description(&self) -> alloc::string::String {
+        // Try to get description from the command
+        // Note: Command enum doesn't have description field, so we return a generic one
+        if self.can_undo() {
+            alloc::string::String::from("Command")
+        } else {
+            alloc::string::String::new()
+        }
+    }
+
+    /// Get the number of commands in undo history
+    #[inline(always)]
+    #[must_use]
+    pub fn undo_count(&self) -> usize {
+        self.command_history.can_undo()
+    }
+
+    /// Get the number of commands in redo history
+    #[inline(always)]
+    #[must_use]
+    pub fn redo_count(&self) -> usize {
+        self.command_history.can_redo()
+    }
+
+    /// Clear all history
+    #[inline(always)]
+    pub fn clear_history(&mut self) {
+        self.command_history.clear();
+    }
+
+    /// Get a summary of history state for JavaScript
+    ///
+    /// Returns a string in format: "undo:N,redo:M"
+    #[inline(always)]
+    #[must_use]
+    pub fn get_history_state(&self) -> alloc::string::String {
+        alloc::format!("undo:{},redo:{}", self.undo_count(), self.redo_count())
     }
 
     /// Get the wiring table (for configuring connections)

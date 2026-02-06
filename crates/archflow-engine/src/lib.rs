@@ -61,6 +61,9 @@ pub mod spatial;
 /// Entity store with SoA layout.
 pub mod store;
 
+/// Query abstraction layer for type-safe entity queries.
+pub mod query;
+
 pub use command::{Command, CommandQueue, DeltaMask};
 pub use command_log::{CommandError, CommandLog, CommandLogMetadata};
 pub use compression::{BatchBuilder, CompressedBatch, CompressionResult, CompressionSettings};
@@ -74,4 +77,9 @@ pub use security::{
 pub use spatial::SpatialHash;
 pub use store::{
     ArchitectureData, EntityStore, MAX_ENTITIES, MAX_GLYPHS, MAX_TEXT_LENGTH, ShapeType, StringPool,
+};
+
+pub use query::{
+    ColorView, MetadataView, QueryResult, RenderQuery, RenderableResult, TransformView, mark_clean,
+    query_alive, query_dirty_render, query_renderable, query_visible,
 };

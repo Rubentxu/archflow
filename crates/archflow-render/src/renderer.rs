@@ -21,7 +21,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use archflow_core::{MAX_ENTITIES, Vec2};
-use archflow_engine::EntityStore;
+use archflow_engine::{EntityStore, RenderQuery};
 
 use crate::camera::Camera;
 
@@ -238,18 +238,32 @@ impl GpuRenderer {
         let viewport = camera.viewport_bounds(self.canvas_size.y);
         let mut visible_count = 0;
 
+        // Create render query for clean data access
+        let query = RenderQuery::new(store);
+
         // Iterate entities in draw order (back-to-front for proper z-layering)
         for &idx in &store.draw_order {
             let idx = idx as usize;
 
-            // Skip if not visible
-            if !store.is_visible(idx) {
+            // Skip if not visible (using Query abstraction)
+            if !query.is_visible(idx).unwrap_or(false) {
                 continue;
             }
 
             // Skip if outside viewport (culling)
-            let pos = store.pos(idx);
-            let size = store.size(idx);
+            let Some(pos_tuple) = query.pos(idx) else {
+                continue;
+            };
+            let Some(size_tuple) = query.size(idx) else {
+                continue;
+            };
+
+            // Convert tuples to arrays for GpuInstance
+            let pos_arr = [pos_tuple.0, pos_tuple.1];
+            let size_arr = [size_tuple.0, size_tuple.1];
+
+            let pos = Vec2::new(pos_tuple.0, pos_tuple.1);
+            let size = Vec2::new(size_tuple.0, size_tuple.1);
             let entity_min = pos - size / 2.0;
             let entity_max = pos + size / 2.0;
 
@@ -262,12 +276,12 @@ impl GpuRenderer {
                 continue;
             }
 
-            // Determine render phase based on texture index
-            let texture_idx = store.texture_index[idx];
+            // Determine render phase based on texture index (via Query)
+            let texture_idx = query.texture_index(idx).unwrap_or(0);
             let phase = match texture_idx {
                 0 => {
                     // Solid color - check if it's text
-                    if store.text_glyph_count[idx] > 0 {
+                    if query.text_glyph_count(idx) > 0 {
                         RenderPhase::Text
                     } else {
                         RenderPhase::Shapes
@@ -277,19 +291,20 @@ impl GpuRenderer {
                 _ => RenderPhase::Images,
             };
 
-            // Create instance data
+            // Create instance data using Query abstraction
+            let stroke_width = query.stroke_width(idx).unwrap_or(0.0);
             let instance = GpuInstance {
-                pos: [pos.x, pos.y],
-                size: [size.x, size.y],
-                color: store.colors[idx],
+                pos: pos_arr,
+                size: size_arr,
+                color: query.fill_color(idx).unwrap_or(0),
                 shape_type_or_texture_index: if texture_idx == 0 {
                     store.shape_type(idx) as u32
                 } else {
                     texture_idx as u32
                 },
-                stroke_color: store.stroke_colors[idx],
-                stroke_width_bits: store.stroke_widths[idx].to_bits(),
-                uv_rect: store.uv_rects[idx],
+                stroke_color: query.stroke_color(idx).unwrap_or(0),
+                stroke_width_bits: stroke_width.to_bits(),
+                uv_rect: query.uv_rect(idx).unwrap_or([0.0, 0.0, 1.0, 1.0]),
             };
 
             // Add to instances and batch
@@ -380,14 +395,29 @@ impl GpuRenderer {
         // Get all dirty entity indices and clear flags
         let dirty_indices: Vec<usize> = store.take_dirty_render_entities().collect();
 
+        // Create render query for clean data access
+        let query = RenderQuery::new(store);
+
         for &idx in &dirty_indices {
-            // Skip if not visible (entities can become invisible)
-            if !store.is_visible(idx) {
+            // Skip if not visible (using Query abstraction)
+            if !query.is_visible(idx).unwrap_or(false) {
                 continue;
             }
 
-            let pos = store.pos(idx);
-            let size = store.size(idx);
+            // Get position and size via Query
+            let Some(pos_tuple) = query.pos(idx) else {
+                continue;
+            };
+            let Some(size_tuple) = query.size(idx) else {
+                continue;
+            };
+
+            // Convert tuples to arrays for GpuInstance
+            let pos_arr = [pos_tuple.0, pos_tuple.1];
+            let size_arr = [size_tuple.0, size_tuple.1];
+
+            let pos = Vec2::new(pos_tuple.0, pos_tuple.1);
+            let size = Vec2::new(size_tuple.0, size_tuple.1);
             let entity_min = pos - size / 2.0;
             let entity_max = pos + size / 2.0;
 
@@ -401,28 +431,29 @@ impl GpuRenderer {
                 continue;
             }
 
-            // Determine render phase
-            let texture_idx = store.texture_index[idx];
+            // Determine render phase (via Query)
+            let texture_idx = query.texture_index(idx).unwrap_or(0);
             let phase = match texture_idx {
-                0 if store.text_glyph_count[idx] > 0 => RenderPhase::Text,
+                0 if query.text_glyph_count(idx) > 0 => RenderPhase::Text,
                 0 => RenderPhase::Shapes,
                 1..=1000 => RenderPhase::Icons,
                 _ => RenderPhase::Images,
             };
 
-            // Create instance data
+            // Create instance data using Query abstraction
+            let stroke_width = query.stroke_width(idx).unwrap_or(0.0);
             let instance = GpuInstance {
-                pos: [pos.x, pos.y],
-                size: [size.x, size.y],
-                color: store.colors[idx],
+                pos: pos_arr,
+                size: size_arr,
+                color: query.fill_color(idx).unwrap_or(0),
                 shape_type_or_texture_index: if texture_idx == 0 {
                     store.shape_type(idx) as u32
                 } else {
                     texture_idx as u32
                 },
-                stroke_color: store.stroke_colors[idx],
-                stroke_width_bits: store.stroke_widths[idx].to_bits(),
-                uv_rect: store.uv_rects[idx],
+                stroke_color: query.stroke_color(idx).unwrap_or(0),
+                stroke_width_bits: stroke_width.to_bits(),
+                uv_rect: query.uv_rect(idx).unwrap_or([0.0, 0.0, 1.0, 1.0]),
             };
 
             // Update instance in place (using entity index as instance index)
