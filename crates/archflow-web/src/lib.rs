@@ -20,6 +20,7 @@ pub mod bridge;
 pub mod engine;
 pub mod input;
 pub mod logic;
+pub mod logic_bricks_setup;
 
 pub use bridge::WasmBridge;
 pub use engine::ArchFlowEngine;
@@ -38,6 +39,8 @@ pub use archflow_logic::{
 pub use logic::{
     // Re-export core types
     ActuatorType,
+    BrickChainBuilder,
+    BrickHandle,
     CameraConfig,
     Controller,
     ControllerType,
@@ -51,4 +54,37 @@ pub use logic::{
     SelectModeWasm,
     SensorType,
     SignalByteWasm,
+    // Factory functions
+    actuator_delete,
+    actuator_emit_event,
+    actuator_highlight,
+    actuator_move,
+    actuator_select_clear,
+    actuator_select_multi,
+    actuator_select_single,
+    actuator_select_toggle,
+    controller_and,
+    controller_blinky,
+    controller_custom,
+    controller_debounce,
+    controller_direct,
+    controller_hysteresis,
+    controller_nand,
+    controller_nor,
+    controller_not,
+    controller_or,
+    controller_pattern,
+    controller_threshold,
+    controller_xor,
+    sensor_collision_detect,
+    sensor_double_tap,
+    sensor_keyboard_key,
+    sensor_long_press,
+    sensor_mouse_click,
+    sensor_mouse_drag,
+    sensor_mouse_hover,
+    sensor_mouse_wheel,
+    sensor_property_changed,
+    sensor_timer_delay,
+    sensor_timer_interval,
 };

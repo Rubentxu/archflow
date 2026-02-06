@@ -957,7 +957,7 @@ export class WasmBridge {
      */
     clear(): void;
     /**
-     * Clear all selected entities
+     * Clear all selections (deselect all entities)
      */
     clear_selection(): void;
     /**
@@ -977,6 +977,18 @@ export class WasmBridge {
      */
     entity_count(): number;
     /**
+     * Get the active fill color (returns RGBA as hex string)
+     */
+    get_active_color(): string;
+    /**
+     * Get the active stroke color (returns RGBA as hex string)
+     */
+    get_active_stroke_color(): string;
+    /**
+     * Get the active stroke width
+     */
+    get_active_stroke_width(): number;
+    /**
      * Get list of alive entity indices
      */
     get_alive_entities(): Uint32Array;
@@ -984,6 +996,10 @@ export class WasmBridge {
      * Get the camera center position
      */
     get_camera_center(): Array<any>;
+    /**
+     * Get the color of an entity (returns hex string)
+     */
+    get_color(entity_index: number): string;
     /**
      * Get entity color as hex string
      */
@@ -997,6 +1013,10 @@ export class WasmBridge {
      */
     get_entity_position_screen(entity_index: number): Array<any>;
     /**
+     * Get entity position in world coordinates
+     */
+    get_entity_position_world(entity_index: number): Array<any>;
+    /**
      * Get entity shape type
      */
     get_entity_shape(entity_index: number): number;
@@ -1004,6 +1024,10 @@ export class WasmBridge {
      * Get entity size in screen coordinates
      */
     get_entity_size_screen(entity_index: number): Array<any>;
+    /**
+     * Get entity size in world coordinates
+     */
+    get_entity_size_world(entity_index: number): Array<any>;
     /**
      * Get history state for UI feedback
      */
@@ -1023,6 +1047,14 @@ export class WasmBridge {
      * Get the list of selected entity IDs
      */
     get_selection(): Array<any>;
+    /**
+     * Get the stroke color of an entity (returns hex string)
+     */
+    get_stroke_color(entity_index: number): string;
+    /**
+     * Get the stroke width of an entity
+     */
+    get_stroke_width(entity_index: number): number;
     /**
      * Get the current tool type
      */
@@ -1058,6 +1090,10 @@ export class WasmBridge {
      */
     is_entity_visible(entity_index: number): boolean;
     /**
+     * Check if context recovery is in progress
+     */
+    is_recovering(): boolean;
+    /**
      * Move an entity by the given delta
      */
     move_entity(entity_index: number, dx: number, dy: number): void;
@@ -1065,6 +1101,31 @@ export class WasmBridge {
      * Create a new WASM bridge
      */
     constructor();
+    /**
+     * Poll all events from the logic system
+     *
+     * Returns a JavaScript array of events emitted by the logic system
+     * during the current frame. Call this once per frame after `tick()`.
+     *
+     * # Returns
+     *
+     * A JS array where each event is an object with:
+     * - `type`: Event type (0=EntitySelected, 1=ProximityAlert, 2=DragStarted, 3=DragEnded, 4=EntityDestroyed, 5=BoxSelectionCompleted, 6=HoverChanged)
+     * - `entityId`: Entity ID (or 0 for global events)
+     * - `timestamp`: Timestamp in microseconds
+     * - `data`: Event-specific data (varies by type)
+     *
+     * # Example
+     *
+     * ```javascript
+     * // In your JavaScript/TypeScript code
+     * const events = bridge.poll_events();
+     * for (const event of events) {
+     *     console.log('Event:', event.type, event.entityId);
+     * }
+     * ```
+     */
+    poll_events(): any;
     /**
      * Push an input event from JavaScript
      *
@@ -1077,13 +1138,29 @@ export class WasmBridge {
      */
     redo(): void;
     /**
-     * Add an entity to the selection
+     * Resize the engine and renderer
+     */
+    resize(width: number, height: number): void;
+    /**
+     * Add an entity to the selection (toggle mode)
      */
     select_entity(entity_index: number): void;
     /**
      * Serialize the current project
      */
     serialize_project(): Uint8Array;
+    /**
+     * Set the active fill color for new shapes
+     */
+    set_active_color(r: number, g: number, b: number, a: number): void;
+    /**
+     * Set the active stroke color for new shapes
+     */
+    set_active_stroke_color(r: number, g: number, b: number, a: number): void;
+    /**
+     * Set the active stroke width for new shapes
+     */
+    set_active_stroke_width(width: number): void;
     /**
      * Set the camera center position
      */
@@ -1094,6 +1171,8 @@ export class WasmBridge {
     set_color(entity_index: number, r: number, g: number, b: number, a: number): void;
     /**
      * Set the selection state of an entity directly
+     *
+     * Uses DeltaMask for memory-efficient undo/redo via command queue.
      */
     set_entity_selected(entity_index: number, selected: boolean): void;
     /**
@@ -1116,6 +1195,14 @@ export class WasmBridge {
      * Set the size of an entity
      */
     set_size(entity_index: number, width: number, height: number): void;
+    /**
+     * Set the stroke color of an entity
+     */
+    set_stroke_color(entity_index: number, r: number, g: number, b: number, a: number): void;
+    /**
+     * Set the stroke width of an entity
+     */
+    set_stroke_width(entity_index: number, width: number): void;
     /**
      * Set the current tool type
      */
@@ -1237,16 +1324,24 @@ export interface InitOutput {
     readonly wasmbridge_detect_available_backends: (a: number, b: number) => void;
     readonly wasmbridge_duplicate_entity: (a: number, b: number, c: number) => void;
     readonly wasmbridge_entity_count: (a: number, b: number) => void;
+    readonly wasmbridge_get_active_color: (a: number, b: number) => void;
+    readonly wasmbridge_get_active_stroke_color: (a: number, b: number) => void;
+    readonly wasmbridge_get_active_stroke_width: (a: number, b: number) => void;
     readonly wasmbridge_get_alive_entities: (a: number, b: number) => void;
     readonly wasmbridge_get_camera_center: (a: number, b: number) => void;
+    readonly wasmbridge_get_color: (a: number, b: number, c: number) => void;
     readonly wasmbridge_get_entity_color_hex: (a: number, b: number, c: number) => void;
     readonly wasmbridge_get_entity_label: (a: number, b: number, c: number) => void;
     readonly wasmbridge_get_entity_position_screen: (a: number, b: number, c: number) => void;
+    readonly wasmbridge_get_entity_position_world: (a: number, b: number, c: number) => void;
     readonly wasmbridge_get_entity_shape: (a: number, b: number, c: number) => void;
     readonly wasmbridge_get_entity_size_screen: (a: number, b: number, c: number) => void;
+    readonly wasmbridge_get_entity_size_world: (a: number, b: number, c: number) => void;
     readonly wasmbridge_get_history_state: (a: number, b: number) => void;
     readonly wasmbridge_get_input_buffer_ptr: (a: number) => number;
     readonly wasmbridge_get_selection: (a: number, b: number) => void;
+    readonly wasmbridge_get_stroke_color: (a: number, b: number, c: number) => void;
+    readonly wasmbridge_get_stroke_width: (a: number, b: number, c: number) => void;
     readonly wasmbridge_get_tool: (a: number, b: number) => void;
     readonly wasmbridge_get_zoom: (a: number, b: number) => void;
     readonly wasmbridge_initialize: (a: number, b: number, c: number, d: number) => void;
@@ -1254,12 +1349,18 @@ export interface InitOutput {
     readonly wasmbridge_initialize_graphics_with_backend: (a: number, b: number, c: number, d: number, e: number) => void;
     readonly wasmbridge_is_entity_selected: (a: number, b: number, c: number) => void;
     readonly wasmbridge_is_entity_visible: (a: number, b: number, c: number) => void;
+    readonly wasmbridge_is_recovering: (a: number) => number;
     readonly wasmbridge_move_entity: (a: number, b: number, c: number, d: number, e: number) => void;
     readonly wasmbridge_new: () => number;
+    readonly wasmbridge_poll_events: (a: number) => number;
     readonly wasmbridge_push_input_event: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
     readonly wasmbridge_redo: (a: number, b: number) => void;
+    readonly wasmbridge_resize: (a: number, b: number, c: number, d: number) => void;
     readonly wasmbridge_select_entity: (a: number, b: number, c: number) => void;
     readonly wasmbridge_serialize_project: (a: number, b: number) => void;
+    readonly wasmbridge_set_active_color: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
+    readonly wasmbridge_set_active_stroke_color: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
+    readonly wasmbridge_set_active_stroke_width: (a: number, b: number, c: number) => void;
     readonly wasmbridge_set_camera_center: (a: number, b: number, c: number, d: number) => void;
     readonly wasmbridge_set_color: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
     readonly wasmbridge_set_entity_selected: (a: number, b: number, c: number, d: number) => void;
@@ -1268,6 +1369,8 @@ export interface InitOutput {
     readonly wasmbridge_set_position: (a: number, b: number, c: number, d: number, e: number) => void;
     readonly wasmbridge_set_shape: (a: number, b: number, c: number, d: number) => void;
     readonly wasmbridge_set_size: (a: number, b: number, c: number, d: number, e: number) => void;
+    readonly wasmbridge_set_stroke_color: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
+    readonly wasmbridge_set_stroke_width: (a: number, b: number, c: number, d: number) => void;
     readonly wasmbridge_set_tool: (a: number, b: number, c: number, d: number) => void;
     readonly wasmbridge_set_zoom: (a: number, b: number, c: number) => void;
     readonly wasmbridge_spawn_entity: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
@@ -1276,6 +1379,9 @@ export interface InitOutput {
     readonly wasmbridge_get_input_buffer_size: () => number;
     readonly __wbg_propertyvalue_free: (a: number, b: number) => void;
     readonly propertyvalue_value: (a: number, b: number) => void;
+    readonly __wasm_bindgen_func_elem_83: (a: number, b: number) => void;
+    readonly __wasm_bindgen_func_elem_425: (a: number, b: number, c: number) => void;
+    readonly __wasm_bindgen_func_elem_424: (a: number, b: number) => void;
     readonly __wbindgen_export: (a: number, b: number) => number;
     readonly __wbindgen_export2: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_export3: (a: number) => void;
