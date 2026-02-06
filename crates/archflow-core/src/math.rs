@@ -1,4 +1,4 @@
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
 // Math Module - Core geometric types
 //
 // Architecture Reference: ARQUITECTURA_FINAL_V3.md - Section 3.2
@@ -8,7 +8,7 @@
 // - Rect: Axis-aligned bounding rectangle
 // - Color: Packed RGBA color (0xRRGGBBAA)
 // - Transform: 2D affine transform (position + rotation + scale)
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
 
 // Import String and format macro when std feature is enabled
 #[cfg(feature = "std")]
@@ -25,9 +25,9 @@ pub type Vec4 = glam::Vec4;
 /// 2D affine transform matrix
 pub type Mat4 = glam::Mat4;
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
 // RECT - Axis-Aligned Bounding Rectangle
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
 
 /// Axis-aligned bounding rectangle
 ///
@@ -176,9 +176,9 @@ impl Rect {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
 // COLOR - Packed RGBA (0xRRGGBBAA)
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
 
 /// Packed RGBA color in 0xRRGGBBAA format
 ///
@@ -273,9 +273,22 @@ impl Color {
         ]
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // STD-ONLY METHODS (require std library)
-    // ═══════════════════════════════════════════════════════════════════════════════
+    /// Multiply RGB components by a factor (for tinting)
+    #[inline(always)]
+    pub fn multiply_rgb(self, factor: f32) -> Self {
+        Self::rgba_normalized(
+            self.r() as f32 / 255.0 * factor,
+            self.g() as f32 / 255.0 * factor,
+            self.b() as f32 / 255.0 * factor,
+            self.a() as f32 / 255.0,
+        )
+    }
+
+    /// Set the alpha component
+    #[inline(always)]
+    pub const fn with_alpha(self, alpha: u8) -> Self {
+        Self::rgba(self.r(), self.g(), self.b(), alpha)
+    }
 }
 
 #[cfg(feature = "std")]
@@ -313,31 +326,9 @@ impl Color {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// Remaining Color methods (available in both no_std and std)
-// ═══════════════════════════════════════════════════════════════════════════════
-impl Color {
-    /// Multiply RGB components by a factor (for tinting)
-    #[inline(always)]
-    pub fn multiply_rgb(self, factor: f32) -> Self {
-        Self::rgba_normalized(
-            self.r() as f32 / 255.0 * factor,
-            self.g() as f32 / 255.0 * factor,
-            self.b() as f32 / 255.0 * factor,
-            self.a() as f32 / 255.0,
-        )
-    }
-
-    /// Set the alpha component
-    #[inline(always)]
-    pub const fn with_alpha(self, alpha: u8) -> Self {
-        Self::rgba(self.r(), self.g(), self.b(), alpha)
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
 // TRANSFORM - 2D Affine Transform
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
 
 /// 2D affine transform for entity positioning
 ///
@@ -410,9 +401,35 @@ impl Transform {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// CONNECTION STYLE - Connection routing styles for diagrams
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+/// Connection style types for arrow/line rendering.
+///
+/// Defines how connections (arrows, lines) are routed between entities.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[repr(u8)]
+pub enum ConnectionStyle {
+    /// Straight line between points (direct connection)
+    Straight = 0,
+    /// Orthogonal with 90° turns only (L/Z shaped)
+    Orthogonal = 1,
+    /// Smooth cubic Bezier curve
+    Bezier = 2,
+    /// Elbow routing with corner optimization
+    Elbow = 3,
+}
+
+impl Default for ConnectionStyle {
+    fn default() -> Self {
+        ConnectionStyle::Straight
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
 // UNIT TESTS
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
 
 #[cfg(test)]
 mod tests {
@@ -441,7 +458,6 @@ mod tests {
         let a = Rect::new(0.0, 0.0, 10.0, 10.0);
         let b = Rect::new(5.0, 5.0, 15.0, 15.0);
         let c = Rect::new(20.0, 20.0, 30.0, 30.0);
-
         assert!(a.intersects(&b));
         assert!(!a.intersects(&c));
     }
@@ -460,7 +476,6 @@ mod tests {
     fn test_color_from_hex() {
         let color = Color::from_hex("#FF8000").unwrap();
         assert_eq!(color, Color::rgba(255, 128, 0, 255));
-
         let with_alpha = Color::from_hex("#FF8000C0").unwrap();
         assert_eq!(with_alpha, Color::rgba(255, 128, 0, 192));
     }
@@ -477,5 +492,18 @@ mod tests {
         let transform = Transform::translation(10.0, 5.0);
         let point = Vec2::new(2.0, 3.0);
         assert_eq!(transform.transform_point(point), Vec2::new(12.0, 8.0));
+    }
+
+    #[test]
+    fn test_connection_style_default() {
+        assert_eq!(ConnectionStyle::default(), ConnectionStyle::Straight);
+    }
+
+    #[test]
+    fn test_connection_style_values() {
+        assert_eq!(ConnectionStyle::Straight as u8, 0);
+        assert_eq!(ConnectionStyle::Orthogonal as u8, 1);
+        assert_eq!(ConnectionStyle::Bezier as u8, 2);
+        assert_eq!(ConnectionStyle::Elbow as u8, 3);
     }
 }

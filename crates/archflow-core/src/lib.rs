@@ -49,7 +49,7 @@ pub mod ports;
 // ═══════════════════════════════════════════════════════════════════════════════
 
 pub use id::{EntityId, Generation, Index};
-pub use math::{Color, Rect, Transform, Vec2};
+pub use math::{Color, ConnectionStyle, Rect, Transform, Vec2};
 pub use paths::{Path, PathBuilder, PathCommand};
 pub use types::Vec2f64;
 pub use vo::{Bounds, Position, Size};

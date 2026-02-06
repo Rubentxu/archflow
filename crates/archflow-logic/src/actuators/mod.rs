@@ -36,8 +36,9 @@ pub use clipboard::{
 };
 pub use connections::{
     AnchorConfig, AnchorPoint, AnchorVisibilityActuator, AnchorVisibilityState, AnchorVisualConfig,
-    ArrowBindActuator, AutoRouteActuator, ConnectionLabelActuator, ConnectionStyle, ElbowConfig,
-    ElbowRoutingActuator, PathOptimizationActuator, PathOptimizationConfig, PathOptimizationResult,
+    ArrowBindActuator, AutoRouteActuator, ConnectionLabelActuator, ElbowConfig,
+    ElbowRoutingActuator, LineStyleActuator, LineStyleChange, LineStyleConfig,
+    PathOptimizationActuator, PathOptimizationConfig, PathOptimizationResult,
     PathOptimizationState,
 };
 pub use container::{ContainerActuator, ContainerOp, ContainerOpData};

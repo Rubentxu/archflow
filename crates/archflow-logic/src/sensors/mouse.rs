@@ -1,10 +1,11 @@
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════════
 // ArchFlow Logic - Unified Mouse Sensor (BGE-Faithful)
 //
 // This implements HU-001: Unified Mouse Sensor following Blender Game Engine pattern.
 // BGE has ONE mouse sensor class with a "mode" property, not 6 separate classes.
 //
 // Reference: docs/analysis/MOUSE-SENSORS-UNIFICATION.md
+// Reference: UPBGE source/gameengine/GameLogic/SCA_ISensor.cpp
 //
 // BGE Modes (KX_MOUSESENSORMODE_*):
 // - LeftButton = 1   (primary click)
@@ -14,12 +15,18 @@
 // - WheelDown = 9    (scroll down)
 // - Movement = 10    (mouse over)
 //
+// BGE Sensor Parameters (SCA_ISensor):
+// - skipped_ticks (frequency): Delay between pulse emissions (0 = every tick)
+// - tap: Single pulse mode (emit once on true→false transition)
+// - level: Continuous pulse mode (emit while condition is true)
+// - invert: Invert the output signal
+//
 // Key Features:
 // - Zero code duplication: Single AABB implementation
 // - Runtime configuration: Change mode without recompiling
 // - BGE-faithful: Follows exact KX_MouseSensor pattern
 // - Memory efficient: ~200 KB vs 2.5 MB for 100k entities
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════════
 
 #![warn(missing_docs)]
 
@@ -28,7 +35,7 @@ use alloc::{vec, vec::Vec};
 use archflow_core::Vec2;
 use archflow_engine::EntityStore;
 
-use crate::signals::SignalByte;
+use crate::signals::{SignalByte, SignalState};
 
 /// Mouse sensor modes following BGE KX_MOUSESENSORMODE_* enum
 ///
@@ -63,7 +70,7 @@ impl Default for MouseMode {
 
 /// Configuration for MouseSensor (BGE-style properties)
 ///
-/// These match the properties available in BGE's KX_MouseSensor.
+/// These match the properties available in BGE's SCA_ISensor.
 #[derive(Clone, Copy, Debug)]
 pub struct MouseConfig {
     /// Sensor mode (determines what event to detect)
@@ -73,10 +80,17 @@ pub struct MouseConfig {
     pub invert: bool,
 
     /// Single pulse mode (BGE: sensor.tap)
+    /// When true: emit a single positive pulse on rising edge, then negative pulse
+    /// When false: continuous pulses based on level setting
     pub tap: bool,
 
-    /// Trigger frequency in ticks (BGE: sensor.level, 0 = disabled)
-    pub level: u8,
+    /// Trigger frequency in ticks (BGE: sensor.level / skipped_ticks)
+    /// 0 = emit every tick while active (continuous)
+    /// >0 = skip N ticks between pulse emissions
+    pub skipped_ticks: u8,
+
+    /// Pulse mode for negative edge (BGE: m_neg_pulsemode)
+    pub neg_pulse_mode: bool,
 }
 
 impl Default for MouseConfig {
@@ -85,7 +99,8 @@ impl Default for MouseConfig {
             mode: MouseMode::Movement,
             invert: false,
             tap: false,
-            level: 0,
+            skipped_ticks: 0,
+            neg_pulse_mode: false,
         }
     }
 }
@@ -98,7 +113,8 @@ impl MouseConfig {
             mode,
             invert: false,
             tap: false,
-            level: 0,
+            skipped_ticks: 0,
+            neg_pulse_mode: false,
         }
     }
 
@@ -137,6 +153,27 @@ impl MouseConfig {
     pub const fn wheel_down() -> Self {
         Self::new(MouseMode::WheelDown)
     }
+
+    /// Configure invert property
+    #[must_use]
+    pub const fn invert(mut self, invert: bool) -> Self {
+        self.invert = invert;
+        self
+    }
+
+    /// Configure tap property (single pulse mode)
+    #[must_use]
+    pub const fn tap(mut self, tap: bool) -> Self {
+        self.tap = tap;
+        self
+    }
+
+    /// Configure skipped_ticks (pulse frequency)
+    #[must_use]
+    pub const fn skipped_ticks(mut self, ticks: u8) -> Self {
+        self.skipped_ticks = ticks;
+        self
+    }
 }
 
 /// Unified Mouse Sensor (BGE-Faithful)
@@ -144,9 +181,16 @@ impl MouseConfig {
 /// This single sensor replaces 6 separate sensor structs:
 /// - MouseOverSensor → MouseMode::Movement
 /// - MouseClickSensor → MouseMode::LeftButton
-/// - RightClickSensor → MouseMode::RightButton
+/// - RightClickSensor → MouseMode::RightClick
 /// - Middle click → MouseMode::MiddleButton
 /// - Wheel detection → MouseMode::WheelUp/Down
+///
+/// # BGE Pulse System
+///
+/// The sensor implements BGE's pulse system:
+/// - `skipped_ticks`: Delay between pulse emissions (0 = every tick)
+/// - `tap`: Single pulse on true→false transition
+/// - `level`: Continuous pulse while true
 ///
 /// # Example
 ///
@@ -154,20 +198,20 @@ impl MouseConfig {
 /// use archflow_logic::sensors::MouseSensor;
 /// use archflow_logic::sensors::MouseConfig;
 ///
-/// // Mouse-over sensor
+/// // Mouse-over sensor (default)
 /// let mut mouse_over = MouseSensor::with_config(
 ///     store.capacity(),
 ///     MouseConfig::movement()
 /// );
 ///
-/// // Click sensor
+/// // Click sensor with tap mode (double-click detection via SignalByte)
 /// let mut click_sensor = MouseSensor::with_config(
 ///     store.capacity(),
-///     MouseConfig::left_button()
+///     MouseConfig::left_button().tap(true)
 /// );
 /// ```
 pub struct MouseSensor {
-    /// Sensor configuration (mode, invert, tap, level)
+    /// Sensor configuration (mode, invert, tap, skipped_ticks)
     config: MouseConfig,
 
     /// Signal state per entity (6-tick history)
@@ -175,6 +219,12 @@ pub struct MouseSensor {
 
     /// Last wheel position for delta detection
     last_wheel: i8,
+
+    /// Ticks since last positive pulse per entity
+    pos_ticks: Vec<u8>,
+
+    /// Ticks since last negative pulse per entity
+    neg_ticks: Vec<u8>,
 
     /// For tap mode: track if we've already pulsed this press
     tapped: Vec<bool>,
@@ -194,6 +244,8 @@ impl MouseSensor {
             config,
             signals: vec![SignalByte::default(); capacity],
             last_wheel: 0,
+            pos_ticks: vec![0; capacity],
+            neg_ticks: vec![0; capacity],
             tapped: vec![false; capacity],
         }
     }
@@ -210,6 +262,15 @@ impl MouseSensor {
         self.config
     }
 
+    /// Resize sensor to handle new entity capacity
+    pub fn resize(&mut self, new_capacity: usize) {
+        let old_len = self.signals.len();
+        self.signals.resize_with(new_capacity, SignalByte::default);
+        self.pos_ticks.resize(new_capacity, 0);
+        self.neg_ticks.resize(new_capacity, 0);
+        self.tapped.resize(new_capacity, false);
+    }
+
     /// Check if entity has positive signal
     #[must_use]
     pub fn is_positive(&self, entity_idx: usize) -> bool {
@@ -221,9 +282,7 @@ impl MouseSensor {
     /// Check if entity has negative signal
     #[must_use]
     pub fn is_negative(&self, entity_idx: usize) -> bool {
-        self.signals
-            .get(entity_idx)
-            .map_or(false, |s| !s.get_current())
+        !self.is_positive(entity_idx)
     }
 
     /// Get the signal for an entity
@@ -232,14 +291,41 @@ impl MouseSensor {
         self.signals.get(entity_idx).copied().unwrap_or_default()
     }
 
-    /// Reset all signals to default
+    /// Get ticks since last positive pulse for an entity
+    #[must_use]
+    pub fn pos_ticks(&self, entity_idx: usize) -> u8 {
+        self.pos_ticks.get(entity_idx).copied().unwrap_or(0)
+    }
+
+    /// Get the number of entities the sensor can track
+    #[inline(always)]
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.signals.len()
+    }
+
+    /// Check if the sensor is empty
+    #[inline(always)]
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.signals.is_empty()
+    }
+
+    /// Reset all signals and counters to default
     pub fn reset(&mut self) {
         for signal in &mut self.signals {
             *signal = SignalByte::default();
         }
+        for ticks in &mut self.pos_ticks {
+            *ticks = 0;
+        }
+        for ticks in &mut self.neg_ticks {
+            *ticks = 0;
+        }
         for tapped in &mut self.tapped {
             *tapped = false;
         }
+        self.last_wheel = 0;
     }
 
     /// Evaluate mouse input and update signals
@@ -311,13 +397,18 @@ impl MouseSensor {
                 && mouse_pos.y >= min_y
                 && mouse_pos.y <= max_y;
 
-            self.signals[i].push(is_over);
+            // Apply invert if configured
+            let signal = if self.config.invert {
+                !is_over
+            } else {
+                is_over
+            };
+            self.signals[i].push(signal);
         }
     }
 
     /// Evaluate button mode (click detection)
     fn evaluate_button(&mut self, mouse_pos: Vec2, pressed: bool, store: &EntityStore) {
-        // First check which entities are under mouse
         for (i, transform) in store.transforms.iter().enumerate() {
             if i >= self.signals.len() {
                 break;
@@ -342,7 +433,13 @@ impl MouseSensor {
                 && mouse_pos.y <= max_y;
 
             // Button mode: positive only when over AND pressed
-            self.signals[i].push(is_over && pressed);
+            let signal_raw = is_over && pressed;
+            let signal = if self.config.invert {
+                !signal_raw
+            } else {
+                signal_raw
+            };
+            self.signals[i].push(signal);
         }
     }
 
@@ -372,8 +469,84 @@ impl MouseSensor {
                 && mouse_pos.y <= max_y;
 
             // Wheel mode: positive only when over AND wheel event occurred
-            self.signals[i].push(is_over && wheel_event);
+            let signal_raw = is_over && wheel_event;
+            let signal = if self.config.invert {
+                !signal_raw
+            } else {
+                signal_raw
+            };
+            self.signals[i].push(signal);
         }
+    }
+
+    /// Generate pulses based on BGE pulse system
+    ///
+    /// This implements BGE's SCA_ISensor::Activate() logic:
+    /// - Checks if sensor should emit a pulse based on:
+    ///   - skipped_ticks: delay between pulses
+    ///   - tap: single pulse on transition
+    ///   - level: continuous pulse while active
+    ///
+    /// # Returns
+    ///
+    /// Iterator of (entity_idx, is_positive) tuples for entities that should pulse
+    pub fn generate_pulses(&mut self) -> impl Iterator<Item = (usize, bool)> + '_ {
+        self.pos_ticks
+            .iter_mut()
+            .zip(self.neg_ticks.iter_mut())
+            .zip(self.signals.iter())
+            .zip(self.tapped.iter_mut())
+            .enumerate()
+            .filter_map(|(idx, (((pos_ticks, neg_ticks), signal), tapped))| {
+                let current = signal.get_current();
+                let prev = signal.get_prev();
+
+                // Increment tick counters
+                *pos_ticks = pos_ticks.saturating_add(1);
+                *neg_ticks = neg_ticks.saturating_add(1);
+
+                let should_pulse = if self.config.tap {
+                    // Tap mode: single pulse on rising edge, then negative on falling
+                    if current && !prev && !*tapped {
+                        *tapped = true;
+                        // Positive pulse - always emit on rising edge in tap mode
+                        Some((idx, true))
+                    } else if !current && prev {
+                        // Falling edge - emit negative pulse
+                        *tapped = false;
+                        if self.config.neg_pulse_mode {
+                            Some((idx, false))
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                } else if self.config.skipped_ticks == 0 {
+                    // Level mode: emit every tick while active
+                    if current {
+                        Some((idx, true))
+                    } else if self.config.neg_pulse_mode && !current && prev {
+                        // Negative pulse on falling edge
+                        Some((idx, false))
+                    } else {
+                        None
+                    }
+                } else {
+                    // Skipped ticks mode: emit every N ticks while active
+                    if current && *pos_ticks > self.config.skipped_ticks {
+                        *pos_ticks = 0;
+                        Some((idx, true))
+                    } else if self.config.neg_pulse_mode && !current && prev {
+                        *neg_ticks = 0;
+                        Some((idx, false))
+                    } else {
+                        None
+                    }
+                };
+
+                should_pulse
+            })
     }
 }
 
@@ -393,7 +566,7 @@ mod tests {
         assert_eq!(config.mode, MouseMode::Movement);
         assert!(!config.invert);
         assert!(!config.tap);
-        assert_eq!(config.level, 0);
+        assert_eq!(config.skipped_ticks, 0);
     }
 
     #[test]
@@ -407,6 +580,19 @@ mod tests {
     }
 
     #[test]
+    fn test_mouse_config_builder() {
+        let config = MouseConfig::left_button()
+            .invert(true)
+            .tap(true)
+            .skipped_ticks(5);
+
+        assert_eq!(config.mode, MouseMode::LeftButton);
+        assert!(config.invert);
+        assert!(config.tap);
+        assert_eq!(config.skipped_ticks, 5);
+    }
+
+    #[test]
     fn test_mouse_sensor_new() {
         let sensor = MouseSensor::new(100);
         assert_eq!(sensor.mode(), MouseMode::Movement);
@@ -414,16 +600,16 @@ mod tests {
 
     #[test]
     fn test_mouse_sensor_with_config() {
-        let config = MouseConfig::left_button();
+        let config = MouseConfig::left_button().tap(true);
         let sensor = MouseSensor::with_config(100, config);
         assert_eq!(sensor.mode(), MouseMode::LeftButton);
+        assert!(sensor.config.tap);
     }
 
     #[test]
     fn test_mouse_sensor_initial_state() {
         let sensor = MouseSensor::new(100);
         assert!(!sensor.is_positive(0));
-        assert!(sensor.is_negative(0)); // get_current() = false, so !false = true
         assert_eq!(sensor.signal(0), SignalByte::default());
     }
 
@@ -433,10 +619,23 @@ mod tests {
         // Simulate some state
         sensor.signals[0].push(true);
         sensor.tapped[0] = true;
+        sensor.pos_ticks[0] = 5;
 
         sensor.reset();
 
         assert_eq!(sensor.signal(0), SignalByte::default());
         assert!(!sensor.tapped[0]);
+        assert_eq!(sensor.pos_ticks[0], 0);
+    }
+
+    #[test]
+    fn test_mouse_sensor_resize() {
+        let mut sensor = MouseSensor::new(10);
+        sensor.signals[5].push(true);
+
+        sensor.resize(20);
+
+        assert_eq!(sensor.signals.len(), 20);
+        assert!(sensor.is_positive(5));
     }
 }

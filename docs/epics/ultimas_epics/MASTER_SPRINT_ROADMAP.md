@@ -98,7 +98,7 @@ Q2-Q3 (Sprints 10-12): SMART FEATURES + PRODUCTION
 
 **Stories:**
 - ✅ **US-001: Single Select** (2 SP) - Implementado
-  - ✅ MouseClickSensor
+  - ✅ MouseSensor (Mode::LeftButton) 🔄 **REFACTORIZADO**
   - ✅ SelectActuator
 
 - ✅ **US-002: Multi Select (SHIFT)** (3 SP) - Implementado
@@ -106,7 +106,7 @@ Q2-Q3 (Sprints 10-12): SMART FEATURES + PRODUCTION
   - ✅ SelectActuator (additive mode)
 
 - ✅ **US-026: Hover Highlight** (2 SP) - Implementado
-  - ✅ MouseOverSensor
+  - ✅ MouseSensor (Mode::Movement) 🔄 **REFACTORIZADO**
   - ✅ HighlightActuator
 
 **Infraestructura:**
@@ -114,9 +114,11 @@ Q2-Q3 (Sprints 10-12): SMART FEATURES + PRODUCTION
 - ✅ EventRingBuffer
 - ✅ WASM API contract
 
+**HU-001: Unified Mouse Sensor 🔄**
+> Los sensores `MouseClickSensor` y `MouseOverSensor` han sido reemplazados por el `MouseSensor` unificado con configuración `MouseMode`.
+
 **Deliverables:**
-- ✅ MouseClickSensor operacional
-- ✅ MouseOverSensor operacional
+- ✅ MouseSensor operacional 🔄
 - ✅ SelectActuator con single/multi mode
 - ✅ WASM API: `select_entity()`, `get_selected_ids()`
 - ✅ Performance: Selection < 5ms
@@ -375,40 +377,40 @@ Q2-Q3 (Sprints 10-12): SMART FEATURES + PRODUCTION
 
 ---
 
-## 🏃 **SPRINT 7-8: Magnetic Connections & Elbow Arrows** (Weeks 13-16) ❌ PENDIENTE
+## 🏃 **SPRINT 7-8: Magnetic Connections & Elbow Arrows** (Weeks 13-16) ✅ COMPLETADO
 
 **Objetivo:** Sistema completo de conexiones magnéticas con elbow routing
-**Estado:** ❌ PENDIENTE (Sprint 7-8)
+**Estado:** ✅ COMPLETADO (25 SP)
 
 ### **Backend Tasks**
 
-#### **Sprint 7 (Weeks 13-14)** ❌
+#### **Sprint 7 (Weeks 13-14)** ✅
 
 **Stories:**
-- ❌ **US-030: Arrow Binding (Magnetic)** (5 SP)
-- ❌ **US-031: Multi-Anchor Points** (4 SP)
+- ✅ **US-030: Arrow Binding (Magnetic)** (5 SP)
+- ✅ **US-031: Multi-Anchor Points** (4 SP)
 
 **Deliverables:**
-- ❌ Magnetic binding funcional
-- ❌ 8 anchor points por entity
-- ❌ WASM API: `bind_arrow()`, `get_anchors()`, `snap_to_anchor()`
+- ✅ Magnetic binding funcional
+- ✅ 8 anchor points por entity
+- ✅ WASM API: `bind_arrow()`, `get_anchors()`, `snap_to_anchor()`
 
-#### **Sprint 8 (Weeks 15-16)** ❌
+#### **Sprint 8 (Weeks 15-16)** ✅
 
 **Stories:**
-- ❌ **US-032: Elbow Routing** (8 SP)
-- ❌ **US-033: Auto-Routing (A*)** (5 SP)
-- ❌ **US-034: Connection Labels** (3 SP)
+- ✅ **US-032: Elbow Routing** (8 SP)
+- ✅ **US-033: Auto-Routing (A*)** (5 SP)
+- ✅ **US-034: Connection Labels** (3 SP)
 
 **Infrastructure:**
-- ❌ Extend `ConnectionStore` con multi-anchors
-- ❌ Implementar `AnchorSpatialIndex`
-- ❌ Cache anchor positions
+- ✅ Extend `ConnectionStore` con multi-anchors
+- ✅ Implementar `AnchorSpatialIndex`
+- ✅ Cache anchor positions
 
 **Deliverables:**
-- ❌ Elbow routing operacional
-- ❌ A* pathfinding
-- ❌ Connection labels
+- ✅ Elbow routing operacional
+- ✅ A* pathfinding
+- ✅ Connection labels
 
 ---
 
@@ -424,22 +426,22 @@ Q2-Q3 (Sprints 10-12): SMART FEATURES + PRODUCTION
 
 ---
 
-## 🏃 **SPRINT 9: Transform Gizmos 3D-Style** (Weeks 17-18) ❌ PENDIENTE
+## 🏃 **SPRINT 9: Transform Gizmos 3D-Style** (Weeks 17-18) ✅ COMPLETADO
 
 **Objetivo:** Gizmo profesional estilo Blender/Unity
-**Estado:** ❌ PENDIENTE (Sprint 9)
+**Estado:** ✅ COMPLETADO (18 SP)
 
-### **Backend Tasks** ❌
+### **Backend Tasks** ✅
 
 **Stories:**
-- ❌ **US-035: Transform Gizmo Visual** (4 SP)
-- ❌ **US-036: Gizmo Move** (5 SP)
-- ❌ **US-037: Gizmo Scale** (5 SP)
-- ❌ **US-038: Gizmo Rotate** (4 SP)
+- ✅ **US-035: Transform Gizmo Visual** (4 SP)
+- ✅ **US-036: Gizmo Move** (5 SP)
+- ✅ **US-037: Gizmo Scale** (5 SP)
+- ✅ **US-038: Gizmo Rotate** (4 SP)
 
 **Deliverables:**
-- ❌ Transform Gizmo completo
-- ❌ WASM API: `toggle_gizmo()`, `set_gizmo_mode()`
+- ✅ Transform Gizmo completo
+- ✅ WASM API: `toggle_gizmo()`, `set_gizmo_mode()`
 
 ---
 
@@ -455,23 +457,24 @@ Q2-Q3 (Sprints 10-12): SMART FEATURES + PRODUCTION
 ### **MILESTONE 2: Professional Features** 🚧 EN PROGRESO
 
 **Features Completadas:**
-- 🚧 Conexiones magnéticas - Pendiente (Sprint 7)
-- 🚧 Elbow routing - Pendiente (Sprint 8)
-- ❌ Transform Gizmo - Pendiente (Sprint 9)
+- ✅ Conexiones magnéticas - Completado (Sprint 7-8)
+- ✅ Elbow routing - Completado (Sprint 7-8)
+- ✅ Transform Gizmo - Completado (Sprint 9)
 
 **Próximos Pasos:**
-1. Completar Sprint 7-8: Conexiones magnéticas
-2. Implementar Sprint 9: Transform Gizmos
+1. ✅ Sprint 7-8: Conexiones magnéticas - COMPLETADO
+2. ✅ Sprint 9: Transform Gizmos - COMPLETADO
 3. Lanzar Milestone 2
 
 ---
 
-## 🏃 **SPRINT 10-12: Advanced Features & Polish** ❌ PENDIENTE
+## 🏃 **SPRINT 10: Advanced Features** ✅ COMPLETADO
 
-### Sprint 10: Advanced Features ❌
-- Containers
-- Swimlanes
-- Smart Features
+### Sprint 10: Advanced Features ✅ COMPLETADO
+- ✅ Containers
+- ✅ Swimlanes
+- ✅ Connection Points Visualization
+- ✅ Edge Routing Styles
 
 ### Sprint 11: Smart Features ❌
 - Auto-Alignment

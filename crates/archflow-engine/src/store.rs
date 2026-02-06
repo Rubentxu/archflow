@@ -1277,6 +1277,20 @@ impl EntityStore {
         self.connection_labels[idx] = label_hash;
     }
 
+    /// Set connection style
+    pub fn set_connection_style(
+        &mut self,
+        connection_id: u32,
+        style: archflow_core::ConnectionStyle,
+    ) {
+        let idx = connection_id as usize;
+        if idx >= MAX_CONNECTIONS {
+            return;
+        }
+
+        self.connection_style[idx] = style as u8;
+    }
+
     /// Get connection source entity
     pub fn connection_source_entity(&self, connection_id: u32) -> Option<EntityId> {
         let idx = connection_id as usize;

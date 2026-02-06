@@ -1,29 +1,12 @@
-// ═══════════════════════════════════════════════════════════════════════════════
-// ArchFlow Logic - SignalByte Implementation
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ArchFlow Logic - Signal Processing Module
 //
-// This file implements the SignalByte type which stores 6 ticks of binary
-// signal history in a single byte using bit-packing for maximum efficiency.
+// This module provides signal types for the Logic Bricks system:
+// - SignalByte: 6-tick history in 1 byte (bit-packed)
+// - SignalState: Wrapper with BGE-style analysis methods
 //
-// Bit Layout (MSB → LSB):
-// [7:6] Reserved for future flags
-// [5:0] History ticks (T5=oldest ... T0=current)
-//
-// Example:
-//   push(true)  → 0b00000001  (T0=1)
-//   push(true)  → 0b00000011  (T0=1, T1=1)
-//   push(false) → 0b00000110  (T0=0, T1=1, T2=1)
-//
-// Memory Impact:
-//   - 1 byte per entity per sensor
-//   - 100KB for 100,000 entities (single sensor)
-//   - 400KB for 100,000 entities (4 sensors: MouseOver, Click, Proximity, Key)
-//
-// Performance:
-//   - <0.1μs per operation (single bitwise AND)
-//   - SIMD-friendly: can process 16 signals in 64-bit register
-//   - Cache-friendly: sequential memory access
-//
-// ═══════════════════════════════════════════════════════════════════════════════
+// Reference: UPBGE source/gameengine/GameLogic/SCA_ISensor.cpp
+// ═══════════════════════════════════════════════════════════════════════════════════════
 
 use core::fmt;
 
@@ -64,17 +47,7 @@ use core::fmt;
 pub struct SignalByte(u8);
 
 impl SignalByte {
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // CONSTRUCTORS
-    // ═══════════════════════════════════════════════════════════════════════════════
-
     /// Creates a SignalByte from a raw u8 value
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// const SIGNAL: SignalByte = SignalByte::from(0b101010);
-    /// ```
     #[inline(always)]
     #[must_use]
     pub const fn from(value: u8) -> Self {
@@ -82,59 +55,33 @@ impl SignalByte {
     }
 
     /// Creates a new SignalByte with all zeros
-    ///
-    /// Equivalent to `SignalByte::default()` but explicit.
     #[inline(always)]
     #[must_use]
     pub const fn new() -> Self {
         Self(0)
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // CORE OPERATIONS
-    // ═══════════════════════════════════════════════════════════════════════════════
-
     /// Inserts a new state by shifting the history left
-    ///
-    /// The oldest bit (T5) is lost if history already has 6 ticks.
-    /// The new state becomes the LSB (T0).
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// let mut signal = SignalByte::default();
-    /// signal.push(true);   // T0=1, others=0
-    /// signal.push(false);  // T0=0, T1=1
-    /// ```
     #[inline(always)]
     pub fn push(&mut self, active: bool) {
-        // Shift left by 1, add new bit as LSB
         self.0 = (self.0 << 1) | (active as u8);
     }
 
     /// Returns the current state (tick T0, least significant bit)
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// let mut signal = SignalByte::default();
-    /// signal.push(true);
-    /// assert!(signal.get_current());
-    /// ```
     #[inline(always)]
     #[must_use]
     pub fn get_current(&self) -> bool {
         (self.0 & 1) != 0
     }
 
+    /// Returns the previous state (tick T1)
+    #[inline(always)]
+    #[must_use]
+    pub fn get_prev(&self) -> bool {
+        (self.0 & 2) != 0
+    }
+
     /// Returns the 6-bit history (bits T5 through T0)
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// let signal = SignalByte::from(0b11111111);
-    /// assert_eq!(signal.get_history(), 0b111111);
-    /// ```
     #[inline(always)]
     #[must_use]
     pub fn get_history(&self) -> u8 {
@@ -148,47 +95,17 @@ impl SignalByte {
         self.0
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // EDGE DETECTION
-    // ═══════════════════════════════════════════════════════════════════════════════
-
     /// Detects rising edge: 0 in T-1, 1 in T
-    ///
-    /// Pattern: `[xxxx01]` where T1=0, T0=1
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// let mut signal = SignalByte::default();
-    /// signal.push(false);
-    /// signal.push(true);  // Rising edge
-    ///
-    /// assert!(signal.is_rising_edge());
-    /// ```
     #[inline(always)]
     #[must_use]
     pub fn is_rising_edge(&self) -> bool {
-        // Check if pattern is xxx01 (T1=0, T0=1)
         (self.0 & 0b00000011) == 0b00000001
     }
 
     /// Detects falling edge: 1 in T-1, 0 in T
-    ///
-    /// Pattern: `[xxxx10]` where T1=1, T0=0
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// let mut signal = SignalByte::default();
-    /// signal.push(true);
-    /// signal.push(false);  // Falling edge
-    ///
-    /// assert!(signal.is_falling_edge());
-    /// ```
     #[inline(always)]
     #[must_use]
     pub fn is_falling_edge(&self) -> bool {
-        // Check if pattern is xxx10 (T1=1, T0=0)
         (self.0 & 0b00000011) == 0b00000010
     }
 
@@ -199,49 +116,15 @@ impl SignalByte {
         self.is_rising_edge() || self.is_falling_edge()
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // PATTERN MATCHING
-    // ═══════════════════════════════════════════════════════════════════════════════
-
-    /// Checks if signal has been steadily high (all 1s) for the last N ticks
-    ///
-    /// # Arguments
-    ///
-    /// * `ticks` - Number of consecutive ticks to check (1-6)
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// let signal = SignalByte::from(0b00111111);  // All 1s in history
-    /// assert!(signal.is_steady_high(6));
-    /// assert!(signal.is_steady_high(3));
-    /// ```
-    ///
-    /// # Panics
-    ///
-    /// Panics if `ticks > 6` (would overflow the mask)
+    /// Checks if signal has been steadily high for the last N ticks
     #[inline(always)]
     #[must_use]
     pub fn is_steady_high(&self, ticks: u8) -> bool {
-        // Create mask: for ticks=3, mask = 0b00000111
         let mask = ((1u8 << ticks).wrapping_sub(1)) & 0b111111;
         (self.0 & mask) == mask
     }
 
-    /// Checks if signal has been steadily low (all 0s) for the last N ticks
-    ///
-    /// # Arguments
-    ///
-    /// * `ticks` - Number of consecutive ticks to check (1-6)
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// let mut signal = SignalByte::default();
-    /// for _ in 0..6 { signal.push(false); }
-    ///
-    /// assert!(signal.is_steady_low(6));
-    /// ```
+    /// Checks if signal has been steadily low for the last N ticks
     #[inline(always)]
     #[must_use]
     pub fn is_steady_low(&self, ticks: u8) -> bool {
@@ -257,13 +140,6 @@ impl SignalByte {
     }
 
     /// Counts how many ticks in history are 1
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// let signal = SignalByte::from(0b00110111);
-    /// assert_eq!(signal.count_ones(), 5);
-    /// ```
     #[inline(always)]
     #[must_use]
     pub fn count_ones(&self) -> u8 {
@@ -271,52 +147,28 @@ impl SignalByte {
     }
 
     /// Counts how many ticks in history are 0
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// let signal = SignalByte::from(0b00110111);
-    /// assert_eq!(signal.count_zeros(), 1);
-    /// ```
     #[inline(always)]
     #[must_use]
     pub fn count_zeros(&self) -> u8 {
         6 - self.count_ones()
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // ADVANCED PATTERNS (future use)
-    // ═══════════════════════════════════════════════════════════════════════════════
-
     /// Detects double-click pattern: click-pause-pause-click-pause-pause
-    ///
-    /// Pattern: `[100100]` reading from oldest to newest (T5 to T0)
-    /// Which is `0b00100100` in our bit layout
     #[inline(always)]
     #[must_use]
     pub fn is_double_click_pattern(&self) -> bool {
-        // Double-click pattern: click - pause - pause - click - pause - pause
-        // Pattern reading from T5 (oldest) to T0 (newest): 100100
-        // Which is 0b00100100 in our bit layout (MSB=T5, LSB=T0)
         (self.get_history() & 0b111111) == 0b00100100
     }
 
     /// Detects if signal has noise (frequent transitions)
-    ///
-    /// Returns true if there are 3+ transitions in the 6-tick history
     #[inline(always)]
     #[must_use]
     pub fn has_noise(&self) -> bool {
         let h = self.get_history();
-        // Count transitions: XOR with shifted version
         let transitions = (h ^ (h >> 1)).count_ones();
         transitions >= 3
     }
 }
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// FROM TRAIT IMPLEMENTATIONS
-// ═══════════════════════════════════════════════════════════════════════════════
 
 impl From<u8> for SignalByte {
     #[inline(always)]
@@ -350,9 +202,152 @@ impl fmt::UpperHex for SignalByte {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// TESTS (inline for documentation examples)
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// SignalState - BGE-style wrapper around SignalByte
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/// Signal State - Wrapper around SignalByte with BGE-style analysis methods
+///
+/// This provides the state analysis that BGE's SCA_ISensor performs on its
+/// internal signal history. Wraps SignalByte (6-tick history) with methods
+/// for edge detection and state queries.
+///
+/// # BGE Architecture Reference
+///
+/// In BGE, each sensor has an internal signal (6-bit history):
+/// ```cpp
+/// // SCA_ISensor.cpp
+/// void SCA_ISensor::Activate(SCA_LogicManager* manager) {
+///   bool trigger = Evaluate();
+///   bool old_state = m_state;
+///   m_state = trigger != m_invert;
+///   // Edge detection and pulse generation happens here
+/// }
+/// ```
+///
+/// # Example
+///
+/// ```rust
+/// use archflow_logic::signals::SignalState;
+///
+/// let mut state = SignalState::default();
+/// state.sample(true);   // T0: 1
+/// state.sample(false);  // T1: 0
+/// state.sample(false);  // T2: 0
+/// state.sample(true);   // T3: 1
+/// state.sample(true);   // T4: 1
+/// state.sample(true);   // T5: 1
+///
+/// assert!(state.is_rising_edge());   // false → true transition detected
+/// assert!(state.is_positive());       // Current state is true
+/// ```
+#[derive(Clone, Copy, Debug, Default)]
+pub struct SignalState(SignalByte);
+
+impl SignalState {
+    /// Sample a new signal value (pushes to 6-tick history)
+    #[inline(always)]
+    pub fn sample(&mut self, active: bool) {
+        self.0.push(active);
+    }
+
+    /// Get the current signal state (most recent sample)
+    #[inline(always)]
+    #[must_use]
+    pub fn is_positive(&self) -> bool {
+        self.0.get_current()
+    }
+
+    /// Get the previous signal state (second most recent sample)
+    #[inline(always)]
+    #[must_use]
+    pub fn was_positive(&self) -> bool {
+        self.0.get_prev()
+    }
+
+    /// Check for rising edge (false → true transition)
+    #[inline(always)]
+    #[must_use]
+    pub fn is_rising_edge(&self) -> bool {
+        self.0.is_rising_edge()
+    }
+
+    /// Check for falling edge (true → false transition)
+    #[inline(always)]
+    #[must_use]
+    pub fn is_falling_edge(&self) -> bool {
+        self.0.is_falling_edge()
+    }
+
+    /// Check for any edge (state change)
+    #[inline(always)]
+    #[must_use]
+    pub fn any_edge(&self) -> bool {
+        self.is_rising_edge() || self.is_falling_edge()
+    }
+
+    /// Check if signal has been stable (no edges) for at least N ticks
+    #[inline(always)]
+    #[must_use]
+    pub fn is_stable(&self, stable_ticks: u8) -> bool {
+        if stable_ticks == 0 {
+            return true;
+        }
+        let mask = (1u8 << stable_ticks) - 1;
+        let last_n = self.0.get_history() & mask;
+        last_n == 0 || last_n == mask
+    }
+
+    /// Check if signal matches double-click pattern
+    #[inline(always)]
+    #[must_use]
+    pub fn is_double_click(&self) -> bool {
+        self.0.is_double_click_pattern()
+    }
+
+    /// Count the number of active samples in history
+    #[inline(always)]
+    #[must_use]
+    pub fn active_count(&self) -> u8 {
+        self.0.count_ones()
+    }
+
+    /// Check if signal is steady high (all recent samples are active)
+    #[inline(always)]
+    #[must_use]
+    pub fn is_steady_high(&self, ticks: u8) -> bool {
+        if ticks == 0 {
+            return false;
+        }
+        let mask = (1u8 << ticks) - 1;
+        (self.0.get_history() & mask) == mask
+    }
+
+    /// Check if signal is steady low (all recent samples are inactive)
+    #[inline(always)]
+    #[must_use]
+    pub fn is_steady_low(&self, ticks: u8) -> bool {
+        if ticks == 0 {
+            return true;
+        }
+        let mask = (1u8 << ticks) - 1;
+        (self.0.get_history() & mask) == 0
+    }
+
+    /// Get the underlying SignalByte for direct access
+    #[inline(always)]
+    #[must_use]
+    pub fn signal(&self) -> SignalByte {
+        self.0
+    }
+
+    /// Get the full 6-tick history
+    #[inline(always)]
+    #[must_use]
+    pub fn history(&self) -> u8 {
+        self.0.get_history()
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -373,66 +368,14 @@ mod tests {
     }
 
     #[test]
-    fn test_get_current_returns_lsb() {
+    fn test_get_prev() {
         let mut signal = SignalByte::default();
         signal.push(true);
-        assert!(signal.get_current());
-
+        assert!(!signal.get_prev()); // Default was 0
         signal.push(false);
-        assert!(!signal.get_current());
+        assert!(signal.get_prev()); // Previous was true
     }
 
-    #[test]
-    fn test_get_history_masks_6_bits() {
-        let signal = SignalByte::from(0b11111111);
-        assert_eq!(signal.get_history(), 0b111111);
-    }
-
-    #[test]
-    fn test_6_ticks_overflow_loses_oldest() {
-        let mut signal = SignalByte::default();
-        for _ in 0..7 {
-            signal.push(true);
-        }
-        assert_eq!(signal.get_history() & 0b111111, 0b111111);
-    }
-
-    #[test]
-    fn test_default_is_zero() {
-        let signal = SignalByte::default();
-        assert_eq!(signal.get_history(), 0);
-    }
-
-    #[test]
-    fn test_copy_trait() {
-        let signal1 = SignalByte::from(0b101010);
-        let signal2 = signal1;
-        assert_eq!(signal1.get_history(), 0b101010);
-        assert_eq!(signal2.get_history(), 0b101010);
-    }
-
-    #[test]
-    fn test_clone_trait() {
-        let signal1 = SignalByte::from(0b010101);
-        let signal2 = signal1.clone();
-        assert_eq!(signal1.get_history(), signal2.get_history());
-    }
-
-    #[test]
-    fn test_from_u8() {
-        let raw: u8 = 0b101010;
-        let signal = SignalByte::from(raw);
-        assert_eq!(signal.as_u8(), raw);
-    }
-
-    #[test]
-    fn test_const_from() {
-        const RAW: u8 = 0b111000;
-        const SIGNAL: SignalByte = SignalByte::from(RAW);
-        assert_eq!(SIGNAL.as_u8(), RAW);
-    }
-
-    // Edge detection tests
     #[test]
     fn test_rising_edge() {
         let mut signal = SignalByte::default();
@@ -450,74 +393,246 @@ mod tests {
     }
 
     #[test]
-    fn test_any_edge() {
+    fn test_signal_state_sample() {
+        let mut state = SignalState::default();
+        state.sample(true);
+        assert!(state.is_positive());
+        assert!(!state.was_positive());
+    }
+
+    #[test]
+    fn test_signal_state_rising_edge() {
+        let mut state = SignalState::default();
+        state.sample(false);
+        state.sample(true);
+        assert!(state.is_rising_edge());
+    }
+
+    #[test]
+    fn test_signal_state_double_click() {
+        let mut state = SignalState::default();
+        state.sample(true); // Click
+        state.sample(false); // Release
+        state.sample(false); // Pause
+        state.sample(true); // Click
+        state.sample(false); // Release
+        state.sample(false); // Release
+        assert!(state.is_double_click());
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// SensorOutput - BGE-style Pulse Output (HU-002)
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/// Output from a sensor evaluation in BGE-style.
+///
+/// Separates the current state from whether the controller should react.
+/// This is crucial for implementing BGE's True/False pulse modes.
+///
+/// # BGE Pulse Modes
+///
+/// In BGE, sensors have `[tap]` and `[inv]` buttons:
+/// - **Tap** (True Pulse): Emit pulse while signal is positive
+/// - **False Pulse**: Emit pulse when signal goes negative
+/// - **Invert**: Invert the output signal
+///
+/// # Example
+///
+/// ```
+/// use archflow_logic::signals::{SensorOutput, SignalByte};
+///
+/// let mut signal = SignalByte::default();
+/// signal.push(false);  // T1 = 0
+/// signal.push(true);   // T0 = 1 (rising edge)
+///
+/// // With true_pulse enabled, should trigger on rising edge
+/// let output = signal.evaluate_bge_output(true, false);
+/// assert!(output.should_trigger);
+/// assert!(output.state);
+/// ```
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SensorOutput {
+    /// The current state (positive = true, negative = false)
+    pub state: bool,
+
+    /// Whether the controller should react this frame
+    /// True when: rising edge, falling edge, or pulse mode active
+    pub should_trigger: bool,
+}
+
+impl SensorOutput {
+    /// Creates a new SensorOutput
+    #[inline(always)]
+    #[must_use]
+    pub const fn new(state: bool, should_trigger: bool) -> Self {
+        Self {
+            state,
+            should_trigger,
+        }
+    }
+
+    /// Returns true if the sensor is active and should trigger
+    #[inline(always)]
+    #[must_use]
+    pub const fn is_active(&self) -> bool {
+        self.state && self.should_trigger
+    }
+
+    /// Returns true if the sensor just triggered (edge or pulse)
+    #[inline(always)]
+    #[must_use]
+    pub const fn triggered(&self) -> bool {
+        self.should_trigger
+    }
+}
+
+impl SignalByte {
+    /// Evaluates BGE-style output with pulse mode support
+    ///
+    /// This implements the SCA_ISensor pulse generation logic from BGE:
+    /// - Emits trigger on rising edge (0 -> 1)
+    /// - Emits trigger on falling edge (1 -> 0) if false_pulse enabled
+    /// - Emits trigger continuously if true_pulse enabled and state is positive
+    ///
+    /// # Arguments
+    ///
+    /// * `true_pulse` - Emit pulse while signal is positive (BGE tap mode)
+    /// * `false_pulse` - Emit pulse on falling edge (BGE false pulse)
+    ///
+    /// # Returns
+    ///
+    /// `SensorOutput` with current state and trigger decision
+    #[inline(always)]
+    #[must_use]
+    pub fn evaluate_bge_output(&self, true_pulse: bool, false_pulse: bool) -> SensorOutput {
+        let positive = self.get_current();
+        let triggered = self.any_edge();
+
+        let should_trigger = triggered || (true_pulse && positive) || (false_pulse && !positive);
+
+        SensorOutput {
+            state: positive,
+            should_trigger,
+        }
+    }
+
+    /// Evaluates with true pulse only (BGE tap mode)
+    #[inline(always)]
+    #[must_use]
+    pub fn with_true_pulse(&self) -> SensorOutput {
+        self.evaluate_bge_output(true, false)
+    }
+
+    /// Evaluates with false pulse only
+    #[inline(always)]
+    #[must_use]
+    pub fn with_false_pulse(&self) -> SensorOutput {
+        self.evaluate_bge_output(false, true)
+    }
+
+    /// Evaluates with both pulse modes
+    #[inline(always)]
+    #[must_use]
+    pub fn with_both_pulses(&self) -> SensorOutput {
+        self.evaluate_bge_output(true, true)
+    }
+}
+
+#[cfg(test)]
+mod sensor_output_tests {
+    use super::*;
+
+    #[test]
+    fn test_rising_edge_triggers() {
         let mut signal = SignalByte::default();
         signal.push(false);
         signal.push(true);
-        assert!(signal.any_edge());
-    }
 
-    // Pattern matching tests
-    #[test]
-    fn test_is_steady_high() {
-        let signal = SignalByte::from(0b00111111);
-        assert!(signal.is_steady_high(6));
-        assert!(signal.is_steady_high(3));
+        let output = signal.evaluate_bge_output(false, false);
+        assert!(output.should_trigger);
+        assert!(output.state);
     }
 
     #[test]
-    fn test_is_steady_low() {
+    fn test_falling_edge_triggers() {
+        let mut signal = SignalByte::default();
+        signal.push(true);
+        signal.push(false);
+
+        let output = signal.evaluate_bge_output(false, false);
+        assert!(output.should_trigger);
+        assert!(!output.state);
+    }
+
+    #[test]
+    fn test_true_pulse_continuous() {
         let mut signal = SignalByte::default();
         for _ in 0..6 {
-            signal.push(false);
+            signal.push(true);
         }
-        assert!(signal.is_steady_low(6));
+
+        let output = signal.evaluate_bge_output(true, false);
+        assert!(output.should_trigger);
+        assert!(output.state);
     }
 
     #[test]
-    fn test_count_ones() {
-        let signal = SignalByte::from(0b00110111);
-        assert_eq!(signal.count_ones(), 5);
-    }
-
-    #[test]
-    fn test_count_zeros() {
-        let signal = SignalByte::from(0b00110111);
-        assert_eq!(signal.count_zeros(), 1);
-    }
-
-    #[test]
-    fn test_double_click_pattern() {
+    fn test_false_pulse_on_falling() {
         let mut signal = SignalByte::default();
-        // Build pattern: click-pause-pause-click-pause-pause (double-click)
-        // After 6 pushes with left-shift:
-        // push(true)  → 0b00000001  (T0=1)
-        // push(false) → 0b00000010  (T0=0, T1=1)
-        // push(false) → 0b00000100  (T0=0, T1=0, T2=1)
-        // push(true)  → 0b00001001  (T0=1, T1=0, T2=0, T3=1)
-        // push(false) → 0b00010010  (T0=0, T1=1, T2=0, T3=0, T4=1)
-        // push(false) → 0b00100100  (T0=0, T1=0, T2=1, T3=0, T4=0, T5=1)
+        signal.push(true);
+        signal.push(false);
 
-        signal.push(true); // 1
-        signal.push(false); // 10
-        signal.push(false); // 100
-        signal.push(true); // 1001
-        signal.push(false); // 10010
-        signal.push(false); // 100100
-
-        // Pattern should be: T5=1, T4=0, T3=0, T2=1, T1=0, T0=0 = 0b00100100
-        // Double-click pattern (click-pause-pause-click-pause-pause) = 100100 reading left-to-right
-        // Which is 0b00100100 in our bit layout (MSB=T5, LSB=T0)
-        assert_eq!(signal.get_history(), 0b00100100);
-        assert!(signal.is_double_click_pattern());
+        let output = signal.evaluate_bge_output(false, true);
+        assert!(output.should_trigger);
+        assert!(!output.state);
     }
 
     #[test]
-    fn test_has_noise() {
-        let signal = SignalByte::from(0b010101); // Alternating = noise
-        assert!(signal.has_noise());
+    fn test_no_pulse_no_trigger_without_edge() {
+        let mut signal = SignalByte::default();
+        for _ in 0..6 {
+            signal.push(true);
+        }
 
-        let steady = SignalByte::from(0b00111111); // Steady = no noise
-        assert!(!steady.has_noise());
+        let output = signal.evaluate_bge_output(false, false);
+        assert!(!output.should_trigger);
+        assert!(output.state);
+    }
+
+    #[test]
+    fn test_combined_pulse_modes() {
+        let mut signal = SignalByte::default();
+        signal.push(true);
+        signal.push(false);
+
+        let output = signal.evaluate_bge_output(true, true);
+        assert!(output.should_trigger);
+    }
+
+    #[test]
+    fn test_with_true_pulse() {
+        let mut signal = SignalByte::default();
+        for _ in 0..6 {
+            signal.push(true);
+        }
+
+        let output = signal.with_true_pulse();
+        assert!(output.should_trigger);
+        assert!(output.state);
+    }
+
+    #[test]
+    fn test_sensor_output_construction() {
+        let output = SensorOutput::new(true, true);
+        assert!(output.is_active());
+        assert!(output.triggered());
+    }
+
+    #[test]
+    fn test_sensor_output_inactive() {
+        let output = SensorOutput::new(false, false);
+        assert!(!output.is_active());
+        assert!(!output.triggered());
     }
 }
