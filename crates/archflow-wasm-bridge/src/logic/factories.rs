@@ -235,7 +235,7 @@ pub fn sensor_long_press(threshold_ms: u32) -> SensorType {
 /// const ctrl = controllerAnd(SensorType.MouseOver);
 /// ```
 #[wasm_bindgen]
-pub fn controller_and(sensor: SensorType) -> Controller {
+pub fn factory_and(sensor: SensorType) -> Controller {
     Controller::and(sensor)
 }
 
@@ -252,7 +252,7 @@ pub fn controller_and(sensor: SensorType) -> Controller {
 /// const ctrl = controllerOr(SensorType.MouseClick);
 /// ```
 #[wasm_bindgen]
-pub fn controller_or(sensor: SensorType) -> Controller {
+pub fn factory_or(sensor: SensorType) -> Controller {
     Controller::or(sensor)
 }
 
@@ -266,7 +266,7 @@ pub fn controller_or(sensor: SensorType) -> Controller {
 /// const ctrl = controllerXor();
 /// ```
 #[wasm_bindgen]
-pub fn controller_xor() -> Controller {
+pub fn factory_xor() -> Controller {
     // XOR: Exactly one sensor active (not both, not none)
     // Implemented via Custom controller with JS logic
     Controller::custom(
@@ -297,7 +297,7 @@ pub fn controller_xor() -> Controller {
 /// const ctrl = controllerNand();
 /// ```
 #[wasm_bindgen]
-pub fn controller_nand() -> Controller {
+pub fn factory_nand() -> Controller {
     // NAND: NOT (all active) = at least one inactive
     // Equivalent to: NOT(AND) - negated conjunction
     Controller::custom(
@@ -328,7 +328,7 @@ pub fn controller_nand() -> Controller {
 /// const ctrl = controllerNor();
 /// ```
 #[wasm_bindgen]
-pub fn controller_nor() -> Controller {
+pub fn factory_nor() -> Controller {
     // NOR: NOT (any active) = none active
     // Equivalent to: NOT(OR) - negated disjunction
     Controller::custom(
@@ -358,7 +358,7 @@ pub fn controller_nor() -> Controller {
 /// const ctrl = controllerNot();
 /// ```
 #[wasm_bindgen]
-pub fn controller_not() -> Controller {
+pub fn factory_not() -> Controller {
     Controller::not()
 }
 
@@ -372,7 +372,7 @@ pub fn controller_not() -> Controller {
 /// const ctrl = controllerDirect();
 /// ```
 #[wasm_bindgen]
-pub fn controller_direct() -> Controller {
+pub fn factory_direct() -> Controller {
     Controller::direct()
 }
 
@@ -389,7 +389,7 @@ pub fn controller_direct() -> Controller {
 /// const ctrl = controllerBlinky(4);
 /// ```
 #[wasm_bindgen]
-pub fn controller_blinky(interval: u8) -> Controller {
+pub fn factory_blinky(interval: u8) -> Controller {
     Controller::blinky(interval)
 }
 
@@ -406,7 +406,7 @@ pub fn controller_blinky(interval: u8) -> Controller {
 /// const ctrl = controllerDebounce(6);
 /// ```
 #[wasm_bindgen]
-pub fn controller_debounce(ticks: u8) -> Controller {
+pub fn factory_debounce(ticks: u8) -> Controller {
     Controller::debounce(ticks)
 }
 
@@ -424,7 +424,7 @@ pub fn controller_debounce(ticks: u8) -> Controller {
 /// const ctrl = controllerHysteresis(0.8, 0.3);
 /// ```
 #[wasm_bindgen]
-pub fn controller_hysteresis(high: f32, low: f32) -> Controller {
+pub fn factory_hysteresis(high: f32, low: f32) -> Controller {
     Controller::hysteresis(high, low)
 }
 
@@ -441,7 +441,7 @@ pub fn controller_hysteresis(high: f32, low: f32) -> Controller {
 /// const ctrl = controllerThreshold(0.5);
 /// ```
 #[wasm_bindgen]
-pub fn controller_threshold(value: f32) -> Controller {
+pub fn factory_threshold(value: f32) -> Controller {
     Controller::threshold(value)
 }
 
@@ -458,7 +458,7 @@ pub fn controller_threshold(value: f32) -> Controller {
 /// const ctrl = controllerPattern(0b00100100);
 /// ```
 #[wasm_bindgen]
-pub fn controller_pattern(mask: u8) -> Controller {
+pub fn factory_pattern(mask: u8) -> Controller {
     Controller::pattern(mask)
 }
 
@@ -476,7 +476,7 @@ pub fn controller_pattern(mask: u8) -> Controller {
 /// const ctrl = controllerCustom('myLogic', 'return signal.isSteady(6);');
 /// ```
 #[wasm_bindgen]
-pub fn controller_custom(name: String, code: String) -> Controller {
+pub fn factory_custom(name: String, code: String) -> Controller {
     Controller::custom(name, code)
 }
 
@@ -646,46 +646,46 @@ mod tests {
 
     #[test]
     fn test_controller_and() {
-        let ctrl = controller_and(SensorType::MouseOver);
+        let ctrl = factory_and(SensorType::MouseOver);
         assert!(matches!(ctrl.controller_type(), ControllerType::And));
     }
 
     #[test]
     fn test_controller_or() {
-        let ctrl = controller_or(SensorType::MouseClick);
+        let ctrl = factory_or(SensorType::MouseClick);
         assert!(matches!(ctrl.controller_type(), ControllerType::Or));
     }
 
     #[test]
     fn test_controller_xor() {
-        let ctrl = controller_xor();
+        let ctrl = factory_xor();
         assert!(matches!(ctrl.controller_type(), ControllerType::Custom));
         assert_eq!(ctrl.custom_name(), Some(String::from("xor")));
     }
 
     #[test]
     fn test_controller_nand() {
-        let ctrl = controller_nand();
+        let ctrl = factory_nand();
         assert!(matches!(ctrl.controller_type(), ControllerType::Custom));
         assert_eq!(ctrl.custom_name(), Some(String::from("nand")));
     }
 
     #[test]
     fn test_controller_nor() {
-        let ctrl = controller_nor();
+        let ctrl = factory_nor();
         assert!(matches!(ctrl.controller_type(), ControllerType::Custom));
         assert_eq!(ctrl.custom_name(), Some(String::from("nor")));
     }
 
     #[test]
     fn test_controller_direct() {
-        let ctrl = controller_direct();
+        let ctrl = factory_direct();
         assert!(matches!(ctrl.controller_type(), ControllerType::Direct));
     }
 
     #[test]
     fn test_controller_debounce() {
-        let ctrl = controller_debounce(6);
+        let ctrl = factory_debounce(6);
         assert!(matches!(ctrl.controller_type(), ControllerType::Debounce));
     }
 

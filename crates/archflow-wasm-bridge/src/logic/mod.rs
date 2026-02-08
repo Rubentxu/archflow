@@ -37,13 +37,12 @@ pub use controller::{Controller, ControllerType};
 pub use event_buffer::{EventRingBufferWasm, EventType as EventEventType, JsLogicEvent};
 pub use factories::{
     actuator_delete, actuator_emit_event, actuator_highlight, actuator_move, actuator_select_clear,
-    actuator_select_multi, actuator_select_single, actuator_select_toggle, controller_and,
-    controller_blinky, controller_custom, controller_debounce, controller_direct,
-    controller_hysteresis, controller_nand, controller_nor, controller_not, controller_or,
-    controller_pattern, controller_threshold, controller_xor, sensor_collision_detect,
-    sensor_double_tap, sensor_keyboard_key, sensor_long_press, sensor_mouse_click,
-    sensor_mouse_drag, sensor_mouse_hover, sensor_mouse_wheel, sensor_property_changed,
-    sensor_timer_delay, sensor_timer_interval,
+    actuator_select_multi, actuator_select_single, actuator_select_toggle, factory_and,
+    factory_blinky, factory_custom, factory_debounce, factory_direct, factory_hysteresis,
+    factory_nand, factory_nor, factory_not, factory_or, factory_pattern, factory_threshold,
+    factory_xor, sensor_collision_detect, sensor_double_tap, sensor_keyboard_key,
+    sensor_long_press, sensor_mouse_click, sensor_mouse_drag, sensor_mouse_hover,
+    sensor_mouse_wheel, sensor_property_changed, sensor_timer_delay, sensor_timer_interval,
 };
 pub use logic_system::{JsLogicEventData, LogicSystemWasm, PulseWasm};
 pub use mapping_table::{ActuatorType, LogicMappingTableWasm};

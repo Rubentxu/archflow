@@ -341,12 +341,6 @@ impl WasmBridge {
         let width = canvas.width();
         let height = canvas.height();
 
-        web_sys::console::log_1(&JsValue::from_str(&alloc::format!(
-            "Creating WebGL2 context, canvas size: {}x{}",
-            width,
-            height
-        )));
-
         // Create WebGL2 renderer directly from canvas
         let mut renderer = match archflow_render::WebGL2Renderer::new(canvas.clone()) {
             Ok(renderer) => renderer,
@@ -363,8 +357,6 @@ impl WasmBridge {
         };
         renderer.resize(width, height);
 
-        web_sys::console::log_1(&JsValue::from_str("Renderer created, setting in engine..."));
-
         // Set the renderer in the engine
         match self.engine.try_borrow_mut() {
             Ok(mut engine_borrow) => {
@@ -372,9 +364,6 @@ impl WasmBridge {
                     engine.set_renderer(Box::new(renderer));
                     #[cfg(feature = "tracing-logging")]
                     info!(target: "archflow::wasm", "WebGL2 renderer initialized successfully");
-                    web_sys::console::log_1(&JsValue::from_str(
-                        "WebGL2 renderer initialized successfully",
-                    ));
                 } else {
                     web_sys::console::error_1(&JsValue::from_str("Engine not initialized"));
                     return Err(JsError::new("Engine not initialized").into());
@@ -600,9 +589,12 @@ impl WasmBridge {
                 }
             }
 
-            // Call Logic Bricks tick (which samples input internally)
-            let timestamp_ms = (timestamp * 1000.0) as u32;
-            engine.logic_bricks.tick(&mut engine.store, timestamp_ms);
+            // Delegate to the main engine tick which handles:
+            // 1. Logic Bricks tick (Sensors -> Controllers -> Actuators)
+            // 2. Command execution (Apply changes to EntityStore)
+            // 3. Connection updates
+            // 4. Rendering (Prepare -> Draw)
+            engine.tick(timestamp);
         }
         Ok(())
     }
@@ -639,6 +631,21 @@ impl WasmBridge {
     fn process_input_event(engine: &mut ArchFlowEngine, event: &crate::input::RawInputEvent) {
         use crate::input::InputEventType;
         use archflow_core::Vec2;
+
+        // Calculate world position
+        let world_pos = engine.screen_to_world(event.x, event.y);
+
+        // Update Logic Bricks input state with current event data
+        // This is CRITICAL for creation logic which runs in tick() and needs valid world coordinates
+        // to calculate the shape size correctly.
+        engine.logic_bricks.sample_input(
+            event.x,
+            event.y,
+            world_pos.x,
+            world_pos.y,
+            event.buttons,
+            0, // Wheel delta is implicit or separate, for now 0 is safe for movement/clicks
+        );
 
         let event_type: InputEventType = match event.event_type {
             0 => InputEventType::Down,
@@ -733,14 +740,6 @@ impl WasmBridge {
                     engine.store.set_shape_type(idx, shape as u8);
 
                     // Set active colors
-                    web_sys::console::log_1(
-                        &format!(
-                            "🔵 Creating shape with active_color=0x{:08x}",
-                            engine.active_color
-                        )
-                        .into(),
-                    );
-
                     engine.store.colors[idx] = engine.active_color;
                     engine.store.stroke_colors[idx] = engine.active_stroke_color;
                     engine.store.stroke_widths[idx] = engine.active_stroke_width;
@@ -893,8 +892,6 @@ impl WasmBridge {
     /// Get the color of an entity (returns hex string)
     #[wasm_bindgen]
     pub fn get_color(&self, entity_index: u32) -> Result<String, JsValue> {
-        // web_sys::console::log_1(&format!("DEBUG: get_color called for index {}", entity_index).into());
-
         match self.engine.try_borrow() {
             Ok(engine_guard) => {
                 if let Some(engine) = engine_guard.as_ref() {
@@ -906,18 +903,13 @@ impl WasmBridge {
                         let b = (abgr >> 16) & 0xFF;
                         Ok(format!("#{0:02x}{1:02x}{2:02x}", r, g, b))
                     } else {
-                        // web_sys::console::log_1(&"DEBUG: Entity not found".into());
                         Err(JsError::new("Entity not found").into())
                     }
                 } else {
-                    // web_sys::console::log_1(&"DEBUG: Engine is None".into());
                     Err(JsError::new("Engine not initialized").into())
                 }
             }
-            Err(_) => {
-                // web_sys::console::log_1(&"DEBUG: Engine already borrowed".into());
-                Err(JsError::new("Engine is busy (borrowed)").into())
-            }
+            Err(_) => Err(JsError::new("Engine is busy (borrowed)").into()),
         }
     }
 
@@ -961,15 +953,6 @@ impl WasmBridge {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
             let rgba = archflow_core::Color::rgba(r, g, b, a).0;
             let abgr = rgba_to_abgr(rgba);
-
-            web_sys::console::log_1(
-                &format!(
-                    "🎨 set_active_color: R={} G={} B={} A={} | RGBA=0x{:08x} | ABGR=0x{:08x}",
-                    r, g, b, a, rgba, abgr
-                )
-                .into(),
-            );
-
             engine.active_color = abgr;
             Ok(())
         } else {
@@ -1003,11 +986,9 @@ impl WasmBridge {
     /// Get the active fill color (returns RGBA as hex string)
     #[wasm_bindgen]
     pub fn get_active_color(&self) -> Result<String, JsValue> {
-        web_sys::console::log_1(&"DEBUG: get_active_color called".into());
         match self.engine.try_borrow() {
             Ok(engine_guard) => {
                 if let Some(engine) = engine_guard.as_ref() {
-                    // web_sys::console::log_1(&"DEBUG: Engine found, returning color".into());
                     let abgr = engine.active_color;
                     // Convert ABGR back to RGBA for JavaScript
                     let r = abgr & 0xFF;
@@ -1015,14 +996,10 @@ impl WasmBridge {
                     let b = (abgr >> 16) & 0xFF;
                     Ok(format!("#{0:02x}{1:02x}{2:02x}", r, g, b))
                 } else {
-                    web_sys::console::log_1(&"DEBUG: Engine is None in get_active_color".into());
                     Err(JsError::new("Engine not initialized").into())
                 }
             }
-            Err(_) => {
-                web_sys::console::log_1(&"DEBUG: Engine busy in get_active_color".into());
-                Err(JsError::new("Engine is busy (borrowed)").into())
-            }
+            Err(_) => Err(JsError::new("Engine is busy (borrowed)").into()),
         }
     }
 
@@ -1158,7 +1135,10 @@ impl WasmBridge {
     pub fn clear(&self) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
             engine.store = archflow_engine::EntityStore::new();
-            engine.selected_entities.clear();
+            engine
+                .logic_bricks
+                .batch_select_mut()
+                .clear(&mut engine.store);
             Ok(())
         } else {
             Err(JsError::new("Engine not initialized").into())
@@ -1381,6 +1361,8 @@ impl WasmBridge {
 
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
             engine.active_tool = alloc::string::String::from(tool);
+            // CRITICAL: Also update the logic_bricks system which handles shape creation
+            engine.logic_bricks.set_active_tool(tool);
             Ok(())
         } else {
             Err(JsError::new("Engine not initialized").into())
@@ -1405,19 +1387,10 @@ impl WasmBridge {
     #[wasm_bindgen]
     pub fn clear_selection(&self) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
-            // Build delta mask from current selection
-            let indices: Vec<u32> = engine
-                .selected_entities
-                .iter()
-                .map(|e| e.index().0)
-                .collect();
-
-            if !indices.is_empty() {
-                // Create and queue selection command using DeltaMask
-                let mask = DeltaMask::from_indices(&indices, MAX_ENTITIES);
-                engine.command_queue.push(Command::Select(mask));
-                engine.flush_commands();
-            }
+            engine
+                .logic_bricks
+                .batch_select_mut()
+                .clear(&mut engine.store);
 
             Ok(())
         } else {
@@ -1429,21 +1402,9 @@ impl WasmBridge {
     #[wasm_bindgen]
     pub fn select_entity(&self, entity_index: u32) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
-            // Use DeltaMask for toggle selection
-            let mask = DeltaMask::from_indices(&[entity_index], MAX_ENTITIES);
-            engine.command_queue.push(Command::Select(mask));
-            engine.flush_commands();
-
-            // Also update selected_entities tracking for JS queries
-            use archflow_core::EntityId;
-            let id = EntityId::new(entity_index);
-            let current_selected = engine.store.is_selected(entity_index as usize);
-            if current_selected {
-                engine.selected_entities.retain(|e| *e != id);
-            } else if !engine.selected_entities.contains(&id) {
-                engine.selected_entities.push(id);
-            }
-
+            engine
+                .logic_bricks
+                .toggle_selection(&mut engine.store, entity_index);
             Ok(())
         } else {
             Err(JsError::new("Engine not initialized").into())
@@ -1454,11 +1415,7 @@ impl WasmBridge {
     #[wasm_bindgen]
     pub fn get_selection(&self) -> Result<js_sys::Array, JsValue> {
         if let Some(engine) = self.engine.borrow().as_ref() {
-            let array = js_sys::Array::new();
-            for &entity_id in &engine.selected_entities {
-                array.push(&JsValue::from(entity_id.index().0));
-            }
-            Ok(array)
+            Ok(engine.logic_bricks.get_selected_entities())
         } else {
             Err(JsError::new("Engine not initialized").into())
         }
@@ -1475,27 +1432,16 @@ impl WasmBridge {
                 return Err(JsError::new("Invalid entity index").into());
             }
 
-            let currently_selected = engine.store.is_selected(idx);
+            let currently_selected = engine
+                .logic_bricks
+                .batch_select()
+                .is_selected(archflow_core::EntityId::new(entity_index));
 
             // Only create command if state needs to change
             if currently_selected != selected {
-                // Calculate delta: toggle if state differs from current
-                let mask = DeltaMask::from_indices(&[entity_index], MAX_ENTITIES);
-                engine.command_queue.push(Command::Select(mask));
-                engine.flush_commands();
-            }
-
-            // Sync tracking for JS queries
-            use archflow_core::EntityId;
-            let id = EntityId::new(entity_index);
-            if selected {
-                if !engine.selected_entities.contains(&id) {
-                    engine.selected_entities.push(id);
-                }
-            } else {
                 engine
-                    .selected_entities
-                    .retain(|e| e.index().0 != entity_index as u32);
+                    .logic_bricks
+                    .toggle_selection(&mut engine.store, entity_index);
             }
 
             Ok(())
@@ -1568,13 +1514,15 @@ impl WasmBridge {
     pub fn delete_selected(&self) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
             use archflow_engine::Command;
-            let entities_to_delete: alloc::vec::Vec<_> =
-                engine.selected_entities.iter().copied().collect();
+            let entities_to_delete = engine.logic_bricks.batch_select().current_selection();
             for id in entities_to_delete {
                 let cmd = Command::Despawn(id);
                 engine.command_queue.push(cmd);
             }
-            engine.selected_entities.clear();
+            engine
+                .logic_bricks
+                .batch_select_mut()
+                .clear(&mut engine.store);
             Ok(())
         } else {
             Err(JsError::new("Engine not initialized").into())
@@ -1629,6 +1577,9 @@ impl WasmBridge {
     /// * `buttons` - Bitmask of pressed buttons (1=left, 2=right, 4=middle)
     #[wasm_bindgen]
     pub fn on_mouse_move(&self, screen_x: f32, screen_y: f32, buttons: u8) {
+        #[cfg(feature = "tracing-logging")]
+        trace!(target: "archflow::wasm", screen_x, screen_y, buttons, "on_mouse_move");
+
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
             let world_pos = engine.screen_to_world(screen_x, screen_y);
             engine.logic_bricks.sample_input(
@@ -1654,6 +1605,9 @@ impl WasmBridge {
     /// * `modifiers` - Bitmask of modifiers (1=shift, 2=ctrl, 4=alt)
     #[wasm_bindgen]
     pub fn on_mouse_down(&self, screen_x: f32, screen_y: f32, button: u8, modifiers: u8) {
+        #[cfg(feature = "tracing-logging")]
+        info!(target: "archflow::wasm", screen_x, screen_y, button, modifiers, "🖱️ on_mouse_down");
+
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
             let world_pos = engine.screen_to_world(screen_x, screen_y);
             // Convert button to button bitmask
@@ -1663,6 +1617,10 @@ impl WasmBridge {
                 2 => 4, // Middle
                 _ => 0,
             };
+
+            #[cfg(feature = "tracing-logging")]
+            debug!(target: "archflow::wasm", world_x = world_pos.x, world_y = world_pos.y, buttons, "Converted to world coords and button mask");
+
             engine.logic_bricks.sample_input(
                 screen_x,
                 screen_y,
@@ -1685,6 +1643,9 @@ impl WasmBridge {
     /// * `button` - Mouse button that was released
     #[wasm_bindgen]
     pub fn on_mouse_up(&self, screen_x: f32, screen_y: f32, button: u8) {
+        #[cfg(feature = "tracing-logging")]
+        info!(target: "archflow::wasm", screen_x, screen_y, button, "🖱️ on_mouse_up");
+
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
             let world_pos = engine.screen_to_world(screen_x, screen_y);
             // Button released means it's no longer pressed (buttons = 0)
@@ -1916,8 +1877,4 @@ fn test_color_conversion_rgba_to_abgr() {
     // ABGR: 0xFFF6823B
     assert_eq!(blue_rgba, 0x3B82F6FF, "Blue RGBA should be 0x3B82F6FF");
     assert_eq!(blue_abgr, 0xFFF6823B, "Blue ABGR should be 0xFFF6823B");
-
-    web_sys::console::log_1(&JsValue::from_str(
-        "✅ Conversión RGBA → ABGR funciona correctamente",
-    ));
 }
