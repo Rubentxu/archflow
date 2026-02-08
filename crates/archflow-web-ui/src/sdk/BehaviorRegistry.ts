@@ -33,8 +33,18 @@ export interface BehaviorTemplate {
  */
 export class BehaviorRegistry {
   private templates = new Map<string, BehaviorTemplate>();
+  private initialized = false;
 
   constructor() {
+    // Defaults are initialized lazily to ensure WASM is ready
+  }
+
+  /**
+   * Ensure default templates are registered
+   */
+  private ensureDefaults(): void {
+    if (this.initialized) return;
+    this.initialized = true;
     this.initDefaults();
   }
 
@@ -211,6 +221,7 @@ export class BehaviorRegistry {
    * @param template - Template definition
    */
   register(template: BehaviorTemplate): void {
+    // Use the raw templates map to simply add it
     this.templates.set(template.name, template);
   }
 
@@ -221,6 +232,7 @@ export class BehaviorRegistry {
    * @returns Template definition or undefined
    */
   get(name: string): BehaviorTemplate | undefined {
+    this.ensureDefaults();
     return this.templates.get(name);
   }
 
@@ -230,6 +242,7 @@ export class BehaviorRegistry {
    * @returns Array of template names
    */
   list(): string[] {
+    this.ensureDefaults();
     return Array.from(this.templates.keys());
   }
 
@@ -240,6 +253,7 @@ export class BehaviorRegistry {
    * @param templateName - Name of the template to apply
    */
   apply(shape: Shape, templateName: string): void {
+    this.ensureDefaults();
     const template = this.templates.get(templateName);
     if (!template) {
       console.warn(`Behavior template "${templateName}" not found`);
