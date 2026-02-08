@@ -74,19 +74,19 @@ export type {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // Re-export all bridge facades for direct use
-export { default as EntityBridge, createEntityBridge } from "./EntityBridge";
+export { EntityBridge, createEntityBridge } from "./EntityBridge";
 export {
-  default as SelectionBridge,
+  SelectionBridge,
   createSelectionBridge,
 } from "./SelectionBridge";
-export { default as CameraBridge, createCameraBridge } from "./CameraBridge";
-export { default as InputBridge, createInputBridge } from "./InputBridge";
-export { default as HistoryBridge, createHistoryBridge } from "./HistoryBridge";
-export { default as EventsBridge, createEventsBridge } from "./EventsBridge";
+export { CameraBridge, createCameraBridge } from "./CameraBridge";
+export { InputBridge, createInputBridge } from "./InputBridge";
+export { HistoryBridge, createHistoryBridge } from "./HistoryBridge";
+export { EventsBridge, createEventsBridge } from "./EventsBridge";
 export {
   EventEmitter,
   globalEvents,
-  DomainEvents,
+  type DomainEvents,
   type Callback,
   type EventListenerOptions,
   type Subscription,
@@ -97,36 +97,43 @@ export {
 } from "./EventEmitter";
 
 // Event System Components
+// Event System Components
 export {
   EventWorkerPool,
   EventWorker,
+  createEventWorker,
+  createEventWorkerPool,
+  getGlobalWorkerPool,
+  terminateGlobalWorkerPool,
+} from "./eventWorker";
+export type {
   WorkerMessage,
-  WorkerMessageType,
-  type TaskProcessor,
-  type WorkerConfig,
-  type TaskResult,
-  type TaskError,
+  WorkerPoolConfig as WorkerConfig,
+  HeavyCalculationPayload,
+  HeavyCalculationResult,
+  BatchProcessingPayload,
+  ComplexOperationPayload,
 } from "./eventWorker";
 
 export {
   EventTracker,
-  EventDirection,
-  TrackedEventEmitter,
   EventDevTools,
   useEventTracker,
   useEventMetrics,
-  type EventLogEntry,
-  type EventMetricsSnapshot as TrackerMetricsSnapshot,
-  type EventDevToolsProps,
+} from "./eventTracker.tsx";
+export type {
+  EventLogEntry,
+  EventMetricsSnapshot as TrackerMetricsSnapshot,
+  EventDirection,
 } from "./eventTracker.tsx";
 
 export {
-  default as ToolsBridge,
+  ToolsBridge,
   createToolsBridge,
   TOOL_REGISTRY,
 } from "./ToolsBridge";
 export {
-  default as BehaviorBridge,
+  BehaviorBridge,
   createBehaviorBridge,
   BEHAVIOR_TEMPLATES,
 } from "./BehaviorBridge";
@@ -136,7 +143,7 @@ export {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export {
-  default as ArchFlowBridge,
+  ArchFlowBridge,
   createArchFlowBridge,
 } from "./ArchFlowBridge";
 export type { ArchFlowBridgeOptions } from "./ArchFlowBridge";

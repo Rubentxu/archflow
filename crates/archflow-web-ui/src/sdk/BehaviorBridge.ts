@@ -18,8 +18,8 @@
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
-import type {
-  WasmBridge,
+import type { WasmBridge } from "../wasm/archflow_web.d";
+import {
   SensorType,
   ControllerType,
   ActuatorType,
