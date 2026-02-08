@@ -1,25 +1,33 @@
-/// <reference types="vitest" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import wasm from "vite-plugin-wasm";
-import topLevelAwait from "vite-plugin-top-level-await";
 
 export default defineConfig({
-  plugins: [react(), wasm(), topLevelAwait(), tailwindcss()],
+  plugins: [wasm(), react(), tailwindcss()],
 
-  assetsInclude: ["**/*.wasm"],
+  // assetsInclude: ["**/*.wasm"],
 
   server: {
-    // Note: COOP/COEP headers disabled for development.
-    // Re-enable for production if SharedArrayBuffer is needed.
-    // headers: {
-    //   "Cross-Origin-Opener-Policy": "same-origin",
-    //   "Cross-Origin-Embedder-Policy": "require-corp",
-    // },
+    // Note: COOP/COEP headers enabled for WASM SharedArrayBuffer support.
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "require-corp",
+    },
     fs: {
       allow: ["..", "../.."],
     },
+  },
+
+  // Force generic WASM MIME type
+  configureServer(server) {
+    server.middlewares.use((req, res, next) => {
+      const url = req.url?.split('?')[0];
+      if (url?.endsWith('.wasm')) {
+        res.setHeader('Content-Type', 'application/wasm');
+      }
+      next();
+    });
   },
 
   optimizeDeps: {
