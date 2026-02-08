@@ -1,0 +1,39 @@
+[package]
+name = "archflow-wasm-bridge"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+[dependencies]
+archflow-core = { path = "../archflow-core" }
+archflow-diagram = { path = "../archflow-diagram" }
+archflow-engine = { path = "../archflow-engine", features = ["tracing"] }
+archflow-export = { path = "../archflow-export" }
+archflow-logic = { path = "../archflow-logic", features = ["tracing"] }
+archflow-render = { path = "../archflow-render", features = [
+    "wasm-bindgen",
+    "webgl2",
+] }
+archflow-interaction = { path = "../archflow-interaction" }
+wasm-bindgen = { workspace = true }
+wasm-bindgen-futures = { workspace = true }
+web-sys = { workspace = true }
+js-sys = { workspace = true }
+console_error_panic_hook = { workspace = true }
+wgpu = { workspace = true }
+
+# Tracing support (unified logging with server)
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+wasm-tracing = { version = "2.1", optional = true }
+
+[features]
+default = ["tracing-logging"]
+tracing = [
+] # Enable tracing instrumentation (always available, non-optional dependency)
+tracing-logging = ["dep:wasm-tracing", "tracing"]

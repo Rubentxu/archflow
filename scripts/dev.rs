@@ -51,7 +51,8 @@ use tokio::signal;
 use tokio::time::sleep;
 
 const PROJECT_ROOT: &str = "/home/rubentxu/Proyectos/rust/hodei-archFlow";
-const WEB_CRATE: &str = "crates/archflow-web";
+const WASM_BRIDGE_CRATE: &str = "crates/archflow-wasm-bridge";
+const WEB_UI_CRATE: &str = "crates/archflow-web-ui";
 const SDK_CRATE: &str = "crates/archflow-sdk";
 
 /// Simple ANSI colors
@@ -100,9 +101,14 @@ fn project_root() -> PathBuf {
     PathBuf::from(PROJECT_ROOT)
 }
 
-/// Get web crate directory
-fn web_dir() -> PathBuf {
-    project_root().join(WEB_CRATE)
+/// Get WASM bridge crate directory
+fn wasm_bridge_dir() -> PathBuf {
+    project_root().join(WASM_BRIDGE_CRATE)
+}
+
+/// Get web UI crate directory (frontend)
+fn web_ui_dir() -> PathBuf {
+    project_root().join(WEB_UI_CRATE)
 }
 
 /// Get SDK crate directory
@@ -134,12 +140,12 @@ async fn install_dependencies(verbose: bool) -> Result<()> {
     }
 
     // Check Node.js dependencies
-    let node_modules = web_dir().join("node_modules");
+    let node_modules = web_ui_dir().join("node_modules");
     if !node_modules.exists() {
         print_info("Installing Node.js dependencies...");
         let mut cmd = Command::new("npm");
         cmd.args(["install"]);
-        cmd.current_dir(&web_dir());
+        cmd.current_dir(&web_ui_dir());
         if !verbose {
             cmd.stdout(std::process::Stdio::null());
         }
@@ -158,7 +164,7 @@ async fn install_playwright() -> Result<()> {
         print_info("Installing Playwright browsers...");
         let mut cmd = Command::new("npx");
         cmd.args(["playwright", "install", "--with-deps", "chromium"]);
-        cmd.current_dir(&web_dir());
+        cmd.current_dir(&web_ui_dir());
         cmd.status().await.context("Failed to install Playwright")?;
     }
 
@@ -286,7 +292,7 @@ async fn start_dev_server(
 
         let mut vite = Command::new("npm");
         vite.args(["run", "dev"]);
-        vite.current_dir(&web_dir());
+        vite.current_dir(&web_ui_dir());
         vite.stdout(std::process::Stdio::inherit());
         vite.stderr(std::process::Stdio::inherit());
 
@@ -357,7 +363,7 @@ async fn clean() -> Result<()> {
     }
 
     // Remove node_modules
-    let node_modules = web_dir().join("node_modules");
+    let node_modules = web_ui_dir().join("node_modules");
     if node_modules.exists() {
         std::fs::remove_dir_all(&node_modules)?;
     }
@@ -401,7 +407,7 @@ async fn status_check() -> Result<()> {
     }
 
     // Check node_modules
-    let node_modules = web_dir().join("node_modules");
+    let node_modules = web_ui_dir().join("node_modules");
     if node_modules.exists() {
         print_success("Node modules installed");
     } else {
@@ -546,7 +552,7 @@ async fn main() -> Result<()> {
             } else {
                 (wasm, frontend)
             };
-            
+
             start_dev_server(run_wasm, run_frontend, false, verbose).await?;
         }
 
@@ -567,7 +573,7 @@ async fn main() -> Result<()> {
             print_info(&port_info);
             let mut cmd = Command::new("npm");
             cmd.args(["run", "dev", "--", "--port", &port.to_string()]);
-            cmd.current_dir(&web_dir());
+            cmd.current_dir(&web_ui_dir());
             cmd.stdout(std::process::Stdio::inherit());
             cmd.stderr(std::process::Stdio::inherit());
             cmd.spawn()?.wait().await?;
@@ -590,7 +596,7 @@ async fn main() -> Result<()> {
 
             let mut cmd = Command::new("npm");
             cmd.args(&args);
-            cmd.current_dir(&web_dir());
+            cmd.current_dir(&web_ui_dir());
             cmd.stdout(std::process::Stdio::inherit());
             cmd.stderr(std::process::Stdio::inherit());
             cmd.status().await?;

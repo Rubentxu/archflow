@@ -65,14 +65,16 @@ export function ArchFlowWasmProvider({ children }: { children: ReactNode }) {
   const initRef = useRef<Promise<void> | null>(null);
 
   // DEBUG: State changes
+  // Use primitive values to prevent infinite loops
   useEffect(() => {
     console.log("[ArchFlowWasmProvider] State:", {
       hasBridge: !!bridge,
       isLoaded,
       isInitialized,
       hasError: !!error,
+      errorMessage: error?.message,
     });
-  }, [bridge, isLoaded, isInitialized, error]);
+  }, [bridge, isLoaded, isInitialized, error?.message]);
 
   // Load WASM module on mount
   useEffect(() => {
@@ -98,14 +100,13 @@ export function ArchFlowWasmProvider({ children }: { children: ReactNode }) {
       } catch (err) {
         if (mounted) {
           const errorMessage = err instanceof Error ? err.message : String(err);
-          console.error("[ArchFlowWasmProvider] ✗ WASM load failed:", errorMessage);
           setError(
             new Error(
               `Failed to load WASM module: ${errorMessage}\n\n` +
-              `Please build WASM first:\n` +
-              `  cd crates/archflow-web && wasm-pack build --target web\n\n` +
-              `Ensure COOP/COEP headers are configured.`
-            )
+                `Please build WASM first:\n` +
+                `  cd crates/archflow-wasm-bridge && wasm-pack build --target web\n\n` +
+                `Ensure COOP/COEP headers are configured.`,
+            ),
           );
         }
       }
@@ -159,7 +160,7 @@ export function ArchFlowWasmProvider({ children }: { children: ReactNode }) {
         initRef.current = null;
       }
     },
-    [bridge]
+    [bridge],
   );
 
   const value = {
@@ -170,7 +171,9 @@ export function ArchFlowWasmProvider({ children }: { children: ReactNode }) {
     initialize,
   };
 
-  return <WasmContext.Provider value={ value }> { children } </WasmContext.Provider>;
+  return (
+    <WasmContext.Provider value={value}> {children} </WasmContext.Provider>
+  );
 }
 
 /**
@@ -179,7 +182,9 @@ export function ArchFlowWasmProvider({ children }: { children: ReactNode }) {
 export function useArchFlowWasm(): UseWasmBridgeReturn {
   const context = useContext(WasmContext);
   if (!context) {
-    throw new Error("useArchFlowWasm must be used within an ArchFlowWasmProvider");
+    throw new Error(
+      "useArchFlowWasm must be used within an ArchFlowWasmProvider",
+    );
   }
   return context;
 }

@@ -9,7 +9,7 @@
 #![cfg(test)]
 
 use archflow_core::{EntityId, Generation, Index, Rect, Vec2};
-use archflow_engine::{EntityStore, SpatialHash, MAX_ENTITIES};
+use archflow_engine::{EntityStore, MAX_ENTITIES, SpatialHash};
 
 use archflow_logic::sensors::collision::CollisionSensor;
 

@@ -25,11 +25,26 @@ use archflow_engine::{Command, EntityStore};
 
 use crate::signals::SignalByte;
 
+/// Axis constraint for drag operations
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DragAxis {
+    /// No constraint (free movement)
+    Both = 0,
+    /// X-axis only
+    X = 1,
+    /// Y-axis only
+    Y = 2,
+}
+
 /// State tracking for a dragging entity
 #[derive(Clone, Copy, Debug)]
 struct DragState {
     /// Start position when drag began
     start_pos: Vec2,
+    /// Axis constraint for this drag
+    axis: DragAxis,
+    /// Grid snap value (0 to disable)
+    snap: f32,
 }
 
 /// Actuator that manages entity drag state with hysteresis
@@ -60,6 +75,8 @@ struct DragState {
 pub struct MoveActuator {
     /// Map of currently dragging entities: entity_id → drag state
     dragging: hashbrown::HashMap<EntityId, DragState>,
+    /// Per-entity drag configuration: entity_id → (axis, snap)
+    config: hashbrown::HashMap<EntityId, (DragAxis, f32)>,
 }
 
 impl MoveActuator {
@@ -75,7 +92,73 @@ impl MoveActuator {
     pub fn new() -> Self {
         Self {
             dragging: hashbrown::HashMap::new(),
+            config: hashbrown::HashMap::new(),
         }
+    }
+
+    /// Set the drag axis constraint for an entity
+    ///
+    /// # Arguments
+    ///
+    /// * `entity` - Entity to configure
+    /// * `axis` - Axis constraint (X, Y, or Both)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut actuator = MoveActuator::new();
+    /// actuator.set_axis(entity, DragAxis::X);
+    /// ```
+    #[inline(always)]
+    pub fn set_axis(&mut self, entity: EntityId, axis: DragAxis) {
+        if let Some(config) = self.config.get_mut(&entity) {
+            config.0 = axis;
+        } else {
+            self.config.insert(entity, (axis, 0.0));
+        }
+    }
+
+    /// Set the grid snap value for an entity
+    ///
+    /// # Arguments
+    ///
+    /// * `entity` - Entity to configure
+    /// * `snap` - Grid snap value (0 to disable)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut actuator = MoveActuator::new();
+    /// actuator.set_snap(entity, 10.0);
+    /// ```
+    #[inline(always)]
+    pub fn set_snap(&mut self, entity: EntityId, snap: f32) {
+        if let Some(config) = self.config.get_mut(&entity) {
+            config.1 = snap;
+        } else {
+            self.config.insert(entity, (DragAxis::Both, snap));
+        }
+    }
+
+    /// Clear the drag configuration for an entity
+    ///
+    /// Resets axis to Both and snap to 0.
+    ///
+    /// # Arguments
+    ///
+    /// * `entity` - Entity to clear configuration for
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut actuator = MoveActuator::new();
+    /// actuator.set_axis(entity, DragAxis::X);
+    /// actuator.set_snap(entity, 10.0);
+    /// actuator.clear_config(entity);
+    /// ```
+    #[inline(always)]
+    pub fn clear_config(&mut self, entity: EntityId) {
+        self.config.remove(&entity);
     }
 
     /// Updates the drag state for an entity
@@ -150,12 +233,50 @@ impl MoveActuator {
         let idx = entity.index().0 as usize;
         let start_pos = Vec2::new(store.transforms[idx][0], store.transforms[idx][1]);
 
+        // Get default axis and snap from config
+        let config = self
+            .config
+            .get(&entity)
+            .copied()
+            .unwrap_or((DragAxis::Both, 0.0));
+
         // Start dragging
-        self.dragging.insert(entity, DragState { start_pos });
+        self.dragging.insert(
+            entity,
+            DragState {
+                start_pos,
+                axis: config.0,
+                snap: config.1,
+            },
+        );
 
         // Generate Move command with initial delta
-        let delta = mouse_pos - start_pos;
-        vec![Command::Move { id: entity, delta }]
+        let delta = self.apply_axis_constraint(mouse_pos - start_pos, config.0);
+        let snapped_delta = self.apply_snap(delta, config.1);
+        vec![Command::Move {
+            id: entity,
+            delta: snapped_delta,
+        }]
+    }
+
+    /// Apply axis constraint to delta vector
+    fn apply_axis_constraint(&self, delta: Vec2, axis: DragAxis) -> Vec2 {
+        match axis {
+            DragAxis::X => Vec2::new(delta.x, 0.0),
+            DragAxis::Y => Vec2::new(0.0, delta.y),
+            DragAxis::Both => delta,
+        }
+    }
+
+    /// Apply grid snapping to delta
+    fn apply_snap(&self, delta: Vec2, snap: f32) -> Vec2 {
+        if snap <= 0.0 {
+            return delta;
+        }
+        Vec2::new(
+            (delta.x / snap).round() * snap,
+            (delta.y / snap).round() * snap,
+        )
     }
 
     /// Update while dragging
@@ -173,8 +294,13 @@ impl MoveActuator {
 
         // Continue dragging - generate Move command
         if let Some(state) = self.dragging.get(&entity) {
-            let delta = mouse_pos - state.start_pos;
-            return vec![Command::Move { id: entity, delta }];
+            let raw_delta = mouse_pos - state.start_pos;
+            let constrained_delta = self.apply_axis_constraint(raw_delta, state.axis);
+            let snapped_delta = self.apply_snap(constrained_delta, state.snap);
+            return vec![Command::Move {
+                id: entity,
+                delta: snapped_delta,
+            }];
         }
 
         Vec::new()

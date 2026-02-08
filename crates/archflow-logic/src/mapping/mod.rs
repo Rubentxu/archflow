@@ -12,5 +12,5 @@ pub mod mapping_table;
 pub mod sensor_type;
 
 pub use controller::Controller;
-pub use mapping_table::LogicMappingTable;
+pub use mapping_table::{ActuatorType, LogicMappingTable};
 pub use sensor_type::SensorType;

@@ -70,6 +70,78 @@ export type {
 } from "./types";
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// WASM BRIDGE FACADES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Re-export all bridge facades for direct use
+export { default as EntityBridge, createEntityBridge } from "./EntityBridge";
+export {
+  default as SelectionBridge,
+  createSelectionBridge,
+} from "./SelectionBridge";
+export { default as CameraBridge, createCameraBridge } from "./CameraBridge";
+export { default as InputBridge, createInputBridge } from "./InputBridge";
+export { default as HistoryBridge, createHistoryBridge } from "./HistoryBridge";
+export { default as EventsBridge, createEventsBridge } from "./EventsBridge";
+export {
+  EventEmitter,
+  globalEvents,
+  DomainEvents,
+  type Callback,
+  type EventListenerOptions,
+  type Subscription,
+  type EventMetricsSnapshot,
+  type Vector2,
+  type MouseButton,
+  type SystemStatus,
+} from "./EventEmitter";
+
+// Event System Components
+export {
+  EventWorkerPool,
+  EventWorker,
+  WorkerMessage,
+  WorkerMessageType,
+  type TaskProcessor,
+  type WorkerConfig,
+  type TaskResult,
+  type TaskError,
+} from "./eventWorker";
+
+export {
+  EventTracker,
+  EventDirection,
+  TrackedEventEmitter,
+  EventDevTools,
+  useEventTracker,
+  useEventMetrics,
+  type EventLogEntry,
+  type EventMetricsSnapshot as TrackerMetricsSnapshot,
+  type EventDevToolsProps,
+} from "./eventTracker.tsx";
+
+export {
+  default as ToolsBridge,
+  createToolsBridge,
+  TOOL_REGISTRY,
+} from "./ToolsBridge";
+export {
+  default as BehaviorBridge,
+  createBehaviorBridge,
+  BEHAVIOR_TEMPLATES,
+} from "./BehaviorBridge";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN SDK FACADE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export {
+  default as ArchFlowBridge,
+  createArchFlowBridge,
+} from "./ArchFlowBridge";
+export type { ArchFlowBridgeOptions } from "./ArchFlowBridge";
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // BEHAVIOR REGISTRY & TEMPLATES
 // ═══════════════════════════════════════════════════════════════════════════════
 

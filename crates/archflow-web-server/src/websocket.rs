@@ -12,14 +12,14 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 use crate::{
+    AppState,
     collaboration::{CollaborationMessage, ConnectedClient, RoomId, UserId},
     error::Result,
-    AppState,
 };
 use axum::{
     extract::{
-        ws::{Message, WebSocket, WebSocketUpgrade},
         State,
+        ws::{Message, WebSocket, WebSocketUpgrade},
     },
     response::IntoResponse,
 };

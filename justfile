@@ -14,7 +14,8 @@ PROJECT_ROOT := "/home/rubentxu/Proyectos/rust/hodei-archFlow"
 WEB_DIR := PROJECT_ROOT + "/crates/archflow-web-ui"
 SDK_DIR := PROJECT_ROOT + "/crates/archflow-sdk"
 PKG_DIR := SDK_DIR + "/pkg"
-WEB_PKG_DIR := PROJECT_ROOT + "/crates/archflow-web/pkg"
+WASM_BRIDGE_DIR := PROJECT_ROOT + "/crates/archflow-wasm-bridge"
+WEB_PKG_DIR := PROJECT_ROOT + "/crates/archflow-wasm-bridge/pkg"
 
 # =============================================================================
 # HELP & INFO
@@ -123,7 +124,7 @@ build:
     @echo "Building ArchFlow..."
     @echo ""
     @echo "Building Rust workspace..."
-    @cargo build -p archflow-core -p archflow-engine -p archflow-logic -p archflow-render -p archflow-web
+    @cargo build -p archflow-core -p archflow-engine -p archflow-logic -p archflow-render -p archflow-wasm-bridge
     @echo ""
     @echo "Building and syncing WASM..."
     @just build-wasm
@@ -144,7 +145,7 @@ build-release:
 [doc("Build WASM module only")]
 build-wasm:
     @echo "Building WASM..."
-    @cd crates/archflow-web && wasm-pack build --target web --debug
+    @cd crates/archflow-wasm-bridge && wasm-pack build --target web --debug
     @just sync-wasm-types
     @echo "WASM built!"
 
@@ -502,4 +503,4 @@ count:
 
 # Test color conversion in WASM
 test-color-wasm:
-    cd crates/archflow-web && cargo test color_conversion --lib -- --nocapture
+    cd crates/archflow-wasm-bridge && cargo test color_conversion --lib -- --nocapture

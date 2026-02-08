@@ -36,14 +36,17 @@ const DEFAULT_HEIGHT = 60;
 function requireWasmBridge(): never {
   throw new Error(
     "WASM bridge is required but not loaded. " +
-    "Please build the WASM module first: cd crates/archflow-web && wasm-pack build --target web",
+      "Please build the WASM module first: cd crates/archflow-wasm-bridge && wasm-pack build --target web",
   );
 }
 
 /**
  * Helper to fetch entity data directly from bridge
  */
-function fetchEntityFromBridge(bridge: WasmBridge, id: EntityId): EntityData | null {
+function fetchEntityFromBridge(
+  bridge: WasmBridge,
+  id: EntityId,
+): EntityData | null {
   try {
     const position = bridge.get_entity_position_screen(id);
     const size = bridge.get_entity_size_screen(id);

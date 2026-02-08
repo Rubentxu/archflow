@@ -51,7 +51,7 @@ pub mod group;
 pub use group::{GroupActuator, GroupConfig, GroupOp, GroupOpType, GroupResult};
 pub use highlight::HighlightActuator;
 pub use message::{Message, MessageActuator, MessageBus, MessagePayload};
-pub use move_::MoveActuator;
+pub use move_::{DragAxis, MoveActuator};
 pub use property::{Property, PropertyActuator};
 pub mod smart_guides;
 pub mod snap;

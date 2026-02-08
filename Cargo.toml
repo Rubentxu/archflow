@@ -11,7 +11,7 @@ members = [
     "crates/archflow-plugins",
     "crates/archflow-export",
     "crates/archflow-text",
-    "crates/archflow-web",
+    "crates/archflow-wasm-bridge",
     "crates/archflow-web-server",  # Axum web server (Epic 6)
     "crates/archflow-tests",
 ]
