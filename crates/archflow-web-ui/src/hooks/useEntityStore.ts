@@ -4,10 +4,16 @@
  * Provides CRUD operations for entities with automatic state synchronization.
  * Requires WASM bridge to be loaded and initialized.
  *
+ * Features:
+ * - Automatic polling-based synchronization when entity count changes
+ * - CRUD operations with immediate state updates
+ * - Memory-efficient using Map for entity storage
+ * - Avoids infinite loops through careful dependency management
+ *
  * Architecture Reference: EPIC-WEB-002
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import type { EntityId, EntityData } from "../types/wasm";
 import { useArchFlowWasm } from "./useArchFlowWasm.tsx";
 import type { WasmBridge } from "../wasm/archflow_web.js";
@@ -102,27 +108,66 @@ export function useEntityStore(): EntityStoreReturn {
         const data = fetchEntityFromBridge(bridge, id);
         if (!data) continue;
 
-        const existing = entities.get(id);
-
-        entitiesMap.set(id, {
-          ...data,
-          type: existing?.type,
-          properties: existing?.properties,
-        });
+        entitiesMap.set(id, data);
       }
 
-      setEntities(entitiesMap);
+      setEntities((prevEntities) => {
+        const merged = new Map<EntityId, EntityData>();
+        for (const [id, data] of entitiesMap) {
+          const existing = prevEntities.get(id);
+          merged.set(id, {
+            ...data,
+            type: existing?.type,
+            properties: existing?.properties,
+          });
+        }
+        return merged;
+      });
       setEntityCount(aliveIds.length);
     } catch (err) {
       console.error("Failed to sync entities from WASM:", err);
     }
-  }, [bridge, isInitialized, entities]);
+  }, [bridge, isInitialized]);
 
+  // Initial sync when bridge becomes ready
   useEffect(() => {
     if (isLoaded && isInitialized && bridge) {
       syncEntitiesFromWasm();
     }
   }, [isLoaded, isInitialized, bridge, syncEntitiesFromWasm]);
+
+  // Automatic polling-based synchronization
+  // This ensures entities are synced when they're created/deleted in WASM,
+  // regardless of how they were created (React events, DOM events, or internal WASM operations)
+  useEffect(() => {
+    if (!isLoaded || !isInitialized || !bridge) {
+      return;
+    }
+
+    // Use ref to track last known count to avoid unnecessary syncs
+    const lastKnownCountRef = { current: entityCount };
+
+    // Poll every 150ms for changes in entity count
+    // This is a good balance between responsiveness and performance
+    const pollInterval = setInterval(() => {
+      try {
+        const currentCount = bridge.entity_count();
+
+        if (currentCount !== lastKnownCountRef.current) {
+          // Entity count changed - sync entities from WASM
+          lastKnownCountRef.current = currentCount;
+          syncEntitiesFromWasm();
+        }
+      } catch (err) {
+        // Silently ignore errors during polling to avoid console spam
+        // The next poll will retry
+      }
+    }, 150);
+
+    return () => {
+      clearInterval(pollInterval);
+    };
+  }, [isLoaded, isInitialized, bridge, entityCount, syncEntitiesFromWasm]);
 
   const spawnEntity = useCallback(
     (

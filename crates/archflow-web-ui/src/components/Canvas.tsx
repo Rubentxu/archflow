@@ -105,9 +105,12 @@ export default memo(function Canvas({
 
   /**
    * Get canvas position from pointer or wheel event
+   * Supports both React synthetic events and native DOM events
    */
   const getCanvasPosition = useCallback(
-    (event: React.PointerEvent | React.WheelEvent) => {
+    (
+      event: React.PointerEvent | React.WheelEvent | PointerEvent | WheelEvent,
+    ) => {
       const rect = canvasRef.current?.getBoundingClientRect();
       if (!rect) return { x: 0, y: 0 };
 
@@ -131,26 +134,14 @@ export default memo(function Canvas({
       // Forward to callbacks
       onPointerDown?.(position, event.buttons);
 
-      // Forward to WASM if available
+      // Forward to WASM Logic Bricks system
       if (bridge && wasmLoaded) {
         try {
-          (
-            bridge as {
-              push_input_event: (
-                e: number,
-                x: number,
-                y: number,
-                b: number,
-                m: number,
-              ) => void;
-            }
-          ).push_input_event(
-            0, // event_type: 0 = pointer down
-            position.x,
-            position.y,
-            event.buttons,
-            0, // modifiers: none
-          );
+          // Convert pointer button to mouse button (0=left, 1=right, 2=middle)
+          const button = event.button;
+          const modifiers = 0; // TODO: Extract from event
+
+          bridge.on_mouse_down(position.x, position.y, button, modifiers);
         } catch (err) {
           console.error("Failed to send pointer down to WASM:", err);
         }
@@ -167,26 +158,11 @@ export default memo(function Canvas({
       const position = getCanvasPosition(event);
       onPointerMove?.(position, event.buttons);
 
-      // Forward to WASM if available
+      // Forward to WASM Logic Bricks system
       if (bridge && wasmLoaded) {
         try {
-          (
-            bridge as {
-              push_input_event: (
-                e: number,
-                x: number,
-                y: number,
-                b: number,
-                m: number,
-              ) => void;
-            }
-          ).push_input_event(
-            1, // event_type: 1 = pointer move
-            position.x,
-            position.y,
-            event.buttons,
-            0, // modifiers: none
-          );
+          // event.buttons is a bitmask (1=left, 2=right, 4=middle)
+          bridge.on_mouse_move(position.x, position.y, event.buttons);
         } catch (err) {
           console.error("Failed to send pointer move to WASM:", err);
         }
@@ -203,26 +179,13 @@ export default memo(function Canvas({
       const position = getCanvasPosition(event);
       onPointerUp?.(position, event.buttons);
 
-      // Forward to WASM if available
+      // Forward to WASM Logic Bricks system
       if (bridge && wasmLoaded) {
         try {
-          (
-            bridge as {
-              push_input_event: (
-                e: number,
-                x: number,
-                y: number,
-                b: number,
-                m: number,
-              ) => void;
-            }
-          ).push_input_event(
-            2, // event_type: 2 = pointer up
-            position.x,
-            position.y,
-            event.buttons,
-            0, // modifiers: none
-          );
+          // Convert pointer button to mouse button (0=left, 1=right, 2=middle)
+          const button = event.button;
+
+          bridge.on_mouse_up(position.x, position.y, button);
         } catch (err) {
           console.error("Failed to send pointer up to WASM:", err);
         }
@@ -359,6 +322,92 @@ export default memo(function Canvas({
     return () => resizeObserver.disconnect();
   }, [bridge, wasmLoaded, isInitialized]);
 
+  // Native DOM event listeners for events that might not go through React
+  // This ensures programmatic events and direct DOM manipulation also work
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !bridge || !wasmLoaded) return;
+
+    // Native pointer down handler
+    const nativePointerDown = (event: PointerEvent) => {
+      console.log("🖱️ Native pointerdown handler executed", {
+        clientX: event.clientX,
+        clientY: event.clientY,
+        button: event.button,
+        isTrusted: event.isTrusted,
+        hasBridge: !!bridge,
+        bridgeType: typeof bridge,
+      });
+
+      const position = getCanvasPosition(event);
+      const button = event.button;
+      const modifiers = 0; // TODO: Extract from event
+
+      console.log("  → Canvas position:", position, "button:", button);
+
+      try {
+        bridge.on_mouse_down(position.x, position.y, button, modifiers);
+        console.log("  ✓ bridge.on_mouse_down called successfully");
+      } catch (err) {
+        console.error("Native pointer down failed:", err);
+      }
+    };
+
+    // Native pointer move handler
+    const nativePointerMove = (event: PointerEvent) => {
+      const position = getCanvasPosition(event);
+
+      try {
+        bridge.on_mouse_move(position.x, position.y, event.buttons);
+      } catch (err) {
+        console.error("Native pointer move failed:", err);
+      }
+    };
+
+    // Native pointer up handler
+    const nativePointerUp = (event: PointerEvent) => {
+      console.log("🖱️ Native pointerup handler executed", {
+        clientX: event.clientX,
+        clientY: event.clientY,
+        button: event.button,
+        isTrusted: event.isTrusted,
+      });
+
+      const position = getCanvasPosition(event);
+      const button = event.button;
+
+      console.log("  → Canvas position:", position, "button:", button);
+
+      try {
+        bridge.on_mouse_up(position.x, position.y, button);
+        console.log("  ✓ bridge.on_mouse_up called successfully");
+      } catch (err) {
+        console.error("Native pointer up failed:", err);
+      }
+    };
+
+    // Add native event listeners
+    console.log("📌 Registering native event listeners on canvas", {
+      hasCanvas: !!canvas,
+      hasBridge: !!bridge,
+      wasmLoaded,
+    });
+
+    canvas.addEventListener("pointerdown", nativePointerDown);
+    canvas.addEventListener("pointermove", nativePointerMove);
+    canvas.addEventListener("pointerup", nativePointerUp);
+
+    console.log("✓ Native event listeners registered");
+
+    // Cleanup
+    return () => {
+      console.log("🧹 Removing native event listeners");
+      canvas.removeEventListener("pointerdown", nativePointerDown);
+      canvas.removeEventListener("pointermove", nativePointerMove);
+      canvas.removeEventListener("pointerup", nativePointerUp);
+    };
+  }, [bridge, wasmLoaded, getCanvasPosition]);
+
   // Initialize renderer with backend selection
   useEffect(() => {
     console.log("[Canvas] Initialize graphics effect triggered:", {
@@ -449,22 +498,24 @@ export default memo(function Canvas({
 
   // WASM-driven render loop
   useEffect(() => {
+    /*
     console.log("[Canvas] Render loop effect:", {
       hasCanvas: !!canvasRef.current,
       hasBridge: !!bridge,
       wasmLoaded,
       isInitialized,
     });
+    */
 
     if (!canvasRef.current || !bridge || !wasmLoaded || !isInitialized) {
-      console.log("[Canvas] Skipping render loop - not ready");
+      // console.log("[Canvas] Skipping render loop - not ready");
       return;
     }
 
-    console.log("[Canvas] Starting render loop...");
+    // console.log("[Canvas] Starting render loop...");
     let animationId: number;
-    let lastTime = performance.now();
-    let frameCount = 0;
+    // let lastTime = performance.now();
+    // let frameCount = 0;
 
     const render = (timestamp: number) => {
       try {
@@ -476,14 +527,14 @@ export default memo(function Canvas({
         ).tick(timestamp);
 
         // Log every 300 frames (roughly 5 seconds at 60fps) to reduce noise
-        frameCount++;
-        if (frameCount % 300 === 0) {
-          console.log(
-            `[Canvas] Render loop active, frame ${frameCount}, fps: ${(1000 / (timestamp - lastTime)).toFixed(1)}`,
-          );
-        }
+        // frameCount++;
+        // if (frameCount % 300 === 0) {
+        //   console.log(
+        //     `[Canvas] Render loop active, frame ${frameCount}, fps: ${(1000 / (timestamp - lastTime)).toFixed(1)}`,
+        //   );
+        // }
 
-        lastTime = timestamp;
+        // lastTime = timestamp;
         animationId = requestAnimationFrame(render);
       } catch (err) {
         console.error("[Canvas] ✗ WASM render tick failed:", err);
@@ -493,24 +544,15 @@ export default memo(function Canvas({
     };
 
     animationId = requestAnimationFrame(render);
-    console.log("[Canvas] ✓ Render loop started");
+    // console.log("[Canvas] ✓ Render loop started");
 
     return () => {
       if (animationId) {
         cancelAnimationFrame(animationId);
-        console.log("[Canvas] Render loop stopped");
+        // console.log("[Canvas] Render loop stopped");
       }
     };
-  }, [
-    bridge,
-    wasmLoaded,
-    isInitialized,
-    camera.x,
-    camera.y,
-    camera.zoom,
-    showGrid,
-    dragState,
-  ]);
+  }, [bridge, wasmLoaded, isInitialized]);
 
   return (
     <CanvasDroppable>

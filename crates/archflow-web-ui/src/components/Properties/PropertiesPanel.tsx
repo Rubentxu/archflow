@@ -108,17 +108,17 @@ function VisualPropertiesForm({
         try {
           const color = bridge.get_color(entityId);
           if (color) setFillColor(color);
-        } catch (_) { }
+        } catch (_) {}
 
         try {
           const stroke = bridge.get_stroke_color(entityId);
           if (stroke) setStrokeColor(stroke);
-        } catch (_) { }
+        } catch (_) {}
 
         try {
           const width = bridge.get_stroke_width(entityId);
           if (width !== undefined) setStrokeWidth(width);
-        } catch (_) { }
+        } catch (_) {}
       } else {
         // Active Tool Mode: Fetch global settings
         const activeColor = bridge.get_active_color();
@@ -126,7 +126,7 @@ function VisualPropertiesForm({
         const activeStrokeWidth = bridge.get_active_stroke_width();
 
         console.log(
-          `🔄 UI: Syncing colors from bridge - Fill: ${activeColor}, Stroke: ${activeStrokeColor}, Width: ${activeStrokeWidth}`
+          `🔄 UI: Syncing colors from bridge - Fill: ${activeColor}, Stroke: ${activeStrokeColor}, Width: ${activeStrokeWidth}`,
         );
 
         if (activeColor) setFillColor(activeColor);
@@ -137,15 +137,6 @@ function VisualPropertiesForm({
       console.warn("Failed to sync properties from bridge:", e);
     }
   }, [bridge, entityId, isInitialized]);
-
-  // Log cuando cambia el bridge o entityId
-  React.useEffect(() => {
-    console.log("🎨 VisualPropertiesForm: Props cambiadas", {
-      entityId,
-      hasBridge: !!bridge,
-      currentFillColor: fillColor,
-    });
-  }, [bridge, entityId, fillColor]);
 
   const handleFillChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -350,7 +341,9 @@ function TransformForm({
             <input
               type="number"
               value={size.w}
-              onChange={(e) => handleSizeChange("w", parseFloat(e.target.value))}
+              onChange={(e) =>
+                handleSizeChange("w", parseFloat(e.target.value))
+              }
               className="w-full px-2 py-1.5 bg-slate-100/50 dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded text-xs text-slate-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-primary/30"
             />
           </div>
@@ -363,7 +356,9 @@ function TransformForm({
             <input
               type="number"
               value={size.h}
-              onChange={(e) => handleSizeChange("h", parseFloat(e.target.value))}
+              onChange={(e) =>
+                handleSizeChange("h", parseFloat(e.target.value))
+              }
               className="w-full px-2 py-1.5 bg-slate-100/50 dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded text-xs text-slate-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-primary/30"
             />
           </div>
@@ -1003,7 +998,6 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
     },
     [selectedId, entityType, updateProperty, form],
   );
-
 
   // Render appropriate form based on entity type
   const renderForm = () => {
