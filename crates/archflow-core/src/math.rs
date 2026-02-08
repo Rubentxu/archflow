@@ -180,39 +180,38 @@ impl Rect {
 // COLOR - Packed RGBA (0xRRGGBBAA)
 // ═══════════════════════════════════════════════════════════════════════════════════════════════
 
-/// Packed RGBA color in 0xRRGGBBAA format
+/// Packed RGBA color in 0xAABBGGRR format (ABGR)
 ///
-/// Benefits of u32 packing:
-/// - 4 bytes vs 16 bytes for [f32; 4] (75% memory savings)
-/// - Direct upload to GPU without conversion
-/// - Cache-friendly (fits in single cache line with other data)
+/// This format ensures that when written as Little Endian bytes,
+/// it produces [RR, GG, BB, AA] in memory, which WebGL reads as
+/// vec4(r, g, b, a) when normalized=true.
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Color(pub u32);
 
 impl Color {
-    /// Black color (0x000000FF)
-    pub const BLACK: Color = Color(0x000000FF);
+    /// Black color (R=0, G=0, B=0, A=255) -> 0xFF000000
+    pub const BLACK: Color = Color(0xFF000000);
 
-    /// White color (0xFFFFFFFF)
+    /// White color (R=255, G=255, B=255, A=255) -> 0xFFFFFFFF
     pub const WHITE: Color = Color(0xFFFFFFFF);
 
     /// Transparent color (0x00000000)
     pub const TRANSPARENT: Color = Color(0x00000000);
 
-    /// Red color (0xFF0000FF)
+    /// Red color (R=255, G=0, B=0, A=255) -> 0xFF0000FF
     pub const RED: Color = Color(0xFF0000FF);
 
-    /// Green color (0x00FF00FF)
-    pub const GREEN: Color = Color(0x00FF00FF);
+    /// Green color (R=0, G=255, B=0, A=255) -> 0xFF00FF00
+    pub const GREEN: Color = Color(0xFF00FF00);
 
-    /// Blue color (0x0000FFFF)
-    pub const BLUE: Color = Color(0x0000FFFF);
+    /// Blue color (R=0, G=0, B=255, A=255) -> 0xFFFF0000
+    pub const BLUE: Color = Color(0xFFFF0000);
 
     /// Create a color from RGBA components (0-255)
     #[inline(always)]
     pub const fn rgba(r: u8, g: u8, b: u8, a: u8) -> Self {
-        Self(((r as u32) << 24) | ((g as u32) << 16) | ((b as u32) << 8) | (a as u32))
+        Self(((a as u32) << 24) | ((b as u32) << 16) | ((g as u32) << 8) | (r as u32))
     }
 
     /// Create a color from RGB components with full opacity
@@ -235,25 +234,25 @@ impl Color {
     /// Extract the red component (0-255)
     #[inline(always)]
     pub const fn r(self) -> u8 {
-        (self.0 >> 24) as u8
+        self.0 as u8
     }
 
     /// Extract the green component (0-255)
     #[inline(always)]
     pub const fn g(self) -> u8 {
-        (self.0 >> 16) as u8
+        (self.0 >> 8) as u8
     }
 
     /// Extract the blue component (0-255)
     #[inline(always)]
     pub const fn b(self) -> u8 {
-        (self.0 >> 8) as u8
+        (self.0 >> 16) as u8
     }
 
     /// Extract the alpha component (0-255)
     #[inline(always)]
     pub const fn a(self) -> u8 {
-        self.0 as u8
+        (self.0 >> 24) as u8
     }
 
     /// Get the raw u32 value
