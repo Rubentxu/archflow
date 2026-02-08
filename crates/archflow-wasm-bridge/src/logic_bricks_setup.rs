@@ -15,11 +15,25 @@ use alloc::vec::Vec;
 use wasm_bindgen::prelude::*;
 
 use archflow_core::{EntityId, Vec2};
-use archflow_engine::{Command, EntityStore};
+use archflow_engine::{Command, EntityStore, ShapeType};
 use archflow_logic::sensors::{MouseConfig, MouseSensor};
 use archflow_logic::{
     BatchSelectActuator, LogicEvent, LogicMappingTable, LogicSystem, MoveActuator, SelectMode,
 };
+
+/// Map tool name to ShapeType enum value
+fn tool_to_shape_type(tool: &str) -> u8 {
+    match tool {
+        "rectangle" => ShapeType::Rectangle as u8,
+        "circle" => ShapeType::Circle as u8,
+        "ellipse" => ShapeType::Ellipse as u8,
+        "triangle" => ShapeType::Triangle as u8,
+        "diamond" => ShapeType::Diamond as u8,
+        "cylinder" => ShapeType::Cylinder as u8,
+        "person" => ShapeType::Person as u8,
+        _ => ShapeType::Rectangle as u8, // Default to rectangle
+    }
+}
 
 /// State for tracking drag operations with hysteresis
 #[derive(Debug, Clone, Default)]
@@ -149,8 +163,16 @@ impl LogicBricksSystem {
     /// Set the active tool
     #[wasm_bindgen]
     pub fn set_active_tool(&mut self, tool: &str) {
+        web_sys::console::log_1(&JsValue::from_str(&format!(
+            "🔧 LogicBricks: set_active_tool({})",
+            tool
+        )));
+
         self.creation_state.shape_type = String::from(tool);
-        self.creation_state.is_creating = tool != "select";
+        // Don't set is_creating here - it should only be set when actually creating
+        // is_creating will be set to true when mouse down happens in process_tool_operations
+        self.creation_state.is_creating = false;
+        self.creation_state.entity_id = None;
     }
 
     /// Get the active tool
@@ -250,8 +272,20 @@ impl LogicBricksSystem {
 // =======================================================================
 
 impl LogicBricksSystem {
+    /// Drain pending commands
+    pub fn drain_commands(&mut self) -> Vec<Command> {
+        self.pending_commands.drain(..).collect()
+    }
+
     /// Execute one frame of logic processing
-    pub fn tick(&mut self, store: &mut EntityStore, timestamp_ms: u32) -> usize {
+    pub fn tick(
+        &mut self,
+        store: &mut EntityStore,
+        timestamp_ms: u32,
+        active_color: u32,
+        active_stroke_color: u32,
+        active_stroke_width: f32,
+    ) -> usize {
         self.timestamp = timestamp_ms;
         self.logic_system.set_timestamp(timestamp_ms);
         self.pending_commands.clear();
@@ -273,7 +307,13 @@ impl LogicBricksSystem {
         );
 
         // Process tool operations
-        self.process_tool_operations(store, world_pos);
+        self.process_tool_operations(
+            store,
+            world_pos,
+            active_color,
+            active_stroke_color,
+            active_stroke_width,
+        );
 
         // Process move actuator
         self.process_move_actuator(store, world_pos);
@@ -281,19 +321,55 @@ impl LogicBricksSystem {
         self.pending_commands.len()
     }
 
-    fn process_tool_operations(&mut self, store: &mut EntityStore, world_pos: Vec2) {
+    fn process_tool_operations(
+        &mut self,
+        store: &mut EntityStore,
+        world_pos: Vec2,
+        active_color: u32,
+        active_stroke_color: u32,
+        active_stroke_width: f32,
+    ) {
         let left_down = self.input_state.buttons & 0b001 != 0;
-        let was_creating = self.creation_state.is_creating;
+        let is_in_creation_mode =
+            self.creation_state.shape_type != "select" && self.creation_state.shape_type != "";
+        let has_entity = self.creation_state.entity_id.is_some();
 
-        // Start creation on left click when in creation mode
-        if left_down && !was_creating && self.creation_state.is_creating {
+        // Start creation on left click when in creation mode and not already creating
+        if left_down && is_in_creation_mode && !has_entity {
+            web_sys::console::log_1(&JsValue::from_str(&format!(
+                "🎯 Starting creation: tool={}, pos=({:.1}, {:.1})",
+                self.creation_state.shape_type, world_pos.x, world_pos.y
+            )));
+
             let id = store.spawn(world_pos, Vec2::new(1.0, 1.0));
+
+            // Apply shape type based on active tool
+            let shape_type = tool_to_shape_type(&self.creation_state.shape_type);
+            let idx = id.index().0 as usize;
+            store.set_shape_type(idx, shape_type);
+
+            // Apply active colors and stroke
+            store.set_color(idx, active_color);
+            store.set_stroke_color(idx, active_stroke_color);
+            store.set_stroke_width(idx, active_stroke_width);
+
             self.batch_select.execute(store, &[id], SelectMode::Single);
             self.creation_state.entity_id = Some(id);
+            self.creation_state.start_pos = world_pos;
+            self.creation_state.is_creating = true;
+
+            web_sys::console::log_1(&JsValue::from_str(&format!(
+                "🎨 Created {} shape with color=0x{:08x}, stroke=0x{:08x}, width={:.1}, id={:?}",
+                self.creation_state.shape_type,
+                active_color,
+                active_stroke_color,
+                active_stroke_width,
+                id
+            )));
         }
 
-        // Update creation
-        if left_down && self.creation_state.is_creating {
+        // Update creation - resize the shape as user drags
+        if left_down && has_entity {
             if let Some(entity_id) = self.creation_state.entity_id {
                 let start = self.creation_state.start_pos;
                 let min_x = start.x.min(world_pos.x);
@@ -316,16 +392,25 @@ impl LogicBricksSystem {
             }
         }
 
-        // End creation
-        if !left_down && was_creating {
+        // End creation when mouse button is released
+        if !left_down && has_entity {
+            web_sys::console::log_1(&JsValue::from_str("🏁 Ending creation"));
+
             if let Some(entity_id) = self.creation_state.entity_id {
                 let size = store.size(entity_id.index().0 as usize);
+                // If the shape is too small (just a click), give it a default size
                 if size.x <= 1.0 && size.y <= 1.0 {
                     self.pending_commands.push(Command::Resize {
                         id: entity_id,
                         size: Vec2::new(150.0, 150.0),
                     });
+                    web_sys::console::log_1(&JsValue::from_str("  → Applied default size 150x150"));
                 }
+
+                // Clear the mouse sensor signal history for the newly created entity
+                // This prevents the move actuator from immediately dragging the shape
+                let idx = entity_id.index().0 as usize;
+                self.mouse_sensor.clear_signal(idx);
             }
             self.creation_state.entity_id = None;
             self.creation_state.is_creating = false;
@@ -333,6 +418,12 @@ impl LogicBricksSystem {
     }
 
     fn process_move_actuator(&mut self, store: &mut EntityStore, world_pos: Vec2) {
+        // Don't process move actuator while creating a shape
+        // This prevents the newly created shape from being dragged immediately
+        if self.creation_state.is_creating {
+            return;
+        }
+
         let selected = self.batch_select.current_selection();
         for entity_id in &selected {
             let idx = entity_id.index().0 as usize;
