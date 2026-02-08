@@ -35,6 +35,7 @@ web-sys = { workspace = true, optional = true, features = [
     "WebGlTexture",
     "WebGlUniformLocation",
     "WebGlVertexArrayObject",
+    "console",
 ] }
 js-sys = { workspace = true, optional = true }
 
