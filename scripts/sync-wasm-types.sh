@@ -46,7 +46,7 @@ print_error() {
 # Directorios
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-WASM_PKG_DIR="$PROJECT_ROOT/crates/archflow-web/pkg"
+WASM_PKG_DIR="$PROJECT_ROOT/crates/archflow-wasm-bridge/pkg"
 FRONTEND_WASM_DIR="$PROJECT_ROOT/crates/archflow-web-ui/src/wasm"
 
 # Archivos a sincronizar

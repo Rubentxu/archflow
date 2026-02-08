@@ -21,7 +21,7 @@ async function measureOverhead() {
   // Load WASM module
   console.log("\n📦 Loading WASM module...");
   const wasmBuffer = readFileSync(
-    "./crates/archflow-web/pkg/archflow_web_bg.wasm",
+    "./crates/archflow-wasm-bridge/pkg/archflow_web_bg.wasm",
   );
   console.log(`   WASM size: ${(wasmBuffer.length / 1024).toFixed(1)} KB`);
 

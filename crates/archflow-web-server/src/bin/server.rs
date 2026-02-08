@@ -9,7 +9,7 @@
 //   ./target/release/server
 // ═══════════════════════════════════════════════════════════════════════════════
 
-use archflow_web_server::{run_server, ServerConfig};
+use archflow_web_server::{ServerConfig, run_server};
 use std::env;
 use std::path::PathBuf;
 

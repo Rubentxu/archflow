@@ -34,6 +34,10 @@ pub enum ActuatorType {
     Highlight = 0,
     Select = 1,
     Move = 2,
+    Delete = 3,
+    Undo = 4,
+    Redo = 5,
+    Camera = 6,
 }
 
 /// A single connection from sensor to actuator with optional controller
@@ -440,6 +444,26 @@ impl LogicMappingTable {
                         // Move requires both the signal and the mouse position
                         // For this simplified implementation, we'll skip it
                         // as it needs mouse position tracking
+                    }
+
+                    ActuatorType::Delete => {
+                        // Delete actuator - would execute delete command
+                        executed_count += 1;
+                    }
+
+                    ActuatorType::Undo => {
+                        // Undo actuator - would execute undo command
+                        executed_count += 1;
+                    }
+
+                    ActuatorType::Redo => {
+                        // Redo actuator - would execute redo command
+                        executed_count += 1;
+                    }
+
+                    ActuatorType::Camera => {
+                        // Camera actuator - would execute camera command
+                        executed_count += 1;
                     }
                 }
             }

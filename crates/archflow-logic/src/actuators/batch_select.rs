@@ -808,6 +808,8 @@ pub enum SelectMode {
     Multi = 1,
     /// Clear all and select only this entity
     Replace = 2,
+    /// Toggle selection state (select if deselected, deselect if selected)
+    Toggle = 3,
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

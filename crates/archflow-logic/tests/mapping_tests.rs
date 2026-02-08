@@ -20,8 +20,8 @@ mod tests {
 
     use archflow_core::{EntityId, Vec2};
     use archflow_engine::EntityStore;
-    use archflow_logic::mapping::{Controller, LogicMappingTable, SensorType};
     use archflow_logic::SignalByte;
+    use archflow_logic::mapping::{Controller, LogicMappingTable, SensorType};
 
     // ═══════════════════════════════════════════════════════════════════════════════
     // ACCEPTANCE CRITERIA 4.1.1: add_connection(entity, sensor, actuator)

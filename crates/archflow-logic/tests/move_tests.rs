@@ -20,8 +20,8 @@ mod tests {
 
     use archflow_core::Vec2;
     use archflow_engine::{Command, EntityStore};
-    use archflow_logic::actuators::MoveActuator;
     use archflow_logic::SignalByte;
+    use archflow_logic::actuators::MoveActuator;
 
     // ═══════════════════════════════════════════════════════════════════════════════
     // ACCEPTANCE CRITERIA 3.3.1: Move { entity, delta } solo cuando señal estable por 6 ticks

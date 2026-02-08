@@ -48,31 +48,59 @@ pub use actuators::{
     CameraActuatorConfig,
     CameraConstraints,
     CameraTransform,
+    // Clipboard operations
+    CopyActuator,
+    DeleteActuator,
     DeltaMask,
+    // Movement
+    DragAxis,
+    DuplicateActuator,
     // State machine types
     EntityState,
+    // Gizmo transforms
+    GizmoAxis,
+    GizmoConfig,
+    GizmoHandle,
+    GizmoHandleType,
+    GizmoHitResult,
+    GizmoHitTest,
+    GizmoMoveActuator,
+    GizmoRotateActuator,
+    GizmoScaleActuator,
+    GizmoState,
+    GizmoType,
     HighlightActuator,
+    // Message types
     Message,
     MessageActuator,
     MessageBus,
     MessagePayload,
     MoveActuator,
+    PasteActuator,
+    // Property types
     Property,
     PropertyActuator,
+    // Selection types
+    SelectActuator,
     SelectMode,
+    SelectionConfig,
+    SelectionResult,
+    SelectionState,
     Smoother,
+    // State machine types
     StateActuator,
     StateBitset,
     StateId,
     StateMachine,
     StateTransition,
     StateTransitionTable,
+    TransformGizmoActuator,
 };
 pub use command::{AnyCommand, Command, CommandHistory, DEFAULT_MAX_HISTORY};
 pub use input::{InputEvent, InputSampler, InputSnapshotSAB, MAX_KEYS, MouseButton};
 pub use logic_driver::LogicDriver;
 pub use logic_system::{LogicSystem, SensorId};
-pub use mapping::{Controller, LogicMappingTable, SensorType};
+pub use mapping::{ActuatorType, Controller, LogicMappingTable, SensorType};
 pub use pulse::Pulse;
 pub use signals::{SensorOutput, SignalByte, SignalState};
 pub use snap::{

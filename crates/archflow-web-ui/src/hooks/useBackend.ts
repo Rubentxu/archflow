@@ -5,7 +5,7 @@
  * with WebGL2 as default and WebGPU as optional.
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import type { WasmBridge } from "../wasm/archflow_web.js";
 import type { BackendInfo, BackendState, GraphicsBackend } from "../types/wasm";
 
@@ -136,25 +136,44 @@ export function useBackend(
     useState<GraphicsBackend>("webgl2");
 
   // Update preferred when detection changes
+  // Use useMemo to prevent infinite loop - only update when preferred actually changes
+  const preferredBackendValue = useMemo(
+    () => detectionState.availableBackends?.preferred || "webgl2",
+    [detectionState.availableBackends?.preferred],
+  );
+
   useEffect(() => {
     console.log("[useBackend] Detection state changed:", {
       availableBackends: detectionState.availableBackends,
     });
     if (detectionState.availableBackends) {
-      setPreferredBackend(detectionState.availableBackends.preferred);
+      setPreferredBackend(preferredBackendValue);
     }
-  }, [detectionState.availableBackends]);
+  }, [preferredBackendValue]);
 
   const selectBackend = useCallback((backend: GraphicsBackend) => {
     console.log("[useBackend] Backend selected:", backend);
     setPreferredBackend(backend);
   }, []);
 
-  return {
-    ...detectionState,
-    selectedBackend: preferredBackend,
-    selectBackend,
-    isGraphicsReady,
-    graphicsError,
-  };
+  // Memoize return value to prevent infinite loops in dependent components
+  // Only depend on primitive values, not objects
+  return useMemo(
+    () => ({
+      availableBackends: detectionState.availableBackends,
+      selectedBackend: preferredBackend,
+      isInitialized: detectionState.isInitialized,
+      error: detectionState.error,
+      selectBackend,
+      isGraphicsReady,
+      graphicsError,
+    }),
+    [
+      detectionState.availableBackends?.preferred, // Only depend on primitive
+      detectionState.isInitialized,
+      detectionState.error,
+      preferredBackend,
+      selectBackend,
+    ],
+  );
 }

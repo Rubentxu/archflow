@@ -16,20 +16,20 @@ pub mod error;
 pub mod websocket;
 
 use axum::{
+    Json, Router,
     body::Body,
     extract::State,
-    http::{header, StatusCode, Uri},
+    http::{StatusCode, Uri, header},
     response::{IntoResponse, Response},
     routing::{delete, get, post, put},
-    Json, Router,
 };
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use tokio::net::TcpListener;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
-use tracing::info;
 use tracing::Level;
+use tracing::info;
 
 pub use error::{Error, Result};
 

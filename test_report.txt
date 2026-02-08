@@ -1,0 +1,4313 @@
+warning: missing documentation for a struct field
+  --> crates/archflow-core/src/types.rs:12:5
+   |
+12 |     pub x: f32,
+   |     ^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> crates/archflow-core/src/lib.rs:18:9
+   |
+18 | #![warn(missing_docs)]
+   |         ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-core/src/types.rs:13:5
+   |
+13 |     pub y: f32,
+   |     ^^^^^^^^^^
+
+warning: missing documentation for an associated function
+  --> crates/archflow-core/src/types.rs:30:5
+   |
+30 |     pub fn new(x: f32, y: f32) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for an associated function
+  --> crates/archflow-core/src/types.rs:35:5
+   |
+35 |     pub fn splat(v: f32) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+  --> crates/archflow-core/src/types.rs:40:5
+   |
+40 |     pub fn length_squared(&self) -> f32 {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+  --> crates/archflow-core/src/types.rs:45:5
+   |
+45 |     pub fn length(&self) -> f32 {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+  --> crates/archflow-core/src/types.rs:50:5
+   |
+50 |     pub fn normalize(&self) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+  --> crates/archflow-core/src/types.rs:60:5
+   |
+60 |     pub fn dot(&self, other: Vec2) -> f32 {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+  --> crates/archflow-core/src/types.rs:65:5
+   |
+65 |     pub fn cross(&self, other: Vec2) -> f32 {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+  --> crates/archflow-core/src/types.rs:70:5
+   |
+70 |     pub fn perpendicular(&self) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+  --> crates/archflow-core/src/types.rs:75:5
+   |
+75 |     pub fn lerp(&self, other: Vec2, t: f32) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+  --> crates/archflow-core/src/types.rs:83:5
+   |
+83 |     pub fn min(&self, other: Vec2) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+  --> crates/archflow-core/src/types.rs:88:5
+   |
+88 |     pub fn max(&self, other: Vec2) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-core/src/types.rs:163:5
+    |
+163 |     pub x: f64,
+    |     ^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-core/src/types.rs:164:5
+    |
+164 |     pub y: f64,
+    |     ^^^^^^^^^^
+
+warning: missing documentation for an associated function
+   --> crates/archflow-core/src/types.rs:172:5
+    |
+172 |     pub fn new(x: f64, y: f64) -> Self {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for an associated function
+   --> crates/archflow-core/src/types.rs:177:5
+    |
+177 |     pub fn splat(v: f64) -> Self {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> crates/archflow-core/src/types.rs:182:5
+    |
+182 |     pub fn length(&self) -> f64 {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-core/src/types.rs:270:5
+    |
+270 |     pub m00: f32,
+    |     ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-core/src/types.rs:271:5
+    |
+271 |     pub m01: f32,
+    |     ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-core/src/types.rs:272:5
+    |
+272 |     pub m02: f32,
+    |     ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-core/src/types.rs:273:5
+    |
+273 |     pub m10: f32,
+    |     ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-core/src/types.rs:274:5
+    |
+274 |     pub m11: f32,
+    |     ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-core/src/types.rs:275:5
+    |
+275 |     pub m12: f32,
+    |     ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-core/src/types.rs:276:5
+    |
+276 |     pub m20: f32,
+    |     ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-core/src/types.rs:277:5
+    |
+277 |     pub m21: f32,
+    |     ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-core/src/types.rs:278:5
+    |
+278 |     pub m22: f32,
+    |     ^^^^^^^^^^^^
+
+warning: `archflow-core` (lib) generated 27 warnings
+warning: `archflow-core` (lib test) generated 27 warnings (27 duplicates)
+warning: unused variable: `target_id`
+   --> crates/archflow-engine/src/command.rs:467:17
+    |
+467 |                 target_id,
+    |                 ^^^^^^^^^ help: try ignoring the field: `target_id: _`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `entity`
+   --> crates/archflow-engine/src/command.rs:830:17
+    |
+830 |                 entity,
+    |                 ^^^^^^ help: try ignoring the field: `entity: _`
+
+warning: unused variable: `parent_idx`
+    --> crates/archflow-engine/src/store.rs:1067:13
+     |
+1067 |         let parent_idx = entity_id.index().0 as usize;
+     |             ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_parent_idx`
+
+warning: missing documentation for a struct field
+  --> crates/archflow-engine/src/query.rs:28:5
+   |
+28 |     pub entity: EntityId,
+   |     ^^^^^^^^^^^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> crates/archflow-engine/src/lib.rs:32:9
+   |
+32 | #![warn(missing_docs)]
+   |         ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-engine/src/query.rs:29:5
+   |
+29 |     pub index: usize,
+   |     ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-engine/src/query.rs:30:5
+   |
+30 |     pub x: f32,
+   |     ^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-engine/src/query.rs:31:5
+   |
+31 |     pub y: f32,
+   |     ^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-engine/src/query.rs:32:5
+   |
+32 |     pub width: f32,
+   |     ^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-engine/src/query.rs:33:5
+   |
+33 |     pub height: f32,
+   |     ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-engine/src/query.rs:34:5
+   |
+34 |     pub layer: u8,
+   |     ^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-engine/src/query.rs:35:5
+   |
+35 |     pub is_visible: bool,
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-engine/src/query.rs:36:5
+   |
+36 |     pub is_selected: bool,
+   |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-engine/src/query.rs:37:5
+   |
+37 |     pub is_locked: bool,
+   |     ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-engine/src/query.rs:43:5
+   |
+43 |     pub entity: EntityId,
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-engine/src/query.rs:44:5
+   |
+44 |     pub index: usize,
+   |     ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-engine/src/query.rs:45:5
+   |
+45 |     pub x: f32,
+   |     ^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-engine/src/query.rs:46:5
+   |
+46 |     pub y: f32,
+   |     ^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-engine/src/query.rs:47:5
+   |
+47 |     pub width: f32,
+   |     ^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-engine/src/query.rs:48:5
+   |
+48 |     pub height: f32,
+   |     ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-engine/src/query.rs:49:5
+   |
+49 |     pub layer: u8,
+   |     ^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-engine/src/query.rs:50:5
+   |
+50 |     pub fill_color: u32,
+   |     ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-engine/src/query.rs:51:5
+   |
+51 |     pub stroke_color: u32,
+   |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-engine/src/query.rs:52:5
+   |
+52 |     pub stroke_width: f32,
+   |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-engine/src/query.rs:53:5
+   |
+53 |     pub texture_index: u16,
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-engine/src/query.rs:54:5
+   |
+54 |     pub uv_rect: [f32; 4],
+   |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-engine/src/query.rs:55:5
+   |
+55 |     pub is_visible: bool,
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-engine/src/query.rs:56:5
+   |
+56 |     pub is_selected: bool,
+   |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-engine/src/query.rs:57:5
+   |
+57 |     pub is_locked: bool,
+   |     ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for an associated function
+   --> crates/archflow-engine/src/query.rs:297:5
+    |
+297 |     pub fn new(store: &'a EntityStore) -> Self {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> crates/archflow-engine/src/query.rs:302:5
+    |
+302 |     pub fn transform(&self, index: usize) -> Option<[f32; 4]> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> crates/archflow-engine/src/query.rs:310:5
+    |
+310 |     pub fn position(&self, index: usize) -> Option<(f32, f32)> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> crates/archflow-engine/src/query.rs:319:5
+    |
+319 |     pub fn size(&self, index: usize) -> Option<(f32, f32)> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> crates/archflow-engine/src/query.rs:328:5
+    |
+328 |     pub fn world_transform(&self, index: usize) -> Option<[f32; 4]> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for an associated function
+   --> crates/archflow-engine/src/query.rs:343:5
+    |
+343 |     pub fn new(store: &'a EntityStore) -> Self {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> crates/archflow-engine/src/query.rs:348:5
+    |
+348 |     pub fn fill_color(&self, index: usize) -> Option<u32> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> crates/archflow-engine/src/query.rs:356:5
+    |
+356 |     pub fn stroke_color(&self, index: usize) -> Option<u32> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> crates/archflow-engine/src/query.rs:364:5
+    |
+364 |     pub fn stroke_width(&self, index: usize) -> Option<f32> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> crates/archflow-engine/src/query.rs:372:5
+    |
+372 |     pub fn texture_index(&self, index: usize) -> Option<u16> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> crates/archflow-engine/src/query.rs:380:5
+    |
+380 |     pub fn uv_rect(&self, index: usize) -> Option<[f32; 4]> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for an associated function
+   --> crates/archflow-engine/src/query.rs:395:5
+    |
+395 |     pub fn new(store: &'a EntityStore) -> Self {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> crates/archflow-engine/src/query.rs:400:5
+    |
+400 |     pub fn layer(&self, index: usize) -> Option<u8> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> crates/archflow-engine/src/query.rs:408:5
+    |
+408 |     pub fn is_visible(&self, index: usize) -> Option<bool> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> crates/archflow-engine/src/query.rs:416:5
+    |
+416 |     pub fn is_locked(&self, index: usize) -> Option<bool> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> crates/archflow-engine/src/query.rs:424:5
+    |
+424 |     pub fn is_selected(&self, index: usize) -> Option<bool> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `archflow-engine` (lib) generated 44 warnings (run `cargo fix --lib -p archflow-engine` to apply 3 suggestions)
+warning: unused import: `alloc::vec`
+  --> crates/archflow-logic/src/actuators/alignment.rs:19:5
+   |
+19 | use alloc::vec;
+   |     ^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `alloc::vec`
+  --> crates/archflow-logic/src/actuators/clipboard.rs:22:5
+   |
+22 | use alloc::vec;
+   |     ^^^^^^^^^^
+
+warning: unused import: `crate::signals::SignalByte`
+  --> crates/archflow-logic/src/actuators/connections.rs:25:5
+   |
+25 | use crate::signals::SignalByte;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `alloc::vec`
+  --> crates/archflow-logic/src/actuators/container.rs:20:5
+   |
+20 | use alloc::vec;
+   |     ^^^^^^^^^^
+
+warning: unused import: `alloc::vec`
+  --> crates/archflow-logic/src/actuators/gizmos.rs:22:5
+   |
+22 | use alloc::vec;
+   |     ^^^^^^^^^^
+
+warning: unused import: `core::panic`
+  --> crates/archflow-logic/src/actuators/selection.rs:18:5
+   |
+18 | use core::panic;
+   |     ^^^^^^^^^^^
+
+warning: unused imports: `Generation`, `Index`, and `Vec2`
+  --> crates/archflow-logic/src/actuators/selection.rs:20:31
+   |
+20 | use archflow_core::{EntityId, Generation, Index, MAX_ENTITIES, Vec2};
+   |                               ^^^^^^^^^^  ^^^^^                ^^^^
+
+warning: unused import: `Vec2`
+  --> crates/archflow-logic/src/actuators/z_order.rs:22:45
+   |
+22 | use archflow_core::{EntityId, MAX_ENTITIES, Vec2};
+   |                                             ^^^^
+
+warning: unused import: `alloc::format`
+  --> crates/archflow-logic/src/actuators/group.rs:18:5
+   |
+18 | use alloc::format;
+   |     ^^^^^^^^^^^^^
+
+warning: unused import: `alloc::string::String`
+  --> crates/archflow-logic/src/actuators/group.rs:19:5
+   |
+19 | use alloc::string::String;
+   |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `alloc::vec`
+  --> crates/archflow-logic/src/actuators/group.rs:20:5
+   |
+20 | use alloc::vec;
+   |     ^^^^^^^^^^
+
+warning: unused import: `Command`
+  --> crates/archflow-logic/src/actuators/group.rs:24:23
+   |
+24 | use archflow_engine::{Command, EntityStore};
+   |                       ^^^^^^^
+
+warning: unused import: `alloc::format`
+  --> crates/archflow-logic/src/actuators/smart_guides.rs:18:5
+   |
+18 | use alloc::format;
+   |     ^^^^^^^^^^^^^
+
+warning: unused import: `alloc::string::String`
+  --> crates/archflow-logic/src/actuators/smart_guides.rs:19:5
+   |
+19 | use alloc::string::String;
+   |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `alloc::vec`
+  --> crates/archflow-logic/src/actuators/smart_guides.rs:20:5
+   |
+20 | use alloc::vec;
+   |     ^^^^^^^^^^
+
+warning: unused imports: `Generation` and `Index`
+  --> crates/archflow-logic/src/actuators/smart_guides.rs:23:31
+   |
+23 | use archflow_core::{EntityId, Generation, Index, Vec2};
+   |                               ^^^^^^^^^^  ^^^^^
+
+warning: unused import: `Command`
+  --> crates/archflow-logic/src/actuators/smart_guides.rs:24:23
+   |
+24 | use archflow_engine::{Command, EntityStore};
+   |                       ^^^^^^^
+
+warning: unused import: `alloc::format`
+  --> crates/archflow-logic/src/actuators/snap.rs:18:5
+   |
+18 | use alloc::format;
+   |     ^^^^^^^^^^^^^
+
+warning: unused import: `alloc::string::String`
+  --> crates/archflow-logic/src/actuators/snap.rs:19:5
+   |
+19 | use alloc::string::String;
+   |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `alloc::string::ToString`
+ --> crates/archflow-logic/src/events.rs:8:5
+  |
+8 | use alloc::string::ToString;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `LogicEventType`
+  --> crates/archflow-logic/src/logic_system.rs:22:50
+   |
+22 | use crate::events::{EventRingBuffer, LogicEvent, LogicEventType};
+   |                                                  ^^^^^^^^^^^^^^
+
+warning: unused import: `MouseMode`
+  --> crates/archflow-logic/src/logic_system.rs:27:18
+   |
+27 |     MouseConfig, MouseMode, MouseSensor, ProximitySensor, RadarAxis, RadarSensor, TouchSensor,
+   |                  ^^^^^^^^^
+
+warning: unused import: `SignalState`
+  --> crates/archflow-logic/src/sensors/mouse.rs:38:34
+   |
+38 | use crate::signals::{SignalByte, SignalState};
+   |                                  ^^^^^^^^^^^
+
+warning: unused variable: `start_size`
+   --> crates/archflow-logic/src/actuators/alignment.rs:488:25
+    |
+488 |         let (start_pos, start_size, end_pos, end_size) = match axis {
+    |                         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_start_size`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `end_size`
+   --> crates/archflow-logic/src/actuators/alignment.rs:488:46
+    |
+488 |         let (start_pos, start_size, end_pos, end_size) = match axis {
+    |                                              ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_end_size`
+
+warning: unused variable: `spacing`
+   --> crates/archflow-logic/src/actuators/alignment.rs:514:13
+    |
+514 |         let spacing = if spacing_count > 0.0 {
+    |             ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_spacing`
+
+warning: unused variable: `t`
+   --> crates/archflow-logic/src/actuators/alignment.rs:531:29
+    |
+531 |                         let t = i as f32 / (alive_entities.len() - 1) as f32;
+    |                             ^ help: if this is intentional, prefix it with an underscore: `_t`
+
+warning: unused variable: `entity_id_for_undo`
+   --> crates/archflow-logic/src/actuators/clipboard.rs:394:17
+    |
+394 |             let entity_id_for_undo = new_id;
+    |                 ^^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_entity_id_for_undo`
+
+warning: unused variable: `idx`
+    --> crates/archflow-logic/src/actuators/connections.rs:1475:20
+     |
+1475 |             .map(|(idx, anchor)| {
+     |                    ^^^ help: if this is intentional, prefix it with an underscore: `_idx`
+
+warning: unused variable: `path`
+    --> crates/archflow-logic/src/actuators/connections.rs:1842:13
+     |
+1842 |         let path = vec![source_pos, source_pos]; // Simplified
+     |             ^^^^ help: if this is intentional, prefix it with an underscore: `_path`
+
+warning: unused variable: `store`
+    --> crates/archflow-logic/src/actuators/connections.rs:1963:9
+     |
+1963 |         store: &EntityStore,
+     |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_store`
+
+warning: unused variable: `connection_ids`
+    --> crates/archflow-logic/src/actuators/connections.rs:1964:9
+     |
+1964 |         connection_ids: &[EntityId],
+     |         ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_connection_ids`
+
+warning: unused variable: `store`
+   --> crates/archflow-logic/src/actuators/gizmos.rs:410:9
+    |
+410 |         store: &mut EntityStore,
+    |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_store`
+
+warning: unused variable: `store`
+   --> crates/archflow-logic/src/actuators/gizmos.rs:441:9
+    |
+441 |         store: &mut EntityStore,
+    |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_store`
+
+warning: unused variable: `from_center`
+   --> crates/archflow-logic/src/actuators/gizmos.rs:558:9
+    |
+558 |         from_center: bool,
+    |         ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_from_center`
+
+warning: unused variable: `store`
+   --> crates/archflow-logic/src/actuators/gizmos.rs:641:9
+    |
+641 |         store: &mut EntityStore,
+    |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_store`
+
+warning: unused variable: `store`
+   --> crates/archflow-logic/src/actuators/gizmos.rs:655:9
+    |
+655 |         store: &mut EntityStore,
+    |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_store`
+
+warning: unused variable: `orig`
+   --> crates/archflow-logic/src/actuators/gizmos.rs:658:25
+    |
+658 |         for (&entity, (&orig, &new)) in entity_ids
+    |                         ^^^^ help: if this is intentional, prefix it with an underscore: `_orig`
+
+warning: unused variable: `store`
+   --> crates/archflow-logic/src/actuators/gizmos.rs:828:9
+    |
+828 |         store: &mut EntityStore,
+    |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_store`
+
+warning: unused variable: `store`
+   --> crates/archflow-logic/src/actuators/selection.rs:335:32
+    |
+335 |     pub fn deselect(&mut self, store: &EntityStore) -> SelectionResult {
+    |                                ^^^^^ help: if this is intentional, prefix it with an underscore: `_store`
+
+warning: unused variable: `old_size`
+   --> crates/archflow-logic/src/actuators/swimlane.rs:318:13
+    |
+318 |         let old_size = store.size(idx);
+    |             ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_old_size`
+
+warning: unused variable: `orientation`
+   --> crates/archflow-logic/src/actuators/swimlane.rs:345:9
+    |
+345 |         orientation: SwimlaneOrientation,
+    |         ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_orientation`
+
+warning: unused variable: `idx`
+   --> crates/archflow-logic/src/actuators/z_order.rs:243:13
+    |
+243 |         let idx = entity.index().0 as usize;
+    |             ^^^ help: if this is intentional, prefix it with an underscore: `_idx`
+
+warning: unused variable: `store`
+   --> crates/archflow-logic/src/logic_system.rs:620:41
+    |
+620 |     pub fn execute_actuators(&mut self, store: &mut EntityStore, pulses: &[Pulse]) {
+    |                                         ^^^^^ help: if this is intentional, prefix it with an underscore: `_store`
+
+warning: unused variable: `pulse`
+   --> crates/archflow-logic/src/logic_system.rs:622:13
+    |
+622 |         for pulse in pulses {
+    |             ^^^^^ help: if this is intentional, prefix it with an underscore: `_pulse`
+
+warning: unused variable: `active`
+   --> crates/archflow-logic/src/mapping/mapping_table.rs:431:29
+    |
+431 |                         let active = signals
+    |                             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_active`
+
+warning: unused variable: `old_len`
+   --> crates/archflow-logic/src/sensors/mouse.rs:267:13
+    |
+267 |         let old_len = self.signals.len();
+    |             ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_old_len`
+
+warning: field `entity_id` is never read
+   --> crates/archflow-logic/src/actuators/camera.rs:267:5
+    |
+265 | pub struct CameraActuator {
+    |            -------------- field in this struct
+266 |     /// Entity ID this actuator operates on
+267 |     entity_id: EntityId,
+    |     ^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `max_history` is never read
+   --> crates/archflow-logic/src/actuators/clipboard.rs:196:5
+    |
+194 | pub struct CopyActuator {
+    |            ------------ field in this struct
+195 |     /// Maximum clipboard history
+196 |     max_history: usize,
+    |     ^^^^^^^^^^^
+
+warning: field `temp_anchor` is never read
+  --> crates/archflow-logic/src/actuators/connections.rs:44:5
+   |
+38 | struct BindState {
+   |        --------- field in this struct
+...
+44 |     temp_anchor: Vec2,
+   |     ^^^^^^^^^^^
+   |
+   = note: `BindState` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: field `config` is never read
+   --> crates/archflow-logic/src/actuators/connections.rs:306:5
+    |
+304 | pub struct ElbowRoutingActuator {
+    |            -------------------- field in this struct
+305 |     /// Configuration
+306 |     config: ElbowConfig,
+    |     ^^^^^^
+
+warning: fields `grid_size` and `max_iterations` are never read
+   --> crates/archflow-logic/src/actuators/connections.rs:477:5
+    |
+475 | pub struct AutoRouteActuator {
+    |            ----------------- fields in this struct
+476 |     /// Grid cell size for pathfinding
+477 |     grid_size: f32,
+    |     ^^^^^^^^^
+478 |     /// Maximum iterations before giving up
+479 |     max_iterations: u32,
+    |     ^^^^^^^^^^^^^^
+
+warning: field `default_size` is never read
+  --> crates/archflow-logic/src/actuators/container.rs:75:5
+   |
+71 | pub struct ContainerActuator {
+   |            ----------------- field in this struct
+...
+75 |     default_size: Vec2,
+   |     ^^^^^^^^^^^^
+
+warning: field `config` is never read
+   --> crates/archflow-logic/src/actuators/gizmos.rs:176:5
+    |
+172 | pub struct TransformGizmoActuator {
+    |            ---------------------- field in this struct
+...
+176 |     config: GizmoConfig,
+    |     ^^^^^^
+
+warning: field `config` is never read
+   --> crates/archflow-logic/src/actuators/gizmos.rs:346:5
+    |
+344 | pub struct GizmoMoveActuator {
+    |            ----------------- field in this struct
+345 |     /// Configuration
+346 |     config: GizmoConfig,
+    |     ^^^^^^
+
+warning: field `config` is never read
+   --> crates/archflow-logic/src/actuators/gizmos.rs:514:5
+    |
+512 | pub struct GizmoScaleActuator {
+    |            ------------------ field in this struct
+513 |     /// Configuration
+514 |     config: GizmoConfig,
+    |     ^^^^^^
+
+warning: field `original_color` is never read
+  --> crates/archflow-logic/src/actuators/highlight.rs:30:5
+   |
+28 | struct HighlightState {
+   |        -------------- field in this struct
+29 |     /// Original color before highlight
+30 |     original_color: u32,
+   |     ^^^^^^^^^^^^^^
+   |
+   = note: `HighlightState` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: field `entity_id` is never read
+   --> crates/archflow-logic/src/actuators/state.rs:387:5
+    |
+385 | pub struct StateActuator {
+    |            ------------- field in this struct
+386 |     /// Entity ID this actuator operates on
+387 |     entity_id: EntityId,
+    |     ^^^^^^^^^
+
+warning: field `default_state` is never read
+   --> crates/archflow-logic/src/actuators/state.rs:437:5
+    |
+429 | pub struct StateManager {
+    |            ------------ field in this struct
+...
+437 |     default_state: EntityState,
+    |     ^^^^^^^^^^^^^
+
+warning: field `lane_spatial` is never read
+   --> crates/archflow-logic/src/actuators/swimlane.rs:112:5
+    |
+108 | pub struct SwimlaneActuator {
+    |            ---------------- field in this struct
+...
+112 |     lane_spatial: Vec<(EntityId, usize)>, // (entity_id, lane_index)
+    |     ^^^^^^^^^^^^
+
+warning: field `batch_mode` is never read
+  --> crates/archflow-logic/src/actuators/z_order.rs:77:5
+   |
+75 | pub struct ZOrderActuator {
+   |            -------------- field in this struct
+76 |     /// Batch mode for multiple entities
+77 |     batch_mode: bool,
+   |     ^^^^^^^^^^
+
+warning: missing documentation for the crate
+   --> crates/archflow-logic/src/lib.rs:19:1
+    |
+ 19 | / #![no_std]
+ 20 | | #![warn(missing_docs)]
+ 21 | | #![warn(clippy::all)]
+...   |
+136 | | };
+137 | | pub use visibility::{VisibilityActuator, VisibilityBitset, VisibilityConfig, VisibilityManager};
+    | |________________________________________________________________________________________________^
+    |
+note: the lint level is defined here
+   --> crates/archflow-logic/src/lib.rs:20:9
+    |
+ 20 | #![warn(missing_docs)]
+    |         ^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/lib.rs:25:1
+   |
+25 | pub mod actuators;
+   | ^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/lib.rs:26:1
+   |
+26 | pub mod command;
+   | ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/lib.rs:27:1
+   |
+27 | pub mod events;
+   | ^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/lib.rs:28:1
+   |
+28 | pub mod input;
+   | ^^^^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> crates/archflow-logic/src/input.rs:10:9
+   |
+10 | #![warn(missing_docs)]
+   |         ^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/lib.rs:29:1
+   |
+29 | pub mod logic_driver;
+   | ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/lib.rs:30:1
+   |
+30 | pub mod logic_system;
+   | ^^^^^^^^^^^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> crates/archflow-logic/src/logic_system.rs:16:9
+   |
+16 | #![warn(missing_docs)]
+   |         ^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/lib.rs:31:1
+   |
+31 | pub mod mapping;
+   | ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/lib.rs:32:1
+   |
+32 | pub mod physics_pulse;
+   | ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/lib.rs:33:1
+   |
+33 | pub mod pulse;
+   | ^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/lib.rs:35:1
+   |
+35 | pub mod signals;
+   | ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/lib.rs:36:1
+   |
+36 | pub mod snap;
+   | ^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/lib.rs:38:1
+   |
+38 | pub mod tween;
+   | ^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/lib.rs:39:1
+   |
+39 | pub mod visibility;
+   | ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/actuators/mod.rs:12:1
+   |
+12 | pub mod alignment;
+   | ^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/actuators/mod.rs:13:1
+   |
+13 | pub mod batch_select;
+   | ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/actuators/mod.rs:14:1
+   |
+14 | pub mod camera;
+   | ^^^^^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> crates/archflow-logic/src/actuators/camera.rs:22:9
+   |
+22 | #![warn(missing_docs)]
+   |         ^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/actuators/mod.rs:15:1
+   |
+15 | pub mod clipboard;
+   | ^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/actuators/mod.rs:16:1
+   |
+16 | pub mod connections;
+   | ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/actuators/mod.rs:17:1
+   |
+17 | pub mod container;
+   | ^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/actuators/mod.rs:18:1
+   |
+18 | pub mod gizmos;
+   | ^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/actuators/mod.rs:19:1
+   |
+19 | pub mod highlight;
+   | ^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/actuators/mod.rs:20:1
+   |
+20 | pub mod message;
+   | ^^^^^^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> crates/archflow-logic/src/actuators/message.rs:25:9
+   |
+25 | #![warn(missing_docs)]
+   |         ^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/actuators/mod.rs:21:1
+   |
+21 | pub mod move_;
+   | ^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/actuators/mod.rs:22:1
+   |
+22 | pub mod property;
+   | ^^^^^^^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> crates/archflow-logic/src/actuators/property.rs:17:9
+   |
+17 | #![warn(missing_docs)]
+   |         ^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/actuators/mod.rs:23:1
+   |
+23 | pub mod selection;
+   | ^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/actuators/mod.rs:24:1
+   |
+24 | pub mod state;
+   | ^^^^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> crates/archflow-logic/src/actuators/state.rs:23:9
+   |
+23 | #![warn(missing_docs)]
+   |         ^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/actuators/mod.rs:25:1
+   |
+25 | pub mod swimlane;
+   | ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/actuators/mod.rs:26:1
+   |
+26 | pub mod z_order;
+   | ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/actuators/mod.rs:50:1
+   |
+50 | pub mod group;
+   | ^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/actuators/mod.rs:56:1
+   |
+56 | pub mod smart_guides;
+   | ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/actuators/mod.rs:57:1
+   |
+57 | pub mod snap;
+   | ^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> crates/archflow-logic/src/actuators/clipboard.rs:137:5
+    |
+137 |     pub fn can_go_forward(&self) -> bool {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+    --> crates/archflow-logic/src/actuators/connections.rs:1659:5
+     |
+1659 |     pub crossings_after: usize,
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+    --> crates/archflow-logic/src/actuators/connections.rs:1660:5
+     |
+1660 |     pub paths_modified: usize,
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+    --> crates/archflow-logic/src/actuators/connections.rs:1661:5
+     |
+1661 |     pub iterations_used: u32,
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/input.rs:136:5
+    |
+136 |     Left,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/input.rs:137:5
+    |
+137 |     Right,
+    |     ^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/input.rs:138:5
+    |
+138 |     Middle,
+    |     ^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/input.rs:250:5
+    |
+250 |     MouseMove { x: i32, y: i32 },
+    |     ^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-logic/src/input.rs:250:17
+    |
+250 |     MouseMove { x: i32, y: i32 },
+    |                 ^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-logic/src/input.rs:250:25
+    |
+250 |     MouseMove { x: i32, y: i32 },
+    |                         ^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/input.rs:251:5
+    |
+251 |     MouseButtonDown { button: u8 },
+    |     ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-logic/src/input.rs:251:23
+    |
+251 |     MouseButtonDown { button: u8 },
+    |                       ^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/input.rs:252:5
+    |
+252 |     MouseButtonUp { button: u8 },
+    |     ^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-logic/src/input.rs:252:21
+    |
+252 |     MouseButtonUp { button: u8 },
+    |                     ^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/input.rs:253:5
+    |
+253 |     MouseWheel { delta: i16 },
+    |     ^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-logic/src/input.rs:253:18
+    |
+253 |     MouseWheel { delta: i16 },
+    |                  ^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/input.rs:254:5
+    |
+254 |     KeyDown { keycode: u8 },
+    |     ^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-logic/src/input.rs:254:15
+    |
+254 |     KeyDown { keycode: u8 },
+    |               ^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/input.rs:255:5
+    |
+255 |     KeyUp { keycode: u8 },
+    |     ^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-logic/src/input.rs:255:13
+    |
+255 |     KeyUp { keycode: u8 },
+    |             ^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/input.rs:256:5
+    |
+256 |     Modifiers { shift: bool, ctrl: bool, alt: bool },
+    |     ^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-logic/src/input.rs:256:17
+    |
+256 |     Modifiers { shift: bool, ctrl: bool, alt: bool },
+    |                 ^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-logic/src/input.rs:256:30
+    |
+256 |     Modifiers { shift: bool, ctrl: bool, alt: bool },
+    |                              ^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-logic/src/input.rs:256:42
+    |
+256 |     Modifiers { shift: bool, ctrl: bool, alt: bool },
+    |                                          ^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/mapping/mod.rs:10:1
+   |
+10 | pub mod controller;
+   | ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/mapping/mod.rs:11:1
+   |
+11 | pub mod mapping_table;
+   | ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/mapping/mod.rs:12:1
+   |
+12 | pub mod sensor_type;
+   | ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/mapping/controller.rs:244:5
+    |
+244 |     Bool(bool),
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/mapping/controller.rs:245:5
+    |
+245 |     Number(f64),
+    |     ^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/mapping/controller.rs:246:5
+    |
+246 |     String(String),
+    |     ^^^^^^
+
+warning: missing documentation for a variant
+  --> crates/archflow-logic/src/mapping/mapping_table.rs:34:5
+   |
+34 |     Highlight = 0,
+   |     ^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> crates/archflow-logic/src/mapping/mapping_table.rs:35:5
+   |
+35 |     Select = 1,
+   |     ^^^^^^
+
+warning: missing documentation for a variant
+  --> crates/archflow-logic/src/mapping/mapping_table.rs:36:5
+   |
+36 |     Move = 2,
+   |     ^^^^
+
+warning: missing documentation for a variant
+  --> crates/archflow-logic/src/mapping/mapping_table.rs:37:5
+   |
+37 |     Delete = 3,
+   |     ^^^^^^
+
+warning: missing documentation for a variant
+  --> crates/archflow-logic/src/mapping/mapping_table.rs:38:5
+   |
+38 |     Undo = 4,
+   |     ^^^^
+
+warning: missing documentation for a variant
+  --> crates/archflow-logic/src/mapping/mapping_table.rs:39:5
+   |
+39 |     Redo = 5,
+   |     ^^^^
+
+warning: missing documentation for a variant
+  --> crates/archflow-logic/src/mapping/mapping_table.rs:40:5
+   |
+40 |     Camera = 6,
+   |     ^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/sensors/mod.rs:66:1
+   |
+66 | pub mod box_select;
+   | ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/sensors/mod.rs:67:1
+   |
+67 | pub mod collision;
+   | ^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/sensors/mod.rs:68:1
+   |
+68 | pub mod key_shortcut;
+   | ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/sensors/mod.rs:69:1
+   |
+69 | pub mod mouse;
+   | ^^^^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> crates/archflow-logic/src/sensors/mouse.rs:31:9
+   |
+31 | #![warn(missing_docs)]
+   |         ^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/sensors/mod.rs:70:1
+   |
+70 | pub mod near;
+   | ^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/sensors/mod.rs:71:1
+   |
+71 | pub mod proximity;
+   | ^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/sensors/mod.rs:72:1
+   |
+72 | pub mod radar;
+   | ^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-logic/src/sensors/mod.rs:73:1
+   |
+73 | pub mod touch;
+   | ^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:143:5
+    |
+143 |     KeyA = 0,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:144:5
+    |
+144 |     KeyB,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:145:5
+    |
+145 |     KeyC,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:146:5
+    |
+146 |     KeyD,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:147:5
+    |
+147 |     KeyE,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:148:5
+    |
+148 |     KeyF,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:149:5
+    |
+149 |     KeyG,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:150:5
+    |
+150 |     KeyH,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:151:5
+    |
+151 |     KeyI,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:152:5
+    |
+152 |     KeyJ,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:153:5
+    |
+153 |     KeyK,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:154:5
+    |
+154 |     KeyL,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:155:5
+    |
+155 |     KeyM,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:156:5
+    |
+156 |     KeyN,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:157:5
+    |
+157 |     KeyO,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:158:5
+    |
+158 |     KeyP,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:159:5
+    |
+159 |     KeyQ,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:160:5
+    |
+160 |     KeyR,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:161:5
+    |
+161 |     KeyS,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:162:5
+    |
+162 |     KeyT,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:163:5
+    |
+163 |     KeyU,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:164:5
+    |
+164 |     KeyV,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:165:5
+    |
+165 |     KeyW,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:166:5
+    |
+166 |     KeyX,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:167:5
+    |
+167 |     KeyY,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:168:5
+    |
+168 |     KeyZ,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:171:5
+    |
+171 |     Digit0 = 26,
+    |     ^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:172:5
+    |
+172 |     Digit1,
+    |     ^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:173:5
+    |
+173 |     Digit2,
+    |     ^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:174:5
+    |
+174 |     Digit3,
+    |     ^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:175:5
+    |
+175 |     Digit4,
+    |     ^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:176:5
+    |
+176 |     Digit5,
+    |     ^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:177:5
+    |
+177 |     Digit6,
+    |     ^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:178:5
+    |
+178 |     Digit7,
+    |     ^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:179:5
+    |
+179 |     Digit8,
+    |     ^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:180:5
+    |
+180 |     Digit9,
+    |     ^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:183:5
+    |
+183 |     Enter = 36,
+    |     ^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:184:5
+    |
+184 |     Escape,
+    |     ^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:185:5
+    |
+185 |     Space,
+    |     ^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:186:5
+    |
+186 |     Tab,
+    |     ^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:187:5
+    |
+187 |     Backspace,
+    |     ^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:188:5
+    |
+188 |     Delete,
+    |     ^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:191:5
+    |
+191 |     ArrowUp,
+    |     ^^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:192:5
+    |
+192 |     ArrowDown,
+    |     ^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:193:5
+    |
+193 |     ArrowLeft,
+    |     ^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:194:5
+    |
+194 |     ArrowRight,
+    |     ^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:197:5
+    |
+197 |     F1,
+    |     ^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:198:5
+    |
+198 |     F2,
+    |     ^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:199:5
+    |
+199 |     F3,
+    |     ^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:200:5
+    |
+200 |     F4,
+    |     ^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:201:5
+    |
+201 |     F5,
+    |     ^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:202:5
+    |
+202 |     F6,
+    |     ^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:203:5
+    |
+203 |     F7,
+    |     ^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:204:5
+    |
+204 |     F8,
+    |     ^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:205:5
+    |
+205 |     F9,
+    |     ^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:206:5
+    |
+206 |     F10,
+    |     ^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:207:5
+    |
+207 |     F11,
+    |     ^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/sensors/key_shortcut.rs:208:5
+    |
+208 |     F12,
+    |     ^^^
+
+warning: missing documentation for a struct
+  --> crates/archflow-logic/src/sensors/near.rs:17:1
+   |
+17 | pub struct NearSensor {
+   | ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for an associated function
+  --> crates/archflow-logic/src/sensors/near.rs:31:5
+   |
+31 |     pub fn new(capacity: usize, distance: f32, reset_distance: f32) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for an associated function
+  --> crates/archflow-logic/src/sensors/near.rs:55:5
+   |
+55 |     pub fn with_tag(capacity: usize, distance: f32, reset_distance: f32, target_tag: u32) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+  --> crates/archflow-logic/src/sensors/near.rs:63:5
+   |
+63 |     pub const fn sensor_id(&self) -> u32 {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+  --> crates/archflow-logic/src/sensors/near.rs:69:5
+   |
+69 |     pub const fn distance(&self) -> f32 {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+  --> crates/archflow-logic/src/sensors/near.rs:75:5
+   |
+75 |     pub const fn reset_distance(&self) -> f32 {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+  --> crates/archflow-logic/src/sensors/near.rs:80:5
+   |
+80 |     pub fn set_invert(&mut self, invert: bool) {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+  --> crates/archflow-logic/src/sensors/near.rs:85:5
+   |
+85 |     pub fn evaluate(&mut self, entity: EntityId, store: &EntityStore, spatial: &SpatialHash) {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> crates/archflow-logic/src/sensors/near.rs:140:5
+    |
+140 |     pub fn is_near(&self, entity: EntityId) -> bool {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> crates/archflow-logic/src/sensors/near.rs:150:5
+    |
+150 |     pub fn on_proximity_enter(&self, entity: EntityId) -> bool {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> crates/archflow-logic/src/sensors/near.rs:160:5
+    |
+160 |     pub fn on_proximity_exit(&self, entity: EntityId) -> bool {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> crates/archflow-logic/src/sensors/near.rs:170:5
+    |
+170 |     pub fn len(&self) -> usize {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> crates/archflow-logic/src/sensors/near.rs:176:5
+    |
+176 |     pub fn is_empty(&self) -> bool {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-logic/src/snap.rs:110:12
+    |
+110 |     Grid { x: f32, y: f32 },
+    |            ^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-logic/src/snap.rs:110:20
+    |
+110 |     Grid { x: f32, y: f32 },
+    |                    ^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-logic/src/snap.rs:113:18
+    |
+113 |     EntityEdge { entity: EntityId, edge: EntityEdge },
+    |                  ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-logic/src/snap.rs:113:36
+    |
+113 |     EntityEdge { entity: EntityId, edge: EntityEdge },
+    |                                    ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-logic/src/snap.rs:116:20
+    |
+116 |     EntityCenter { entity: EntityId },
+    |                    ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/snap.rs:122:5
+    |
+122 |     Left,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/snap.rs:123:5
+    |
+123 |     Right,
+    |     ^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/snap.rs:124:5
+    |
+124 |     Top,
+    |     ^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/snap.rs:125:5
+    |
+125 |     Bottom,
+    |     ^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-logic/src/snap.rs:591:5
+    |
+591 |     pub min: Vec2,
+    |     ^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-logic/src/snap.rs:592:5
+    |
+592 |     pub max: Vec2,
+    |     ^^^^^^^^^^^^^
+
+warning: missing documentation for an associated function
+   --> crates/archflow-logic/src/snap.rs:597:5
+    |
+597 |     pub fn new(min: Vec2, max: Vec2) -> Self {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for an associated function
+   --> crates/archflow-logic/src/snap.rs:602:5
+    |
+602 |     pub fn from_min_max(min_x: f32, min_y: f32, max_x: f32, max_y: f32) -> Self {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> crates/archflow-logic/src/snap.rs:610:5
+    |
+610 |     pub fn center(&self) -> Vec2 {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> crates/archflow-logic/src/snap.rs:618:5
+    |
+618 |     pub fn width(&self) -> f32 {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> crates/archflow-logic/src/snap.rs:623:5
+    |
+623 |     pub fn height(&self) -> f32 {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-logic/src/spatial.rs:134:5
+    |
+134 |     pub x: i32,
+    |     ^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-logic/src/spatial.rs:135:5
+    |
+135 |     pub y: i32,
+    |     ^^^^^^^^^^
+
+warning: missing documentation for an associated function
+   --> crates/archflow-logic/src/spatial.rs:140:5
+    |
+140 |     pub fn new(x: i32, y: i32) -> Self {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/tween.rs:145:5
+    |
+145 |     Linear,
+    |     ^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/tween.rs:146:5
+    |
+146 |     QuadIn,
+    |     ^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/tween.rs:147:5
+    |
+147 |     QuadOut,
+    |     ^^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/tween.rs:148:5
+    |
+148 |     QuadInOut,
+    |     ^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/tween.rs:149:5
+    |
+149 |     CubicIn,
+    |     ^^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/tween.rs:150:5
+    |
+150 |     CubicOut,
+    |     ^^^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/tween.rs:151:5
+    |
+151 |     CubicInOut,
+    |     ^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/tween.rs:152:5
+    |
+152 |     SineIn,
+    |     ^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/tween.rs:153:5
+    |
+153 |     SineOut,
+    |     ^^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/tween.rs:154:5
+    |
+154 |     SineInOut,
+    |     ^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/tween.rs:155:5
+    |
+155 |     ElasticOut,
+    |     ^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/tween.rs:156:5
+    |
+156 |     BounceOut,
+    |     ^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-logic/src/tween.rs:157:5
+    |
+157 |     BackOut,
+    |     ^^^^^^^
+
+warning: missing documentation for a method
+   --> crates/archflow-logic/src/tween.rs:162:5
+    |
+162 |     pub fn apply(self, t: f32) -> f32 {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused variable: `id2`
+   --> crates/archflow-export/src/serialization.rs:709:13
+    |
+709 |         let id2 = store.spawn(
+    |             ^^^ help: if this is intentional, prefix it with an underscore: `_id2`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `EntityId`
+   --> crates/archflow-logic/src/actuators/property.rs:280:25
+    |
+280 |     use archflow_core::{EntityId, Vec2};
+    |                         ^^^^^^^^
+
+warning: unused macro definition: `ctx_vars`
+   --> crates/archflow-logic/src/mapping/controller.rs:641:18
+    |
+641 |     macro_rules! ctx_vars {
+    |                  ^^^^^^^^
+    |
+    = note: `#[warn(unused_macros)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `e3`
+   --> crates/archflow-logic/src/actuators/batch_select.rs:910:13
+    |
+910 |         let e3 = store.spawn(Vec2::new(250.0, 50.0), Vec2::new(20.0, 20.0));
+    |             ^^ help: if this is intentional, prefix it with an underscore: `_e3`
+
+warning: unused variable: `actuator`
+    --> crates/archflow-logic/src/actuators/connections.rs:1071:13
+     |
+1071 |         let actuator = LineStyleActuator::new();
+     |             ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_actuator`
+
+warning: unused variable: `actuator`
+    --> crates/archflow-logic/src/actuators/connections.rs:1084:13
+     |
+1084 |         let actuator = LineStyleActuator::with_config(config);
+     |             ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_actuator`
+
+warning: variable does not need to be mutable
+    --> crates/archflow-logic/src/actuators/connections.rs:1148:13
+     |
+1148 |         let mut store = EntityStore::new();
+     |             ----^^^^^
+     |             |
+     |             help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `store`
+    --> crates/archflow-logic/src/actuators/connections.rs:1148:13
+     |
+1148 |         let mut store = EntityStore::new();
+     |             ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_store`
+
+warning: unused variable: `cmds`
+    --> crates/archflow-logic/src/actuators/connections.rs:2044:13
+     |
+2044 |         let cmds = actuator.hide_anchors();
+     |             ^^^^ help: if this is intentional, prefix it with an underscore: `_cmds`
+
+warning: unused variable: `cmds`
+   --> crates/archflow-logic/src/actuators/swimlane.rs:481:14
+    |
+481 |         let (cmds, lane_ids) = actuator.create_swimlanes(
+    |              ^^^^ help: if this is intentional, prefix it with an underscore: `_cmds`
+
+warning: variable does not need to be mutable
+   --> crates/archflow-logic/src/logic_system.rs:679:13
+    |
+679 |         let mut store = EntityStore::new();
+    |             ----^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: unused variable: `entity1`
+   --> crates/archflow-logic/src/logic_system.rs:747:13
+    |
+747 |         let entity1 = store.spawn(Vec2::new(0.0, 0.0), Vec2::new(50.0, 50.0));
+    |             ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_entity1`
+
+warning: unused variable: `entity2`
+   --> crates/archflow-logic/src/logic_system.rs:748:13
+    |
+748 |         let entity2 = store.spawn(Vec2::new(25.0, 25.0), Vec2::new(50.0, 50.0));
+    |             ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_entity2`
+
+warning: unused variable: `entity1`
+   --> crates/archflow-logic/src/logic_system.rs:764:13
+    |
+764 |         let entity1 = store.spawn(Vec2::new(0.0, 0.0), Vec2::new(50.0, 50.0));
+    |             ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_entity1`
+
+warning: unused variable: `entity2`
+   --> crates/archflow-logic/src/logic_system.rs:765:13
+    |
+765 |         let entity2 = store.spawn(Vec2::new(30.0, 30.0), Vec2::new(50.0, 50.0));
+    |             ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_entity2`
+
+warning: unused variable: `entity`
+   --> crates/archflow-logic/src/logic_system.rs:832:13
+    |
+832 |         let entity = store.spawn(Vec2::new(100.0, 100.0), Vec2::new(50.0, 50.0));
+    |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_entity`
+
+warning: unused variable: `pulse`
+   --> crates/archflow-logic/src/physics_pulse.rs:461:13
+    |
+461 |         let pulse = PhysicsPulse::collision(1, 10, 20, 1000);
+    |             ^^^^^ help: if this is intentional, prefix it with an underscore: `_pulse`
+
+warning: field `max_history` is never read
+   --> crates/archflow-logic/src/actuators/clipboard.rs:196:5
+    |
+194 | pub struct CopyActuator {
+    |            ------------ field in this struct
+195 |     /// Maximum clipboard history
+196 |     max_history: usize,
+    |     ^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused return value of `camera::Smoother::new` that must be used
+   --> crates/archflow-logic/src/actuators/camera.rs:495:9
+    |
+495 |         Smoother::new(1.5);
+    |         ^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_must_use)]` (part of `#[warn(unused)]`) on by default
+help: use `let _ = ...` to ignore the resulting value
+    |
+495 |         let _ = Smoother::new(1.5);
+    |         +++++++
+
+warning: unused return value of `logic_driver::LogicDriver::new` that must be used
+   --> crates/archflow-logic/src/logic_driver.rs:221:9
+    |
+221 |         LogicDriver::new(0);
+    |         ^^^^^^^^^^^^^^^^^^^
+    |
+help: use `let _ = ...` to ignore the resulting value
+    |
+221 |         let _ = LogicDriver::new(0);
+    |         +++++++
+
+warning: comparison is useless due to type limits
+   --> crates/archflow-logic/src/logic_system.rs:690:17
+    |
+690 |         assert!(pulses.len() >= 0);
+    |                 ^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_comparisons)]` on by default
+
+warning: comparison is useless due to type limits
+   --> crates/archflow-logic/src/logic_system.rs:849:17
+    |
+849 |         assert!(pulses1.len() >= 0 || pulses2.len() >= 0);
+    |                 ^^^^^^^^^^^^^^^^^^
+
+warning: comparison is useless due to type limits
+   --> crates/archflow-logic/src/logic_system.rs:849:39
+    |
+849 |         assert!(pulses1.len() >= 0 || pulses2.len() >= 0);
+    |                                       ^^^^^^^^^^^^^^^^^^
+
+warning: `archflow-logic` (lib) generated 242 warnings (run `cargo fix --lib -p archflow-logic` to apply 47 suggestions)
+warning: archflow-render@0.47.0: Compiled sdf_shapes.wgsl to sdf_shapes.glsl (2975 bytes)
+warning: archflow-render@0.47.0: Compiled icon_texture.wgsl to icon_texture.glsl (1781 bytes)
+warning: archflow-render@0.47.0: Compiled image_array.wgsl to image_array.glsl (1861 bytes)
+warning: archflow-render@0.47.0: Compiled mtsdf_text.wgsl to mtsdf_text.glsl (1872 bytes)
+warning: `archflow-export` (lib test) generated 1 warning (run `cargo fix --lib -p archflow-export --tests` to apply 1 suggestion)
+warning: `archflow-logic` (lib test) generated 252 warnings (230 duplicates) (run `cargo fix --lib -p archflow-logic --tests` to apply 15 suggestions)
+warning: unused import: `alloc::string::String`
+ --> crates/archflow-render/src/selector.rs:9:5
+  |
+9 | use alloc::string::String;
+  |     ^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `alloc::vec`
+  --> crates/archflow-render/src/webgl2_renderer_real.rs:20:5
+   |
+20 | use alloc::vec;
+   |     ^^^^^^^^^^
+
+warning: unused import: `Vec2`
+  --> crates/archflow-render/src/webgl2_renderer_real.rs:26:41
+   |
+26 | use archflow_core::{MAX_ENTITIES, Rect, Vec2};
+   |                                         ^^^^
+
+warning: unused variable: `debug_entity`
+   --> crates/archflow-render/src/webgl2_renderer_real.rs:525:21
+    |
+525 |                 let debug_entity = false; // idx == 0 && phase == RenderPhase::Shapes;
+    |                     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_debug_entity`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: associated function `has_webgpu` is never used
+   --> crates/archflow-render/src/selector.rs:147:8
+    |
+ 49 | impl RendererSelector {
+    | --------------------- associated function in this implementation
+...
+147 |     fn has_webgpu() -> bool {
+    |        ^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: missing documentation for a struct field
+   --> crates/archflow-render/src/renderer.rs:100:5
+    |
+100 |     pub _padding: [f32; 2], // 16-byte alignment
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: the lint level is defined here
+   --> crates/archflow-render/src/lib.rs:29:9
+    |
+ 29 | #![warn(missing_docs)]
+    |         ^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> crates/archflow-render/src/texture_layout.rs:69:5
+   |
+69 |     One = 1,
+   |     ^^^
+
+warning: missing documentation for a variant
+  --> crates/archflow-render/src/texture_layout.rs:70:5
+   |
+70 |     Two = 2,
+   |     ^^^
+
+warning: missing documentation for a variant
+  --> crates/archflow-render/src/texture_layout.rs:71:5
+   |
+71 |     Four = 4,
+   |     ^^^^
+
+warning: missing documentation for a variant
+  --> crates/archflow-render/src/texture_layout.rs:72:5
+   |
+72 |     Eight = 8,
+   |     ^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-render/src/texture_loader.rs:109:5
+    |
+109 |     pub height: u32,
+    |     ^^^^^^^^^^^^^^^
+
+warning: missing documentation for the crate
+  --> crates/archflow-sdk/src/lib.rs:18:1
+   |
+18 | / #![warn(missing_docs)]
+19 | | #![warn(clippy::all)]
+20 | |
+21 | | pub mod actuators;
+...  |
+43 | |     pub use crate::wiring::*;
+44 | | }
+   | |_^
+   |
+note: the lint level is defined here
+  --> crates/archflow-sdk/src/lib.rs:18:9
+   |
+18 | #![warn(missing_docs)]
+   |         ^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-sdk/src/lib.rs:21:1
+   |
+21 | pub mod actuators;
+   | ^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-sdk/src/lib.rs:22:1
+   |
+22 | pub mod sensors;
+   | ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-sdk/src/lib.rs:23:1
+   |
+23 | pub mod snap;
+   | ^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-sdk/src/lib.rs:24:1
+   |
+24 | pub mod wiring;
+   | ^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-sdk/src/lib.rs:39:1
+   |
+39 | pub mod prelude {
+   | ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-sdk/src/sensors.rs:128:5
+    |
+128 |     Left,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-sdk/src/sensors.rs:129:5
+    |
+129 |     Right,
+    |     ^^^^^
+
+warning: missing documentation for a variant
+   --> crates/archflow-sdk/src/sensors.rs:130:5
+    |
+130 |     Middle,
+    |     ^^^^^^
+
+warning: unused import: `std::path::Path`
+  --> crates/archflow-persistence/src/lib.rs:23:5
+   |
+23 | use std::path::Path;
+   |     ^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unexpected `cfg` condition value: `std`
+  --> crates/archflow-persistence/src/error.rs:67:7
+   |
+67 | #[cfg(feature = "std")]
+   |       ^^^^^^^^^^^^^^^ help: remove the condition
+   |
+   = note: no expected values for `feature`
+   = help: consider adding `std` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: unused import: `std::collections::BTreeMap`
+  --> crates/archflow-persistence/src/logic.rs:10:5
+   |
+10 | use std::collections::BTreeMap;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `SpatialIndexData`
+  --> crates/archflow-persistence/src/migration.rs:14:63
+   |
+14 |     document::{Document, DocumentMeta, Schema, SchemaVersion, SpatialIndexData, StoreSnapshot},
+   |                                                               ^^^^^^^^^^^^^^^^
+
+warning: unused import: `archflow_core::EntityId`
+  --> crates/archflow-persistence/src/migration.rs:17:5
+   |
+17 | use archflow_core::EntityId;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `EntityId` and `Vec2`
+ --> crates/archflow-persistence/src/spatial.rs:7:21
+  |
+7 | use archflow_core::{EntityId, Vec2};
+  |                     ^^^^^^^^  ^^^^
+
+warning: unused import: `std::collections::BTreeMap`
+ --> crates/archflow-persistence/src/spatial.rs:8:5
+  |
+8 | use std::collections::BTreeMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `ArchitectureData`, `PersistenceError`, `PropValue`, and `TextData`
+  --> crates/archflow-persistence/src/store.rs:12:5
+   |
+12 |     ArchitectureData, EntityData, PersistenceError, PersistenceResult, PropValue, StoreSnapshot,
+   |     ^^^^^^^^^^^^^^^^              ^^^^^^^^^^^^^^^^                     ^^^^^^^^^
+13 |     TextData,
+   |     ^^^^^^^^
+
+warning: unused import: `Read`
+  --> crates/archflow-persistence/src/format/binary.rs:10:23
+   |
+10 | use std::io::{Cursor, Read};
+   |                       ^^^^
+
+warning: enum `BinaryFormatType` is never used
+  --> crates/archflow-persistence/src/format/binary.rs:29:6
+   |
+29 | enum BinaryFormatType {
+   |      ^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: methods `with_compression` and `is_compressed` are never used
+  --> crates/archflow-persistence/src/format/binary.rs:54:8
+   |
+45 | impl BinaryHeader {
+   | ----------------- methods in this implementation
+...
+54 |     fn with_compression(mut self) -> Self {
+   |        ^^^^^^^^^^^^^^^^
+...
+60 |     fn is_compressed(&self) -> bool {
+   |        ^^^^^^^^^^^^^
+
+warning: methods `add_migration` and `get_migration_path` are never used
+   --> crates/archflow-persistence/src/migration.rs:82:8
+    |
+ 59 | impl MigrationEngine {
+    | -------------------- methods in this implementation
+...
+ 82 |     fn add_migration(&mut self, from: SchemaVersion, to: SchemaVersion, migration: MigrationFn) {
+    |        ^^^^^^^^^^^^^
+...
+129 |     fn get_migration_path(
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: function `create_test_document` is never used
+   --> crates/archflow-persistence/src/migration.rs:202:4
+    |
+202 | fn create_test_document(version: SchemaVersion) -> Document {
+    |    ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for the crate
+   --> crates/archflow-persistence/src/lib.rs:15:1
+    |
+ 15 | / #![warn(missing_docs)]
+ 16 | | #![warn(clippy::all)]
+ 17 | | #![warn(clippy::pedantic)]
+ 18 | | #![allow(clippy::module_name_repetitions)]
+...   |
+340 | | }
+    | |_^
+    |
+note: the lint level is defined here
+   --> crates/archflow-persistence/src/lib.rs:15:9
+    |
+ 15 | #![warn(missing_docs)]
+    |         ^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-persistence/src/lib.rs:29:1
+   |
+29 | pub mod migration;
+   | ^^^^^^^^^^^^^^^^^
+
+warning: unused import: `archflow_core::EntityId`
+   --> crates/archflow-sdk/src/wiring.rs:239:9
+    |
+239 |     use archflow_core::EntityId;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `ErrorKind`
+   --> crates/archflow-persistence/src/error.rs:121:23
+    |
+121 |         use bincode::{ErrorKind, serialize};
+    |                       ^^^^^^^^^
+
+warning: unused import: `Vec2`
+ --> crates/archflow-persistence/src/spatial.rs:7:31
+  |
+7 | use archflow_core::{EntityId, Vec2};
+  |                               ^^^^
+
+warning: unused import: `PropValue`
+   --> crates/archflow-persistence/src/spatial.rs:142:29
+    |
+142 |     use crate::{EntityData, PropValue};
+    |                             ^^^^^^^^^
+
+warning: method `add_migration` is never used
+  --> crates/archflow-persistence/src/migration.rs:82:8
+   |
+59 | impl MigrationEngine {
+   | -------------------- method in this implementation
+...
+82 |     fn add_migration(&mut self, from: SchemaVersion, to: SchemaVersion, migration: MigrationFn) {
+   |        ^^^^^^^^^^^^^
+
+warning: unused import: `alloc::vec`
+   --> crates/archflow-engine/src/command.rs:897:9
+    |
+897 |     use alloc::vec;
+    |         ^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `idx`
+    --> crates/archflow-engine/src/store.rs:1647:13
+     |
+1647 |         let idx = entity_id.index().0 as usize;
+     |             ^^^ help: if this is intentional, prefix it with an underscore: `_idx`
+
+warning: function `create_test_secured_command` is never used
+    --> crates/archflow-engine/src/security.rs:1294:8
+     |
+1294 |     fn create_test_secured_command(
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: comparison is useless due to type limits
+   --> crates/archflow-engine/src/compression.rs:436:17
+    |
+436 |         assert!(result.compression_time_ns >= 0);
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_comparisons)]` on by default
+
+warning: unused return value of `history::CommandHistory::undo` that must be used
+   --> crates/archflow-engine/src/history.rs:439:9
+    |
+439 |         history.undo();
+    |         ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_must_use)]` (part of `#[warn(unused)]`) on by default
+help: use `let _ = ...` to ignore the resulting value
+    |
+439 |         let _ = history.undo();
+    |         +++++++
+
+warning: unused return value of `history::CommandHistory::undo` that must be used
+   --> crates/archflow-engine/src/history.rs:455:9
+    |
+455 |         history.undo();
+    |         ^^^^^^^^^^^^^^
+    |
+help: use `let _ = ...` to ignore the resulting value
+    |
+455 |         let _ = history.undo();
+    |         +++++++
+
+warning: unused return value of `history::CommandHistory::undo` that must be used
+   --> crates/archflow-engine/src/history.rs:456:9
+    |
+456 |         history.undo();
+    |         ^^^^^^^^^^^^^^
+    |
+help: use `let _ = ...` to ignore the resulting value
+    |
+456 |         let _ = history.undo();
+    |         +++++++
+
+warning: unused return value of `history::CommandHistory::undo` that must be used
+   --> crates/archflow-engine/src/history.rs:479:9
+    |
+479 |         history.undo();
+    |         ^^^^^^^^^^^^^^
+    |
+help: use `let _ = ...` to ignore the resulting value
+    |
+479 |         let _ = history.undo();
+    |         +++++++
+
+warning: unused variable: `frame`
+  --> crates/archflow-engine/tests/stress_real_mutations.rs:51:9
+   |
+51 |     for frame in 0..100 {
+   |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_frame`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `frame`
+  --> crates/archflow-engine/tests/stress_real_mutations.rs:98:9
+   |
+98 |     for frame in 0..10 {
+   |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_frame`
+
+warning: unused variable: `random_size`
+   --> crates/archflow-engine/tests/stress_real_mutations.rs:152:17
+    |
+152 |             let random_size = Vec2::new(rng.gen_range(10.0..100.0), rng.gen_range(10.0..100.0));
+    |                 ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_random_size`
+
+warning: unused variable: `frame`
+   --> crates/archflow-engine/tests/stress_real_mutations.rs:194:9
+    |
+194 |     for frame in 0..30 {
+    |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_frame`
+
+warning: unused variable: `frame`
+   --> crates/archflow-engine/tests/stress_real_mutations.rs:315:9
+    |
+315 |     for frame in 0..60 {
+    |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_frame`
+
+warning: unused variable: `raw`
+   --> crates/archflow-logic/tests/signal_byte_tests.rs:186:13
+    |
+186 |         let raw: u8 = 0b101010;
+    |             ^^^
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+help: you might have meant to pattern match on the similarly named constant `RAW`
+    |
+186 -         let raw: u8 = 0b101010;
+186 +         let tests::test_const_from::RAW: u8 = 0b101010;
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+186 |         let _raw: u8 = 0b101010;
+    |             +
+
+warning: unused variable: `value`
+   --> crates/archflow-logic/tests/signal_byte_tests.rs:283:13
+    |
+283 |         let value: u8 = 0b101010;
+    |             ^^^^^ help: if this is intentional, prefix it with an underscore: `_value`
+
+warning: constant `RAW` is never used
+   --> crates/archflow-logic/tests/signal_byte_tests.rs:197:15
+    |
+197 |         const RAW: u8 = 0b111000;
+    |               ^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused return value of `must_use` that must be used
+   --> crates/archflow-logic/tests/signal_byte_tests.rs:171:9
+    |
+171 |         format!("{:?}", value1);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_must_use)]` (part of `#[warn(unused)]`) on by default
+help: use `let _ = ...` to ignore the resulting value
+    |
+171 |         let _ = format!("{:?}", value1);
+    |         +++++++
+
+warning: `archflow-render` (lib) generated 11 warnings (run `cargo fix --lib -p archflow-render` to apply 4 suggestions)
+warning: `archflow-sdk` (lib) generated 9 warnings
+warning: `archflow-persistence` (lib) generated 15 warnings (run `cargo fix --lib -p archflow-persistence` to apply 7 suggestions)
+warning: `archflow-sdk` (lib test) generated 10 warnings (9 duplicates) (run `cargo fix --lib -p archflow-sdk --tests` to apply 1 suggestion)
+warning: `archflow-persistence` (lib test) generated 15 warnings (11 duplicates) (run `cargo fix --lib -p archflow-persistence --tests` to apply 3 suggestions)
+warning: `archflow-engine` (lib test) generated 52 warnings (44 duplicates) (run `cargo fix --lib -p archflow-engine --tests` to apply 2 suggestions)
+warning: `archflow-engine` (test "stress_real_mutations") generated 5 warnings (run `cargo fix --test "stress_real_mutations" -p archflow-engine` to apply 5 suggestions)
+warning: `archflow-logic` (test "signal_byte_tests") generated 4 warnings (run `cargo fix --test "signal_byte_tests" -p archflow-logic` to apply 2 suggestions)
+warning: unused import: `alloc::format`
+   --> crates/archflow-text/src/mtsdf.rs:164:9
+    |
+164 |     use alloc::format; // For format! macro in no_std
+    |         ^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `alloc::vec`
+   --> crates/archflow-text/src/mtsdf.rs:165:9
+    |
+165 |     use alloc::vec; // For vec! macro in no_std
+    |         ^^^^^^^^^^
+
+warning: comparison is useless due to type limits
+   --> crates/archflow-text/src/sdf.rs:335:17
+    |
+335 |         assert!(output[center_idx] >= 0 && output[center_idx] <= 255);
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_comparisons)]` on by default
+
+warning: comparison is useless due to type limits
+   --> crates/archflow-text/src/sdf.rs:335:44
+    |
+335 |         assert!(output[center_idx] >= 0 && output[center_idx] <= 255);
+    |                                            ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: comparison is useless due to type limits
+   --> crates/archflow-text/src/sdf.rs:445:21
+    |
+445 |             assert!(byte <= 255);
+    |                     ^^^^^^^^^^^
+
+warning: `archflow-text` (lib test) generated 5 warnings (run `cargo fix --lib -p archflow-text --tests` to apply 2 suggestions)
+   Compiling archflow-wasm-bridge v0.47.0 (/home/rubentxu/Proyectos/rust/hodei-archFlow/crates/archflow-wasm-bridge)
+warning: unused imports: `body::Body`, `delete`, `post`, and `put`
+  --> crates/archflow-web-server/src/lib.rs:19:5
+   |
+19 |     body::Body,
+   |     ^^^^^^^^^^
+...
+23 |     routing::{delete, get, post, put},
+   |               ^^^^^^       ^^^^  ^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::net::SocketAddr`
+  --> crates/archflow-web-server/src/lib.rs:26:5
+   |
+26 | use std::net::SocketAddr;
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused variable: `state`
+  --> crates/archflow-web-server/src/websocket.rs:82:43
+   |
+82 | async fn handle_socket(socket: WebSocket, state: AppState) {
+   |                                           ^^^^^ help: if this is intentional, prefix it with an underscore: `_state`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `client`
+   --> crates/archflow-web-server/src/websocket.rs:100:9
+    |
+100 |     let client = ConnectedClient {
+    |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_client`
+
+warning: function `extract_connection_params` is never used
+  --> crates/archflow-web-server/src/websocket.rs:36:4
+   |
+36 | fn extract_connection_params(uri: &axum::http::Uri) -> Option<(RoomId, UserId)> {
+   |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: missing documentation for the crate
+   --> crates/archflow-web-server/src/lib.rs:11:1
+    |
+ 11 | / #![warn(missing_docs)]
+ 12 | | #![warn(clippy::all)]
+ 13 | |
+ 14 | | pub mod collaboration;
+...   |
+320 | | }
+    | |_^
+    |
+note: the lint level is defined here
+   --> crates/archflow-web-server/src/lib.rs:11:9
+    |
+ 11 | #![warn(missing_docs)]
+    |         ^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-web-server/src/lib.rs:14:1
+   |
+14 | pub mod collaboration;
+   | ^^^^^^^^^^^^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> crates/archflow-web-server/src/collaboration.rs:17:9
+   |
+17 | #![warn(missing_docs)]
+   |         ^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-web-server/src/lib.rs:15:1
+   |
+15 | pub mod error;
+   | ^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+  --> crates/archflow-web-server/src/lib.rs:16:1
+   |
+16 | pub mod websocket;
+   | ^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-web-server/src/lib.rs:175:5
+    |
+175 |     pub id: String,
+    |     ^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-web-server/src/lib.rs:176:5
+    |
+176 |     pub name: String,
+    |     ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-web-server/src/lib.rs:177:5
+    |
+177 |     pub entities: Vec<EntityData>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-web-server/src/lib.rs:178:5
+    |
+178 |     pub connections: Vec<ConnectionData>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-web-server/src/lib.rs:184:5
+    |
+184 |     pub id: u32,
+    |     ^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-web-server/src/lib.rs:185:5
+    |
+185 |     pub position: PositionData,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-web-server/src/lib.rs:186:5
+    |
+186 |     pub size: SizeData,
+    |     ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-web-server/src/lib.rs:188:5
+    |
+188 |     pub logic_bricks: Option<LogicBricksData>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-web-server/src/lib.rs:194:5
+    |
+194 |     pub x: f32,
+    |     ^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-web-server/src/lib.rs:195:5
+    |
+195 |     pub y: f32,
+    |     ^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-web-server/src/lib.rs:201:5
+    |
+201 |     pub width: f32,
+    |     ^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-web-server/src/lib.rs:202:5
+    |
+202 |     pub height: f32,
+    |     ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-web-server/src/lib.rs:208:5
+    |
+208 |     pub rules: Vec<LogicRuleData>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-web-server/src/lib.rs:214:5
+    |
+214 |     pub id: String,
+    |     ^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-web-server/src/lib.rs:215:5
+    |
+215 |     pub sensor: SensorData,
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-web-server/src/lib.rs:216:5
+    |
+216 |     pub actuators: Vec<ActuatorData>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-web-server/src/lib.rs:218:5
+    |
+218 |     pub enabled: bool,
+    |     ^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-web-server/src/lib.rs:229:5
+    |
+229 |     pub sensor_type: String,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-web-server/src/lib.rs:230:5
+    |
+230 |     pub config: serde_json::Value,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-web-server/src/lib.rs:237:5
+    |
+237 |     pub actuator_type: String,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-web-server/src/lib.rs:238:5
+    |
+238 |     pub params: serde_json::Value,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-web-server/src/lib.rs:244:5
+    |
+244 |     pub id: String,
+    |     ^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-web-server/src/lib.rs:245:5
+    |
+245 |     pub from_entity: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-web-server/src/lib.rs:246:5
+    |
+246 |     pub to_entity: u32,
+    |     ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/archflow-web-server/src/lib.rs:248:5
+    |
+248 |     pub label: Option<String>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-web-server/src/collaboration.rs:40:18
+   |
+40 |     UserJoined { user_id: UserId, room_id: RoomId },
+   |                  ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-web-server/src/collaboration.rs:40:35
+   |
+40 |     UserJoined { user_id: UserId, room_id: RoomId },
+   |                                   ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-web-server/src/collaboration.rs:44:16
+   |
+44 |     UserLeft { user_id: UserId, room_id: RoomId },
+   |                ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-web-server/src/collaboration.rs:44:33
+   |
+44 |     UserLeft { user_id: UserId, room_id: RoomId },
+   |                                 ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-web-server/src/collaboration.rs:49:9
+   |
+49 |         from_user: UserId,
+   |         ^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-web-server/src/collaboration.rs:50:9
+   |
+50 |         room_id: RoomId,
+   |         ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-web-server/src/collaboration.rs:51:9
+   |
+51 |         command_data: Vec<u8>,
+   |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-web-server/src/collaboration.rs:57:9
+   |
+57 |         user_id: UserId,
+   |         ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-web-server/src/collaboration.rs:58:9
+   |
+58 |         cursor: Option<CursorData>,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-web-server/src/collaboration.rs:64:9
+   |
+64 |         room_id: RoomId,
+   |         ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-web-server/src/collaboration.rs:65:9
+   |
+65 |         entity_count: usize,
+   |         ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-web-server/src/collaboration.rs:70:13
+   |
+70 |     Error { message: String },
+   |             ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-web-server/src/collaboration.rs:76:5
+   |
+76 |     pub x: f32,
+   |     ^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-web-server/src/collaboration.rs:77:5
+   |
+77 |     pub y: f32,
+   |     ^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/archflow-web-server/src/collaboration.rs:78:5
+   |
+78 |     pub entity_id: Option<u32>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `archflow-web-server` (lib) generated 49 warnings (run `cargo fix --lib -p archflow-web-server` to apply 4 suggestions)
+warning: `archflow-web-server` (lib test) generated 48 warnings (48 duplicates)
+warning: `archflow-render` (lib test) generated 11 warnings (11 duplicates)
+error: the `self` argument is only allowed for functions in `impl` blocks.
+       
+       If the function is already in an `impl` block, did you perhaps forget to add `#[wasm_bindgen]` to the `impl` block?
+  --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:43:19
+   |
+43 |     pub fn value(&self) -> u32 {
+   |                   ^^^^
+
+error[E0432]: unresolved import `alloc::sync::Mutex`
+  --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:22:5
+   |
+22 | use alloc::sync::Mutex;
+   |     ^^^^^^^^^^^^^^^^^^ no `Mutex` in `sync`
+
+error[E0432]: unresolved import `web_sys::Function`
+  --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:26:5
+   |
+26 | use web_sys::Function;
+   |     ^^^^^^^^^^^^^^^^^ no `Function` in the root
+   |
+help: consider importing this struct instead
+   |
+26 - use web_sys::Function;
+26 + use js_sys::Function;
+   |
+
+error: cannot find macro `thread_local` in this scope
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:424:1
+    |
+424 | thread_local! {
+    | ^^^^^^^^^^^^
+    |
+    = note: `thread_local` is in scope, but it is an attribute: `#[thread_local]`
+
+error[E0432]: unresolved import `wasm_bindgen_test`
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:464:9
+    |
+464 |     use wasm_bindgen_test::*;
+    |         ^^^^^^^^^^^^^^^^^ use of unresolved module or unlinked crate `wasm_bindgen_test`
+    |
+help: there is a crate or module with a similar name
+    |
+464 -     use wasm_bindgen_test::*;
+464 +     use wasm_bindgen::*;
+    |
+
+error: cannot find attribute `wasm_bindgen_test` in this scope
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:466:7
+    |
+466 |     #[wasm_bindgen_test]
+    |       ^^^^^^^^^^^^^^^^^ help: an attribute macro with a similar name exists: `wasm_bindgen`
+    |
+   ::: /home/rubentxu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-macro-0.2.108/src/lib.rs:10:1
+    |
+ 10 | pub fn wasm_bindgen(attr: TokenStream, input: TokenStream) -> TokenStream {
+    | ------------------------------------------------------------------------- similarly named attribute macro `wasm_bindgen` defined here
+
+error[E0412]: cannot find type `FnDyn` in this scope
+  --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:66:31
+   |
+66 |     closure: Closure<'static, FnDyn>,
+   |                               ^^^^^ not found in this scope
+   |
+help: you might be missing a type parameter
+   |
+64 | struct CallbackWrapper<FnDyn> {
+   |                       +++++++
+
+error[E0412]: cannot find type `String` in this scope
+  --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:78:17
+   |
+78 |     event_type: String,
+   |                 ^^^^^^ not found in this scope
+   |
+help: consider importing this struct
+   |
+19 + use alloc::string::String;
+   |
+
+error: cannot find attribute `wasm_bindgen_test` in this scope
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:482:7
+    |
+482 |     #[wasm_bindgen_test]
+    |       ^^^^^^^^^^^^^^^^^ help: an attribute macro with a similar name exists: `wasm_bindgen`
+    |
+   ::: /home/rubentxu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-macro-0.2.108/src/lib.rs:10:1
+    |
+ 10 | pub fn wasm_bindgen(attr: TokenStream, input: TokenStream) -> TokenStream {
+    | ------------------------------------------------------------------------- similarly named attribute macro `wasm_bindgen` defined here
+
+error[E0412]: cannot find type `FnDyn` in this scope
+  --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:83:38
+   |
+83 |     fn new(closure: Closure<'static, FnDyn>, event_type: String, is_oneshot: bool) -> Self {
+   |                                      ^^^^^ not found in this scope
+   |
+help: you might be missing a type parameter
+   |
+81 | impl<FnDyn> CallbackWrapper {
+   |     +++++++
+
+error[E0412]: cannot find type `String` in this scope
+  --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:83:58
+   |
+83 |     fn new(closure: Closure<'static, FnDyn>, event_type: String, is_oneshot: bool) -> Self {
+   |                                                          ^^^^^^ not found in this scope
+   |
+help: consider importing this struct
+   |
+19 + use alloc::string::String;
+   |
+
+error[E0412]: cannot find type `String` in this scope
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:156:33
+    |
+156 |     event_index: Mutex<BTreeMap<String, Vec<CallbackId>>>,
+    |                                 ^^^^^^ not found in this scope
+    |
+help: consider importing this struct
+    |
+ 19 + use alloc::string::String;
+    |
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:156:41
+    |
+156 |     event_index: Mutex<BTreeMap<String, Vec<CallbackId>>>,
+    |                                         ^^^ not found in this scope
+    |
+help: consider importing this struct
+    |
+ 19 + use alloc::vec::Vec;
+    |
+
+error[E0412]: cannot find type `String` in this scope
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:193:21
+    |
+193 |         event_type: String,
+    |                     ^^^^^^ not found in this scope
+    |
+help: consider importing this struct
+    |
+ 19 + use alloc::string::String;
+    |
+
+error: cannot find attribute `wasm_bindgen_test` in this scope
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:501:7
+    |
+501 |     #[wasm_bindgen_test]
+    |       ^^^^^^^^^^^^^^^^^ help: an attribute macro with a similar name exists: `wasm_bindgen`
+    |
+   ::: /home/rubentxu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-macro-0.2.108/src/lib.rs:10:1
+    |
+ 10 | pub fn wasm_bindgen(attr: TokenStream, input: TokenStream) -> TokenStream {
+    | ------------------------------------------------------------------------- similarly named attribute macro `wasm_bindgen` defined here
+
+error[E0433]: failed to resolve: use of undeclared type `String`
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:263:24
+    |
+263 |                 (None, String::new())
+    |                        ^^^^^^ use of undeclared type `String`
+    |
+help: consider importing this struct
+    |
+ 19 + use alloc::string::String;
+    |
+
+error[E0412]: cannot find type `String` in this scope
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:290:46
+    |
+290 |     pub fn unregister_all(&self, event_type: String) -> u32 {
+    |                                              ^^^^^^ not found in this scope
+    |
+help: consider importing this struct
+    |
+ 19 + use alloc::string::String;
+    |
+
+error: cannot find attribute `wasm_bindgen_test` in this scope
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:519:7
+    |
+519 |     #[wasm_bindgen_test]
+    |       ^^^^^^^^^^^^^^^^^ help: an attribute macro with a similar name exists: `wasm_bindgen`
+    |
+   ::: /home/rubentxu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-macro-0.2.108/src/lib.rs:10:1
+    |
+ 10 | pub fn wasm_bindgen(attr: TokenStream, input: TokenStream) -> TokenStream {
+    | ------------------------------------------------------------------------- similarly named attribute macro `wasm_bindgen` defined here
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:293:28
+    |
+293 |         let ids_to_remove: Vec<CallbackId> = {
+    |                            ^^^ not found in this scope
+    |
+help: consider importing this struct
+    |
+ 19 + use alloc::vec::Vec;
+    |
+
+error[E0412]: cannot find type `String` in this scope
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:328:38
+    |
+328 |     pub fn invoke(&self, event_type: String, data: &JsValue) -> u32 {
+    |                                      ^^^^^^ not found in this scope
+    |
+help: consider importing this struct
+    |
+ 19 + use alloc::string::String;
+    |
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:330:28
+    |
+330 |         let mut to_remove: Vec<CallbackId> = Vec::new();
+    |                            ^^^ not found in this scope
+    |
+help: consider importing this struct
+    |
+ 19 + use alloc::vec::Vec;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `Vec`
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:330:46
+    |
+330 |         let mut to_remove: Vec<CallbackId> = Vec::new();
+    |                                              ^^^ use of undeclared type `Vec`
+    |
+help: consider importing this struct
+    |
+ 19 + use alloc::vec::Vec;
+    |
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:333:18
+    |
+333 |         let ids: Vec<CallbackId> = {
+    |                  ^^^ not found in this scope
+    |
+help: consider importing this struct
+    |
+ 19 + use alloc::vec::Vec;
+    |
+
+error[E0412]: cannot find type `String` in this scope
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:399:52
+    |
+399 |     pub fn event_callback_count(&self, event_type: String) -> u32 {
+    |                                                    ^^^^^^ not found in this scope
+    |
+help: consider importing this struct
+    |
+ 19 + use alloc::string::String;
+    |
+
+error[E0425]: cannot find value `GLOBAL_CALLBACK_REGISTRY` in this scope
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:445:5
+    |
+445 |     GLOBAL_CALLBACK_REGISTRY.with(|registry| {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+warning: unused import: `alloc::boxed::Box`
+  --> crates/archflow-wasm-bridge/src/bridge_wasm.rs:16:5
+   |
+16 | use alloc::boxed::Box;
+   |     ^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `Cell`
+  --> crates/archflow-wasm-bridge/src/bridge_wasm.rs:20:18
+   |
+20 | use core::cell::{Cell, RefCell};
+   |                  ^^^^
+
+warning: unused imports: `error` and `warn`
+  --> crates/archflow-wasm-bridge/src/bridge_wasm.rs:38:22
+   |
+38 | use tracing::{debug, error, info, trace, warn};
+   |                      ^^^^^               ^^^^
+
+warning: unused import: `alloc::vec`
+  --> crates/archflow-wasm-bridge/src/engine.rs:15:5
+   |
+15 | use alloc::vec;
+   |     ^^^^^^^^^^
+
+warning: unused import: `MAX_ENTITIES`
+  --> crates/archflow-wasm-bridge/src/engine.rs:20:76
+   |
+20 | use archflow_engine::{Command, CommandQueue, ConnectionStore, EntityStore, MAX_ENTITIES};
+   |                                                                            ^^^^^^^^^^^^
+
+warning: unused import: `LogicSystem`
+  --> crates/archflow-wasm-bridge/src/engine.rs:22:39
+   |
+22 | use archflow_logic::{EventRingBuffer, LogicSystem, SelectMode};
+   |                                       ^^^^^^^^^^^
+
+warning: unused imports: `BatchSelectActuator`, `HighlightActuator`, `MoveActuator`, `PropertyActuator`, and `StateActuator`
+  --> crates/archflow-wasm-bridge/src/logic/actuator.rs:14:5
+   |
+14 |     BatchSelectActuator, HighlightActuator, MoveActuator, PropertyActuator,
+   |     ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^
+15 |     SelectMode as CoreSelectMode, StateActuator,
+   |                                   ^^^^^^^^^^^^^
+
+warning: unused import: `alloc::string::ToString`
+  --> crates/archflow-wasm-bridge/src/logic/brick_chain_builder.rs:12:5
+   |
+12 | use alloc::string::ToString;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `ActuatorType` and `SelectModeWasm`
+  --> crates/archflow-wasm-bridge/src/logic/brick_chain_builder.rs:17:5
+   |
+17 |     ActuatorType, BrickHandle, Controller, LogicMappingTableWasm, SelectModeWasm, SensorType,
+   |     ^^^^^^^^^^^^                                                  ^^^^^^^^^^^^^^
+
+warning: unused import: `alloc::boxed::Box`
+  --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:19:5
+   |
+19 | use alloc::boxed::Box;
+   |     ^^^^^^^^^^^^^^^^^
+
+warning: unused import: `core::cell::RefCell`
+  --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:23:5
+   |
+23 | use core::cell::RefCell;
+   |     ^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `SensorType as CoreSensorType`
+  --> crates/archflow-wasm-bridge/src/logic/controller.rs:15:61
+   |
+15 | use archflow_logic::mapping::{Controller as CoreController, SensorType as CoreSensorType};
+   |                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `alloc::vec::Vec`
+  --> crates/archflow-wasm-bridge/src/logic/factories.rs:14:5
+   |
+14 | use alloc::vec::Vec;
+   |     ^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::logic::controller::ControllerType`
+  --> crates/archflow-wasm-bridge/src/logic/factories.rs:19:5
+   |
+19 | use crate::logic::controller::ControllerType;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `alloc::vec::Vec`
+  --> crates/archflow-wasm-bridge/src/logic/logic_system.rs:12:5
+   |
+12 | use alloc::vec::Vec;
+   |     ^^^^^^^^^^^^^^^
+
+warning: unused import: `archflow_engine::EntityStore`
+  --> crates/archflow-wasm-bridge/src/logic/logic_system.rs:13:5
+   |
+13 | use archflow_engine::EntityStore;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `archflow_engine::EntityStore`
+  --> crates/archflow-wasm-bridge/src/logic/mapping_table.rs:15:5
+   |
+15 | use archflow_engine::EntityStore;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `alloc::format`
+  --> crates/archflow-wasm-bridge/src/logic_bricks_setup.rs:10:5
+   |
+10 | use alloc::format;
+   |     ^^^^^^^^^^^^^
+
+warning: unused import: `alloc::vec`
+  --> crates/archflow-wasm-bridge/src/logic_bricks_setup.rs:12:5
+   |
+12 | use alloc::vec;
+   |     ^^^^^^^^^^
+
+warning: unused import: `LogicEvent`
+  --> crates/archflow-wasm-bridge/src/logic_bricks_setup.rs:21:26
+   |
+21 |     BatchSelectActuator, LogicEvent, LogicMappingTable, LogicSystem, MoveActuator, SelectMode,
+   |                          ^^^^^^^^^^
+
+error[E0107]: struct takes 0 lifetime arguments but 1 lifetime argument was supplied
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:66:14
+    |
+ 66 |     closure: Closure<'static, FnDyn>,
+    |              ^^^^^^^ ------- help: remove the lifetime argument
+    |              |
+    |              expected 0 lifetime arguments
+    |
+note: struct defined here, with 0 lifetime parameters
+   --> /home/rubentxu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-0.2.108/src/closure.rs:249:12
+    |
+249 | pub struct Closure<T: ?Sized> {
+    |            ^^^^^^^
+
+error[E0277]: the trait bound `CallbackRegistry: IntoWasmAbi` is not satisfied
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:159:1
+    |
+159 | #[wasm_bindgen]
+    | ^^^^^^^^^^^^^^^ unsatisfied trait bound
+    |
+help: the trait `IntoWasmAbi` is not implemented for `CallbackRegistry`
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:151:1
+    |
+151 | pub struct CallbackRegistry {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: the following other types implement trait `IntoWasmAbi`:
+              &'a Array
+              &'a ArrayBuffer
+              &'a BigInt
+              &'a BigInt64Array
+              &'a BigUint64Array
+              &'a Boolean
+              &'a CanvasRenderingContext2d
+              &'a Collator
+            and 295 others
+    = note: required for `CallbackRegistry` to implement `ReturnWasmAbi`
+    = note: this error originates in the attribute macro `wasm_bindgen::prelude::__wasm_bindgen_class_marker` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `CallbackRegistry: IntoWasmAbi` is not satisfied
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:443:1
+    |
+443 | #[wasm_bindgen]
+    | ^^^^^^^^^^^^^^^ unsatisfied trait bound
+    |
+help: the trait `IntoWasmAbi` is not implemented for `CallbackRegistry`
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:151:1
+    |
+151 | pub struct CallbackRegistry {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: the following other types implement trait `IntoWasmAbi`:
+              &'a Array
+              &'a ArrayBuffer
+              &'a BigInt
+              &'a BigInt64Array
+              &'a BigUint64Array
+              &'a Boolean
+              &'a CanvasRenderingContext2d
+              &'a Collator
+            and 295 others
+    = note: required for `CallbackRegistry` to implement `ReturnWasmAbi`
+    = note: this error originates in the attribute macro `wasm_bindgen` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0107]: struct takes 0 lifetime arguments but 1 lifetime argument was supplied
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:83:21
+    |
+ 83 |     fn new(closure: Closure<'static, FnDyn>, event_type: String, is_oneshot: bool) -> Self {
+    |                     ^^^^^^^ ------- help: remove the lifetime argument
+    |                     |
+    |                     expected 0 lifetime arguments
+    |
+note: struct defined here, with 0 lifetime parameters
+   --> /home/rubentxu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-0.2.108/src/closure.rs:249:12
+    |
+249 | pub struct Closure<T: ?Sized> {
+    |            ^^^^^^^
+
+warning: the `#![no_std]` attribute can only be used at the crate root
+  --> crates/archflow-wasm-bridge/src/input.rs:13:1
+   |
+13 | #![no_std]
+   | ^^^^^^^^^^
+   |
+   = note: `#[warn(unused_attributes)]` (part of `#[warn(unused)]`) on by default
+
+error[E0277]: the trait bound `callback_registry::CallbackRegistry: IntoWasmAbi` is not satisfied
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:159:1
+    |
+159 | #[wasm_bindgen]
+    | ^^^^^^^^^^^^^^^ unsatisfied trait bound
+    |
+help: the trait `IntoWasmAbi` is not implemented for `callback_registry::CallbackRegistry`
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:151:1
+    |
+151 | pub struct CallbackRegistry {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: the following other types implement trait `IntoWasmAbi`:
+              &'a Array
+              &'a ArrayBuffer
+              &'a BigInt
+              &'a BigInt64Array
+              &'a BigUint64Array
+              &'a Boolean
+              &'a CanvasRenderingContext2d
+              &'a Collator
+            and 295 others
+    = note: required for `callback_registry::CallbackRegistry` to implement `ReturnWasmAbi`
+    = note: this error originates in the attribute macro `wasm_bindgen::prelude::__wasm_bindgen_class_marker` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `callback_registry::CallbackRegistry: IntoWasmAbi` is not satisfied
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:443:1
+    |
+443 | #[wasm_bindgen]
+    | ^^^^^^^^^^^^^^^ unsatisfied trait bound
+    |
+help: the trait `IntoWasmAbi` is not implemented for `callback_registry::CallbackRegistry`
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:151:1
+    |
+151 | pub struct CallbackRegistry {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: the following other types implement trait `IntoWasmAbi`:
+              &'a Array
+              &'a ArrayBuffer
+              &'a BigInt
+              &'a BigInt64Array
+              &'a BigUint64Array
+              &'a Boolean
+              &'a CanvasRenderingContext2d
+              &'a Collator
+            and 295 others
+    = note: required for `callback_registry::CallbackRegistry` to implement `ReturnWasmAbi`
+    = note: this error originates in the attribute macro `wasm_bindgen` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: use of deprecated field `engine::ArchFlowEngine::selected_entities`: Use logic_bricks.batch_select instead
+    --> crates/archflow-wasm-bridge/src/bridge_wasm.rs:1161:13
+     |
+1161 |             engine.selected_entities.clear();
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated field `engine::ArchFlowEngine::selected_entities`: Use logic_bricks.batch_select instead
+    --> crates/archflow-wasm-bridge/src/bridge_wasm.rs:1409:37
+     |
+1409 |               let indices: Vec<u32> = engine
+     |  _____________________________________^
+1410 | |                 .selected_entities
+     | |__________________________________^
+
+warning: use of deprecated field `engine::ArchFlowEngine::selected_entities`: Use logic_bricks.batch_select instead
+    --> crates/archflow-wasm-bridge/src/bridge_wasm.rs:1442:17
+     |
+1442 |                 engine.selected_entities.retain(|e| *e != id);
+     |                 ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated field `engine::ArchFlowEngine::selected_entities`: Use logic_bricks.batch_select instead
+    --> crates/archflow-wasm-bridge/src/bridge_wasm.rs:1443:24
+     |
+1443 |             } else if !engine.selected_entities.contains(&id) {
+     |                        ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated field `engine::ArchFlowEngine::selected_entities`: Use logic_bricks.batch_select instead
+    --> crates/archflow-wasm-bridge/src/bridge_wasm.rs:1444:17
+     |
+1444 |                 engine.selected_entities.push(id);
+     |                 ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated field `engine::ArchFlowEngine::selected_entities`: Use logic_bricks.batch_select instead
+    --> crates/archflow-wasm-bridge/src/bridge_wasm.rs:1458:32
+     |
+1458 |             for &entity_id in &engine.selected_entities {
+     |                                ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated field `engine::ArchFlowEngine::selected_entities`: Use logic_bricks.batch_select instead
+    --> crates/archflow-wasm-bridge/src/bridge_wasm.rs:1492:21
+     |
+1492 |                 if !engine.selected_entities.contains(&id) {
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated field `engine::ArchFlowEngine::selected_entities`: Use logic_bricks.batch_select instead
+    --> crates/archflow-wasm-bridge/src/bridge_wasm.rs:1493:21
+     |
+1493 |                     engine.selected_entities.push(id);
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated field `engine::ArchFlowEngine::selected_entities`: Use logic_bricks.batch_select instead
+    --> crates/archflow-wasm-bridge/src/bridge_wasm.rs:1496:17
+     |
+1496 | /                 engine
+1497 | |                     .selected_entities
+     | |______________________________________^
+
+warning: use of deprecated field `engine::ArchFlowEngine::selected_entities`: Use logic_bricks.batch_select instead
+    --> crates/archflow-wasm-bridge/src/bridge_wasm.rs:1572:17
+     |
+1572 |                 engine.selected_entities.iter().copied().collect();
+     |                 ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated field `engine::ArchFlowEngine::selected_entities`: Use logic_bricks.batch_select instead
+    --> crates/archflow-wasm-bridge/src/bridge_wasm.rs:1577:13
+     |
+1577 |             engine.selected_entities.clear();
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated field `engine::ArchFlowEngine::selected_entities`: Use logic_bricks.batch_select instead
+   --> crates/archflow-wasm-bridge/src/engine.rs:134:13
+    |
+134 |             selected_entities: Vec::new(), // DEPRECATED: Use logic_bricks.batch_select instead
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0277]: the trait bound `CallbackRegistry: IntoWasmAbi` is not satisfied
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:159:1
+    |
+159 | #[wasm_bindgen]
+    | ^^^^^^^^^^^^^^^ unsatisfied trait bound
+    |
+help: the trait `IntoWasmAbi` is not implemented for `CallbackRegistry`
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:151:1
+    |
+151 | pub struct CallbackRegistry {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: the following other types implement trait `IntoWasmAbi`:
+              &'a Array
+              &'a ArrayBuffer
+              &'a BigInt
+              &'a BigInt64Array
+              &'a BigUint64Array
+              &'a Boolean
+              &'a CanvasRenderingContext2d
+              &'a Collator
+            and 295 others
+    = note: required for `CallbackRegistry` to implement `ReturnWasmAbi`
+    = note: this error originates in the attribute macro `wasm_bindgen` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `CallbackRegistry: WasmDescribe` is not satisfied
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:160:6
+    |
+160 | impl CallbackRegistry {
+    |      ^^^^^^^^^^^^^^^^ unsatisfied trait bound
+    |
+help: the trait `WasmDescribe` is not implemented for `CallbackRegistry`
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:151:1
+    |
+151 | pub struct CallbackRegistry {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: the following other types implement trait `WasmDescribe`:
+              &T
+              &mut T
+              ()
+              *const T
+              *mut T
+              Array
+              ArrayBuffer
+              BigInt
+            and 157 others
+note: required by a bound in `return_abi`
+   --> /home/rubentxu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-0.2.108/src/convert/traits.rs:238:26
+    |
+238 | pub trait ReturnWasmAbi: WasmDescribe {
+    |                          ^^^^^^^^^^^^ required by this bound in `ReturnWasmAbi::return_abi`
+...
+244 |     fn return_abi(self) -> Self::Abi;
+    |        ---------- required by a bound in this associated function
+
+error[E0282]: type annotations needed
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:159:1
+    |
+159 | #[wasm_bindgen]
+    | ^^^^^^^^^^^^^^^ cannot infer type
+    |
+    = note: this error originates in the attribute macro `wasm_bindgen::prelude::__wasm_bindgen_class_marker` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: JavaScript constructors are not supported for `CallbackRegistry`
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:163:12
+    |
+159 | #[wasm_bindgen]
+    | --------------- in this attribute macro expansion
+...
+163 |     pub fn new() -> Self {
+    |            ^^^ this function cannot be the constructor of `CallbackRegistry`
+    |
+help: the trait `SupportsConstructor` is not implemented for `CallbackRegistry`
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:151:1
+    |
+151 | pub struct CallbackRegistry {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: `#[wasm_bindgen(constructor)]` is only supported for `struct`s and cannot be used for `enum`s.
+    = note: Consider removing the `constructor` option and using a regular static method instead.
+    = help: the following other types implement trait `SupportsConstructor`:
+              BrickChainBuilder
+              BrickHandle
+              CallbackId
+              CameraConfig
+              EventRingBufferWasm
+              EventType
+              HighlightConfig
+              JsLogicEvent
+            and 11 others
+note: required by a bound in `CheckSupportsConstructor`
+   --> /home/rubentxu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-0.2.108/src/rt/marker.rs:12:40
+    |
+ 12 | pub struct CheckSupportsConstructor<T: SupportsConstructor>(T);
+    |                                        ^^^^^^^^^^^^^^^^^^^ required by this bound in `CheckSupportsConstructor`
+    = note: this error originates in the attribute macro `wasm_bindgen::prelude::__wasm_bindgen_class_marker` which comes from the expansion of the attribute macro `wasm_bindgen` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0061]: this function takes 1 argument but 2 arguments were supplied
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:209:21
+    |
+209 |                     web_sys::console::error_1(&JsValue::from_str("Callback error:"), &e);
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^                                        -- unexpected argument #2 of type `&_`
+    |
+note: function defined here
+   --> /home/rubentxu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/web-sys-0.3.85/src/features/gen_console.rs:451:16
+    |
+451 |         pub fn error_1(data_1: &::wasm_bindgen::JsValue);
+    |                ^^^^^^^
+help: remove the extra argument
+    |
+209 -                     web_sys::console::error_1(&JsValue::from_str("Callback error:"), &e);
+209 +                     web_sys::console::error_1(&JsValue::from_str("Callback error:"));
+    |
+
+error[E0277]: the trait bound `CallbackRegistry: RefFromWasmAbi` is not satisfied
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:160:6
+    |
+160 | impl CallbackRegistry {
+    |      ^^^^^^^^^^^^^^^^ unsatisfied trait bound
+    |
+help: the trait `RefFromWasmAbi` is not implemented for `CallbackRegistry`
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:151:1
+    |
+151 | pub struct CallbackRegistry {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: the following other types implement trait `RefFromWasmAbi`:
+              Array
+              ArrayBuffer
+              BigInt
+              BigInt64Array
+              BigUint64Array
+              Boolean
+              BrickChainBuilder
+              BrickHandle
+            and 128 others
+
+error[E0277]: the trait bound `CallbackRegistry: RefFromWasmAbi` is not satisfied
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:159:1
+    |
+159 | #[wasm_bindgen]
+    | ^^^^^^^^^^^^^^^ unsatisfied trait bound
+    |
+help: the trait `RefFromWasmAbi` is not implemented for `CallbackRegistry`
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:151:1
+    |
+151 | pub struct CallbackRegistry {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: the following other types implement trait `RefFromWasmAbi`:
+              Array
+              ArrayBuffer
+              BigInt
+              BigInt64Array
+              BigUint64Array
+              Boolean
+              BrickChainBuilder
+              BrickHandle
+            and 128 others
+    = note: this error originates in the attribute macro `wasm_bindgen::prelude::__wasm_bindgen_class_marker` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0282]: type annotations needed
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:249:36
+    |
+249 |                 let wrapper_lock = wrapper.lock().unwrap();
+    |                                    ^^^^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:255:21
+    |
+255 |                     ids.retain(|&x| x != id);
+    |                     ^^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:268:36
+    |
+268 |             let mut wrapper_lock = wrapper.lock().unwrap();
+    |                                    ^^^^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:297:23
+    |
+297 |                 .map(|ids| ids.clone())
+    |                       ^^^  --- type must be known at this point
+    |
+help: consider giving this closure parameter an explicit type
+    |
+297 |                 .map(|ids: /* Type */| ids.clone())
+    |                          ++++++++++++
+
+error[E0282]: type annotations needed
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:337:23
+    |
+337 |                 .map(|ids| ids.clone())
+    |                       ^^^  --- type must be known at this point
+    |
+help: consider giving this closure parameter an explicit type
+    |
+337 |                 .map(|ids: /* Type */| ids.clone())
+    |                          ++++++++++++
+
+error[E0282]: type annotations needed
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:349:40
+    |
+349 |                 let mut wrapper_lock = wrapper.lock().unwrap();
+    |                                        ^^^^^^^ cannot infer type
+
+error[E0061]: this function takes 1 argument but 2 arguments were supplied
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:356:25
+    |
+356 |                         web_sys::console::error_1(
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^
+357 |                             &JsValue::from_str("Callback invocation error:"),
+358 |                             &e,
+    |                             -- unexpected argument #2 of type `&_`
+    |
+note: function defined here
+   --> /home/rubentxu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/web-sys-0.3.85/src/features/gen_console.rs:451:16
+    |
+451 |         pub fn error_1(data_1: &::wasm_bindgen::JsValue);
+    |                ^^^^^^^
+help: remove the extra argument
+    |
+357 -                             &JsValue::from_str("Callback invocation error:"),
+358 -                             &e,
+357 +                             &JsValue::from_str("Callback invocation error:"),
+    |
+
+error[E0277]: JavaScript instance getters and setters are not supported for `CallbackRegistry`
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:384:12
+    |
+159 | #[wasm_bindgen]
+    | --------------- in this attribute macro expansion
+...
+384 |     pub fn callback_count(&self) -> u32 {
+    |            ^^^^^^^^^^^^^^ this method cannot be a getter or setter for `CallbackRegistry`
+    |
+help: the trait `SupportsInstanceProperty` is not implemented for `CallbackRegistry`
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:151:1
+    |
+151 | pub struct CallbackRegistry {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: `#[wasm_bindgen(getter)]` and `#[wasm_bindgen(setter)]` are only supported for `struct`s and cannot be used for `enum`s.
+    = help: the following other types implement trait `SupportsInstanceProperty`:
+              BrickChainBuilder
+              BrickHandle
+              CallbackId
+              CameraConfig
+              EventRingBufferWasm
+              EventType
+              HighlightConfig
+              JsLogicEvent
+            and 11 others
+note: required by a bound in `CheckSupportsInstanceProperty`
+   --> /home/rubentxu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-0.2.108/src/rt/marker.rs:25:45
+    |
+ 25 | pub struct CheckSupportsInstanceProperty<T: SupportsInstanceProperty>(T);
+    |                                             ^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `CheckSupportsInstanceProperty`
+    = note: this error originates in the attribute macro `wasm_bindgen::prelude::__wasm_bindgen_class_marker` which comes from the expansion of the attribute macro `wasm_bindgen` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0282]: type annotations needed
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:403:19
+    |
+403 |             .map(|ids| ids.len() as u32)
+    |                   ^^^  --- type must be known at this point
+    |
+help: consider giving this closure parameter an explicit type
+    |
+403 |             .map(|ids: /* Type */| ids.len() as u32)
+    |                      ++++++++++++
+
+error[E0277]: the trait bound `CallbackRegistry: WasmDescribe` is not satisfied
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:444:42
+    |
+444 | pub fn get_global_callback_registry() -> CallbackRegistry {
+    |                                          ^^^^^^^^^^^^^^^^ unsatisfied trait bound
+    |
+help: the trait `WasmDescribe` is not implemented for `CallbackRegistry`
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:151:1
+    |
+151 | pub struct CallbackRegistry {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: the following other types implement trait `WasmDescribe`:
+              &T
+              &mut T
+              ()
+              *const T
+              *mut T
+              Array
+              ArrayBuffer
+              BigInt
+            and 157 others
+note: required by a bound in `return_abi`
+   --> /home/rubentxu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-0.2.108/src/convert/traits.rs:238:26
+    |
+238 | pub trait ReturnWasmAbi: WasmDescribe {
+    |                          ^^^^^^^^^^^^ required by this bound in `ReturnWasmAbi::return_abi`
+...
+244 |     fn return_abi(self) -> Self::Abi;
+    |        ---------- required by a bound in this associated function
+
+error[E0282]: type annotations needed
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:443:1
+    |
+443 | #[wasm_bindgen]
+    | ^^^^^^^^^^^^^^^ cannot infer type
+    |
+    = note: this error originates in the attribute macro `wasm_bindgen` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0599]: no method named `drain_events` found for mutable reference `&mut LogicSystem` in the current scope
+   --> crates/archflow-wasm-bridge/src/logic/event_buffer.rs:130:35
+    |
+130 |         let events = logic_system.drain_events();
+    |                                   ^^^^^^^^^^^^
+    |
+help: there is a method `has_events` with a similar name
+    |
+130 -         let events = logic_system.drain_events();
+130 +         let events = logic_system.has_events();
+    |
+
+error[E0599]: no method named `event_count` found for mutable reference `&mut LogicSystem` in the current scope
+   --> crates/archflow-wasm-bridge/src/logic/event_buffer.rs:168:24
+    |
+168 |         system.inner().event_count()
+    |                        ^^^^^^^^^^^
+    |
+help: there is a method `pending_event_count` with a similar name
+    |
+168 |         system.inner().pending_event_count()
+    |                        ++++++++
+
+error[E0277]: the trait bound `callback_registry::CallbackRegistry: IntoWasmAbi` is not satisfied
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:159:1
+    |
+159 | #[wasm_bindgen]
+    | ^^^^^^^^^^^^^^^ unsatisfied trait bound
+    |
+help: the trait `IntoWasmAbi` is not implemented for `callback_registry::CallbackRegistry`
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:151:1
+    |
+151 | pub struct CallbackRegistry {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: the following other types implement trait `IntoWasmAbi`:
+              &'a Array
+              &'a ArrayBuffer
+              &'a BigInt
+              &'a BigInt64Array
+              &'a BigUint64Array
+              &'a Boolean
+              &'a CanvasRenderingContext2d
+              &'a Collator
+            and 295 others
+    = note: required for `callback_registry::CallbackRegistry` to implement `ReturnWasmAbi`
+    = note: this error originates in the attribute macro `wasm_bindgen` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `callback_registry::CallbackRegistry: WasmDescribe` is not satisfied
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:160:6
+    |
+160 | impl CallbackRegistry {
+    |      ^^^^^^^^^^^^^^^^ unsatisfied trait bound
+    |
+help: the trait `WasmDescribe` is not implemented for `callback_registry::CallbackRegistry`
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:151:1
+    |
+151 | pub struct CallbackRegistry {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: the following other types implement trait `WasmDescribe`:
+              &T
+              &mut T
+              ()
+              *const T
+              *mut T
+              Array
+              ArrayBuffer
+              BigInt
+            and 157 others
+note: required by a bound in `return_abi`
+   --> /home/rubentxu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-0.2.108/src/convert/traits.rs:238:26
+    |
+238 | pub trait ReturnWasmAbi: WasmDescribe {
+    |                          ^^^^^^^^^^^^ required by this bound in `ReturnWasmAbi::return_abi`
+...
+244 |     fn return_abi(self) -> Self::Abi;
+    |        ---------- required by a bound in this associated function
+
+error[E0277]: JavaScript constructors are not supported for `callback_registry::CallbackRegistry`
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:163:12
+    |
+159 | #[wasm_bindgen]
+    | --------------- in this attribute macro expansion
+...
+163 |     pub fn new() -> Self {
+    |            ^^^ this function cannot be the constructor of `callback_registry::CallbackRegistry`
+    |
+help: the trait `SupportsConstructor` is not implemented for `callback_registry::CallbackRegistry`
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:151:1
+    |
+151 | pub struct CallbackRegistry {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: `#[wasm_bindgen(constructor)]` is only supported for `struct`s and cannot be used for `enum`s.
+    = note: Consider removing the `constructor` option and using a regular static method instead.
+    = help: the following other types implement trait `SupportsConstructor`:
+              CallbackId
+              EventRingBufferWasm
+              EventType
+              JsLogicEvent
+              actuator::CameraConfig
+              actuator::HighlightConfig
+              actuator::MoveConfig
+              actuator::PropertyConfig
+            and 11 others
+note: required by a bound in `CheckSupportsConstructor`
+   --> /home/rubentxu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-0.2.108/src/rt/marker.rs:12:40
+    |
+ 12 | pub struct CheckSupportsConstructor<T: SupportsConstructor>(T);
+    |                                        ^^^^^^^^^^^^^^^^^^^ required by this bound in `CheckSupportsConstructor`
+    = note: this error originates in the attribute macro `wasm_bindgen::prelude::__wasm_bindgen_class_marker` which comes from the expansion of the attribute macro `wasm_bindgen` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `callback_registry::CallbackRegistry: RefFromWasmAbi` is not satisfied
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:160:6
+    |
+160 | impl CallbackRegistry {
+    |      ^^^^^^^^^^^^^^^^ unsatisfied trait bound
+    |
+help: the trait `RefFromWasmAbi` is not implemented for `callback_registry::CallbackRegistry`
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:151:1
+    |
+151 | pub struct CallbackRegistry {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: the following other types implement trait `RefFromWasmAbi`:
+              Array
+              ArrayBuffer
+              BigInt
+              BigInt64Array
+              BigUint64Array
+              Boolean
+              CallbackId
+              CanvasRenderingContext2d
+            and 128 others
+
+error[E0277]: the trait bound `callback_registry::CallbackRegistry: RefFromWasmAbi` is not satisfied
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:159:1
+    |
+159 | #[wasm_bindgen]
+    | ^^^^^^^^^^^^^^^ unsatisfied trait bound
+    |
+help: the trait `RefFromWasmAbi` is not implemented for `callback_registry::CallbackRegistry`
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:151:1
+    |
+151 | pub struct CallbackRegistry {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: the following other types implement trait `RefFromWasmAbi`:
+              Array
+              ArrayBuffer
+              BigInt
+              BigInt64Array
+              BigUint64Array
+              Boolean
+              CallbackId
+              CanvasRenderingContext2d
+            and 128 others
+    = note: this error originates in the attribute macro `wasm_bindgen::prelude::__wasm_bindgen_class_marker` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused import: `archflow_render::Renderer`
+  --> crates/archflow-wasm-bridge/src/bridge_wasm.rs:31:5
+   |
+31 | use archflow_render::Renderer;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0277]: JavaScript instance getters and setters are not supported for `callback_registry::CallbackRegistry`
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:384:12
+    |
+159 | #[wasm_bindgen]
+    | --------------- in this attribute macro expansion
+...
+384 |     pub fn callback_count(&self) -> u32 {
+    |            ^^^^^^^^^^^^^^ this method cannot be a getter or setter for `callback_registry::CallbackRegistry`
+    |
+help: the trait `SupportsInstanceProperty` is not implemented for `callback_registry::CallbackRegistry`
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:151:1
+    |
+151 | pub struct CallbackRegistry {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: `#[wasm_bindgen(getter)]` and `#[wasm_bindgen(setter)]` are only supported for `struct`s and cannot be used for `enum`s.
+    = help: the following other types implement trait `SupportsInstanceProperty`:
+              CallbackId
+              EventRingBufferWasm
+              EventType
+              JsLogicEvent
+              actuator::CameraConfig
+              actuator::HighlightConfig
+              actuator::MoveConfig
+              actuator::PropertyConfig
+            and 11 others
+note: required by a bound in `CheckSupportsInstanceProperty`
+   --> /home/rubentxu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-0.2.108/src/rt/marker.rs:25:45
+    |
+ 25 | pub struct CheckSupportsInstanceProperty<T: SupportsInstanceProperty>(T);
+    |                                             ^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `CheckSupportsInstanceProperty`
+    = note: this error originates in the attribute macro `wasm_bindgen::prelude::__wasm_bindgen_class_marker` which comes from the expansion of the attribute macro `wasm_bindgen` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `callback_registry::CallbackRegistry: WasmDescribe` is not satisfied
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:444:42
+    |
+444 | pub fn get_global_callback_registry() -> CallbackRegistry {
+    |                                          ^^^^^^^^^^^^^^^^ unsatisfied trait bound
+    |
+help: the trait `WasmDescribe` is not implemented for `callback_registry::CallbackRegistry`
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:151:1
+    |
+151 | pub struct CallbackRegistry {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: the following other types implement trait `WasmDescribe`:
+              &T
+              &mut T
+              ()
+              *const T
+              *mut T
+              Array
+              ArrayBuffer
+              BigInt
+            and 157 others
+note: required by a bound in `return_abi`
+   --> /home/rubentxu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-0.2.108/src/convert/traits.rs:238:26
+    |
+238 | pub trait ReturnWasmAbi: WasmDescribe {
+    |                          ^^^^^^^^^^^^ required by this bound in `ReturnWasmAbi::return_abi`
+...
+244 |     fn return_abi(self) -> Self::Abi;
+    |        ---------- required by a bound in this associated function
+
+error[E0599]: no method named `to_string` found for reference `&'static str` in the current scope
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:475:49
+    |
+475 |         let id = registry.register("test:event".to_string(), &callback, false);
+    |                                                 ^^^^^^^^^ method not found in `&'static str`
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+    |
+463 +     use crate::alloc::string::ToString;
+    |
+
+error[E0599]: no method named `to_string` found for reference `&'static str` in the current scope
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:478:63
+    |
+478 |         assert_eq!(registry.event_callback_count("test:event".to_string()), 1);
+    |                                                               ^^^^^^^^^ method not found in `&'static str`
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+    |
+463 +     use crate::alloc::string::ToString;
+    |
+
+error[E0599]: no method named `value` found for struct `CallbackId` in the current scope
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:479:23
+    |
+ 38 | pub struct CallbackId(u32);
+    | --------------------- method `value` not found for this struct
+...
+479 |         assert_eq!(id.value(), 1); // First ID should be 1 (0 is reserved)
+    |                       ^^^^^ method not found in `CallbackId`
+
+error[E0599]: no method named `to_string` found for reference `&'static str` in the current scope
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:490:49
+    |
+490 |         let id = registry.register("test:event".to_string(), &callback, true);
+    |                                                 ^^^^^^^^^ method not found in `&'static str`
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+    |
+463 +     use crate::alloc::string::ToString;
+    |
+
+error[E0599]: no method named `to_string` found for reference `&'static str` in the current scope
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:494:38
+    |
+494 |         registry.invoke("test:event".to_string(), &data);
+    |                                      ^^^^^^^^^ method not found in `&'static str`
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+    |
+463 +     use crate::alloc::string::ToString;
+    |
+
+error[E0599]: no method named `to_string` found for reference `&'static str` in the current scope
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:495:38
+    |
+495 |         registry.invoke("test:event".to_string(), &data);
+    |                                      ^^^^^^^^^ method not found in `&'static str`
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+    |
+463 +     use crate::alloc::string::ToString;
+    |
+
+error[E0599]: no method named `to_string` found for reference `&'static str` in the current scope
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:507:49
+    |
+507 |         let id = registry.register("test:event".to_string(), &callback, false);
+    |                                                 ^^^^^^^^^ method not found in `&'static str`
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+    |
+463 +     use crate::alloc::string::ToString;
+    |
+
+error[E0599]: no method named `to_string` found for reference `&'static str` in the current scope
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:533:39
+    |
+533 |         registry.register("test:tick".to_string(), &callback, false);
+    |                                       ^^^^^^^^^ method not found in `&'static str`
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+    |
+463 +     use crate::alloc::string::ToString;
+    |
+
+error[E0599]: no method named `to_string` found for reference `&'static str` in the current scope
+   --> crates/archflow-wasm-bridge/src/logic/callback_registry.rs:536:49
+    |
+536 |         let count = registry.invoke("test:tick".to_string(), &data);
+    |                                                 ^^^^^^^^^ method not found in `&'static str`
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+    |
+463 +     use crate::alloc::string::ToString;
+    |
+
+warning: unused variable: `modifiers`
+    --> crates/archflow-wasm-bridge/src/bridge_wasm.rs:1656:75
+     |
+1656 |     pub fn on_mouse_down(&self, screen_x: f32, screen_y: f32, button: u8, modifiers: u8) {
+     |                                                                           ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_modifiers`
+     |
+     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `button`
+    --> crates/archflow-wasm-bridge/src/bridge_wasm.rs:1687:61
+     |
+1687 |     pub fn on_mouse_up(&self, screen_x: f32, screen_y: f32, button: u8) {
+     |                                                             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_button`
+
+warning: unused variable: `modifiers`
+    --> crates/archflow-wasm-bridge/src/bridge_wasm.rs:1708:72
+     |
+1708 |     pub fn on_wheel(&self, screen_x: f32, screen_y: f32, delta_y: f32, modifiers: u8) {
+     |                                                                        ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_modifiers`
+
+warning: unused variable: `engine`
+    --> crates/archflow-wasm-bridge/src/bridge_wasm.rs:1788:21
+     |
+1788 |         if let Some(engine) = self.engine.borrow().as_ref() {
+     |                     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_engine`
+
+warning: unused variable: `engine`
+    --> crates/archflow-wasm-bridge/src/bridge_wasm.rs:1805:21
+     |
+1805 |         if let Some(engine) = self.engine.borrow().as_ref() {
+     |                     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_engine`
+
+warning: unused variable: `engine`
+    --> crates/archflow-wasm-bridge/src/bridge_wasm.rs:1821:21
+     |
+1821 |         if let Some(engine) = self.engine.borrow().as_ref() {
+     |                     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_engine`
+
+warning: unused variable: `idx`
+   --> crates/archflow-wasm-bridge/src/engine.rs:462:13
+    |
+462 |         let idx = entity_id.index().0 as usize;
+    |             ^^^ help: if this is intentional, prefix it with an underscore: `_idx`
+
+warning: unused variable: `key_code`
+  --> crates/archflow-wasm-bridge/src/logic/brick_chain_builder.rs:83:33
+   |
+83 |     pub fn sensor_key(mut self, key_code: u32) -> Self {
+   |                                 ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_key_code`
+
+error[E0596]: cannot borrow `*system` as mutable, as it is behind a `&` reference
+   --> crates/archflow-wasm-bridge/src/logic/event_buffer.rs:178:9
+    |
+178 |         system.inner().has_events()
+    |         ^^^^^^ `system` is a `&` reference, so the data it refers to cannot be borrowed as mutable
+    |
+help: consider changing this to be a mutable reference
+    |
+177 |     pub fn has_events(&self, system: &mut LogicSystemWasm) -> bool {
+    |                                       +++
+
+Some errors have detailed explanations: E0061, E0107, E0277, E0282, E0412, E0425, E0432, E0433, E0596...
+For more information about an error, try `rustc --explain E0061`.
+warning: `archflow-wasm-bridge` (lib) generated 42 warnings
+error: could not compile `archflow-wasm-bridge` (lib) due to 57 previous errors; 42 warnings emitted
+warning: build failed, waiting for other jobs to finish...
+warning: unused variable: `bridge`
+    --> crates/archflow-wasm-bridge/src/bridge_wasm.rs:1867:13
+     |
+1867 |         let bridge = WasmBridge::new();
+     |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_bridge`
+
+warning: unused variable: `moved_pos`
+   --> crates/archflow-wasm-bridge/src/engine.rs:683:13
+    |
+683 |         let moved_pos = Vec2::new(
+    |             ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_moved_pos`
+
+warning: unused variable: `i`
+   --> crates/archflow-wasm-bridge/src/engine.rs:896:13
+    |
+896 |         for i in 0..150 {
+    |             ^ help: if this is intentional, prefix it with an underscore: `_i`
+
+Some errors have detailed explanations: E0061, E0107, E0277, E0282, E0432, E0596, E0599.
+warning: `archflow-wasm-bridge` (lib test) generated 44 warnings (41 duplicates)
+error: could not compile `archflow-wasm-bridge` (lib test) due to 55 previous errors; 44 warnings emitted
