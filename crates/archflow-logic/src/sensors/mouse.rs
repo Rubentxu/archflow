@@ -328,6 +328,27 @@ impl MouseSensor {
         self.last_wheel = 0;
     }
 
+    /// Clear the signal history for a specific entity
+    ///
+    /// This resets the signal byte to default (all zeros) for the given entity index.
+    /// Useful when you want to prevent accumulated signal history from triggering actions.
+    ///
+    /// # Arguments
+    ///
+    /// * `index` - Entity index to clear signal for
+    ///
+    /// # Panics
+    ///
+    /// Panics if index is out of bounds
+    pub fn clear_signal(&mut self, index: usize) {
+        if index < self.signals.len() {
+            self.signals[index] = SignalByte::default();
+            self.pos_ticks[index] = 0;
+            self.neg_ticks[index] = 0;
+            self.tapped[index] = false;
+        }
+    }
+
     /// Evaluate mouse input and update signals
     ///
     /// This is the main evaluation method that processes mouse input
