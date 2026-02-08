@@ -521,15 +521,7 @@ impl Renderer for WebGL2Renderer {
             for &idx in &store.draw_order {
                 let idx = idx as usize;
 
-                // DEBUG: Entity 0 debug logs (DISABLED - too noisy)
-                let debug_entity = false; // idx == 0 && phase == RenderPhase::Shapes;
-
                 if !store.is_visible(idx) {
-                    // if debug_entity {
-                    //     web_sys::console::log_1(&JsValue::from_str(
-                    //         "Entity 0 skipped: not visible",
-                    //     ));
-                    // }
                     continue;
                 }
 
@@ -543,21 +535,13 @@ impl Renderer for WebGL2Renderer {
                 };
 
                 if entity_phase != phase {
-                    // if debug_entity {
-                    //     web_sys::console::log_1(&JsValue::from_str(&format!(
-                    //         "Entity 0 phase mismatch: has {:?} vs loop {:?}",
-                    //         entity_phase, phase
-                    //     )));
-                    // }
                     continue;
                 }
 
                 let pos = store.pos(idx);
                 let size = store.size(idx);
-                // Assume centered:
                 let entity_min = pos - size / 2.0;
                 let entity_max = pos + size / 2.0;
-                // Or maybe corner? store.spawn says: pos is pos.
 
                 if !viewport.intersects(&Rect::new(
                     entity_min.x,
@@ -565,12 +549,6 @@ impl Renderer for WebGL2Renderer {
                     entity_max.x,
                     entity_max.y,
                 )) {
-                    // if debug_entity {
-                    //     web_sys::console::log_1(&JsValue::from_str(&format!(
-                    //         "Entity 0 culled: viewport={:?} entity={:?}-{:?}",
-                    //         viewport, entity_min, entity_max
-                    //     )));
-                    // }
                     continue;
                 }
 
@@ -588,10 +566,6 @@ impl Renderer for WebGL2Renderer {
                     uv_rect: store.uv_rects[idx],
                 };
 
-                // if debug_entity {
-                //     web_sys::console::log_1(&JsValue::from_str("Entity 0 accepted for rendering"));
-                // }
-
                 let instance_idx = self.instances.len() as u32;
                 self.instances.push(instance);
                 self.batches.get_batch(phase).push(instance_idx);
@@ -600,6 +574,15 @@ impl Renderer for WebGL2Renderer {
         }
 
         self.draw_calls = self.batches.total_draw_calls();
+
+        // Only warn if entities exist but none are visible (potential issue)
+        if visible_count == 0 && store.alive_count() > 0 {
+            web_sys::console::warn_1(&JsValue::from_str(&format!(
+                "Sync warning: Store has {} entities but 0 visible. Check viewport culling or visibility flags.",
+                store.alive_count()
+            )));
+        }
+
         visible_count
     }
 
@@ -683,13 +666,7 @@ impl Renderer for WebGL2Renderer {
         let data = bytemuck::cast_slice(&self.instances);
         // Debug first instance data
         // DEBUG: instance details (DISABLED - too noisy)
-        // if !self.instances.is_empty() {
-        //     let i0 = &self.instances[0];
-        //     web_sys::console::log_1(&JsValue::from_str(&format!(
-        //         "Instance[0]: pos=[{},{}], size=[{},{}], color={:x}",
-        //         i0.pos[0], i0.pos[1], i0.size[0], i0.size[1], i0.color
-        //     )));
-        // }
+
         let view = unsafe { js_sys::Uint8Array::view(data) };
         gl.buffer_data_with_array_buffer_view(
             web_sys::WebGl2RenderingContext::ARRAY_BUFFER,
