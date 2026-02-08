@@ -50,20 +50,23 @@ WASM_PKG_DIR="$PROJECT_ROOT/crates/archflow-wasm-bridge/pkg"
 FRONTEND_WASM_DIR="$PROJECT_ROOT/crates/archflow-web-ui/src/wasm"
 
 # Archivos a sincronizar
+
+# Mapeo de archivos: origen -> destino (sin extensión)
+# El crate ahora genera 'archflow_wasm_bridge' pero el frontend espera 'archflow_web'
+
 TYPE_FILES=(
-    "archflow_web.d.ts"
-    "archflow_web_bg.d.ts"
-    "archflow_web_bg.wasm.d.ts"
+    "archflow_wasm_bridge.d.ts:archflow_web.d.ts"
+    "archflow_wasm_bridge_bg.wasm.d.ts:archflow_web_bg.wasm.d.ts"
 )
 
 JS_FILES=(
-    "archflow_web.js"
-    "archflow_web_bg.js"
+    "archflow_wasm_bridge.js:archflow_web.js"
 )
 
 WASM_FILES=(
-    "archflow_web_bg.wasm"
+    "archflow_wasm_bridge_bg.wasm:archflow_web_bg.wasm"
 )
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # VERIFICACIONES INICIALES
@@ -94,28 +97,30 @@ print_status "Sincronizando archivos de tipos..."
 types_synced=0
 types_failed=0
 
-for file in "${TYPE_FILES[@]}"; do
-    source_file="$WASM_PKG_DIR/$file"
-    dest_file="$FRONTEND_WASM_DIR/$file"
+
+for item in "${TYPE_FILES[@]}"; do
+    IFS=':' read -r src dest <<< "$item"
+    source_file="$WASM_PKG_DIR/$src"
+    dest_file="$FRONTEND_WASM_DIR/$dest"
 
     if [ -f "$source_file" ]; then
         if [ -f "$dest_file" ]; then
             # Comparar si hay cambios
             if ! diff -q "$source_file" "$dest_file" > /dev/null 2>&1; then
                 cp "$source_file" "$dest_file"
-                print_success "Actualizado: $file"
+                print_success "Actualizado: $dest"
                 types_synced=$((types_synced + 1))
             else
-                print_status "Sin cambios: $file"
+                print_status "Sin cambios: $dest"
             fi
         else
             # Archivo nuevo
             cp "$source_file" "$dest_file"
-            print_success "Nuevo archivo: $file"
+            print_success "Nuevo archivo: $dest"
             types_synced=$((types_synced + 1))
         fi
     else
-        print_warning "No encontrado: $file"
+        print_warning "No encontrado: $src"
         types_failed=$((types_failed + 1))
     fi
 done
@@ -129,28 +134,56 @@ print_status "Sincronizando archivos JavaScript..."
 js_synced=0
 js_failed=0
 
-for file in "${JS_FILES[@]}"; do
-    source_file="$WASM_PKG_DIR/$file"
-    dest_file="$FRONTEND_WASM_DIR/$file"
+for item in "${JS_FILES[@]}"; do
+    IFS=':' read -r src dest <<< "$item"
+    source_file="$WASM_PKG_DIR/$src"
+    dest_file="$FRONTEND_WASM_DIR/$dest"
 
     if [ -f "$source_file" ]; then
         if [ -f "$dest_file" ]; then
             # Comparar si hay cambios
             if ! diff -q "$source_file" "$dest_file" > /dev/null 2>&1; then
                 cp "$source_file" "$dest_file"
-                print_success "Actualizado: $file"
+                # Patch the JS file to point to the renamed WASM file
+                if [[ "$dest" == "archflow_web.js" ]]; then
+                    sed -i 's/archflow_wasm_bridge_bg.wasm/archflow_web_bg.wasm/g' "$dest_file"
+                    print_status "Patched WASM filename in $dest"
+                fi
+                print_success "Actualizado: $dest"
                 js_synced=$((js_synced + 1))
             else
-                print_status "Sin cambios: $file"
+                # Even if files match, ensure the patch is applied (it might have been overwritten by a fresh copy or the source might match the unpatched dest in size but not content)
+                # Actually, diff -q checks content. If they match, dest is == source.
+                # Source has 'archflow_wasm_bridge_bg.wasm'. We WANT 'archflow_web_bg.wasm'.
+                # So if they match, it means dest has the WRONG name (same as source).
+                # We must patch it!
+                
+                # Check if we need to patch
+                if [[ "$dest" == "archflow_web.js" ]]; then
+                    if grep -q "archflow_wasm_bridge_bg.wasm" "$dest_file"; then
+                         sed -i 's/archflow_wasm_bridge_bg.wasm/archflow_web_bg.wasm/g' "$dest_file"
+                         print_status "Patched WASM filename in $dest (was identical to source)"
+                         js_synced=$((js_synced + 1))
+                    else
+                         print_status "Sin cambios: $dest (already patched)"
+                    fi
+                else
+                    print_status "Sin cambios: $dest"
+                fi
             fi
         else
             # Archivo nuevo
             cp "$source_file" "$dest_file"
-            print_success "Nuevo archivo: $file"
+            # Patch the JS file to point to the renamed WASM file
+            if [[ "$dest" == "archflow_web.js" ]]; then
+                sed -i 's/archflow_wasm_bridge_bg.wasm/archflow_web_bg.wasm/g' "$dest_file"
+                print_status "Patched WASM filename in $dest"
+            fi
+            print_success "Nuevo archivo: $dest"
             js_synced=$((js_synced + 1))
         fi
     else
-        print_warning "No encontrado: $file"
+        print_warning "No encontrado: $src"
         js_failed=$((js_failed + 1))
     fi
 done
@@ -164,9 +197,10 @@ print_status "Sincronizando archivo WASM..."
 wasm_synced=0
 wasm_failed=0
 
-for file in "${WASM_FILES[@]}"; do
-    source_file="$WASM_PKG_DIR/$file"
-    dest_file="$FRONTEND_WASM_DIR/$file"
+for item in "${WASM_FILES[@]}"; do
+    IFS=':' read -r src dest <<< "$item"
+    source_file="$WASM_PKG_DIR/$src"
+    dest_file="$FRONTEND_WASM_DIR/$dest"
 
     if [ -f "$source_file" ]; then
         if [ -f "$dest_file" ]; then
@@ -176,19 +210,19 @@ for file in "${WASM_FILES[@]}"; do
 
             if [ "$source_size" != "$dest_size" ]; then
                 cp "$source_file" "$dest_file"
-                print_success "Actualizado WASM: $file ($source_size bytes)"
+                print_success "Actualizado WASM: $dest ($source_size bytes)"
                 wasm_synced=$((wasm_synced + 1))
             else
-                print_status "Sin cambios: $file"
+                print_status "Sin cambios: $dest"
             fi
         else
             # Archivo nuevo
             cp "$source_file" "$dest_file"
-            print_success "Nuevo archivo WASM: $file"
+            print_success "Nuevo archivo WASM: $dest"
             wasm_synced=$((wasm_synced + 1))
         fi
     else
-        print_warning "No encontrado: $file"
+        print_warning "No encontrado: $src"
         wasm_failed=$((wasm_failed + 1))
     fi
 done
