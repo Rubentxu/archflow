@@ -91,9 +91,6 @@ pub struct LogicBricksSystem {
     /// Current input state
     input_state: InputState,
 
-    /// Drag state tracking
-    drag_state: DragState,
-
     /// Creation state tracking
     creation_state: CreationState,
 
@@ -105,6 +102,9 @@ pub struct LogicBricksSystem {
 
     /// Previous button state for edge detection
     prev_buttons: u8,
+
+    /// Start position of marquee selection
+    marquee_start: Option<Vec2>,
 }
 
 // =======================================================================
@@ -127,11 +127,11 @@ impl LogicBricksSystem {
             batch_select: BatchSelectActuator::new(),
             move_actuator: MoveActuator::new(),
             input_state: InputState::default(),
-            drag_state: DragState::default(),
             creation_state: CreationState::default(),
             pending_commands: Vec::new(),
             timestamp: 0,
             prev_buttons: 0,
+            marquee_start: None,
         }
     }
 
@@ -170,6 +170,7 @@ impl LogicBricksSystem {
     /// Set the active tool
     #[wasm_bindgen]
     pub fn set_active_tool(&mut self, tool: &str) {
+        #[cfg(target_arch = "wasm32")]
         web_sys::console::log_1(&JsValue::from_str(&format!(
             "🔧 LogicBricks: set_active_tool({})",
             tool
@@ -292,7 +293,7 @@ impl LogicBricksSystem {
         active_color: u32,
         active_stroke_color: u32,
         active_stroke_width: f32,
-    ) -> usize {
+    ) {
         self.timestamp = timestamp_ms;
         self.logic_system.set_timestamp(timestamp_ms);
         self.pending_commands.clear();
@@ -329,15 +330,26 @@ impl LogicBricksSystem {
             active_stroke_width,
         );
 
+        // Create a local copy of draw order to avoid borrowing store during the loop
+        let draw_order: Vec<u32> = store.draw_order[..store.alive_count()].to_vec();
+
+        let mut any_entity_hit = false;
+
         // LOGIC BRICKS EVALUATION
         // Evaluate logic bricks for all visible entities (selection, etc.)
-        for &idx_u32 in &store.draw_order {
+        for idx_u32 in draw_order {
             let idx = idx_u32 as usize;
             let generation_val = store.generation(idx);
             let entity_id = EntityId::from_parts(Index(idx_u32), Generation(generation_val));
 
+            // Track if mouse is over this entity (hit testing)
+            if self.mouse_sensor.is_positive(idx) {
+                any_entity_hit = true;
+            }
+
             let mut signals: Vec<(SensorType, SignalByte)> = Vec::new();
 
+            // Collect sensor signals for this entity
             // Check Mouse Click Sensor
             let click_signal = self.mouse_sensor.signal(idx);
             if click_signal.as_u8() != 0 {
@@ -353,17 +365,93 @@ impl LogicBricksSystem {
             if !signals.is_empty() {
                 // Evaluate Logic Bricks connections
                 // We don't need to track just_selected because MoveActuator handles hysteresis
-                self.mapping_table
-                    .evaluate(store, entity_id, &signals, &mut self.batch_select);
+                self.mapping_table.evaluate(
+                    store,
+                    entity_id,
+                    &signals,
+                    &mut self.batch_select,
+                    self.input_state.modifiers,
+                );
             }
         }
 
         // Process move actuator - Hysteresis logic inside MoveActuator prevents immediate jump
         self.process_move_actuator(store, world_pos);
 
-        self.prev_buttons = self.input_state.buttons;
+        // Handle Marquee / Deselection
+        let left_down = self.input_state.buttons & 0b001 != 0;
+        let right_down = self.input_state.buttons & 0b010 != 0;
 
-        self.pending_commands.len()
+        if left_down && !right_down {
+            if let Some(start) = self.marquee_start {
+                // Dragging marquee
+                self.marquee_select(store, start, world_pos);
+            } else {
+                // Start marquee only if not dragging an entity
+                // Check if any entity is being dragged (simplified check)
+                let any_dragging = self
+                    .move_actuator
+                    .is_dragging(archflow_core::EntityId::new(0));
+                if !any_dragging {
+                    self.marquee_start = Some(world_pos);
+                }
+            }
+        } else {
+            self.marquee_start = None;
+        }
+
+        // Poll for events from logic system
+        self.logic_system.poll_events();
+    }
+
+    /// Region selection using SpatialHash
+    fn marquee_select(&mut self, store: &mut EntityStore, start: Vec2, end: Vec2) {
+        let min_x = start.x.min(end.x);
+        let min_y = start.y.min(end.y);
+        let max_x = start.x.max(end.x);
+        let max_y = start.y.max(end.y);
+
+        // Avoid tiny selection boxes
+        if (max_x - min_x).abs() < 1.0 && (max_y - min_y).abs() < 1.0 {
+            // It's a click on empty space -> clear selection
+            // Only clear if no modifiers (shift/ctrl) are pressed
+            if self.input_state.modifiers == 0 {
+                self.batch_select.clear(store);
+            }
+            return;
+        }
+
+        // Region selection using SpatialHash (O(log N))
+        let query_rect = archflow_core::Rect::new(min_x, min_y, max_x, max_y);
+        let in_area = self.logic_system.spatial_hash.query_rect(query_rect);
+
+        // Mode based on modifiers
+        if (self.input_state.modifiers & 0x01) != 0 {
+            #[cfg(target_arch = "wasm32")]
+            web_sys::console::log_1(&JsValue::from_str(&format!(
+                "➕ ADD Mode: entities={}, current_count={}",
+                in_area.len(),
+                self.batch_select.selection_count()
+            )));
+            self.batch_select
+                .execute_with_events(store, &in_area, SelectMode::Add, |_, _| {});
+        } else if (self.input_state.modifiers & 0x02) != 0
+            || (self.input_state.modifiers & 0x08) != 0
+        {
+            #[cfg(target_arch = "wasm32")]
+            web_sys::console::log_1(&JsValue::from_str(&format!(
+                "➖ SUBTRACT Mode: entities={}, current_count={}",
+                in_area.len(),
+                self.batch_select.selection_count()
+            )));
+            self.batch_select
+                .execute_with_events(store, &in_area, SelectMode::Subtract, |_, _| {});
+        } else {
+            // Replace mode: clear first, then add all
+            self.batch_select.clear(store);
+            self.batch_select
+                .execute_with_events(store, &in_area, SelectMode::Add, |_, _| {});
+        }
     }
 
     fn process_tool_operations(
@@ -429,8 +517,8 @@ impl LogicBricksSystem {
             if let Some(entity_id) = self.creation_state.entity_id {
                 let start = self.creation_state.start_pos;
                 let min_x = start.x.min(world_pos.x);
-                let min_y = start.y.min(world_pos.y);
                 let max_x = start.x.max(world_pos.x);
+                let min_y = start.y.min(world_pos.y);
                 let max_y = start.y.max(world_pos.y);
                 let width = (max_x - min_x).max(10.0);
                 let height = (max_y - min_y).max(10.0);
@@ -448,46 +536,31 @@ impl LogicBricksSystem {
             }
         }
 
-        // End creation when mouse button is released
+        // End creation on left button release
         if !left_down && has_entity {
-            web_sys::console::log_1(&JsValue::from_str("🏁 Ending creation"));
-
-            if let Some(entity_id) = self.creation_state.entity_id {
-                let size = store.size(entity_id.index().0 as usize);
-                // If the shape is too small (just a click), give it a default size
-                if size.x <= 1.0 && size.y <= 1.0 {
-                    self.pending_commands.push(Command::Resize {
-                        id: entity_id,
-                        size: Vec2::new(150.0, 150.0),
-                    });
-                    web_sys::console::log_1(&JsValue::from_str("  → Applied default size 150x150"));
-                }
-
-                // Clear the mouse sensor signal history for the newly created entity
-                // This prevents the move actuator from immediately dragging the shape
-                let idx = entity_id.index().0 as usize;
-                self.mouse_sensor.clear_signal(idx);
-            }
+            web_sys::console::log_1(&JsValue::from_str("✅ Finished creation"));
             self.creation_state.entity_id = None;
             self.creation_state.is_creating = false;
         }
     }
 
     fn process_move_actuator(&mut self, store: &mut EntityStore, world_pos: Vec2) {
-        // Don't process move actuator while creating a shape
-        // This prevents the newly created shape from being dragged immediately
-        if self.creation_state.is_creating {
-            return;
+        // Collect all entities that need update: currently selected + currently dragging
+        // This ensures deselected entities can still "release" their drag state
+        let mut to_update = self.batch_select.current_selection();
+        for id in self.move_actuator.dragging_entities() {
+            if !to_update.contains(&id) {
+                to_update.push(id);
+            }
         }
 
-        let selected = self.batch_select.current_selection();
-        for entity_id in &selected {
-            let idx = entity_id.index().0 as usize;
+        for id in to_update {
+            let idx = id.index().0 as usize;
             let signal = self.mouse_sensor.signal(idx);
-            let commands = self
-                .move_actuator
-                .update(*entity_id, signal, world_pos, store);
-            self.pending_commands.extend(commands);
+            let cmds = self.move_actuator.update(id, signal, world_pos, store);
+            for cmd in cmds {
+                self.pending_commands.push(cmd);
+            }
         }
     }
 
@@ -597,6 +670,9 @@ mod tests {
         let mut system = LogicBricksSystem::new();
         system.set_active_tool("circle");
         assert_eq!(system.get_active_tool(), "circle");
+        assert!(!system.is_creating()); // set_active_tool sets is_creating to false
+
+        system.set_creation_start(10.0, 20.0);
         assert!(system.is_creating());
 
         system.set_active_tool("select");
