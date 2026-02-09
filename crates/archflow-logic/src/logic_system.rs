@@ -108,7 +108,7 @@ pub struct LogicSystem {
     timestamp: u32,
 
     /// Spatial hash for broad-phase collision detection
-    spatial_hash: SpatialHash,
+    pub spatial_hash: SpatialHash,
 
     /// Physics sensors for collision/proximity detection
     touch_sensor: TouchSensor,
