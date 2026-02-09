@@ -620,7 +620,7 @@ impl BatchSelectActuator {
         for entity in entities {
             let idx = entity.index().0 as usize;
 
-            if mode == SelectMode::Multi {
+            if mode == SelectMode::Multi || mode == SelectMode::Toggle {
                 // Toggle: create delta for change
                 if !delta.is_set(idx) {
                     delta.toggle(idx);
@@ -632,6 +632,24 @@ impl BatchSelectActuator {
                     changes += 1;
                     // Emit event for selection change
                     on_selection_change(idx, now_selected);
+                }
+            } else if mode == SelectMode::Add {
+                // Ensure selected
+                if !self.selection_mask.is_set(idx) {
+                    delta.toggle(idx);
+                    store.set_selected(idx, true);
+                    self.selection_mask.toggle(idx);
+                    changes += 1;
+                    on_selection_change(idx, true);
+                }
+            } else if mode == SelectMode::Subtract {
+                // Ensure deselected
+                if self.selection_mask.is_set(idx) {
+                    delta.toggle(idx);
+                    store.set_selected(idx, false);
+                    self.selection_mask.toggle(idx);
+                    changes += 1;
+                    on_selection_change(idx, false);
                 }
             } else {
                 // Single/Replace: just set
@@ -832,8 +850,12 @@ pub enum SelectMode {
     Multi = 1,
     /// Clear all and select only this entity
     Replace = 2,
-    /// Toggle selection state (select if deselected, deselect if selected)
+    /// Toggle selection state
     Toggle = 3,
+    /// Add to selection (ensure selected)
+    Add = 4,
+    /// Remove from selection (ensure deselected)
+    Subtract = 5,
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
