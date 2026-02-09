@@ -1,18 +1,18 @@
 /**
- * Canvas Component - WASM Rendering
+ * Canvas Component - WASM Rendering with Behavior System Integration
  *
  * Main canvas component that delegates ALL rendering to WASM.
- * The canvas element is only used as a display surface; all actual drawing
- * is handled by the Rust/WASM engine through the typed bridge.
+ * Uses the Behavior System for entity interactions (hover, select, drag, etc.)
  *
  * This component:
- * - Handles pointer events and forwards them to WASM
+ * - Handles pointer events and forwards them to the Behavior System
  * - Manages canvas lifecycle and resize
  * - Delegates rendering entirely to WASM
- * - Provides drag & drop integration
+ * - Provides drag & drop integration from sidebar
  *
  * Architecture Reference: EPIC-WEB-003, EPIC-WEB-009, EPIC-WEB-010
  * WASM-First: All rendering happens in Rust, NOT in JavaScript
+ * Behavior-Driven: Interactions are handled via the Behavior System
  */
 
 import { useRef, useEffect, useState, useCallback, memo } from "react";
@@ -23,19 +23,17 @@ import { useArchFlowWasm } from "../hooks/useArchFlowWasm.tsx";
 import { useBackend } from "../hooks/useBackend";
 import { useContextMenuStore } from "../store/useContextMenuStore";
 import { useSelectionStore } from "../store/useSelectionStore";
+import { useBehaviorSystem } from "../hooks/useBehaviorSystem";
 import { cn } from "../utils/cn";
 import { usePerformanceMonitor } from "../utils/performance";
 import { ContextMenu } from "./ContextMenu";
+import type { Vec2 } from "../types/wasm";
 
 /**
  * Canvas component props
  */
 interface CanvasProps {
   className?: string;
-  onPointerDown?: (position: { x: number; y: number }, buttons: number) => void;
-  onPointerMove?: (position: { x: number; y: number }, buttons: number) => void;
-  onPointerUp?: (position: { x: number; y: number }, buttons: number) => void;
-  onWheel?: (position: { x: number; y: number }, delta: number) => void;
 }
 
 /**
@@ -59,15 +57,9 @@ const getModifiers = (
 };
 
 /**
- * Canvas component with WebGPU rendering and drag & drop support
+ * Canvas component with WebGPU rendering and behavior-driven interactions
  */
-export default memo(function Canvas({
-  className,
-  onPointerDown,
-  onPointerMove,
-  onPointerUp,
-  onWheel,
-}: CanvasProps) {
+export default memo(function Canvas({ className }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -88,7 +80,6 @@ export default memo(function Canvas({
 
   // Use specific selectors to prevent re-renders when other store parts change
   const camera = useCanvasStore((state) => state.camera);
-  const showGrid = useCanvasStore((state) => state.showGrid);
   const zoomIn = useCanvasStore((state) => state.zoomIn);
   const pan = useCanvasStore((state) => state.pan);
   const activeTool = useUIStore((state) => state.activeTool);
@@ -96,6 +87,19 @@ export default memo(function Canvas({
   // WASM bridge access
   const { bridge, isLoaded: wasmLoaded, initialize } = useArchFlowWasm();
   const { CanvasDroppable, DragOverlayContent, dragState } = useDragAndDrop();
+
+  // Behavior system integration
+  const behaviorSystem = useBehaviorSystem({
+    defaultBehaviors: ["hover", "select", "drag"],
+    dragSnap: 8,
+    onSelectionChange: (ids) => {
+      console.log("[Canvas] Selection changed:", ids);
+    },
+    onHoverChange: (entityId) => {
+      console.log("[Canvas] Hover changed:", entityId);
+    },
+    debug: false,
+  });
 
   // Backend for graphics initialization - useBackend handles detection and initialization
   const backend = useBackend(bridge, canvasRef.current, true);
@@ -130,7 +134,7 @@ export default memo(function Canvas({
   const getCanvasPosition = useCallback(
     (
       event: React.PointerEvent | React.WheelEvent | PointerEvent | WheelEvent,
-    ) => {
+    ): Vec2 => {
       const rect = canvasRef.current?.getBoundingClientRect();
       if (!rect) return { x: 0, y: 0 };
 
@@ -144,44 +148,47 @@ export default memo(function Canvas({
   );
 
   /**
-   * Handle pointer down event - forward to WASM
+   * Handle pointer down event - forward to Behavior System
    */
   const handlePointerDown = useCallback(
     (event: React.PointerEvent) => {
       event.preventDefault();
       const position = getCanvasPosition(event);
 
-      // Forward to callbacks
-      onPointerDown?.(position, event.buttons);
+      // Convert pointer button to mouse button (0=left, 1=right, 2=middle)
+      const button = event.button;
+      const modifiers = getModifiers(event);
 
-      // Forward to WASM Logic Bricks system
+      // Forward to Behavior System handlers
+      behaviorSystem.handlers.onPointerDown(position, button, modifiers);
+
+      // Also forward to WASM for legacy support and rendering
       if (bridge && wasmLoaded) {
         try {
-          // Convert pointer button to mouse button (0=left, 1=right, 2=middle)
-          const button = event.button;
-          const modifiers = getModifiers(event);
-
           bridge.on_mouse_down(position.x, position.y, button, modifiers);
         } catch (err) {
           console.error("Failed to send pointer down to WASM:", err);
         }
       }
     },
-    [getCanvasPosition, onPointerDown, bridge, wasmLoaded],
+    [getCanvasPosition, behaviorSystem, bridge, wasmLoaded],
   );
 
   /**
-   * Handle pointer move event - forward to WASM
+   * Handle pointer move event - forward to Behavior System
    */
   const handlePointerMove = useCallback(
     (event: React.PointerEvent) => {
       const position = getCanvasPosition(event);
-      onPointerMove?.(position, event.buttons);
+      const buttons = event.buttons;
+      const modifiers = getModifiers(event);
 
-      // Forward to WASM Logic Bricks system
+      // Forward to Behavior System handlers
+      behaviorSystem.handlers.onPointerMove(position, buttons, modifiers);
+
+      // Also forward to WASM for legacy support
       if (bridge && wasmLoaded) {
         try {
-          // event.buttons is a bitmask (1=left, 2=right, 4=middle)
           bridge.on_mouse_move(
             position.x,
             position.y,
@@ -193,30 +200,31 @@ export default memo(function Canvas({
         }
       }
     },
-    [getCanvasPosition, onPointerMove, bridge, wasmLoaded],
+    [getCanvasPosition, behaviorSystem, bridge, wasmLoaded],
   );
 
   /**
-   * Handle pointer up event - forward to WASM
+   * Handle pointer up event - forward to Behavior System
    */
   const handlePointerUp = useCallback(
     (event: React.PointerEvent) => {
       const position = getCanvasPosition(event);
-      onPointerUp?.(position, event.buttons);
+      const button = event.button;
+      const modifiers = getModifiers(event);
 
-      // Forward to WASM Logic Bricks system
+      // Forward to Behavior System handlers
+      behaviorSystem.handlers.onPointerUp(position, button, modifiers);
+
+      // Also forward to WASM for legacy support
       if (bridge && wasmLoaded) {
         try {
-          // Convert pointer button to mouse button (0=left, 1=right, 2=middle)
-          const button = event.button;
-
-          bridge.on_mouse_up(position.x, position.y, button, getModifiers(event));
+          bridge.on_mouse_up(position.x, position.y, button, modifiers);
         } catch (err) {
           console.error("Failed to send pointer up to WASM:", err);
         }
       }
     },
-    [getCanvasPosition, onPointerUp, bridge, wasmLoaded],
+    [getCanvasPosition, behaviorSystem, bridge, wasmLoaded],
   );
 
   /**
@@ -242,7 +250,7 @@ export default memo(function Canvas({
   }, []);
 
   /**
-   * Handle wheel event - forward to WASM
+   * Handle wheel event - forward to WASM (behavior system doesn't handle wheel)
    */
   const handleWheel = useCallback(
     (event: React.WheelEvent) => {
@@ -256,8 +264,6 @@ export default memo(function Canvas({
       } else {
         pan(event.deltaX, event.deltaY);
       }
-
-      onWheel?.(position, Math.abs(event.deltaY));
 
       // Forward to WASM if available
       if (bridge && wasmLoaded) {
@@ -284,14 +290,19 @@ export default memo(function Canvas({
         }
       }
     },
-    [getCanvasPosition, zoomIn, pan, onWheel, bridge, wasmLoaded],
+    [getCanvasPosition, zoomIn, pan, bridge, wasmLoaded],
   );
 
   /**
-   * Get cursor style based on active tool
+   * Get cursor style based on active tool and behavior state
    */
   const getCursor = useCallback(() => {
     if (camera.zoom !== 1) return "grab";
+
+    // Check behavior system state
+    if (behaviorSystem.state.isMarqueeing) return "crosshair";
+    if (behaviorSystem.state.draggedEntityId) return "grabbing";
+
     switch (activeTool) {
       case "select":
         return "default";
@@ -310,7 +321,7 @@ export default memo(function Canvas({
       default:
         return "default";
     }
-  }, [camera.zoom, activeTool]);
+  }, [camera.zoom, activeTool, behaviorSystem.state]);
 
   // Resize observer for responsive canvas
   useEffect(() => {
@@ -360,15 +371,16 @@ export default memo(function Canvas({
         clientY: event.clientY,
         button: event.button,
         isTrusted: event.isTrusted,
-        hasBridge: !!bridge,
-        bridgeType: typeof bridge,
       });
 
       const position = getCanvasPosition(event);
       const button = event.button;
       const modifiers = getModifiers(event);
 
-      console.log("  → Canvas position:", position, "button:", button, "modifiers:", modifiers);
+      console.log("  → Canvas position:", position, "button:", button);
+
+      // Forward to behavior system
+      behaviorSystem.handlers.onPointerDown(position, button, modifiers);
 
       try {
         bridge.on_mouse_down(position.x, position.y, button, modifiers);
@@ -383,6 +395,9 @@ export default memo(function Canvas({
       const position = getCanvasPosition(event);
       const modifiers = getModifiers(event);
 
+      // Forward to behavior system
+      behaviorSystem.handlers.onPointerMove(position, event.buttons, modifiers);
+
       try {
         bridge.on_mouse_move(position.x, position.y, event.buttons, modifiers);
       } catch (err) {
@@ -396,14 +411,14 @@ export default memo(function Canvas({
         clientX: event.clientX,
         clientY: event.clientY,
         button: event.button,
-        isTrusted: event.isTrusted,
       });
 
       const position = getCanvasPosition(event);
       const button = event.button;
       const modifiers = getModifiers(event);
 
-      console.log("  → Canvas position:", position, "button:", button, "modifiers:", modifiers);
+      // Forward to behavior system
+      behaviorSystem.handlers.onPointerUp(position, button, modifiers);
 
       try {
         bridge.on_mouse_up(position.x, position.y, button, modifiers);
@@ -433,7 +448,7 @@ export default memo(function Canvas({
       canvas.removeEventListener("pointermove", nativePointerMove);
       canvas.removeEventListener("pointerup", nativePointerUp);
     };
-  }, [bridge, wasmLoaded, getCanvasPosition]);
+  }, [bridge, wasmLoaded, getCanvasPosition, behaviorSystem]);
 
   // Initialize renderer with backend selection
   useEffect(() => {
@@ -464,8 +479,6 @@ export default memo(function Canvas({
 
       try {
         // Initialize WASM engine
-        // canvas.width/height is already scaled by DPR in the ResizeObserver
-        console.log("[Canvas] Calling bridge.initialize...");
         console.log("[Canvas] Calling initialize...");
         await initialize(canvas.width, canvas.height);
 
@@ -494,7 +507,7 @@ export default memo(function Canvas({
     };
 
     initializeGraphics();
-  }, [bridge, wasmLoaded, selectedBackend]);
+  }, [bridge, wasmLoaded, selectedBackend, initialize]);
 
   // Sync active tool with WASM bridge
   useEffect(() => {
@@ -525,27 +538,17 @@ export default memo(function Canvas({
 
   // WASM-driven render loop
   useEffect(() => {
-    /*
-    console.log("[Canvas] Render loop effect:", {
-      hasCanvas: !!canvasRef.current,
-      hasBridge: !!bridge,
-      wasmLoaded,
-      isInitialized,
-    });
-    */
-
     if (!canvasRef.current || !bridge || !wasmLoaded || !isInitialized) {
-      // console.log("[Canvas] Skipping render loop - not ready");
       return;
     }
 
-    // console.log("[Canvas] Starting render loop...");
     let animationId: number;
-    // let lastTime = performance.now();
-    // let frameCount = 0;
 
     const render = (timestamp: number) => {
       try {
+        // Process behavior system updates
+        behaviorSystem.actions.update?.(timestamp);
+
         // Call WASM tick function to process input and render
         (
           bridge as {
@@ -553,33 +556,21 @@ export default memo(function Canvas({
           }
         ).tick(timestamp);
 
-        // Log every 300 frames (roughly 5 seconds at 60fps) to reduce noise
-        // frameCount++;
-        // if (frameCount % 300 === 0) {
-        //   console.log(
-        //     `[Canvas] Render loop active, frame ${frameCount}, fps: ${(1000 / (timestamp - lastTime)).toFixed(1)}`,
-        //   );
-        // }
-
-        // lastTime = timestamp;
         animationId = requestAnimationFrame(render);
       } catch (err) {
         console.error("[Canvas] ✗ WASM render tick failed:", err);
-        // Continue animation loop even if tick fails
         animationId = requestAnimationFrame(render);
       }
     };
 
     animationId = requestAnimationFrame(render);
-    // console.log("[Canvas] ✓ Render loop started");
 
     return () => {
       if (animationId) {
         cancelAnimationFrame(animationId);
-        // console.log("[Canvas] Render loop stopped");
       }
     };
-  }, [bridge, wasmLoaded, isInitialized]);
+  }, [bridge, wasmLoaded, isInitialized, behaviorSystem]);
 
   return (
     <CanvasDroppable>
@@ -624,6 +615,20 @@ export default memo(function Canvas({
 
           {/* Drag overlay for visual feedback */}
           <DragOverlayContent />
+
+          {/* Marquee selection overlay */}
+          {behaviorSystem.state.isMarqueeing &&
+            behaviorSystem.state.marqueeRect && (
+              <div
+                className="absolute border-2 border-primary bg-primary/10 pointer-events-none"
+                style={{
+                  left: behaviorSystem.state.marqueeRect.x,
+                  top: behaviorSystem.state.marqueeRect.y,
+                  width: behaviorSystem.state.marqueeRect.width,
+                  height: behaviorSystem.state.marqueeRect.height,
+                }}
+              />
+            )}
 
           {/* Context Menu */}
           <ContextMenu />

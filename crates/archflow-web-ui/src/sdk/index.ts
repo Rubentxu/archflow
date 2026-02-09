@@ -75,10 +75,7 @@ export type {
 
 // Re-export all bridge facades for direct use
 export { EntityBridge, createEntityBridge } from "./EntityBridge";
-export {
-  SelectionBridge,
-  createSelectionBridge,
-} from "./SelectionBridge";
+export { SelectionBridge, createSelectionBridge } from "./SelectionBridge";
 export { CameraBridge, createCameraBridge } from "./CameraBridge";
 export { InputBridge, createInputBridge } from "./InputBridge";
 export { HistoryBridge, createHistoryBridge } from "./HistoryBridge";
@@ -127,11 +124,7 @@ export type {
   EventDirection,
 } from "./eventTracker.tsx";
 
-export {
-  ToolsBridge,
-  createToolsBridge,
-  TOOL_REGISTRY,
-} from "./ToolsBridge";
+export { ToolsBridge, createToolsBridge, TOOL_REGISTRY } from "./ToolsBridge";
 export {
   BehaviorBridge,
   createBehaviorBridge,
@@ -142,21 +135,46 @@ export {
 // MAIN SDK FACADE
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export {
-  ArchFlowBridge,
-  createArchFlowBridge,
-} from "./ArchFlowBridge";
+export { ArchFlowBridge, createArchFlowBridge } from "./ArchFlowBridge";
 export type { ArchFlowBridgeOptions } from "./ArchFlowBridge";
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// BEHAVIOR REGISTRY & TEMPLATES
+// BEHAVIOR SDK - Declarative Behavior API
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// BehaviorBuilder - Fluent API
+export { BehaviorBuilder, createBehaviorBuilder } from "./BehaviorBuilder";
+export type {
+  BehaviorConfig,
+  SensorConfig,
+  ControllerConfig,
+  ActuatorConfig,
+  BehaviorMetadata,
+  ExecutionContext,
+  BehaviorEvent,
+  BehaviorState,
+  HighlightStyle,
+  ModifierKeys,
+} from "./BehaviorBuilder";
+
+// Behavior Templates - Predefined patterns
+export {
+  behaviorTemplates,
+  getBehaviorTemplate,
+  createDefaultBehaviors,
+} from "./BehaviorTemplates";
+export type { HighlightStyle as TemplateHighlightStyle } from "./BehaviorTemplates";
+
+// BehaviorBridge (legacy)
+export {
+  BehaviorBridge,
+  createBehaviorBridge,
+  BEHAVIOR_TEMPLATES,
+} from "./BehaviorBridge";
+
+// BehaviorRegistry
 export { behaviorRegistry } from "./BehaviorRegistry";
-
 export type { BehaviorTemplate } from "./BehaviorRegistry";
-
-export type { BehaviorConfig } from "./types";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SHAPE BUILDER API
