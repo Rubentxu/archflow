@@ -71,6 +71,12 @@ pub enum SelectModeWasm {
 
     /// Toggle selection (inverts selection state)
     Toggle = 3,
+
+    /// Add to selection (ensure selected)
+    Add = 4,
+
+    /// Subtract from selection (ensure deselected)
+    Subtract = 5,
 }
 
 impl From<SelectModeWasm> for CoreSelectMode {
@@ -80,6 +86,8 @@ impl From<SelectModeWasm> for CoreSelectMode {
             SelectModeWasm::Multi => CoreSelectMode::Multi,
             SelectModeWasm::Replace => CoreSelectMode::Replace,
             SelectModeWasm::Toggle => CoreSelectMode::Toggle,
+            SelectModeWasm::Add => CoreSelectMode::Add,
+            SelectModeWasm::Subtract => CoreSelectMode::Subtract,
         }
     }
 }
@@ -91,6 +99,8 @@ impl From<CoreSelectMode> for SelectModeWasm {
             CoreSelectMode::Multi => SelectModeWasm::Multi,
             CoreSelectMode::Replace => SelectModeWasm::Replace,
             CoreSelectMode::Toggle => SelectModeWasm::Toggle,
+            CoreSelectMode::Add => SelectModeWasm::Add,
+            CoreSelectMode::Subtract => SelectModeWasm::Subtract,
         }
     }
 }
