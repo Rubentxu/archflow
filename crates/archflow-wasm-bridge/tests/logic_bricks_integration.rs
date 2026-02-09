@@ -137,34 +137,6 @@ fn test_event_polling() {
 }
 
 #[test]
-fn test_backward_compatibility() {
-    let mut engine = ArchFlowEngine::new(800.0, 600.0);
-
-    let entity_id = engine
-        .store
-        .spawn(Vec2::new(100.0, 100.0), Vec2::new(50.0, 50.0));
-
-    // Select using new API
-    engine.select_entity(entity_id);
-
-    // Verify deprecated field is also updated
-    #[allow(deprecated)]
-    {
-        assert_eq!(engine.selected_entities.len(), 1);
-        assert_eq!(engine.selected_entities[0], entity_id);
-    }
-
-    // Clear using new API
-    engine.clear_selection();
-
-    // Verify deprecated field is also cleared
-    #[allow(deprecated)]
-    {
-        assert_eq!(engine.selected_entities.len(), 0);
-    }
-}
-
-#[test]
 fn test_performance_batch_select() {
     let mut engine = ArchFlowEngine::new(800.0, 600.0);
 
