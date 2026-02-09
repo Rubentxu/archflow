@@ -644,7 +644,8 @@ impl WasmBridge {
             world_pos.x,
             world_pos.y,
             event.buttons,
-            0, // Wheel delta is implicit or separate, for now 0 is safe for movement/clicks
+            0, // Wheel delta
+            event.modifiers,
         );
 
         let event_type: InputEventType = match event.event_type {
@@ -952,8 +953,8 @@ impl WasmBridge {
     pub fn set_active_color(&self, r: u8, g: u8, b: u8, a: u8) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
             let rgba = archflow_core::Color::rgba(r, g, b, a).0;
-            let abgr = rgba_to_abgr(rgba);
-            engine.active_color = abgr;
+            // Store directly in RGBA format (WebGL expects RGBA, not ABGR)
+            engine.active_color = rgba;
             Ok(())
         } else {
             Err(JsError::new("Engine not initialized").into())
@@ -965,7 +966,8 @@ impl WasmBridge {
     pub fn set_active_stroke_color(&self, r: u8, g: u8, b: u8, a: u8) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
             let rgba = archflow_core::Color::rgba(r, g, b, a).0;
-            engine.active_stroke_color = rgba_to_abgr(rgba);
+            // Store directly in RGBA format (WebGL expects RGBA, not ABGR)
+            engine.active_stroke_color = rgba;
             Ok(())
         } else {
             Err(JsError::new("Engine not initialized").into())
@@ -989,12 +991,15 @@ impl WasmBridge {
         match self.engine.try_borrow() {
             Ok(engine_guard) => {
                 if let Some(engine) = engine_guard.as_ref() {
-                    let abgr = engine.active_color;
-                    // Convert ABGR back to RGBA for JavaScript
-                    let r = abgr & 0xFF;
-                    let g = (abgr >> 8) & 0xFF;
-                    let b = (abgr >> 16) & 0xFF;
-                    Ok(format!("#{0:02x}{1:02x}{2:02x}", r, g, b))
+                    let rgba = engine.active_color;
+                    // Extract RGB using Color methods (handles ABGR internal format)
+                    let color = archflow_core::Color(rgba);
+                    Ok(format!(
+                        "#{0:02x}{1:02x}{2:02x}",
+                        color.r(),
+                        color.g(),
+                        color.b()
+                    ))
                 } else {
                     Err(JsError::new("Engine not initialized").into())
                 }
@@ -1007,12 +1012,15 @@ impl WasmBridge {
     #[wasm_bindgen]
     pub fn get_active_stroke_color(&self) -> Result<String, JsValue> {
         if let Some(engine) = self.engine.borrow().as_ref() {
-            let abgr = engine.active_stroke_color;
-            // Convert ABGR back to RGBA for JavaScript
-            let r = abgr & 0xFF;
-            let g = (abgr >> 8) & 0xFF;
-            let b = (abgr >> 16) & 0xFF;
-            Ok(format!("#{:02x}{:02x}{:02x}", r, g, b))
+            let rgba = engine.active_stroke_color;
+            // Extract RGB using Color methods (handles ABGR internal format)
+            let color = archflow_core::Color(rgba);
+            Ok(format!(
+                "#{:02x}{:02x}{:02x}",
+                color.r(),
+                color.g(),
+                color.b()
+            ))
         } else {
             Err(JsError::new("Engine not initialized").into())
         }
@@ -1268,11 +1276,15 @@ impl WasmBridge {
             if idx >= MAX_ENTITIES || !engine.store.is_alive_index(idx) {
                 return Err(JsError::new("Invalid entity index").into());
             }
-            let color = engine.store.colors[idx];
-            let r = (color >> 24) & 0xFF;
-            let g = (color >> 16) & 0xFF;
-            let b = (color >> 8) & 0xFF;
-            Ok(format!("#{:02X}{:02X}{:02X}", r, g, b))
+            let raw_color = engine.store.colors[idx];
+            // Extract RGB using Color methods (handles ABGR internal format)
+            let color = archflow_core::Color(raw_color);
+            Ok(format!(
+                "#{:02X}{:02X}{:02X}",
+                color.r(),
+                color.g(),
+                color.b()
+            ))
         } else {
             Err(JsError::new("Engine not initialized").into())
         }
@@ -1576,9 +1588,9 @@ impl WasmBridge {
     /// * `screen_y` - Mouse Y position in screen pixels
     /// * `buttons` - Bitmask of pressed buttons (1=left, 2=right, 4=middle)
     #[wasm_bindgen]
-    pub fn on_mouse_move(&self, screen_x: f32, screen_y: f32, buttons: u8) {
+    pub fn on_mouse_move(&self, screen_x: f32, screen_y: f32, buttons: u8, modifiers: u8) {
         #[cfg(feature = "tracing-logging")]
-        trace!(target: "archflow::wasm", screen_x, screen_y, buttons, "on_mouse_move");
+        trace!(target: "archflow::wasm", screen_x, screen_y, buttons, modifiers, "on_mouse_move");
 
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
             let world_pos = engine.screen_to_world(screen_x, screen_y);
@@ -1589,6 +1601,7 @@ impl WasmBridge {
                 world_pos.y,
                 buttons,
                 0,
+                modifiers,
             );
         }
     }
@@ -1628,6 +1641,7 @@ impl WasmBridge {
                 world_pos.y,
                 buttons,
                 0,
+                modifiers,
             );
         }
     }
@@ -1642,16 +1656,22 @@ impl WasmBridge {
     /// * `screen_y` - Mouse Y position in screen pixels
     /// * `button` - Mouse button that was released
     #[wasm_bindgen]
-    pub fn on_mouse_up(&self, screen_x: f32, screen_y: f32, button: u8) {
+    pub fn on_mouse_up(&self, screen_x: f32, screen_y: f32, button: u8, modifiers: u8) {
         #[cfg(feature = "tracing-logging")]
-        info!(target: "archflow::wasm", screen_x, screen_y, button, "🖱️ on_mouse_up");
+        info!(target: "archflow::wasm", screen_x, screen_y, button, modifiers, "🖱️ on_mouse_up");
 
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
             let world_pos = engine.screen_to_world(screen_x, screen_y);
             // Button released means it's no longer pressed (buttons = 0)
-            engine
-                .logic_bricks
-                .sample_input(screen_x, screen_y, world_pos.x, world_pos.y, 0, 0);
+            engine.logic_bricks.sample_input(
+                screen_x,
+                screen_y,
+                world_pos.x,
+                world_pos.y,
+                0,
+                0,
+                modifiers,
+            );
         }
     }
 
@@ -1678,6 +1698,7 @@ impl WasmBridge {
                 world_pos.y,
                 0,
                 wheel,
+                modifiers,
             );
         }
     }
@@ -1730,11 +1751,15 @@ impl WasmBridge {
                     } else {
                         0
                     };
+                    let world_pos = engine.screen_to_world(event.x, event.y);
                     engine.logic_bricks.sample_input(
-                        event.x, event.y,
-                        event.x, // Screen X (for now, until we have camera transform)
-                        event.y, // Screen Y
-                        buttons, wheel,
+                        event.x,
+                        event.y,
+                        world_pos.x,
+                        world_pos.y,
+                        buttons,
+                        wheel,
+                        event.modifiers,
                     );
                 }
             }

@@ -217,6 +217,8 @@ pub struct ControllerContext<'a> {
     pub timestamp: u64,
     /// Entity being evaluated
     pub entity_id: u32,
+    /// Modifier keys bitmask (1=shift, 2=ctrl, 4=alt, 8=meta)
+    pub modifiers: u8,
     /// Reference to hysteresis states (for Hysteresis controller)
     hysteresis_states: &'a mut HysteresisStateMap,
     /// Custom properties for state sharing
@@ -260,12 +262,14 @@ impl<'a> ControllerContext<'a> {
     pub fn new(
         timestamp: u64,
         entity_id: u32,
+        modifiers: u8,
         hysteresis_states: &'a mut HysteresisStateMap,
         custom_properties: &'a mut CustomPropertyMap,
     ) -> Self {
         Self {
             timestamp,
             entity_id,
+            modifiers,
             hysteresis_states,
             custom_properties,
         }
@@ -642,13 +646,13 @@ mod tests {
         () => {
             let mut hyst_vec: HysteresisStateMap = Vec::new();
             let mut prop_vec: CustomPropertyMap = Vec::new();
-            let mut context = ControllerContext::new(0, 0, &mut hyst_vec, &mut prop_vec);
+            let mut context = ControllerContext::new(0, 0, 0, &mut hyst_vec, &mut prop_vec);
         };
         ($timestamp:expr, $entity_id:expr) => {
             let mut hyst_vec: HysteresisStateMap = Vec::new();
             let mut prop_vec: CustomPropertyMap = Vec::new();
             let mut context =
-                ControllerContext::new($timestamp, $entity_id, &mut hyst_vec, &mut prop_vec);
+                ControllerContext::new($timestamp, $entity_id, 0, &mut hyst_vec, &mut prop_vec);
         };
     }
 
@@ -658,7 +662,7 @@ mod tests {
         let signals = &[(SensorType::MouseOver, signal)];
         let mut hyst_vec: HysteresisStateMap = Vec::new();
         let mut prop_vec: CustomPropertyMap = Vec::new();
-        let mut context = ControllerContext::new(0, 0, &mut hyst_vec, &mut prop_vec);
+        let mut context = ControllerContext::new(0, 0, 0, &mut hyst_vec, &mut prop_vec);
 
         assert!(Controller::Direct.evaluate(SensorType::MouseOver, signals, &mut context));
     }
@@ -673,7 +677,7 @@ mod tests {
         ];
         let mut hyst_vec: HysteresisStateMap = Vec::new();
         let mut prop_vec: CustomPropertyMap = Vec::new();
-        let mut context = ControllerContext::new(0, 0, &mut hyst_vec, &mut prop_vec);
+        let mut context = ControllerContext::new(0, 0, 0, &mut hyst_vec, &mut prop_vec);
 
         let and_ctrl = Controller::AND(SensorType::MouseClick);
         assert!(!and_ctrl.evaluate(SensorType::MouseOver, signals, &mut context));
@@ -696,7 +700,7 @@ mod tests {
         ];
         let mut hyst_vec: HysteresisStateMap = Vec::new();
         let mut prop_vec: CustomPropertyMap = Vec::new();
-        let mut context = ControllerContext::new(0, 0, &mut hyst_vec, &mut prop_vec);
+        let mut context = ControllerContext::new(0, 0, 0, &mut hyst_vec, &mut prop_vec);
 
         let or_ctrl = Controller::OR(SensorType::MouseClick);
         assert!(or_ctrl.evaluate(SensorType::MouseOver, signals, &mut context));
@@ -715,7 +719,7 @@ mod tests {
         let signals = &[(SensorType::MouseOver, active)];
         let mut hyst_vec: HysteresisStateMap = Vec::new();
         let mut prop_vec: CustomPropertyMap = Vec::new();
-        let mut context = ControllerContext::new(0, 0, &mut hyst_vec, &mut prop_vec);
+        let mut context = ControllerContext::new(0, 0, 0, &mut hyst_vec, &mut prop_vec);
 
         assert!(!Controller::NOT.evaluate(SensorType::MouseOver, signals, &mut context));
 
@@ -730,7 +734,7 @@ mod tests {
         let signals = &[(SensorType::MouseOver, active)];
         let mut hyst_vec: HysteresisStateMap = Vec::new();
         let mut prop_vec: CustomPropertyMap = Vec::new();
-        let mut context = ControllerContext::new(0, 0, &mut hyst_vec, &mut prop_vec);
+        let mut context = ControllerContext::new(0, 0, 0, &mut hyst_vec, &mut prop_vec);
 
         // Phase 0 should be ON
         context.timestamp = 0;
@@ -755,7 +759,7 @@ mod tests {
     fn test_debounce_controller() {
         let mut hyst_vec: HysteresisStateMap = Vec::new();
         let mut prop_vec: CustomPropertyMap = Vec::new();
-        let mut context = ControllerContext::new(0, 0, &mut hyst_vec, &mut prop_vec);
+        let mut context = ControllerContext::new(0, 0, 0, &mut hyst_vec, &mut prop_vec);
 
         // Not stable - only 2 ticks
         let partially_stable = SignalByte::from(0b00000011);
@@ -772,7 +776,7 @@ mod tests {
     fn test_hysteresis_controller() {
         let mut hyst_vec: HysteresisStateMap = Vec::new();
         let mut prop_vec: CustomPropertyMap = Vec::new();
-        let mut context = ControllerContext::new(0, 1, &mut hyst_vec, &mut prop_vec); // entity_id = 1
+        let mut context = ControllerContext::new(0, 1, 0, &mut hyst_vec, &mut prop_vec); // entity_id = 1
 
         // Start at low threshold (30%)
         let low_signal = SignalByte::from(0b00001111); // 4/6 = 67% > 30%, should transition to High
@@ -812,7 +816,7 @@ mod tests {
     fn test_threshold_controller() {
         let mut hyst_vec: HysteresisStateMap = Vec::new();
         let mut prop_vec: CustomPropertyMap = Vec::new();
-        let mut context = ControllerContext::new(0, 0, &mut hyst_vec, &mut prop_vec);
+        let mut context = ControllerContext::new(0, 0, 0, &mut hyst_vec, &mut prop_vec);
 
         // 50% stability (3/6 ticks)
         let threshold_signal = SignalByte::from(0b00010111); // 4 ones = 67%
@@ -826,7 +830,7 @@ mod tests {
     fn test_pattern_controller() {
         let mut hyst_vec: HysteresisStateMap = Vec::new();
         let mut prop_vec: CustomPropertyMap = Vec::new();
-        let mut context = ControllerContext::new(0, 0, &mut hyst_vec, &mut prop_vec);
+        let mut context = ControllerContext::new(0, 0, 0, &mut hyst_vec, &mut prop_vec);
 
         // Double-click pattern: click-pause-pause-click-pause-pause
         // History: 100100 = 0b00100100
@@ -856,7 +860,7 @@ mod tests {
         let signals = &[(SensorType::MouseOver, signal)];
         let mut hyst_vec: HysteresisStateMap = Vec::new();
         let mut prop_vec: CustomPropertyMap = Vec::new();
-        let mut context = ControllerContext::new(0, 0, &mut hyst_vec, &mut prop_vec);
+        let mut context = ControllerContext::new(0, 0, 0, &mut hyst_vec, &mut prop_vec);
 
         let custom = Controller::custom("test", "return true;");
         assert!(!custom.evaluate(SensorType::MouseOver, signals, &mut context));

@@ -14,12 +14,12 @@ use alloc::vec::Vec;
 
 use wasm_bindgen::prelude::*;
 
-use archflow_core::{EntityId, Vec2};
+use archflow_core::{EntityId, Generation, Index, Vec2};
 use archflow_engine::{Command, EntityStore, ShapeType};
+use archflow_logic::mapping::{Controller, LogicMappingTable, SensorType};
 use archflow_logic::sensors::{MouseConfig, MouseSensor};
-use archflow_logic::{
-    BatchSelectActuator, LogicEvent, LogicMappingTable, LogicSystem, MoveActuator, SelectMode,
-};
+use archflow_logic::signals::SignalByte;
+use archflow_logic::{BatchSelectActuator, LogicSystem, MoveActuator, SelectMode};
 
 /// Map tool name to ShapeType enum value
 fn tool_to_shape_type(tool: &str) -> u8 {
@@ -61,6 +61,7 @@ pub struct InputState {
     pub world_y: f32,
     pub buttons: u8,
     pub wheel: i8,
+    pub modifiers: u8,
     pub active_tool: String,
 }
 
@@ -101,6 +102,9 @@ pub struct LogicBricksSystem {
 
     /// Timestamp for current frame
     timestamp: u32,
+
+    /// Previous button state for edge detection
+    prev_buttons: u8,
 }
 
 // =======================================================================
@@ -127,6 +131,7 @@ impl LogicBricksSystem {
             creation_state: CreationState::default(),
             pending_commands: Vec::new(),
             timestamp: 0,
+            prev_buttons: 0,
         }
     }
 
@@ -142,6 +147,7 @@ impl LogicBricksSystem {
         world_y: f32,
         buttons: u8,
         wheel: i8,
+        modifiers: u8,
     ) {
         self.input_state = InputState {
             screen_x,
@@ -150,6 +156,7 @@ impl LogicBricksSystem {
             world_y,
             buttons,
             wheel,
+            modifiers,
             active_tool: self.input_state.active_tool.clone(),
         };
     }
@@ -290,6 +297,13 @@ impl LogicBricksSystem {
         self.logic_system.set_timestamp(timestamp_ms);
         self.pending_commands.clear();
 
+        // Resize components to match entity store capacity
+        // This prevents panics when new entities are created beyond initial capacity
+        let capacity = store.transforms.capacity();
+        self.mouse_sensor.resize(capacity);
+        self.hover_sensor.resize(capacity);
+        self.batch_select.resize(capacity);
+
         let world_pos = Vec2::new(self.input_state.world_x, self.input_state.world_y);
 
         // Evaluate sensors
@@ -315,8 +329,39 @@ impl LogicBricksSystem {
             active_stroke_width,
         );
 
-        // Process move actuator
+        // LOGIC BRICKS EVALUATION
+        // Evaluate logic bricks for all visible entities (selection, etc.)
+        for &idx_u32 in &store.draw_order {
+            let idx = idx_u32 as usize;
+            let generation_val = store.generation(idx);
+            let entity_id = EntityId::from_parts(Index(idx_u32), Generation(generation_val));
+
+            let mut signals: Vec<(SensorType, SignalByte)> = Vec::new();
+
+            // Check Mouse Click Sensor
+            let click_signal = self.mouse_sensor.signal(idx);
+            if click_signal.as_u8() != 0 {
+                signals.push((SensorType::MouseClick, click_signal));
+            }
+
+            // Check Mouse Hover Sensor
+            let hover_signal = self.hover_sensor.signal(idx);
+            if hover_signal.as_u8() != 0 {
+                signals.push((SensorType::MouseOver, hover_signal));
+            }
+
+            if !signals.is_empty() {
+                // Evaluate Logic Bricks connections
+                // We don't need to track just_selected because MoveActuator handles hysteresis
+                self.mapping_table
+                    .evaluate(store, entity_id, &signals, &mut self.batch_select);
+            }
+        }
+
+        // Process move actuator - Hysteresis logic inside MoveActuator prevents immediate jump
         self.process_move_actuator(store, world_pos);
+
+        self.prev_buttons = self.input_state.buttons;
 
         self.pending_commands.len()
     }
@@ -352,6 +397,17 @@ impl LogicBricksSystem {
             store.set_color(idx, active_color);
             store.set_stroke_color(idx, active_stroke_color);
             store.set_stroke_width(idx, active_stroke_width);
+
+            // Add default Logic Bricks connections
+            // 1. Click -> Select
+            self.mapping_table
+                .add_select(id, SensorType::MouseClick, Controller::Direct);
+            // 2. Click + Hover -> Move
+            self.mapping_table.add_move(
+                id,
+                SensorType::MouseClick,
+                Controller::AND(SensorType::MouseOver),
+            );
 
             self.batch_select.execute(store, &[id], SelectMode::Single);
             self.creation_state.entity_id = Some(id);
@@ -531,7 +587,7 @@ mod tests {
     #[test]
     fn test_sample_input() {
         let mut system = LogicBricksSystem::new();
-        system.sample_input(100.0, 200.0, 50.0, 75.0, 0b001, 0);
+        system.sample_input(100.0, 200.0, 50.0, 75.0, 0b001, 0, 0);
         assert_eq!(system.input_state.screen_x, 100.0);
         assert_eq!(system.input_state.buttons, 1);
     }

@@ -206,6 +206,35 @@ export interface WasmBridge {
     buttons: number,
     modifiers: number,
   ): void;
+  on_mouse_down(
+    screen_x: number,
+    screen_y: number,
+    button: number,
+    modifiers: number,
+  ): void;
+  on_mouse_move(
+    screen_x: number,
+    screen_y: number,
+    buttons: number,
+    modifiers: number,
+  ): void;
+  on_mouse_up(
+    screen_x: number,
+    screen_y: number,
+    button: number,
+    modifiers: number,
+  ): void;
+  on_wheel(
+    screen_x: number,
+    screen_y: number,
+    delta_y: number,
+    modifiers: number,
+  ): void;
+  get_modifiers(): number;
+  get_mouse_buttons(): number;
+  get_mouse_position(): string;
+  on_key(key_code: number, is_down: boolean, modifiers: number): void;
+  process_input_events(): void;
 
   // Main loop
   tick(timestamp: number): void;

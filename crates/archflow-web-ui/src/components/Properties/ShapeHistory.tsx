@@ -1,22 +1,34 @@
 import React, { useEffect } from 'react';
 import { useEntityStore } from '../../hooks/useEntityStore';
 import { useSelectionStore } from '../../store/useSelectionStore';
+import { useArchFlowWasm } from '../../hooks/useArchFlowWasm';
 import { cn } from '../../utils/cn';
 import {
     Box,
     Circle,
     Triangle,
+    Diamond,
     Star,
     Cloud,
+    Zap,
+    Heart,
     HelpCircle,
+    Plus,
+    Minus,
+    MessageSquare,
+    Link,
+    Trash2,
     Hexagon,
-    Type
+    X,
+    AlertTriangle,
+    Divide,
 } from 'lucide-react';
 import { ShapeType } from '../../types/wasm';
 
 export function ShapeHistory() {
     const { entities, refreshEntities } = useEntityStore();
-    const { selectedIds, setSelected } = useSelectionStore();
+    const { selectedIds } = useSelectionStore(); // Only read selectedIds
+    const { bridge } = useArchFlowWasm();
 
     // Poll for changes (temporary solution until we have event bus)
     useEffect(() => {
@@ -25,24 +37,71 @@ export function ShapeHistory() {
         return () => clearInterval(interval);
     }, [refreshEntities]);
 
+    const handleSelect = (id: number, event: React.MouseEvent) => {
+        if (!bridge) return;
+
+        const isMulti = event.metaKey || event.ctrlKey;
+        const isShift = event.shiftKey;
+
+        if (isShift) {
+            // Shift + Click: Add to selection (don't toggle)
+            bridge.set_entity_selected(id, true);
+        } else if (isMulti) {
+            // Cmd/Ctrl + Click: Toggle selection
+            const isSelected = bridge.is_entity_selected(id);
+            bridge.set_entity_selected(id, !isSelected);
+        } else {
+            // Simple Click: Select only this
+            bridge.clear_selection();
+            bridge.set_entity_selected(id, true);
+        }
+    };
+
     const sortedEntities = Array.from(entities.values())
         .sort((a, b) => b.id - a.id); // Newest first
 
-    const getIcon = (shape: number) => {
-        switch (shape) {
-            case ShapeType.Rectangle: return <Box className="w-3 h-3" />;
-            case ShapeType.Circle: return <Circle className="w-3 h-3" />;
-            case ShapeType.Triangle: return <Triangle className="w-3 h-3" />;
-            case ShapeType.Star: return <Star className="w-3 h-3" />;
-            case ShapeType.Cloud: return <Cloud className="w-3 h-3" />;
-            case ShapeType.Hexagon: return <Hexagon className="w-3 h-3" />;
-            // Text not in ShapeType enum explicitly here but might be handled
-            default: return <Box className="w-3 h-3" />;
+    const getIcon = (shapeType: number) => {
+        switch (shapeType) {
+            case ShapeType.Rectangle:
+                return <Box className="w-4 h-4" />;
+            case ShapeType.Circle:
+                return <Circle className="w-4 h-4" />;
+            case ShapeType.Triangle:
+                return <Triangle className="w-4 h-4" />;
+            case ShapeType.Diamond:
+                return <Diamond className="w-4 h-4" />;
+            case ShapeType.Star:
+                return <Star className="w-4 h-4" />;
+            case ShapeType.Cloud:
+                return <Cloud className="w-4 h-4" />;
+            case ShapeType.Lightning:
+                return <Zap className="w-4 h-4" />;
+            case ShapeType.Heart:
+                return <Heart className="w-4 h-4" />;
+            case ShapeType.Question:
+                return <HelpCircle className="w-4 h-4" />;
+            case ShapeType.Plus:
+                return <Plus className="w-4 h-4" />;
+            case ShapeType.Minus:
+                return <Minus className="w-4 h-4" />;
+            case ShapeType.Hexagon:
+                return <Hexagon className="w-4 h-4" />;
+            case ShapeType.Pentagon:
+                return <Hexagon className="w-4 h-4 rotate-[18deg]" />; // Fallback
+            case ShapeType.Multiply:
+                return <X className="w-4 h-4" />;
+            case ShapeType.Exclamation:
+                return <AlertTriangle className="w-4 h-4" />;
+            case ShapeType.Divide:
+                return <Divide className="w-4 h-4" />;
+            default:
+                return <Box className="w-4 h-4" />;
         }
     };
 
     return (
         <div className="flex flex-col h-1/3 min-h-[200px] border-t border-border-light dark:border-border-dark bg-slate-50 dark:bg-black/20 shrink-0">
+            {/* Header ... */}
             <div className="px-4 py-3 border-b border-border-light dark:border-border-dark flex items-center justify-between bg-surface-light dark:bg-surface-dark">
                 <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
@@ -56,9 +115,9 @@ export function ShapeHistory() {
                 {sortedEntities.map(entity => (
                     <div
                         key={entity.id}
-                        onClick={() => setSelected([entity.id])}
+                        onClick={(e) => handleSelect(entity.id, e)}
                         className={cn(
-                            "group flex items-center gap-3 p-2 rounded-md cursor-pointer text-sm transition-all duration-200 border border-transparent",
+                            "group flex items-center gap-3 p-2 rounded-md cursor-pointer text-sm transition-all duration-200 border border-transparent select-none",
                             selectedIds.includes(entity.id)
                                 ? "bg-primary/10 text-primary border-primary/20 shadow-sm"
                                 : "text-slate-600 dark:text-gray-400 hover:bg-white dark:hover:bg-white/5 hover:border-slate-200 dark:hover:border-white/10 hover:shadow-sm"

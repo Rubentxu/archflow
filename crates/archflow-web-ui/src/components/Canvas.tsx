@@ -39,6 +39,26 @@ interface CanvasProps {
 }
 
 /**
+ * Extract keyboard modifiers as bitmask
+ */
+const getModifiers = (
+  event:
+    | PointerEvent
+    | React.PointerEvent
+    | React.WheelEvent
+    | WheelEvent
+    | React.MouseEvent
+    | MouseEvent,
+) => {
+  let mods = 0;
+  if (event.shiftKey) mods |= 0x01;
+  if (event.ctrlKey) mods |= 0x02;
+  if (event.altKey) mods |= 0x04;
+  if (event.metaKey) mods |= 0x08;
+  return mods;
+};
+
+/**
  * Canvas component with WebGPU rendering and drag & drop support
  */
 export default memo(function Canvas({
@@ -139,7 +159,7 @@ export default memo(function Canvas({
         try {
           // Convert pointer button to mouse button (0=left, 1=right, 2=middle)
           const button = event.button;
-          const modifiers = 0; // TODO: Extract from event
+          const modifiers = getModifiers(event);
 
           bridge.on_mouse_down(position.x, position.y, button, modifiers);
         } catch (err) {
@@ -162,7 +182,12 @@ export default memo(function Canvas({
       if (bridge && wasmLoaded) {
         try {
           // event.buttons is a bitmask (1=left, 2=right, 4=middle)
-          bridge.on_mouse_move(position.x, position.y, event.buttons);
+          bridge.on_mouse_move(
+            position.x,
+            position.y,
+            event.buttons,
+            getModifiers(event),
+          );
         } catch (err) {
           console.error("Failed to send pointer move to WASM:", err);
         }
@@ -185,7 +210,7 @@ export default memo(function Canvas({
           // Convert pointer button to mouse button (0=left, 1=right, 2=middle)
           const button = event.button;
 
-          bridge.on_mouse_up(position.x, position.y, button);
+          bridge.on_mouse_up(position.x, position.y, button, getModifiers(event));
         } catch (err) {
           console.error("Failed to send pointer up to WASM:", err);
         }
@@ -252,7 +277,7 @@ export default memo(function Canvas({
             position.x,
             position.y,
             event.deltaY,
-            event.ctrlKey || event.metaKey ? 1 : 0, // modifiers: ctrl/meta
+            getModifiers(event),
           );
         } catch (err) {
           console.error("Failed to send wheel to WASM:", err);
@@ -341,9 +366,9 @@ export default memo(function Canvas({
 
       const position = getCanvasPosition(event);
       const button = event.button;
-      const modifiers = 0; // TODO: Extract from event
+      const modifiers = getModifiers(event);
 
-      console.log("  → Canvas position:", position, "button:", button);
+      console.log("  → Canvas position:", position, "button:", button, "modifiers:", modifiers);
 
       try {
         bridge.on_mouse_down(position.x, position.y, button, modifiers);
@@ -356,9 +381,10 @@ export default memo(function Canvas({
     // Native pointer move handler
     const nativePointerMove = (event: PointerEvent) => {
       const position = getCanvasPosition(event);
+      const modifiers = getModifiers(event);
 
       try {
-        bridge.on_mouse_move(position.x, position.y, event.buttons);
+        bridge.on_mouse_move(position.x, position.y, event.buttons, modifiers);
       } catch (err) {
         console.error("Native pointer move failed:", err);
       }
@@ -375,11 +401,12 @@ export default memo(function Canvas({
 
       const position = getCanvasPosition(event);
       const button = event.button;
+      const modifiers = getModifiers(event);
 
-      console.log("  → Canvas position:", position, "button:", button);
+      console.log("  → Canvas position:", position, "button:", button, "modifiers:", modifiers);
 
       try {
-        bridge.on_mouse_up(position.x, position.y, button);
+        bridge.on_mouse_up(position.x, position.y, button, modifiers);
         console.log("  ✓ bridge.on_mouse_up called successfully");
       } catch (err) {
         console.error("Native pointer up failed:", err);

@@ -379,27 +379,44 @@ impl LogicMappingTable {
     /// let executed = table.evaluate(&mut store, entity, signals);
     /// assert!(executed > 0);
     /// ```
+    /// Evaluates all connections for an entity and executes matching actuators
+    ///
+    /// This method:
+    /// 1. Iterates through all connections for the entity
+    /// 2. Evaluates each connection's controller with the provided signals
+    /// 3. Executes the actuator if the controller condition is met
+    ///
+    /// # Arguments
+    ///
+    /// * `store` - Reference to EntityStore for actuator operations
+    /// * `entity` - The entity to evaluate connections for
+    /// * `signals` - Slice of (sensor_type, signal_byte) tuples
+    /// * `batch_select` - Reference to the system's BatchSelectActuator
+    ///
+    /// # Returns
+    ///
+    /// The number of actuators that were executed
     pub fn evaluate(
         &mut self,
         store: &mut EntityStore,
         entity: EntityId,
         signals: &[(SensorType, SignalByte)],
+        batch_select: &mut BatchSelectActuator,
+        modifiers: u8,
     ) -> usize {
-        // These actuators are stored internally for evaluation
-        // In a real implementation, they would be passed in or registered
-        let mut highlight = HighlightActuator::new();
-        let mut select = BatchSelectActuator::new();
-        let _move_actuator = MoveActuator::new();
-
         // Prepare controller context (for stateful controllers like Hysteresis)
         let mut hysteresis_states = HysteresisStateMap::new();
         let mut custom_properties = CustomPropertyMap::new();
         let mut ctx = ControllerContext::new(
             0,                // timestamp - would be passed in real implementation
             entity.index().0, // Use the index portion as entity_id
+            modifiers,
             &mut hysteresis_states,
             &mut custom_properties,
         );
+
+        // Helper for independent highlight (stateless for now)
+        let mut highlight = HighlightActuator::new();
 
         let mut executed_count = 0;
 
@@ -431,13 +448,25 @@ impl LogicMappingTable {
                         let active = signals
                             .iter()
                             .find(|(sensor, _)| *sensor == connection.sensor)
-                            .map(|(_, signal)| signal.is_steady_high(6))
+                            .map(|(_, signal)| signal.is_rising_edge()) // Immediate click response
                             .unwrap_or(false);
 
-                        // Build single-entity vector for batch selection
-                        let entities = alloc::vec![entity];
-                        let _ = select.execute(store, &entities, SelectMode::Single);
-                        executed_count += 1;
+                        // If active, select single entity (replace mode)
+                        // BGE convention: Logic Bricks "Select" usually adds to selection?
+                        // But for a Select Tool: Direct 1-1 mapping -> Single Select.
+                        if active {
+                            let entities = alloc::vec![entity];
+                            // Figma-like selection mode based on modifiers
+                            let mode = if (ctx.modifiers & 0x01) != 0 {
+                                SelectMode::Multi // Shift = Toggle/Add
+                            } else if (ctx.modifiers & 0x02) != 0 || (ctx.modifiers & 0x08) != 0 {
+                                SelectMode::Toggle // Ctrl/Cmd = Toggle
+                            } else {
+                                SelectMode::Single // Default = Replace
+                            };
+                            let _ = batch_select.execute(store, &entities, mode);
+                            executed_count += 1;
+                        }
                     }
 
                     ActuatorType::Move => {
