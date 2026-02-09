@@ -17,12 +17,16 @@ import ZoomControls from "./components/ZoomControls";
 
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useUIStore } from "./store/useUIStore";
+import { useSelectionSync } from "./hooks/useSelectionSync";
 
 /**
  * Main application component
  */
 export default function App() {
   const { isSidebarOpen } = useUIStore();
+
+  // Start synchronization between WASM bridge selection and React UI state
+  useSelectionSync();
 
   // Initialize keyboard shortcuts
   const { shortcuts } = useKeyboardShortcuts();

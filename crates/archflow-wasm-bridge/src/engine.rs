@@ -136,8 +136,8 @@ impl ArchFlowEngine {
             drag_start: None,
             is_dragging: false,
             last_mouse_screen_pos: None,
-            active_color: rgba_to_abgr(0x3b82f6ff), // Blue color converted to ABGR
-            active_stroke_color: rgba_to_abgr(0x000000ff), // Black stroke converted to ABGR
+            active_color: archflow_core::Color::rgba(0x3b, 0x82, 0xf6, 0xff).0,
+            active_stroke_color: archflow_core::Color::rgba(0x00, 0x00, 0x00, 0xff).0,
             active_stroke_width: 2.0,
             events: EventRingBuffer::new(1024),
         }

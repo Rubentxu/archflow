@@ -21,6 +21,7 @@ mod tests {
     use archflow_core::{EntityId, Vec2};
     use archflow_engine::EntityStore;
     use archflow_logic::SignalByte;
+    use archflow_logic::actuators::BatchSelectActuator;
     use archflow_logic::mapping::{Controller, LogicMappingTable, SensorType};
 
     // ═══════════════════════════════════════════════════════════════════════════════
@@ -127,7 +128,14 @@ mod tests {
         }
 
         // Evaluar debe ejecutar el actuador Highlight
-        let executed = table.evaluate(&mut store, entity, &[(SensorType::MouseOver, signal)]);
+        let mut batch_select = BatchSelectActuator::new();
+        let executed = table.evaluate(
+            &mut store,
+            entity,
+            &[(SensorType::MouseOver, signal)],
+            &mut batch_select,
+            0,
+        );
 
         assert!(executed > 0);
     }
@@ -144,7 +152,14 @@ mod tests {
         // Señal inactiva (todos false)
         let signal = SignalByte::from(0b00000000);
 
-        let executed = table.evaluate(&mut store, entity, &[(SensorType::MouseOver, signal)]);
+        let mut batch_select = BatchSelectActuator::new();
+        let executed = table.evaluate(
+            &mut store,
+            entity,
+            &[(SensorType::MouseOver, signal)],
+            &mut batch_select,
+            0,
+        );
 
         assert_eq!(executed, 0);
     }
@@ -175,7 +190,8 @@ mod tests {
             (SensorType::MouseClick, mouse_click),
         ];
 
-        let executed = table.evaluate(&mut store, entity, signals);
+        let mut batch_select = BatchSelectActuator::new();
+        let executed = table.evaluate(&mut store, entity, signals, &mut batch_select, 0);
 
         assert!(executed > 0);
     }
@@ -202,7 +218,8 @@ mod tests {
             (SensorType::MouseClick, mouse_click),
         ];
 
-        let executed = table.evaluate(&mut store, entity, signals);
+        let mut batch_select = BatchSelectActuator::new();
+        let executed = table.evaluate(&mut store, entity, signals, &mut batch_select, 0);
 
         assert_eq!(executed, 0);
     }
@@ -233,7 +250,8 @@ mod tests {
             (SensorType::MouseClick, mouse_click),
         ];
 
-        let executed = table.evaluate(&mut store, entity, signals);
+        let mut batch_select = BatchSelectActuator::new();
+        let executed = table.evaluate(&mut store, entity, signals, &mut batch_select, 0);
 
         assert!(executed > 0);
     }
@@ -260,7 +278,8 @@ mod tests {
             (SensorType::MouseClick, mouse_click),
         ];
 
-        let executed = table.evaluate(&mut store, entity, signals);
+        let mut batch_select = BatchSelectActuator::new();
+        let executed = table.evaluate(&mut store, entity, signals, &mut batch_select, 0);
 
         assert_eq!(executed, 0);
     }
@@ -281,7 +300,14 @@ mod tests {
         // Sensor activo, pero NOT lo invierte
         let signal = SignalByte::from(0b00111111);
 
-        let executed = table.evaluate(&mut store, entity, &[(SensorType::MouseOver, signal)]);
+        let mut batch_select = BatchSelectActuator::new();
+        let executed = table.evaluate(
+            &mut store,
+            entity,
+            &[(SensorType::MouseOver, signal)],
+            &mut batch_select,
+            0,
+        );
 
         assert_eq!(executed, 0);
     }
@@ -298,7 +324,14 @@ mod tests {
         // Sensor inactivo, NOT lo invierte a activo
         let signal = SignalByte::from(0b00000000);
 
-        let executed = table.evaluate(&mut store, entity, &[(SensorType::MouseOver, signal)]);
+        let mut batch_select = BatchSelectActuator::new();
+        let executed = table.evaluate(
+            &mut store,
+            entity,
+            &[(SensorType::MouseOver, signal)],
+            &mut batch_select,
+            0,
+        );
 
         assert!(executed > 0);
     }

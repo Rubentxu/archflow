@@ -92,6 +92,8 @@ impl Modifiers {
     pub const CTRL: u8 = 0x02;
     /// Alt key
     pub const ALT: u8 = 0x04;
+    /// Meta key (Command on Mac, Windows key on Windows)
+    pub const META: u8 = 0x08;
 
     pub fn new() -> Self {
         Self(0)

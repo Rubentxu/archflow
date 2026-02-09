@@ -417,6 +417,16 @@ impl DeltaMask {
     pub fn is_compatible(&self, other: &DeltaMask) -> bool {
         self.capacity == other.capacity
     }
+
+    /// Resizes the mask to support a larger number of entities
+    pub fn resize(&mut self, new_capacity: usize) {
+        if new_capacity <= self.capacity {
+            return;
+        }
+        let new_bytes = (new_capacity + 7) / 8;
+        self.bits.resize(new_bytes, 0);
+        self.capacity = new_capacity;
+    }
 }
 
 /// Actuator for batch selection operations using DeltaMask
@@ -789,6 +799,20 @@ impl BatchSelectActuator {
     #[must_use]
     pub fn can_redo(&self) -> bool {
         !self.redo_stack.is_empty()
+    }
+
+    /// Resizes the actuator to support a larger number of entities
+    pub fn resize(&mut self, new_capacity: usize) {
+        if new_capacity <= self.selection_mask.capacity() {
+            return;
+        }
+        self.selection_mask.resize(new_capacity);
+        if let Some(delta) = &mut self.last_delta {
+            delta.resize(new_capacity);
+        }
+        for delta in &mut self.redo_stack {
+            delta.resize(new_capacity);
+        }
     }
 }
 
