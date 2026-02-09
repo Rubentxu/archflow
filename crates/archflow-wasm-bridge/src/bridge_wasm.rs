@@ -434,6 +434,7 @@ impl WasmBridge {
             #[cfg(feature = "tracing-logging")]
             info!(target: "archflow::web", "WebGL context restored");
 
+            #[cfg(target_arch = "wasm32")]
             web_sys::console::log_1(&JsValue::from_str("WebGL context restored"));
         }) as Box<dyn FnMut(web_sys::Event)>);
 
@@ -470,6 +471,7 @@ impl WasmBridge {
         #[cfg(feature = "tracing-logging")]
         info!(target: "archflow::web", "Attempting WebGL context recovery");
 
+        #[cfg(target_arch = "wasm32")]
         web_sys::console::log_1(&JsValue::from_str("Attempting WebGL context recovery..."));
 
         // For now, we just log - full recovery requires re-initializing
@@ -674,46 +676,9 @@ impl WasmBridge {
                     "Input: Down");
 
                 if tool == "select" {
-                    // ═══════════════════════════════════════════════════════════════════
-                    // SELECTION + DRAG (using BatchSelectActuator + MoveActuator)
-                    // ═══════════════════════════════════════════════════════════════════
-
-                    let mut hit = false;
-                    for &entity_idx in &engine.store.draw_order[..engine.store.alive_count()] {
-                        let idx = entity_idx as usize;
-                        if !engine.store.is_visible(idx) {
-                            continue;
-                        }
-                        let pos = engine.store.pos(idx);
-                        let size = engine.store.size(idx);
-                        let half_size = size / 2.0;
-                        let min = pos - half_size;
-                        let max = pos + half_size;
-                        if world_pos.x >= min.x
-                            && world_pos.x <= max.x
-                            && world_pos.y >= min.y
-                            && world_pos.y <= max.y
-                        {
-                            let entity_id = archflow_core::EntityId::new(entity_idx);
-
-                            // Use Logic Bricks: select_single (clears previous, selects new)
-                            engine
-                                .logic_bricks
-                                .select_single(&mut engine.store, entity_id.index().0);
-
-                            // Use MoveActuator for drag - it handles the 6-tick hysteresis!
-                            let _ = engine.try_start_drag(entity_id, world_pos);
-
-                            hit = true;
-                            #[cfg(feature = "tracing-logging")]
-                            debug!(target: "archflow::wasm::input", entity_idx, "Selected entity and started drag (via Logic Bricks)");
-                            break;
-                        }
-                    }
-                    if !hit {
-                        // Clear selection using Logic Bricks
-                        engine.logic_bricks.clear_selection(&mut engine.store);
-                    }
+                    // Logic Bricks handles selection via MappingTable and filters pulses.
+                    // We only need to track last mouse position for coordinate conversion if needed,
+                    // but the actual selection/move logic is now in logic_bricks.tick()
                     engine.last_mouse_screen_pos = Some(Vec2::new(event.x, event.y));
                 } else if tool == "rectangle" || tool == "circle" || tool == "square" {
                     // ═══════════════════════════════════════════════════════════════════
