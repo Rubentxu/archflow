@@ -178,6 +178,7 @@ impl ArchFlowEngine {
         // VERSION STAMP: Only log on first tick
         static mut FIRST_TICK: bool = true;
         unsafe {
+            #[cfg(target_arch = "wasm32")]
             if FIRST_TICK {
                 web_sys::console::log_1(&JsValue::from_str(
                     "🚀 WASM ENGINE LOADED - Version: 2026-02-08-20:40 - LogicBricks enabled",
