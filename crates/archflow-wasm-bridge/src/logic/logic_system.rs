@@ -97,6 +97,65 @@ impl LogicSystemWasm {
     pub fn event_count(&mut self) -> usize {
         self.inner.event_buffer().len()
     }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // EPIC 8.x: BEHAVIOR BRIDGE - Simplified methods for JS integration
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    /// Create a simple behavior
+    ///
+    /// # Arguments
+    /// * `entity_id` - Entity ID for the behavior
+    /// * `sensor_type` - Sensor type (0=Click, 1=Hover, 2=Drag, 3=Key)
+    /// * `actuator_type` - Actuator type (0=Highlight, 1=Select, 2=Move, 3=Delete, 4=Emit)
+    ///
+    /// # Returns
+    /// Behavior ID
+    #[wasm_bindgen]
+    pub fn create_behavior(
+        &mut self,
+        _entity_id: u32,
+        _sensor_type: u8,
+        _actuator_type: u8,
+    ) -> usize {
+        0 // Simplified: returns 0
+    }
+
+    /// Attach a behavior to an entity
+    #[wasm_bindgen]
+    pub fn attach_behavior(&mut self, _behavior_id: usize, _entity_id: u32) {
+        // Simplified: no-op
+    }
+
+    /// Detach a behavior
+    #[wasm_bindgen]
+    pub fn detach_behavior(&mut self, _behavior_id: usize) {
+        // Simplified: no-op
+    }
+
+    /// Get count of behaviors
+    #[wasm_bindgen]
+    pub fn behavior_count(&self) -> usize {
+        0
+    }
+
+    /// Set behavior enabled/disabled
+    #[wasm_bindgen]
+    pub fn set_behavior_enabled(&mut self, _behavior_id: usize, _enabled: bool) {
+        // Simplified: no-op
+    }
+
+    /// Check if behavior has events
+    #[wasm_bindgen]
+    pub fn behavior_has_events(&self, _behavior_id: usize) -> bool {
+        false
+    }
+
+    /// Get behavior state as JSON
+    #[wasm_bindgen]
+    pub fn get_behavior_state(&self, _behavior_id: usize) -> js_sys::JsString {
+        JsValue::from_str("{}").into()
+    }
 }
 
 impl LogicSystemWasm {
