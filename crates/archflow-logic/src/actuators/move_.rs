@@ -39,8 +39,10 @@ pub enum DragAxis {
 /// State tracking for a dragging entity
 #[derive(Clone, Copy, Debug)]
 struct DragState {
-    /// Start position when drag began
+    /// Original entity position when drag started (for calculating total delta)
     start_pos: Vec2,
+    /// Last mouse position for tracking
+    last_mouse_pos: Vec2,
     /// Axis constraint for this drag
     axis: DragAxis,
     /// Grid snap value (0 to disable)
@@ -229,9 +231,16 @@ impl MoveActuator {
             return Vec::new();
         }
 
-        // Get current entity position
+        // Get entity position for calculating delta from start
         let idx = entity.index().0 as usize;
-        let start_pos = Vec2::new(store.transforms[idx][0], store.transforms[idx][1]);
+        let entity_pos = if idx < store.transforms.len() {
+            Vec2::new(store.transforms[idx][0], store.transforms[idx][1])
+        } else {
+            Vec2::ZERO
+        };
+
+        // Calculate delta from entity start position to current mouse position
+        let delta = mouse_pos - entity_pos;
 
         // Get default axis and snap from config
         let config = self
@@ -244,23 +253,22 @@ impl MoveActuator {
         self.dragging.insert(
             entity,
             DragState {
-                start_pos,
+                start_pos: entity_pos,
+                last_mouse_pos: mouse_pos,
                 axis: config.0,
                 snap: config.1,
             },
         );
 
-        // Generate Move command with initial delta
-        let delta = self.apply_axis_constraint(mouse_pos - start_pos, config.0);
-        let snapped_delta = self.apply_snap(delta, config.1);
+        // Generate Move command with delta from entity position to current mouse position
         vec![Command::Move {
             id: entity,
-            delta: snapped_delta,
+            delta: Self::apply_axis_constraint(delta, config.0),
         }]
     }
 
     /// Apply axis constraint to delta vector
-    fn apply_axis_constraint(&self, delta: Vec2, axis: DragAxis) -> Vec2 {
+    fn apply_axis_constraint(delta: Vec2, axis: DragAxis) -> Vec2 {
         match axis {
             DragAxis::X => Vec2::new(delta.x, 0.0),
             DragAxis::Y => Vec2::new(0.0, delta.y),
@@ -269,7 +277,7 @@ impl MoveActuator {
     }
 
     /// Apply grid snapping to delta
-    fn apply_snap(&self, delta: Vec2, snap: f32) -> Vec2 {
+    fn apply_snap(delta: Vec2, snap: f32) -> Vec2 {
         if snap <= 0.0 {
             return delta;
         }
@@ -292,11 +300,18 @@ impl MoveActuator {
             return Vec::new();
         }
 
-        // Continue dragging - generate Move command
-        if let Some(state) = self.dragging.get(&entity) {
+        // Continue dragging - generate Move command with delta from start position
+        if let Some(state) = self.dragging.get_mut(&entity) {
             let raw_delta = mouse_pos - state.start_pos;
-            let constrained_delta = self.apply_axis_constraint(raw_delta, state.axis);
-            let snapped_delta = self.apply_snap(constrained_delta, state.snap);
+            state.last_mouse_pos = mouse_pos;
+
+            let constrained_delta = Self::apply_axis_constraint(raw_delta, state.axis);
+            let snapped_delta = Self::apply_snap(constrained_delta, state.snap);
+
+            if snapped_delta.x == 0.0 && snapped_delta.y == 0.0 {
+                return Vec::new();
+            }
+
             return vec![Command::Move {
                 id: entity,
                 delta: snapped_delta,
@@ -381,6 +396,11 @@ impl MoveActuator {
     /// ```
     pub fn clear(&mut self) {
         self.dragging.clear();
+    }
+
+    /// Get all entities that are currently in a dragging state
+    pub fn dragging_entities(&self) -> Vec<EntityId> {
+        self.dragging.keys().copied().collect()
     }
 }
 
@@ -478,5 +498,42 @@ mod tests {
         assert_eq!(actuator.dragging_count(), 0);
         assert!(!actuator.is_dragging(entity1));
         assert!(!actuator.is_dragging(entity2));
+    }
+
+    #[test]
+    fn test_relative_movement() {
+        let mut store = EntityStore::new();
+        let entity = store.spawn(Vec2::new(100.0, 100.0), Vec2::new(50.0, 50.0));
+        let mut actuator = MoveActuator::new();
+        let mut signal = SignalByte::default();
+        for _ in 0..6 {
+            signal.push(true);
+        }
+
+        // Frame 1: Drag starts - should generate Move with delta from entity position
+        let cmds = actuator.update(entity, signal, Vec2::new(110.0, 110.0), &store);
+        assert_eq!(cmds.len(), 1);
+        match &cmds[0] {
+            Command::Move { id, delta } => {
+                assert_eq!(*id, entity);
+                // Delta from entity position (100, 100) to mouse (110, 110)
+                assert_eq!(delta.x, 10.0);
+                assert_eq!(delta.y, 10.0);
+            }
+            _ => panic!("Expected Move command, got {:?}", cmds[0]),
+        }
+
+        // Frame 2: Mouse moves 5 more units X
+        let cmds = actuator.update(entity, signal, Vec2::new(115.0, 110.0), &store);
+        assert_eq!(cmds.len(), 1);
+        match &cmds[0] {
+            Command::Move { id, delta } => {
+                assert_eq!(*id, entity);
+                // Delta from entity position (100, 100) to mouse (115, 110)
+                assert_eq!(delta.x, 15.0);
+                assert_eq!(delta.y, 10.0);
+            }
+            _ => panic!("Expected Move command, got {:?}", cmds[0]),
+        }
     }
 }
