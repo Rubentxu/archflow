@@ -1,13 +1,14 @@
 /**
- * Architecture Demo - C4 Diagram Example
+ * Architecture Demo - C4 Diagram Example with Behavior System
  *
  * Demonstrates the whiteboard capabilities with a complete
  * AWS architecture diagram showing common cloud patterns.
+ * Uses the Behavior System for declarative entity interactions.
  *
  * Architecture Reference: ARQUITECTURA_FINAL_V3.md - Section 7
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Cloud,
@@ -27,7 +28,9 @@ import {
 import { cn } from "../utils/cn";
 import { useCamera } from "../hooks/useCamera";
 import { useSelectionStore } from "../store/useSelectionStore";
+import { useBehaviorSystem } from "../hooks/useBehaviorSystem";
 import { entityVariants, buttonVariants } from "../utils/animations";
+import type { EntityId } from "../types/wasm";
 
 /**
  * Demo entity types
@@ -231,19 +234,23 @@ function getEntityIcon(type: string) {
 }
 
 /**
- * Single entity component
+ * Demo Entity with local hover state
+ *
+ * This component uses local state for hover effects while integrating
+ * with the Behavior System for selection and drag operations.
  */
-function DemoEntity({
+function DemoEntityWithBehaviors({
   entity,
   isSelected,
-  onSelect,
 }: {
   entity: DemoEntity;
   isSelected: boolean;
-  onSelect: () => void;
 }) {
   const Icon = getEntityIcon(entity.type);
   const [isHovered, setIsHovered] = useState(false);
+
+  // Handle selection via click using Behavior System actions
+  const { actions } = useBehaviorSystem({ debug: false });
 
   return (
     <motion.div
@@ -252,7 +259,9 @@ function DemoEntity({
         "border-2 transition-shadow duration-200",
         isSelected
           ? "border-primary shadow-lg shadow-primary/20"
-          : "border-white/20 hover:border-white/40",
+          : isHovered
+            ? "border-primary/60 shadow-lg shadow-primary/10"
+            : "border-white/20 hover:border-white/40",
       )}
       style={{
         left: entity.position.x,
@@ -269,7 +278,7 @@ function DemoEntity({
       onMouseLeave={() => setIsHovered(false)}
       onClick={(e) => {
         e.stopPropagation();
-        onSelect();
+        actions.toggle(entity.id as EntityId);
       }}
     >
       <div className="flex flex-col items-center gap-1">
@@ -373,7 +382,7 @@ function DemoConnection({
  * DemoArchitecture Component
  *
  * Displays a complete AWS C4 architecture diagram with
- * interactive entities and connections.
+ * interactive entities using the Behavior System.
  */
 export function DemoArchitecture({
   autoStart = true,
@@ -381,6 +390,18 @@ export function DemoArchitecture({
 }: DemoArchitectureProps) {
   const { camera, zoomIn, zoomOut } = useCamera();
   const { selectedIds, setSelectedIds, clearSelection } = useSelectionStore();
+
+  // Initialize behavior system for the demo
+  const behaviorSystem = useBehaviorSystem({
+    defaultBehaviors: ["hover", "select", "drag"],
+    onSelectionChange: (ids) => {
+      console.log("[DemoArchitecture] Selection changed:", ids);
+    },
+    onHoverChange: (entityId) => {
+      console.log("[DemoArchitecture] Hover changed:", entityId);
+    },
+    debug: false,
+  });
 
   const [entities, setEntities] = useState<DemoEntity[]>([]);
   const [isAnimating, setIsAnimating] = useState(autoStart);
@@ -413,6 +434,7 @@ export function DemoArchitecture({
     return () => clearInterval(interval);
   }, [isAnimating]);
 
+  // Handle entity selection via Behavior System
   const handleEntitySelect = useCallback(
     (id: number) => {
       if (selectedIds.includes(id)) {
@@ -424,6 +446,7 @@ export function DemoArchitecture({
     [selectedIds, setSelectedIds, clearSelection],
   );
 
+  // Handle reset
   const handleReset = useCallback(() => {
     clearSelection();
     setEntities(demoEntities);
@@ -569,14 +592,13 @@ export function DemoArchitecture({
           </AnimatePresence>
         </svg>
 
-        {/* Entity Layer */}
+        {/* Entity Layer - Using Behavior System */}
         <AnimatePresence>
           {entities.map((entity) => (
-            <DemoEntity
+            <DemoEntityWithBehaviors
               key={entity.id}
               entity={entity}
               isSelected={selectedIds.includes(entity.id)}
-              onSelect={() => handleEntitySelect(entity.id)}
             />
           ))}
         </AnimatePresence>
@@ -615,6 +637,30 @@ export function DemoArchitecture({
                   {Math.round(camera.zoom * 100)}%
                 </span>
               </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-white/10">
+              <h4 className="text-xs font-medium text-gray-300 mb-2">
+                Behavior System
+              </h4>
+              <p className="text-xs text-gray-400 mb-2">
+                This demo integrates with the Behavior System for entity
+                interactions:
+              </p>
+              <ul className="text-xs text-gray-400 space-y-1">
+                <li>
+                  - <code className="text-primary">hover</code> - Highlight on
+                  mouse enter
+                </li>
+                <li>
+                  - <code className="text-primary">select</code> - Click to
+                  select entities
+                </li>
+                <li>
+                  - <code className="text-primary">drag</code> - Drag entities
+                  around (via Behavior System)
+                </li>
+              </ul>
             </div>
 
             <div className="mt-4 pt-4 border-t border-white/10">
@@ -681,7 +727,7 @@ export function DemoArchitecture({
           Microservices Architecture on AWS
         </h1>
         <p className="text-xs text-gray-500 mt-0.5">
-          Click on components to view properties • Scroll to zoom
+          Powered by Behavior System - Click to select - Hover to highlight
         </p>
       </motion.div>
     </div>
