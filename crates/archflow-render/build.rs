@@ -5,6 +5,9 @@
 // Uses Naga for shader translation.
 // ═══════════════════════════════════════════════════════════════════════════════
 
+#![allow(clippy::field_reassign_with_default)]
+#![allow(clippy::ptr_arg)]
+
 fn main() {
     println!("cargo:rerun-if-changed=src/shaders");
 
@@ -26,7 +29,7 @@ struct ShaderConfig {
 }
 
 #[cfg(feature = "webgl2")]
-fn compile_shaders(shaders_dir: &std::path::Path, out_dir: &std::path::PathBuf) {
+fn compile_shaders(shaders_dir: &std::path::Path, out_dir: &std::path::Path) {
     use naga::ShaderStage;
     use naga::back::glsl;
     use naga::front::wgsl;
@@ -84,6 +87,7 @@ fn compile_shaders(shaders_dir: &std::path::Path, out_dir: &std::path::PathBuf) 
 
         // Compile to GLSL
         let mut glsl_output = String::new();
+        #[allow(clippy::field_reassign_with_default)]
         let mut options = glsl::Options::default();
         options.version = glsl::Version::Embedded {
             version: 310,
