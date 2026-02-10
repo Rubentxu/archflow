@@ -7,6 +7,7 @@
 // - Sensors: MouseOver, MouseClick, Proximity, KeyShortcut
 // - Actuators: Highlight, Select, Move, etc.
 // - Logic Mapping: Connect sensors to actuators with controllers
+// - ECS: Entity Component System for flexible component management
 //
 // Architecture Reference:
 // - docs/integration/LOGIC_BRICKS_MIGRATION_PLAN.md
@@ -23,7 +24,9 @@
 extern crate alloc;
 
 pub mod actuators;
+pub mod api;
 pub mod command;
+pub mod ecs;
 pub mod events;
 pub mod input;
 pub mod logic_driver;
@@ -33,6 +36,7 @@ pub mod physics_pulse;
 pub mod pulse;
 pub mod sensors;
 pub mod signals;
+pub mod simd;
 pub mod snap;
 pub mod spatial;
 pub mod tween;
@@ -41,6 +45,9 @@ pub mod visibility;
 pub use events::{EventData, EventRingBuffer, LogicEvent, LogicEventType};
 
 pub use actuators::{
+    // Alignment actuators
+    AlignmentActuator,
+    AlignmentTarget,
     // Batch selection (replaces legacy SelectActuator)
     BatchSelectActuator,
     // Camera types
@@ -48,6 +55,9 @@ pub use actuators::{
     CameraActuatorConfig,
     CameraConstraints,
     CameraTransform,
+    // Container actuator
+    ContainerActuator,
+    ContainerConfig,
     // Clipboard operations
     CopyActuator,
     DeleteActuator,
@@ -58,80 +68,77 @@ pub use actuators::{
     // State machine types
     EntityState,
     // Gizmo transforms
-    GizmoAxis,
-    GizmoConfig,
-    GizmoHandle,
-    GizmoHandleType,
-    GizmoHitResult,
-    GizmoHitTest,
-    GizmoMoveActuator,
-    GizmoRotateActuator,
-    GizmoScaleActuator,
-    GizmoState,
     GizmoType,
+    // Grouping
+    GroupCreateMode,
+    GroupingActuator,
+    GroupingMode,
+    // Selection highlight
     HighlightActuator,
-    // Message types
-    Message,
-    MessageActuator,
-    MessageBus,
-    MessagePayload,
-    MoveActuator,
-    PasteActuator,
-    // Property types
-    Property,
+    HighlightConfig,
+    HighlightStyle,
+    HoverConfig,
+    // Property modification
     PropertyActuator,
-    // Selection types
-    SelectActuator,
+    PropertyOperation,
+    // Selection
     SelectMode,
-    SelectionConfig,
-    SelectionResult,
-    SelectionState,
-    Smoother,
-    // State machine types
+    // State actuator
     StateActuator,
-    StateBitset,
-    StateId,
-    StateMachine,
-    StateTransition,
-    StateTransitionTable,
-    TransformGizmoActuator,
+    VisibilityActuator,
+    // Z-order
+    ZOrderActuator,
+    ZOrderOperation,
 };
-pub use command::{AnyCommand, Command, CommandHistory, DEFAULT_MAX_HISTORY};
-pub use input::{InputEvent, InputSampler, InputSnapshotSAB, MAX_KEYS, MouseButton};
-pub use logic_driver::LogicDriver;
-pub use logic_system::{LogicSystem, SensorId};
-pub use mapping::{ActuatorType, Controller, LogicMappingTable, SensorType};
-pub use pulse::Pulse;
+
+pub use command::LogicCommand;
+pub use ecs::{
+    Component, ComponentId, ComponentRegistry, ComponentStorage, HighlightActuatorComponent,
+    MouseSensorComponent, MoveActuatorComponent, SelectActuatorComponent, SignalStateComponent,
+    SparseSet, VecStorage,
+};
+
+pub use input::{InputState, Key, KeyboardState, MouseButton, MouseState};
+
+pub use logic_driver::{LogicDriver, LogicDriverConfig};
+
+pub use logic_system::LogicSystem;
+
+pub use mapping::{
+    controller::{Controller, ControllerMode, LogicController, PulseCondition},
+    mapping_table::LogicMappingTable,
+    sensor_type::SensorType,
+};
+
+pub use physics_pulse::{PhysicsPulseEmitter, PhysicsPulseReceiver};
+
+pub use pulse::{Pulse, PulseMode, PulseReceiver};
+
+pub use sensors::{
+    box_select::BoxSelectSensor, collision::CollisionSensor, key_shortcut::KeyShortcutSensor,
+    mouse::MouseOverSensor, near::NearSensor, proximity::ProximitySensor, radar::RadarSensor,
+    touch::TouchSensor,
+};
+
 pub use signals::{SensorOutput, SignalByte, SignalState};
-pub use snap::{
-    DEFAULT_GRID_SIZE as SNAP_DEFAULT_GRID_SIZE, DEFAULT_THRESHOLD as SNAP_DEFAULT_THRESHOLD,
-    EntityEdge, SnapConfig, SnapPoint, SnapResult, SnapTarget, Snapper,
+
+pub use simd::{
+    POSITION_BATCH_SIZE, SIGNAL_BATCH_SIZE, SIMD_SUPPORT, can_use_simd, has_simd_support,
+    process_signals, process_signals_scalar, process_signals_simd, update_positions,
+    update_positions_scalar, update_positions_simd,
 };
-pub use spatial::{DEFAULT_GRID_SIZE, GridCoord, Rect, SpatialHashGrid};
-pub use tween::{
-    DEFAULT_DURATION_MS as TWEEN_DEFAULT_DURATION_MS,
-    // Types
-    Easing,
-    Tween,
-    TweenManager,
-    TweenProperty,
-    TweenState,
-    // Easing functions (re-exported for convenience)
-    ease_back_out as tween_ease_back_out,
-    ease_bounce_out as tween_ease_bounce_out,
-    ease_cubic_in as tween_ease_cubic_in,
-    ease_cubic_in_out as tween_ease_cubic_in_out,
-    ease_cubic_out as tween_ease_cubic_out,
-    ease_elastic_out as tween_ease_elastic_out,
-    ease_linear as tween_ease_linear,
-    ease_quad_in as tween_ease_quad_in,
-    ease_quad_in_out as tween_ease_quad_in_out,
-    ease_quad_out as tween_ease_quad_out,
-    ease_sine_in as tween_ease_sine_in,
-    ease_sine_in_out as tween_ease_sine_in_out,
-    ease_sine_out as tween_ease_sine_out,
-    // Convenience functions
-    tween_opacity,
-    tween_position,
+
+pub use snap::{SnapActuator, SnapConfig, SnapGrid};
+
+pub use spatial::SpatialIndex;
+
+pub use tween::{EasingFunction, Tween, TweenActuator, TweenConfig, TweenState, TweenType};
+
+pub use visibility::VisibilityChange;
+
+// Declarative JSON API (requires std)
+// Note: These types use serde_json and are primarily intended for non-WASM builds
+pub use api::json::{
+    BehaviorDefinition, BehaviorRegistry, ComponentCreator, ComponentDefinition, ComponentFactory,
+    ComponentFactoryError,
 };
-pub use visibility::{VisibilityActuator, VisibilityBitset, VisibilityConfig, VisibilityManager};
