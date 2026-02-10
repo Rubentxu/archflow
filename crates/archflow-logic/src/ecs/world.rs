@@ -278,6 +278,92 @@ impl World {
         QueryMut::new(self)
     }
 
+    /// Creates a query with optional filtering by component presence
+    ///
+    /// Returns only entities that have ALL specified components.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// // Get entities with Position and Velocity
+    /// for (entity, pos, vel) in world.query_with::<(EntityId, &Position, &Velocity)>().iter() {
+    ///     println!("Entity {}: pos=({},{})", entity.index(), pos.x, pos.y);
+    /// }
+    /// ```
+    #[inline]
+    pub fn query_with<'w, Q: QueryParameter<'w>>(&'w self) -> Query<'w, Q> {
+        Query::new(self)
+    }
+
+    /// Returns an iterator over all alive entities
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// for entity in world.entities() {
+    ///     if world.has_component::<Position>(entity) {
+    ///         // process entity
+    ///     }
+    /// }
+    /// ```
+    #[inline]
+    pub fn entities<'w>(&'w self) -> impl Iterator<Item = EntityId> + 'w {
+        self.entities
+            .iter()
+            .enumerate()
+            .filter_map(move |(index, meta)| {
+                if meta.alive {
+                    Some(EntityId::new(index, meta.generation))
+                } else {
+                    None
+                }
+            })
+    }
+
+    /// Gets the archetype of an entity (set of component types)
+    ///
+    /// Returns a slice of TypeIds representing the components on this entity.
+    #[inline]
+    pub fn entity_archetype(&self, entity: EntityId) -> alloc::vec::Vec<TypeId> {
+        if !self.is_entity_alive(entity) {
+            return alloc::vec![];
+        }
+
+        if let Some(meta) = self.entities.get(entity.as_usize()) {
+            meta.components.iter().copied().collect()
+        } else {
+            alloc::vec![]
+        }
+    }
+
+    /// Returns true if an entity has all specified components
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// if world.has_all::<(Position, Velocity)>(entity) {
+    ///     // entity has both components
+    /// }
+    /// ```
+    #[inline]
+    pub fn has_all<T: Component>(&self, entity: EntityId) -> bool {
+        self.has_component::<T>(entity)
+    }
+
+    /// Returns true if an entity has none of the specified components
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// if world.has_none::<(Dead, Destroyed)>(entity) {
+    ///     // entity is alive and active
+    /// }
+    /// ```
+    #[inline]
+    pub fn has_none<T: Component>(&self, entity: EntityId) -> bool {
+        !self.has_component::<T>(entity)
+    }
+
     /// Adds a system to the world's scheduler
     #[inline]
     pub fn add_system(&mut self, system: Box<dyn System>) {
@@ -606,5 +692,80 @@ mod tests {
 
         assert_eq!(world.entity_count(), 0);
         assert_eq!(world.component_type_count(), 0);
+    }
+
+    // Tests for new World API methods
+    #[test]
+    fn test_world_entities_iterator() {
+        let mut world = World::new();
+
+        let e1 = world.create_entity();
+        let e2 = world.create_entity();
+        let e3 = world.create_entity();
+
+        world.destroy_entity(e2);
+
+        let entities: Vec<EntityId> = world.entities().collect();
+
+        assert_eq!(entities.len(), 2);
+        assert!(entities.contains(&e1));
+        assert!(!entities.contains(&e2));
+        assert!(entities.contains(&e3));
+    }
+
+    #[test]
+    fn test_world_entity_archetype() {
+        let mut world = World::new();
+        let entity = world.create_entity();
+
+        world.add_component(entity, Position { x: 0.0, y: 0.0 });
+        world.add_component(entity, Velocity { dx: 1.0, dy: 1.0 });
+
+        let archetype = world.entity_archetype(entity);
+
+        assert_eq!(archetype.len(), 2);
+    }
+
+    #[test]
+    fn test_world_entity_archetype_dead_entity() {
+        let mut world = World::new();
+        let entity = world.create_entity();
+
+        let archetype = world.entity_archetype(entity);
+
+        assert!(archetype.is_empty());
+    }
+
+    #[test]
+    fn test_world_has_none() {
+        let mut world = World::new();
+        let entity = world.create_entity();
+
+        assert!(world.has_none::<Position>(entity));
+
+        world.add_component(entity, Position { x: 0.0, y: 0.0 });
+
+        assert!(!world.has_none::<Position>(entity));
+    }
+
+    #[test]
+    fn test_world_query_with() {
+        let mut world = World::new();
+
+        let e1 = world.create_entity();
+        let e2 = world.create_entity();
+        let e3 = world.create_entity();
+
+        world.add_component(e1, Position { x: 0.0, y: 0.0 });
+        world.add_component(e2, Position { x: 1.0, y: 1.0 });
+        // e3 has no Position
+
+        let query = world.query_with::<&Position>();
+        let mut count = 0;
+        query.each(|_pos| {
+            count += 1;
+        });
+
+        assert_eq!(count, 2);
     }
 }

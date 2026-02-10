@@ -1,30 +1,9 @@
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════════
 // ArchFlow Logic - ECS ComponentRegistry Module
 //
 // This module provides the ComponentRegistry for dynamic component management
 // in the Entity Component System (ECS).
-//
-// Key Features:
-// - Dynamic component registration at runtime
-// - Type-safe component storage retrieval
-// - Generic storage backend support
-// - Zero-cost abstraction for component access
-//
-// Architecture:
-// - HashMap<TypeId, Box<dyn ComponentStorage>> for storage management
-// - Type-safe API via generic methods
-// - Supports any ComponentStorage implementation
-//
-// Examples:
-// ```ignore
-// let mut registry = ComponentRegistry::new();
-// registry.register::<Position>();
-// registry.register::<Velocity>();
-//
-// let positions = registry.get_storage::<Position>();
-// positions.insert(0, Position { x: 0.0, y: 0.0 });
-// ```
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════════
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
@@ -37,27 +16,6 @@ use super::sparse_set::SparseSet;
 ///
 /// Provides runtime registration and type-safe access to component storage.
 /// Internally uses a BTreeMap to store component storage by TypeId.
-///
-/// # Examples
-///
-/// ```ignore
-/// use archflow_logic::ecs::{ComponentRegistry, Component, VecStorage};
-///
-/// #[derive(Clone, Debug)]
-/// struct Position {
-///     x: f32,
-///     y: f32,
-/// }
-///
-/// impl Component for Position {
-///     type Storage = VecStorage<Position>;
-/// }
-///
-/// let mut registry = ComponentRegistry::new();
-/// registry.register::<Position>();
-///
-/// assert!(registry.is_registered::<Position>());
-/// ```
 pub struct ComponentRegistry {
     /// Map from TypeId to boxed component storage
     storages: BTreeMap<TypeId, Box<dyn AnyComponentStorage>>,
@@ -85,12 +43,6 @@ impl ComponentRegistry {
     /// # Panics
     ///
     /// Panics if the component type is already registered.
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// registry.register::<Position>();
-    /// ```
     #[inline]
     pub fn register<T: Component>(&mut self) {
         let type_id = TypeId::of::<T>();
@@ -114,13 +66,6 @@ impl ComponentRegistry {
     /// # Panics
     ///
     /// Panics if the component type is already registered.
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// let custom_storage = SparseSet::with_capacity(100, 50);
-    /// registry.register_with_storage::<Position>(custom_storage);
-    /// ```
     #[inline]
     pub fn register_with_storage<T: Component>(&mut self, storage: T::Storage) {
         let type_id = TypeId::of::<T>();
@@ -141,15 +86,6 @@ impl ComponentRegistry {
     /// Gets the storage for a component type
     ///
     /// Returns `None` if the component type is not registered.
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// let positions = registry.get_storage::<Position>();
-    /// if let Some(storage) = positions {
-    ///     storage.insert(0, Position { x: 0.0, y: 0.0 });
-    /// }
-    /// ```
     #[inline]
     pub fn get_storage<T: Component>(&self) -> Option<&T::Storage> {
         let type_id = TypeId::of::<T>();
@@ -161,14 +97,6 @@ impl ComponentRegistry {
     /// Gets mutable storage for a component type
     ///
     /// Returns `None` if the component type is not registered.
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// if let Some(storage) = registry.get_storage_mut::<Position>() {
-    ///     storage.insert(0, Position { x: 0.0, y: 0.0 });
-    /// }
-    /// ```
     #[inline]
     pub fn get_storage_mut<T: Component>(&mut self) -> Option<&mut T::Storage> {
         let type_id = TypeId::of::<T>();
@@ -178,14 +106,6 @@ impl ComponentRegistry {
     }
 
     /// Returns true if a component type is registered
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// if !registry.is_registered::<Position>() {
-    ///     registry.register::<Position>();
-    /// }
-    /// ```
     #[inline]
     pub fn is_registered<T: Component>(&self) -> bool {
         let type_id = TypeId::of::<T>();
@@ -205,8 +125,6 @@ impl ComponentRegistry {
     }
 
     /// Clears all component storage
-    ///
-    /// This removes all registered components and their data.
     #[inline]
     pub fn clear(&mut self) {
         self.storages.clear();
@@ -220,17 +138,12 @@ impl Default for ComponentRegistry {
     }
 }
 
-
 /// Type-erased component storage trait
-///
-/// Allows storing different ComponentStorage implementations in a single map.
 trait AnyComponentStorage {
-    /// Returns self as Any for downcasting
     fn as_any(&self) -> &dyn Any;
-    
-    /// Returns self as mutable Any for downcasting  
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
+
 /// Wrapper for type-erasing ComponentStorage implementations
 struct AnyStorageWrapper<S: ComponentStorage> {
     storage: S,
@@ -262,6 +175,7 @@ impl<S: ComponentStorage + 'static> AnyComponentStorage for AnyStorageWrapper<S>
         &mut self.storage
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;

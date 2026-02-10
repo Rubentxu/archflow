@@ -82,7 +82,7 @@ pub use components::{
     HighlightActuatorComponent, MouseSensorComponent, MoveActuatorComponent,
     SelectActuatorComponent, SignalStateComponent,
 };
-pub use query::{EntityId, Query, QueryMut, QueryParameter};
+pub use query::{EntityId, Query, QueryIter, QueryIterExt, QueryMut, QueryParameter};
 pub use registry::ComponentRegistry;
 pub use scheduler::SystemScheduler;
 pub use sparse_set::SparseSet;
