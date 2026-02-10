@@ -489,7 +489,7 @@ impl ComponentFactory {
     /// Returns the number of registered component creators
     #[inline]
     #[must_use]
-    pub const fn creator_count(&self) -> usize {
+    pub fn creator_count(&self) -> usize {
         self.creators.len()
     }
 }

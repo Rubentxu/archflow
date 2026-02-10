@@ -24,7 +24,8 @@
 
 extern crate alloc;
 
-pub mod behavior_json;
+// behavior_json module is experimental and requires serde_json
+// pub mod behavior_json;
 pub mod bridge;
 pub mod bridge_wasm;
 pub mod engine;
@@ -104,23 +105,23 @@ pub use logic::{
     sensor_timer_interval,
 };
 
-// Behavior JSON API exports
-pub use behavior_json::{
-    // Component configurations
-    ActuatorDeleteConfig,
-    ActuatorEventConfig,
-    ActuatorHighlightConfig,
-    ActuatorMoveConfig,
-    ActuatorPropertyConfig,
-    ActuatorSelectConfig,
-    BehaviorDefinition,
-    BehaviorError,
-    BehaviorRegistry,
-    ControllerDebounceConfig,
-    ControllerDirectConfig,
-    ControllerHysteresisConfig,
-    SensorKeyboardConfig,
-    SensorMouseConfig,
-    SensorPropertyConfig,
-    SensorTimerConfig,
-};
+// Behavior JSON API exports (commented out - experimental)
+// pub use behavior_json::{
+//     // Component configurations
+//     ActuatorDeleteConfig,
+//     ActuatorEventConfig,
+//     ActuatorHighlightConfig,
+//     ActuatorMoveConfig,
+//     ActuatorPropertyConfig,
+//     ActuatorSelectConfig,
+//     BehaviorDefinition,
+//     BehaviorError,
+//     BehaviorRegistry,
+//     ControllerDebounceConfig,
+//     ControllerDirectConfig,
+//     ControllerHysteresisConfig,
+//     SensorKeyboardConfig,
+//     SensorMouseConfig,
+//     SensorPropertyConfig,
+//     SensorTimerConfig,
+// };

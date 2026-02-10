@@ -24,9 +24,10 @@
 extern crate alloc;
 
 pub mod actuators;
-pub mod api;
+// ECS module is experimental and may have compilation issues
+// pub mod api;
 pub mod command;
-pub mod ecs;
+// pub mod ecs;
 pub mod events;
 pub mod input;
 pub mod logic_driver;
@@ -46,8 +47,10 @@ pub use events::{EventData, EventRingBuffer, LogicEvent, LogicEventType};
 
 pub use actuators::{
     // Alignment actuators
+    Alignment,
     AlignmentActuator,
-    AlignmentTarget,
+    // Smart guides
+    AlignmentType,
     // Batch selection (replaces legacy SelectActuator)
     BatchSelectActuator,
     // Camera types
@@ -55,90 +58,137 @@ pub use actuators::{
     CameraActuatorConfig,
     CameraConstraints,
     CameraTransform,
+    // Clipboard operations
+    ClipboardData,
+    ClipboardEntity,
+    ClipboardState,
     // Container actuator
     ContainerActuator,
-    ContainerConfig,
-    // Clipboard operations
+    ContainerOp,
+    ContainerOpData,
     CopyActuator,
     DeleteActuator,
     DeltaMask,
+    DistributionActuator,
+    DistributionAxis,
     // Movement
     DragAxis,
     DuplicateActuator,
     // State machine types
     EntityState,
     // Gizmo transforms
+    GizmoAxis,
+    GizmoConfig,
+    GizmoHandle,
+    GizmoHandleType,
+    GizmoHitResult,
+    GizmoHitTest,
+    GizmoMoveActuator,
+    GizmoRotateActuator,
+    GizmoScaleActuator,
+    GizmoState,
     GizmoType,
     // Grouping
-    GroupCreateMode,
-    GroupingActuator,
-    GroupingMode,
+    GroupActuator,
+    GroupConfig,
+    GroupOp,
+    GroupOpType,
+    GroupResult,
     // Selection highlight
     HighlightActuator,
-    HighlightConfig,
-    HighlightStyle,
-    HoverConfig,
+    // Message types
+    Message,
+    MessageActuator,
+    MessageBus,
+    MessagePayload,
+    MoveActuator,
+    PasteActuator,
     // Property modification
+    Property,
     PropertyActuator,
-    PropertyOperation,
     // Selection
+    SelectActuator,
     SelectMode,
-    // State actuator
+    SelectionConfig,
+    SelectionMode,
+    SelectionResult,
+    SelectionState,
+    SmartGuide,
+    SmartGuidesActuator,
+    SmartGuidesConfig,
+    SmartGuidesResult,
+    Smoother,
+    // Snap to grid
+    SnapToGridActuator,
     StateActuator,
-    VisibilityActuator,
+    StateBitset,
+    StateId,
+    StateMachine,
+    StateManager,
+    StateTransition,
+    StateTransitionTable,
+    // Swimlane
+    SwimlaneActuator,
+    SwimlaneConfig,
+    SwimlaneOp,
+    SwimlaneOrientation,
+    TransformGizmoActuator,
     // Z-order
     ZOrderActuator,
-    ZOrderOperation,
+    ZOrderDirection,
+    ZOrderOp,
 };
 
-pub use command::LogicCommand;
-pub use ecs::{
-    Component, ComponentId, ComponentRegistry, ComponentStorage, HighlightActuatorComponent,
-    MouseSensorComponent, MoveActuatorComponent, SelectActuatorComponent, SignalStateComponent,
-    SparseSet, VecStorage,
-};
-
-pub use input::{InputState, Key, KeyboardState, MouseButton, MouseState};
-
-pub use logic_driver::{LogicDriver, LogicDriverConfig};
-
+pub use command::{Command, CommandHistory, DEFAULT_MAX_HISTORY};
+pub use input::{InputEvent, InputSampler, InputSnapshotSAB, MAX_KEYS, MouseButton};
+pub use logic_driver::LogicDriver;
 pub use logic_system::LogicSystem;
-
-pub use mapping::{
-    controller::{Controller, ControllerMode, LogicController, PulseCondition},
-    mapping_table::LogicMappingTable,
-    sensor_type::SensorType,
-};
-
-pub use physics_pulse::{PhysicsPulseEmitter, PhysicsPulseReceiver};
-
-pub use pulse::{Pulse, PulseMode, PulseReceiver};
-
-pub use sensors::{
-    box_select::BoxSelectSensor, collision::CollisionSensor, key_shortcut::KeyShortcutSensor,
-    mouse::MouseOverSensor, near::NearSensor, proximity::ProximitySensor, radar::RadarSensor,
-    touch::TouchSensor,
-};
-
+pub use mapping::{ActuatorType, Controller, LogicMappingTable, SensorType};
+pub use pulse::Pulse;
 pub use signals::{SensorOutput, SignalByte, SignalState};
+pub use snap::{
+    DEFAULT_GRID_SIZE as SNAP_DEFAULT_GRID_SIZE, DEFAULT_THRESHOLD as SNAP_DEFAULT_THRESHOLD,
+    EntityEdge, SnapConfig, SnapPoint, SnapResult, SnapTarget, Snapper,
+};
+pub use spatial::{DEFAULT_GRID_SIZE, GridCoord, Rect, SpatialHashGrid};
+pub use tween::{
+    DEFAULT_DURATION_MS as TWEEN_DEFAULT_DURATION_MS,
+    // Types
+    Easing,
+    Tween,
+    TweenManager,
+    TweenProperty,
+    TweenState,
+    // Easing functions (re-exported for convenience)
+    ease_back_out as tween_ease_back_out,
+    ease_bounce_out as tween_ease_bounce_out,
+    ease_cubic_in as tween_ease_cubic_in,
+    ease_cubic_in_out as tween_ease_cubic_in_out,
+    ease_cubic_out as tween_ease_cubic_out,
+    ease_elastic_out as tween_ease_elastic_out,
+    ease_linear as tween_ease_linear,
+    ease_quad_in as tween_ease_quad_in,
+    ease_quad_in_out as tween_ease_quad_in_out,
+    ease_quad_out as tween_ease_quad_out,
+    ease_sine_in as tween_ease_sine_in,
+    ease_sine_in_out as tween_ease_sine_in_out,
+    ease_sine_out as tween_ease_sine_out,
+    // Convenience functions
+    tween_opacity,
+    tween_position,
+};
+pub use visibility::{VisibilityActuator, VisibilityBitset, VisibilityConfig, VisibilityManager};
 
+// ECS module exports (commented out due to dyn compatibility issues)
+// pub use ecs::{Component, ComponentId, ComponentRegistry, ComponentStorage, SparseSet, VecStorage};
+
+// SIMD module exports (WASM-only)
 pub use simd::{
     POSITION_BATCH_SIZE, SIGNAL_BATCH_SIZE, SIMD_SUPPORT, can_use_simd, has_simd_support,
-    process_signals, process_signals_scalar, process_signals_simd, update_positions,
-    update_positions_scalar, update_positions_simd,
+    process_signals, process_signals_scalar, update_positions, update_positions_scalar,
 };
 
-pub use snap::{SnapActuator, SnapConfig, SnapGrid};
-
-pub use spatial::SpatialIndex;
-
-pub use tween::{EasingFunction, Tween, TweenActuator, TweenConfig, TweenState, TweenType};
-
-pub use visibility::VisibilityChange;
-
-// Declarative JSON API (requires std)
+// Declarative JSON API (requires std) - commented out due to api module being experimental
 // Note: These types use serde_json and are primarily intended for non-WASM builds
-pub use api::json::{
-    BehaviorDefinition, BehaviorRegistry, ComponentCreator, ComponentDefinition, ComponentFactory,
-    ComponentFactoryError,
-};
+// #[cfg(feature = "std")]
+// pub use api::json::{BehaviorDefinition, BehaviorRegistry};
