@@ -24,8 +24,11 @@
 
 extern crate alloc;
 
-// behavior_json module is experimental and requires serde_json
+// behavior_json module is experimental and requires serde_json + std
+// NOTE: Uncomment when serde_json is available in no_std environment
 // pub mod behavior_json;
+// pub mod bridge_wasm_json_api;
+
 pub mod bridge;
 pub mod bridge_wasm;
 pub mod engine;
