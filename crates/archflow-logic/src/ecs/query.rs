@@ -1,14 +1,13 @@
-// ═══════════════════════════════════════════════════════════════════════════════
-// ArchFlow Logic - ECS Query API Module (Simplificada y Funcional)
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ArchFlow Logic - ECS Query API Module (Simplificada)
 //
-// Versión simplificada pero funcional que permite queries type-safe sobre componentes.
-// ═══════════════════════════════════════════════════════════════════════════════
+// Versión simplificada que permite queries type-safe sobre componentes.
+// ═══════════════════════════════════════════════════════════════════════════════════════
 
-use alloc::string::ToString;
 use alloc::vec::Vec;
 use core::marker::PhantomData;
 
-use super::component::Component;
+use super::component::{Component, ComponentStorage};
 use super::world::World;
 
 // ============================================================================
@@ -40,16 +39,6 @@ impl<'a, T1: Component, T2: Component, T3: Component> QueryParameter<'a>
     for (&'a T1, &'a T2, &'a T3)
 {
     type Item = (&'a T1, &'a T2, &'a T3);
-}
-
-/// Tuple of mixed mutability: (&mut T1, &T2)
-impl<'a, T1: Component, T2: Component> QueryParameter<'a> for (&'a mut T1, &'a T2) {
-    type Item = (&'a mut T1, &'a T2);
-}
-
-/// Tuple of two mutable references: (&mut T1, &mut T2)
-impl<'a, T1: Component, T2: Component> QueryParameter<'a> for (&'a mut T1, &'a mut T2) {
-    type Item = (&'a mut T1, &'a mut T2);
 }
 
 // ============================================================================
@@ -107,7 +96,7 @@ impl<'w, Q: QueryParameter<'w>> QueryMut<'w, Q> {
 }
 
 // ============================================================================
-// Query Each - Single Component
+// Query Each - Single Component (Immutable)
 // ============================================================================
 
 impl<'w, T: Component> Query<'w, &'w T> {
@@ -117,7 +106,8 @@ impl<'w, T: Component> Query<'w, &'w T> {
     where
         F: FnMut(&'w T),
     {
-        if let Some(storage) = self.world.registry().get_storage::<T>() {
+        let registry = self.world.registry();
+        if let Some(storage) = registry.get_storage::<T>() {
             for &index in &self.entities {
                 if let Some(component) = storage.get(index) {
                     f(component);
@@ -127,6 +117,10 @@ impl<'w, T: Component> Query<'w, &'w T> {
     }
 }
 
+// ============================================================================
+// Query Each - Single Component (Mutable)
+// ============================================================================
+
 impl<'w, T: Component> QueryMut<'w, &'w mut T> {
     /// Executes the query for each entity with component T (mutable)
     #[inline]
@@ -134,7 +128,8 @@ impl<'w, T: Component> QueryMut<'w, &'w mut T> {
     where
         F: FnMut(&mut T),
     {
-        if let Some(storage) = self.world.registry_mut().get_storage_mut::<T>() {
+        let registry = self.world.registry_mut();
+        if let Some(storage) = registry.get_storage_mut::<T>() {
             for &index in &self.entities {
                 if let Some(component) = storage.get_mut(index) {
                     f(component);
@@ -155,8 +150,9 @@ impl<'w, T1: Component, T2: Component> Query<'w, (&'w T1, &'w T2)> {
     where
         F: FnMut((&'w T1, &'w T2)),
     {
-        let s1 = self.world.registry().get_storage::<T1>();
-        let s2 = self.world.registry().get_storage::<T2>();
+        let registry = self.world.registry();
+        let s1 = registry.get_storage::<T1>();
+        let s2 = registry.get_storage::<T2>();
         if let (Some(storage1), Some(storage2)) = (s1, s2) {
             for &index in &self.entities {
                 if let (Some(c1), Some(c2)) = (storage1.get(index), storage2.get(index)) {
@@ -178,9 +174,10 @@ impl<'w, T1: Component, T2: Component, T3: Component> Query<'w, (&'w T1, &'w T2,
     where
         F: FnMut((&'w T1, &'w T2, &'w T3)),
     {
-        let s1 = self.world.registry().get_storage::<T1>();
-        let s2 = self.world.registry().get_storage::<T2>();
-        let s3 = self.world.registry().get_storage::<T3>();
+        let registry = self.world.registry();
+        let s1 = registry.get_storage::<T1>();
+        let s2 = registry.get_storage::<T2>();
+        let s3 = registry.get_storage::<T3>();
         if let (Some(storage1), Some(storage2), Some(storage3)) = (s1, s2, s3) {
             for &index in &self.entities {
                 if let (Some(c1), Some(c2), Some(c3)) = (
@@ -190,74 +187,6 @@ impl<'w, T1: Component, T2: Component, T3: Component> Query<'w, (&'w T1, &'w T2,
                 ) {
                     f((c1, c2, c3));
                 }
-            }
-        }
-    }
-}
-
-// ============================================================================
-// Query Each - Mixed Mutability
-// ============================================================================
-
-impl<'w, T1: Component, T2: Component> QueryMut<'w, (&'w mut T1, &'w T2)> {
-    /// Executes the query for each entity with T1 (mutable) and T2 (immutable)
-    #[inline]
-    pub fn each<F>(mut self, mut f: F)
-    where
-        F: FnMut((&mut T1, &T2)),
-    {
-        let mut tuples = Vec::new();
-
-        {
-            let s1 = self.world.registry_mut().get_storage_mut::<T1>();
-            let s2 = self.world.registry().get_storage::<T2>();
-
-            if let (Some(storage1), Some(storage2)) = (s1, s2) {
-                for &index in &self.entities {
-                    if let (Some(c1), Some(c2)) = (storage1.get(index), storage2.get(index)) {
-                        unsafe {
-                            tuples.push((c1 as *const T1 as *mut T1, c2 as *const T2));
-                        }
-                    }
-                }
-            }
-        }
-
-        for (ptr1, ptr2) in tuples {
-            unsafe {
-                f((&mut *ptr1, &*ptr2));
-            }
-        }
-    }
-}
-
-impl<'w, T1: Component, T2: Component> QueryMut<'w, (&'w mut T1, &'w mut T2)> {
-    /// Executes the query for each entity with both T1 and T2 (both mutable)
-    #[inline]
-    pub fn each<F>(mut self, mut f: F)
-    where
-        F: FnMut((&mut T1, &mut T2)),
-    {
-        let mut tuples = Vec::new();
-
-        {
-            let s1 = self.world.registry_mut().get_storage_mut::<T1>();
-            let s2 = self.world.registry_mut().get_storage_mut::<T2>();
-
-            if let (Some(storage1), Some(storage2)) = (s1, s2) {
-                for &index in &self.entities {
-                    if let (Some(c1), Some(c2)) = (storage1.get(index), storage2.get(index)) {
-                        unsafe {
-                            tuples.push((c1 as *mut T1, c2 as *mut T2));
-                        }
-                    }
-                }
-            }
-        }
-
-        for (ptr1, ptr2) in tuples {
-            unsafe {
-                f((&mut *ptr1, &mut *ptr2));
             }
         }
     }
@@ -275,26 +204,31 @@ pub struct EntityId {
 }
 
 impl EntityId {
+    /// Creates a new EntityId
     #[inline]
     pub const fn new(index: usize, generation: u32) -> Self {
         Self { index, generation }
     }
 
+    /// Returns the entity index
     #[inline]
     pub const fn index(&self) -> usize {
         self.index
     }
 
+    /// Returns the generation
     #[inline]
     pub const fn generation(&self) -> u32 {
         self.generation
     }
 
+    /// Returns the index as usize
     #[inline]
     pub const fn as_usize(&self) -> usize {
         self.index
     }
 
+    /// Creates an EntityId from a usize
     #[inline]
     pub const fn from_usize(index: usize) -> Self {
         Self::new(index, 0)
@@ -308,8 +242,7 @@ impl EntityId {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ecs::component::VecStorage;
-    use alloc::boxed::Box;
+    use crate::ecs::component::{ComponentStorage, VecStorage};
 
     #[derive(Clone, Debug, PartialEq)]
     struct Position {
@@ -433,42 +366,6 @@ mod tests {
         assert_eq!(
             world.get_component::<Position>(e2),
             Some(&Position { x: 6.0, y: 8.0 })
-        );
-    }
-
-    #[test]
-    fn test_query_mixed_mutability() {
-        use crate::ecs::World;
-
-        let mut world = World::new();
-
-        let e1 = world.create_entity();
-        let e2 = world.create_entity();
-
-        world.add_component(e1, Position { x: 0.0, y: 0.0 });
-        world.add_component(e1, Velocity { dx: 1.0, dy: 2.0 });
-        world.add_component(e2, Position { x: 10.0, y: 20.0 });
-        world.add_component(e2, Velocity { dx: 3.0, dy: 4.0 });
-
-        world
-            .query_mut::<(&mut Position, &Velocity)>()
-            .each(|(pos, vel)| {
-                pos.x += vel.dx;
-                pos.y += vel.dy;
-            });
-
-        assert_eq!(
-            world.get_component::<Position>(e1),
-            Some(&Position { x: 1.0, y: 2.0 })
-        );
-        assert_eq!(
-            world.get_component::<Position>(e2),
-            Some(&Position { x: 13.0, y: 24.0 })
-        );
-
-        assert_eq!(
-            world.get_component::<Velocity>(e1),
-            Some(&Velocity { dx: 1.0, dy: 2.0 })
         );
     }
 

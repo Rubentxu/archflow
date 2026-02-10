@@ -8,13 +8,6 @@
 //       is primarily intended for non-WASM builds or testing environments.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#![allow(clippy::std_instead_of_alloc)]
+#![cfg(feature = "std")]
 
 pub mod json;
-
-// Re-export commonly used types
-pub use json::{
-    BehaviorDefinition, BehaviorRegistry, ComponentCreator, ComponentDefinition,
-    ComponentFactory, ComponentFactoryError, BEHAVIOR_DEFINITION_SCHEMA,
-    COMPONENT_DEFINITION_SCHEMA,
-};

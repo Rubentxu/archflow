@@ -6,6 +6,7 @@
 //
 // ═══════════════════════════════════════════════════════════════════════════════
 
+use alloc::boxed::Box;
 use alloc::collections::BTreeSet;
 use alloc::vec::Vec;
 use core::any::TypeId;
@@ -292,7 +293,30 @@ impl World {
     /// Runs all systems in the scheduler
     #[inline]
     pub fn run_systems(&mut self, delta_time: f32) {
-        self.scheduler.run(self, delta_time);
+        // Execute startup systems first
+        let mut startup_systems = core::mem::take(&mut self.scheduler.startup_systems);
+        for system in &mut startup_systems {
+            system.run(self, 0.0);
+        }
+
+        // Collect all systems by priority
+        let mut priorities: Vec<i32> = self.scheduler.systems.keys().copied().collect();
+        priorities.sort();
+
+        // For each priority, collect systems to run
+        for &priority in priorities.iter().rev() {
+            // Take the system list to avoid borrow conflicts
+            let system_list = self.scheduler.systems.remove(&priority);
+            if let Some(mut systems) = system_list {
+                for system in &mut systems {
+                    system.run(self, delta_time);
+                }
+                // Re-insert the empty list if we want to preserve scheduler state
+                if !systems.is_empty() {
+                    self.scheduler.systems.insert(priority, systems);
+                }
+            }
+        }
     }
 
     /// Returns the number of alive entities

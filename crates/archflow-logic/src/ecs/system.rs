@@ -41,8 +41,13 @@
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
-use alloc::string::String;
+use alloc::format;
+use alloc::string::{String, ToString};
+use alloc::sync::Arc;
 use alloc::vec::Vec;
+use core::sync::atomic::{AtomicUsize, Ordering};
+
+use super::world::World;
 
 /// Trait for systems that process entities in the ECS
 ///
@@ -103,11 +108,7 @@ pub trait System: Send + Sync {
 }
 
 // Forward declaration for World (will be defined in world.rs)
-// This is a placeholder until we implement World container
-pub struct World {
-    // Placeholder - will be implemented in HU-ECS-003
-    _private: (),
-}
+// The actual World type is defined in world.rs
 
 /// Scheduler for executing systems in priority order
 ///
@@ -130,11 +131,11 @@ pub struct World {
 /// ```
 pub struct SystemScheduler {
     /// Ordered systems: priority -> list of systems at that priority
-    systems: BTreeMap<i32, Vec<Box<dyn System>>>,
+    pub(crate) systems: BTreeMap<i32, Vec<Box<dyn System>>>,
     /// Startup systems that haven't run yet
-    startup_systems: Vec<Box<dyn System>>,
+    pub(crate) startup_systems: Vec<Box<dyn System>>,
     /// Whether startup systems have been run
-    startup_executed: bool,
+    pub(crate) startup_executed: bool,
 }
 
 impl SystemScheduler {
@@ -305,7 +306,7 @@ mod tests {
         name: String,
         priority: i32,
         startup: bool,
-        run_count: core::cell::RefCell<usize>,
+        run_count: Arc<AtomicUsize>,
     }
 
     impl MockSystem {
@@ -314,7 +315,7 @@ mod tests {
                 name: name.to_string(),
                 priority,
                 startup: false,
-                run_count: core::cell::RefCell::new(0),
+                run_count: Arc::new(AtomicUsize::new(0)),
             }
         }
 
@@ -323,18 +324,18 @@ mod tests {
                 name: name.to_string(),
                 priority,
                 startup: true,
-                run_count: core::cell::RefCell::new(0),
+                run_count: Arc::new(AtomicUsize::new(0)),
             }
         }
 
         fn run_count(&self) -> usize {
-            *self.run_count.borrow()
+            self.run_count.load(Ordering::Relaxed)
         }
     }
 
     impl System for MockSystem {
         fn run(&mut self, _world: &mut World, _delta_time: f32) {
-            *self.run_count.borrow_mut() += 1;
+            self.run_count.fetch_add(1, Ordering::Relaxed);
         }
 
         fn name(&self) -> &str {

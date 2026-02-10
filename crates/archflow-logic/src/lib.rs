@@ -24,11 +24,9 @@
 extern crate alloc;
 
 pub mod actuators;
-// ECS module is experimental and may have compilation issues
-// pub mod api;
+pub mod api;
 pub mod command;
-// ECS module is experimental and disabled due to compilation issues
-// pub mod ecs;
+pub mod ecs;
 pub mod events;
 pub mod input;
 pub mod logic_driver;
@@ -183,40 +181,40 @@ pub use tween::{
 };
 pub use visibility::{VisibilityActuator, VisibilityBitset, VisibilityConfig, VisibilityManager};
 
-// ECS module is experimental and disabled
-// pub use ecs::{
-//     // Core ECS types
-//     Archetype,
-//     ArchetypeId,
-//     ArchetypeStorage,
-//     BatchIter,
-//     Component,
-//     ComponentColumn,
-//     ComponentId,
-//     // Registry and storage
-//     ComponentRegistry,
-//     ComponentStorage,
-//     EntityId,
-//     // Component implementations
-//     HighlightActuatorComponent,
-//     MouseSensorComponent,
-//     MoveActuatorComponent,
-//     Query,
-//     QueryIter,
-//     QueryMut,
-//     QueryMutIter,
-//     QueryParameter,
-//     SelectActuatorComponent,
-//     SignalStateComponent,
-//     SparseSet,
-//     System,
-//     SystemInfo,
-//     SystemScheduler,
-//     VecStorage,
-//     With,
-//     Without,
-//     World,
-// };
+// ECS module - Entity Component System for flexible component management
+pub use ecs::{
+    // Core ECS types
+    Archetype,
+    ArchetypeId,
+    ArchetypeStorage,
+    BatchIter,
+    Component,
+    ComponentColumn,
+    ComponentId,
+    // Registry and storage
+    ComponentRegistry,
+    ComponentStorage,
+    EntityId,
+    // Component implementations
+    HighlightActuatorComponent,
+    MouseSensorComponent,
+    MoveActuatorComponent,
+    // Query types
+    Query,
+    QueryMut,
+    QueryParameter,
+    SelectActuatorComponent,
+    SignalStateComponent,
+    // Storage
+    SparseSet,
+    // System execution
+    System,
+    SystemInfo,
+    SystemScheduler,
+    VecStorage,
+    // World
+    World,
+};
 
 // SIMD module exports (WASM-only)
 pub use simd::{
