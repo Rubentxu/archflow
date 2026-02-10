@@ -12,6 +12,10 @@
 // Modular Bridge Architecture (docs/analysis/ARCHITECTURE-CLEAN-BRIDGE.md):
 // - WasmBridge: Main facade for all WASM-exposed operations
 // - Organized by concern: initialization, entities, selection, camera, input, history
+//
+// Behavior JSON API (Developer Manual):
+// - Declarative JSON API for behavior definitions
+// - Following A-Frame pattern for developer-friendly configuration
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 #![no_std]
@@ -20,6 +24,7 @@
 
 extern crate alloc;
 
+pub mod behavior_json;
 pub mod bridge;
 pub mod bridge_wasm;
 pub mod engine;
@@ -97,4 +102,25 @@ pub use logic::{
     sensor_property_changed,
     sensor_timer_delay,
     sensor_timer_interval,
+};
+
+// Behavior JSON API exports
+pub use behavior_json::{
+    // Component configurations
+    ActuatorDeleteConfig,
+    ActuatorEventConfig,
+    ActuatorHighlightConfig,
+    ActuatorMoveConfig,
+    ActuatorPropertyConfig,
+    ActuatorSelectConfig,
+    BehaviorDefinition,
+    BehaviorError,
+    BehaviorRegistry,
+    ControllerDebounceConfig,
+    ControllerDirectConfig,
+    ControllerHysteresisConfig,
+    SensorKeyboardConfig,
+    SensorMouseConfig,
+    SensorPropertyConfig,
+    SensorTimerConfig,
 };
