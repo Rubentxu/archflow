@@ -420,6 +420,7 @@ pub enum ConnectionStyle {
     Elbow = 3,
 }
 
+#[allow(clippy::derivable_impls)]
 impl Default for ConnectionStyle {
     fn default() -> Self {
         ConnectionStyle::Straight
