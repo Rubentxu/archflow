@@ -80,6 +80,19 @@ impl SignalByte {
     pub fn get_prev(&self) -> bool {
         (self.0 & 2) != 0
     }
+    /// Returns true if the current signal state is positive (active high)
+    #[inline(always)]
+    #[must_use]
+    pub fn is_positive(&self) -> bool {
+        self.get_current()
+    }
+
+    /// Returns true if the current signal state is negative (active low)
+    #[inline(always)]
+    #[must_use]
+    pub fn is_negative(&self) -> bool {
+        !self.get_current()
+    }
 
     /// Returns the 6-bit history (bits T5 through T0)
     #[inline(always)]

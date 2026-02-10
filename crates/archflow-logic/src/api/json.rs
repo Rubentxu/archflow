@@ -33,7 +33,8 @@ use alloc::vec::Vec;
 use archflow_core::EntityId;
 use serde::{Deserialize, Serialize};
 
-use crate::ecs::{Component, ComponentRegistry};
+// NOTE: ECS is experimental and disabled
+// use crate::ecs::{Component, ComponentRegistry};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ComponentDefinition

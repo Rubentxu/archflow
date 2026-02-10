@@ -27,6 +27,7 @@ pub mod actuators;
 // ECS module is experimental and may have compilation issues
 // pub mod api;
 pub mod command;
+// ECS module is experimental and disabled due to compilation issues
 // pub mod ecs;
 pub mod events;
 pub mod input;
@@ -42,6 +43,9 @@ pub mod snap;
 pub mod spatial;
 pub mod tween;
 pub mod visibility;
+
+// NOTE: archflow_wasm_bridge::BehaviorEngine import removed to avoid circular dependency
+// The wasm-bridge crate depends on archflow-logic, not the other way around
 
 pub use events::{EventData, EventRingBuffer, LogicEvent, LogicEventType};
 
@@ -179,8 +183,40 @@ pub use tween::{
 };
 pub use visibility::{VisibilityActuator, VisibilityBitset, VisibilityConfig, VisibilityManager};
 
-// ECS module exports (commented out due to dyn compatibility issues)
-// pub use ecs::{Component, ComponentId, ComponentRegistry, ComponentStorage, SparseSet, VecStorage};
+// ECS module is experimental and disabled
+// pub use ecs::{
+//     // Core ECS types
+//     Archetype,
+//     ArchetypeId,
+//     ArchetypeStorage,
+//     BatchIter,
+//     Component,
+//     ComponentColumn,
+//     ComponentId,
+//     // Registry and storage
+//     ComponentRegistry,
+//     ComponentStorage,
+//     EntityId,
+//     // Component implementations
+//     HighlightActuatorComponent,
+//     MouseSensorComponent,
+//     MoveActuatorComponent,
+//     Query,
+//     QueryIter,
+//     QueryMut,
+//     QueryMutIter,
+//     QueryParameter,
+//     SelectActuatorComponent,
+//     SignalStateComponent,
+//     SparseSet,
+//     System,
+//     SystemInfo,
+//     SystemScheduler,
+//     VecStorage,
+//     With,
+//     Without,
+//     World,
+// };
 
 // SIMD module exports (WASM-only)
 pub use simd::{
