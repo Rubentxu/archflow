@@ -13,12 +13,17 @@ archflow-engine = { path = "../archflow-engine" }
 # Collections optimized for WASM - will be needed for LogicMappingTable (Epic 4)
 hashbrown = { workspace = true }
 
+# Serialization for declarative JSON API
+serde = { workspace = true }
+serde_json = { workspace = true }
+
 # Diagnostics - tracing is not optional in workspace deps
 tracing = { workspace = true }
 
 [features]
 default = []
 tracing = []  # Enable tracing instrumentation (always available, non-optional dependency)
+simd = []  # Enable WebAssembly SIMD optimizations
 
 [dev-dependencies]
 # Tests only - will be needed for integration tests (Epic 2+)
