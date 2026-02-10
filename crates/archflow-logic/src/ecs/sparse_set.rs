@@ -20,6 +20,7 @@
 // - Speck ECS SparseSet implementation
 // ═══════════════════════════════════════════════════════════════════════════════
 
+use crate::ecs::component::ComponentStorage;
 use alloc::vec::Vec;
 use core::mem;
 
@@ -176,22 +177,23 @@ impl<T> SparseSet<T> {
             return None;
         }
 
-        // Get the component to remove
+        // Calculate last index
+        let last_dense_index = self.dense.len() - 1;
+
+        // Read the component to remove FIRST (before any mutations)
         let removed_component = unsafe {
             // SAFETY: We just verified dense_index is valid
-            self.dense.get_unchecked_mut(dense_index)
+            ptr::read(self.dense.get_unchecked(dense_index))
         };
 
         // Swap with last element if not already last
-        let last_dense_index = self.dense.len() - 1;
         if dense_index != last_dense_index {
             let last_entity_id = self.entities[last_dense_index];
 
-            // Move last component to removed position
             unsafe {
-                // SAFETY: dense_index < last_dense_index, both valid
-                let component = self.dense.get_unchecked(last_dense_index);
-                *removed_component = ptr::read(component);
+                // Move last component to removed position
+                let component = ptr::read(self.dense.get_unchecked(last_dense_index));
+                *self.dense.get_unchecked_mut(dense_index) = component;
 
                 // Update sparse array for the moved entity
                 *self.sparse.get_unchecked_mut(last_entity_id) = dense_index;
@@ -215,10 +217,6 @@ impl<T> SparseSet<T> {
         Some(removed_component)
     }
 
-    /// Gets a reference to the component for the given entity
-    ///
-    /// # Examples
-    ///
     /// ```
     /// use archflow_logic::ecs::SparseSet;
     ///
@@ -373,6 +371,50 @@ impl<T> Default for SparseSet<T> {
     #[inline]
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl<T: Default + 'static> ComponentStorage for SparseSet<T> {
+    type Item = T;
+
+    #[inline]
+    fn insert(&mut self, entity_index: usize, component: T) {
+        self.insert(entity_index, component);
+    }
+
+    #[inline]
+    fn remove(&mut self, entity_index: usize) -> Option<T> {
+        self.remove(entity_index)
+    }
+
+    #[inline]
+    fn get(&self, entity_index: usize) -> Option<&T> {
+        self.get(entity_index)
+    }
+
+    #[inline]
+    fn get_mut(&mut self, entity_index: usize) -> Option<&mut T> {
+        self.get_mut(entity_index)
+    }
+
+    #[inline]
+    fn contains(&self, entity_index: usize) -> bool {
+        self.contains(entity_index)
+    }
+
+    #[inline]
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.is_empty()
+    }
+
+    #[inline]
+    fn clear(&mut self) {
+        self.clear();
     }
 }
 
@@ -533,9 +575,9 @@ mod tests {
 
         // Check that we have the right entity-component pairs
         let pairs_map: alloc::collections::BTreeMap<_, _> = pairs.into_iter().collect();
-        assert_eq!(pairs_map.get(&0), Some(&10));
-        assert_eq!(pairs_map.get(&5), Some(&50));
-        assert_eq!(pairs_map.get(&10), Some(&100));
+        assert_eq!(pairs_map.get(&0), Some(&&10));
+        assert_eq!(pairs_map.get(&5), Some(&&50));
+        assert_eq!(pairs_map.get(&10), Some(&&100));
     }
 
     #[test]

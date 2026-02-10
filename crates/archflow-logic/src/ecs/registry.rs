@@ -28,9 +28,10 @@
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
-use core::any::TypeId;
+use core::any::{Any, TypeId};
 
 use super::component::{Component, ComponentId, ComponentStorage};
+use super::sparse_set::SparseSet;
 
 /// Registry for managing component storage dynamically
 ///
@@ -57,10 +58,17 @@ use super::component::{Component, ComponentId, ComponentStorage};
 ///
 /// assert!(registry.is_registered::<Position>());
 /// ```
-#[derive(Debug)]
 pub struct ComponentRegistry {
     /// Map from TypeId to boxed component storage
     storages: BTreeMap<TypeId, Box<dyn AnyComponentStorage>>,
+}
+
+impl core::fmt::Debug for ComponentRegistry {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("ComponentRegistry")
+            .field("storages", &self.storages.len())
+            .finish()
+    }
 }
 
 impl ComponentRegistry {
@@ -147,7 +155,7 @@ impl ComponentRegistry {
         let type_id = TypeId::of::<T>();
         self.storages
             .get(&type_id)
-            .and_then(|any| any.downcast_ref::<T::Storage>())
+            .and_then(|any| any.as_any().downcast_ref::<T::Storage>())
     }
 
     /// Gets mutable storage for a component type
@@ -166,7 +174,7 @@ impl ComponentRegistry {
         let type_id = TypeId::of::<T>();
         self.storages
             .get_mut(&type_id)
-            .and_then(|any| any.downcast_mut::<T::Storage>())
+            .and_then(|any| any.as_any_mut().downcast_mut::<T::Storage>())
     }
 
     /// Returns true if a component type is registered
@@ -212,19 +220,18 @@ impl Default for ComponentRegistry {
     }
 }
 
+
 /// Type-erased component storage trait
 ///
 /// Allows storing different ComponentStorage implementations in a single map.
-trait AnyComponentStorage: core::fmt::Debug {
-    /// Downcasts to a concrete ComponentStorage type
-    fn downcast_ref<T: ComponentStorage>(&self) -> Option<&T>;
-
-    /// Downcasts to a mutable concrete ComponentStorage type
-    fn downcast_mut<T: ComponentStorage>(&mut self) -> Option<&mut T>;
+trait AnyComponentStorage {
+    /// Returns self as Any for downcasting
+    fn as_any(&self) -> &dyn Any;
+    
+    /// Returns self as mutable Any for downcasting  
+    fn as_any_mut(&mut self) -> &mut dyn Any;
 }
-
 /// Wrapper for type-erasing ComponentStorage implementations
-#[derive(Debug)]
 struct AnyStorageWrapper<S: ComponentStorage> {
     storage: S,
 }
@@ -236,29 +243,25 @@ impl<S: ComponentStorage> AnyStorageWrapper<S> {
     }
 }
 
-impl<S: ComponentStorage + 'static> AnyComponentStorage for AnyStorageWrapper<S> {
-    #[inline]
-    fn downcast_ref<T: ComponentStorage>(&self) -> Option<&T> {
-        // Use TypeId to check if the requested type matches our stored type
-        if TypeId::of::<T>() == TypeId::of::<S>() {
-            // SAFETY: We just verified the types match
-            unsafe { Some(&*(self as *const Self as *const T)) }
-        } else {
-            None
-        }
-    }
-
-    #[inline]
-    fn downcast_mut<T: ComponentStorage>(&mut self) -> Option<&mut T> {
-        if TypeId::of::<T>() == TypeId::of::<S>() {
-            // SAFETY: We just verified the types match
-            unsafe { Some(&mut *(self as *mut Self as *mut T)) }
-        } else {
-            None
-        }
+impl<S: ComponentStorage + core::fmt::Debug> core::fmt::Debug for AnyStorageWrapper<S> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("AnyStorageWrapper")
+            .field("storage", &self.storage)
+            .finish()
     }
 }
 
+impl<S: ComponentStorage + 'static> AnyComponentStorage for AnyStorageWrapper<S> {
+    #[inline]
+    fn as_any(&self) -> &dyn Any {
+        &self.storage
+    }
+
+    #[inline]
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        &mut self.storage
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -285,7 +288,7 @@ mod tests {
         type Storage = VecStorage<Velocity>;
     }
 
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Clone, Debug, PartialEq, Default)]
     struct Health {
         current: u32,
         max: u32,
@@ -351,7 +354,7 @@ mod tests {
 
     #[test]
     fn test_get_unregistered_storage() {
-        let registry = ComponentRegistry::new();
+        let mut registry = ComponentRegistry::new();
 
         assert!(registry.get_storage::<Position>().is_none());
         assert!(registry.get_storage_mut::<Position>().is_none());

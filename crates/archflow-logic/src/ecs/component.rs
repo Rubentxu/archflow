@@ -22,7 +22,7 @@ use core::any::TypeId;
 ///
 /// Internally uses `TypeId` but provides a type-safe wrapper for component
 /// identification in the ECS registry.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ComponentId {
     /// Internal TypeId
     type_id: TypeId,
@@ -93,7 +93,7 @@ pub trait Component: 'static + Send + Sync + Sized {
 ///
 /// Defines the interface for storing and accessing component data.
 /// Implementations can use different strategies (dense arrays, sparse sets, etc.).
-pub trait ComponentStorage: 'static {
+pub trait ComponentStorage: 'static + Default {
     /// The type of component being stored
     type Item;
 
@@ -151,7 +151,7 @@ impl<T: Component> VecStorage<T> {
     #[inline]
     fn ensure_capacity(&mut self, entity_index: usize) {
         if entity_index >= self.data.len() {
-            self.data.resize(entity_index + 1, None);
+            while entity_index >= self.data.len() { self.data.push(None); }
         }
     }
 }
@@ -209,6 +209,20 @@ impl<T: Component> ComponentStorage for VecStorage<T> {
     #[inline]
     fn clear(&mut self) {
         self.data.clear();
+    }
+}
+
+impl<T: Component> VecStorage<T> {
+    /// Returns an iterator over all components (including None values)
+    #[inline]
+    pub fn iter(&self) -> core::slice::Iter<Option<T>> {
+        self.data.iter()
+    }
+
+    /// Returns a mutable iterator over all components (including None values)
+    #[inline]
+    pub fn iter_mut(&mut self) -> core::slice::IterMut<Option<T>> {
+        self.data.iter_mut()
     }
 }
 
@@ -322,7 +336,7 @@ mod tests {
 
     #[test]
     fn test_vec_storage_out_of_bounds() {
-        let storage = VecStorage::<TestComponent>::new();
+        let mut storage = VecStorage::<TestComponent>::new();
 
         assert_eq!(storage.get(100), None);
         assert_eq!(storage.remove(100), None);

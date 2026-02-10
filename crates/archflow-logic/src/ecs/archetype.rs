@@ -28,6 +28,8 @@
 #![no_std]
 
 use alloc::collections::BTreeMap;
+    use alloc::vec;
+extern crate alloc;
 use alloc::vec::Vec;
 use core::any::TypeId;
 use core::hash::{Hash, Hasher};
@@ -310,6 +312,7 @@ impl ComponentColumn {
             column: self,
             batch_size,
             current: 0,
+            _phantom: core::marker::PhantomData,
         }
     }
 
@@ -332,7 +335,7 @@ impl core::fmt::Debug for ComponentColumn {
         f.debug_struct("ComponentColumn")
             .field("stride", &self.stride)
             .field("len", &self.len)
-            .field("capacity", &self.data.capacity() / self.stride)
+            .field("capacity", &(self.data.capacity() / self.stride))
             .finish()
     }
 }
@@ -350,12 +353,13 @@ impl core::fmt::Debug for ComponentColumn {
 /// }
 /// ```
 pub struct BatchIter<'a, T> {
+    _phantom: core::marker::PhantomData<T>,
     column: &'a ComponentColumn,
     batch_size: usize,
     current: usize,
 }
 
-impl<'a, T> Iterator for BatchIter<'a, T> {
+impl<'a, T: 'a> Iterator for BatchIter<'a, T> {
     type Item = &'a [T];
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -510,6 +514,7 @@ impl Archetype {
 
         // Swap with last element for O(1) removal
         let last_index = self.len() - 1;
+        
         if index != last_index {
             // Swap entity IDs
             self.entity_ids.swap(index, last_index);
@@ -518,18 +523,37 @@ impl Archetype {
             for column in self.components.values_mut() {
                 column.swap(index, last_index);
             }
-        }
-
-        // Remove last element
-        self.entity_ids.pop();
-        for column in self.components.values_mut() {
-            unsafe {
-                column.data.set_len(column.len * column.stride);
-                column.len -= 1;
+            
+            // After swap, the entity at 'index' is the one that was at 'last_index'
+            // Return this ID so caller can update their references
+            let entity_id = self.entity_ids[index];
+            
+            // Remove last element
+            self.entity_ids.pop();
+            for column in self.components.values_mut() {
+                unsafe {
+                    column.data.set_len(column.len * column.stride);
+                    column.len -= 1;
+                }
             }
+            
+            entity_id
+        } else {
+            // Removing the last element - no swap happened
+            // Capture the ID before pop
+            let entity_id = self.entity_ids[index];
+            
+            // Remove last element
+            self.entity_ids.pop();
+            for column in self.components.values_mut() {
+                unsafe {
+                    column.data.set_len(column.len * column.stride);
+                    column.len -= 1;
+                }
+            }
+            
+            entity_id
         }
-
-        self.entity_ids[index]
     }
 
     /// Gets the entity ID at the given index
@@ -715,7 +739,7 @@ impl ArchetypeStorage {
 
             // Update entity tracking if a different entity was swapped into this slot
             if removed_entity_id != entity_id {
-                if let Some(&swapped_index) = archetype.get_entity_id(index) {
+                if let Some(swapped_index) = archetype.get_entity_id(index) {
                     if swapped_index < self.entity_index.len() {
                         self.entity_index[swapped_index] = Some(index);
                     }
@@ -820,6 +844,7 @@ impl core::fmt::Debug for ArchetypeStorage {
 mod tests {
     use super::*;
     use crate::ecs::component::ComponentId;
+    use alloc::vec;
 
     // Test component types
     #[derive(Clone, Copy, Debug, PartialEq)]

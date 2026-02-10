@@ -268,9 +268,7 @@ impl SelectActuatorComponent {
     #[inline(always)]
     #[must_use]
     pub fn new() -> Self {
-        Self {
-            is_selected: false,
-        }
+        Self { is_selected: false }
     }
 
     /// Sets the selected state
@@ -372,7 +370,7 @@ impl Component for MoveActuatorComponent {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ecs::ComponentRegistry;
+    use crate::ecs::{ComponentRegistry, ComponentStorage};
 
     // ═══════════════════════════════════════════════════════════════════════════════
     // SignalStateComponent Tests
@@ -381,8 +379,10 @@ mod tests {
     #[test]
     fn test_signal_state_component_default() {
         let component = SignalStateComponent::default();
+        // Default signal (0) has current bit = 0, so it's not positive
         assert!(!component.signal.is_positive());
-        assert!(!component.signal.is_negative());
+        // and is_negative = !is_positive = true
+        assert!(component.signal.is_negative());
     }
 
     #[test]
@@ -395,7 +395,7 @@ mod tests {
     fn test_signal_state_component_with_signal() {
         let mut signal = SignalByte::default();
         signal.push(true);
-        
+
         let component = SignalStateComponent::with_signal(signal);
         assert!(component.signal.is_positive());
     }
@@ -496,7 +496,7 @@ mod tests {
     fn test_highlight_actuator_component_set_highlighted() {
         let mut component = HighlightActuatorComponent::new(0xFF0000FF);
         component.set_highlighted(0x00FF00FF);
-        
+
         assert!(component.is_highlighted);
         assert_eq!(component.original_color, Some(0x00FF00FF));
     }
@@ -506,7 +506,7 @@ mod tests {
         let mut component = HighlightActuatorComponent::new(0xFF0000FF);
         component.set_highlighted(0x00FF00FF);
         component.clear_highlighted();
-        
+
         assert!(!component.is_highlighted);
         assert!(component.original_color.is_none());
     }
@@ -523,10 +523,14 @@ mod tests {
         let mut registry = ComponentRegistry::new();
         registry.register::<HighlightActuatorComponent>();
 
-        let mut storage = registry.get_storage_mut::<HighlightActuatorComponent>().unwrap();
+        let mut storage = registry
+            .get_storage_mut::<HighlightActuatorComponent>()
+            .unwrap();
         storage.insert(0, HighlightActuatorComponent::new(0xFF0000FF));
 
-        let storage = registry.get_storage::<HighlightActuatorComponent>().unwrap();
+        let storage = registry
+            .get_storage::<HighlightActuatorComponent>()
+            .unwrap();
         assert!(storage.contains(0));
         assert_eq!(storage.get(0).unwrap().highlight_color, 0xFF0000FF);
     }
@@ -552,7 +556,7 @@ mod tests {
         let mut component = SelectActuatorComponent::new();
         component.set_selected(true);
         assert!(component.is_selected);
-        
+
         component.set_selected(false);
         assert!(!component.is_selected);
     }
@@ -562,7 +566,7 @@ mod tests {
         let component1 = SelectActuatorComponent::new();
         let component2 = SelectActuatorComponent::new();
         assert_eq!(component1, component2);
-        
+
         let mut component3 = SelectActuatorComponent::new();
         component3.set_selected(true);
         assert_ne!(component1, component3);
@@ -573,7 +577,9 @@ mod tests {
         let mut registry = ComponentRegistry::new();
         registry.register::<SelectActuatorComponent>();
 
-        let mut storage = registry.get_storage_mut::<SelectActuatorComponent>().unwrap();
+        let mut storage = registry
+            .get_storage_mut::<SelectActuatorComponent>()
+            .unwrap();
         storage.insert(0, SelectActuatorComponent::new());
 
         let storage = registry.get_storage::<SelectActuatorComponent>().unwrap();
@@ -588,7 +594,7 @@ mod tests {
     fn test_move_actuator_component_new() {
         let start_pos = Vec2::new(100.0, 100.0);
         let component = MoveActuatorComponent::new(start_pos);
-        
+
         assert_eq!(component.start_pos, start_pos);
         assert_eq!(component.last_mouse_pos, start_pos);
         assert_eq!(component.axis, DragAxis::Both);
@@ -600,10 +606,10 @@ mod tests {
     fn test_move_actuator_component_set_dragging() {
         let start_pos = Vec2::new(100.0, 100.0);
         let mut component = MoveActuatorComponent::new(start_pos);
-        
+
         component.set_dragging(true);
         assert!(component.is_dragging);
-        
+
         component.set_dragging(false);
         assert!(!component.is_dragging);
     }
@@ -612,7 +618,7 @@ mod tests {
     fn test_move_actuator_component_update_mouse_pos() {
         let start_pos = Vec2::new(100.0, 100.0);
         let mut component = MoveActuatorComponent::new(start_pos);
-        
+
         let new_pos = Vec2::new(120.0, 130.0);
         component.update_mouse_pos(new_pos);
         assert_eq!(component.last_mouse_pos, new_pos);
@@ -623,7 +629,7 @@ mod tests {
         assert_eq!(DragAxis::Both, DragAxis::Both);
         assert_eq!(DragAxis::X, DragAxis::X);
         assert_eq!(DragAxis::Y, DragAxis::Y);
-        
+
         assert_ne!(DragAxis::X, DragAxis::Y);
         assert_ne!(DragAxis::Both, DragAxis::X);
     }
@@ -649,7 +655,7 @@ mod tests {
     #[test]
     fn test_multiple_components_in_registry() {
         let mut registry = ComponentRegistry::new();
-        
+
         registry.register::<SignalStateComponent>();
         registry.register::<MouseSensorComponent>();
         registry.register::<HighlightActuatorComponent>();
@@ -667,7 +673,7 @@ mod tests {
     #[test]
     fn test_entity_with_multiple_components() {
         let mut registry = ComponentRegistry::new();
-        
+
         registry.register::<SignalStateComponent>();
         registry.register::<MouseSensorComponent>();
         registry.register::<HighlightActuatorComponent>();
@@ -684,10 +690,14 @@ mod tests {
             let mut mouse_sensors = registry.get_storage_mut::<MouseSensorComponent>().unwrap();
             mouse_sensors.insert(entity_id, MouseSensorComponent::new(100));
 
-            let mut highlights = registry.get_storage_mut::<HighlightActuatorComponent>().unwrap();
+            let mut highlights = registry
+                .get_storage_mut::<HighlightActuatorComponent>()
+                .unwrap();
             highlights.insert(entity_id, HighlightActuatorComponent::new(0xFF0000FF));
 
-            let mut selections = registry.get_storage_mut::<SelectActuatorComponent>().unwrap();
+            let mut selections = registry
+                .get_storage_mut::<SelectActuatorComponent>()
+                .unwrap();
             selections.insert(entity_id, SelectActuatorComponent::new());
 
             let start_pos = Vec2::new(100.0, 100.0);
@@ -698,7 +708,9 @@ mod tests {
         // Verify all components are present
         let signals = registry.get_storage::<SignalStateComponent>().unwrap();
         let mouse_sensors = registry.get_storage::<MouseSensorComponent>().unwrap();
-        let highlights = registry.get_storage::<HighlightActuatorComponent>().unwrap();
+        let highlights = registry
+            .get_storage::<HighlightActuatorComponent>()
+            .unwrap();
         let selections = registry.get_storage::<SelectActuatorComponent>().unwrap();
         let moves = registry.get_storage::<MoveActuatorComponent>().unwrap();
 
@@ -714,7 +726,9 @@ mod tests {
         let mut registry = ComponentRegistry::new();
         registry.register::<HighlightActuatorComponent>();
 
-        let mut storage = registry.get_storage_mut::<HighlightActuatorComponent>().unwrap();
+        let mut storage = registry
+            .get_storage_mut::<HighlightActuatorComponent>()
+            .unwrap();
         storage.insert(0, HighlightActuatorComponent::new(0xFF0000FF));
         storage.insert(1, HighlightActuatorComponent::new(0x00FF00FF));
 
@@ -737,16 +751,20 @@ mod tests {
 
         // Add component
         {
-            let mut selections = registry.get_storage_mut::<SelectActuatorComponent>().unwrap();
+            let mut selections = registry
+                .get_storage_mut::<SelectActuatorComponent>()
+                .unwrap();
             selections.insert(entity_id, SelectActuatorComponent::new());
         }
 
         // Mutate component
         {
-            let mut selections = registry.get_storage_mut::<SelectActuatorComponent>().unwrap();
-            if let Some(component) = selections.get_mut(entity_id) {
-                component.set_selected(true);
-            }
+            let mut selections = registry
+                .get_storage_mut::<SelectActuatorComponent>()
+                .unwrap();
+            selections
+                .get_mut(entity_id)
+                .map(|component: &mut SelectActuatorComponent| component.set_selected(true));
         }
 
         // Verify mutation
@@ -799,7 +817,10 @@ mod tests {
         // Same component should have same ID
         assert_eq!(signal_id, ComponentId::of::<SignalStateComponent>());
         assert_eq!(mouse_id, ComponentId::of::<MouseSensorComponent>());
-        assert_eq!(highlight_id, ComponentId::of::<HighlightActuatorComponent>());
+        assert_eq!(
+            highlight_id,
+            ComponentId::of::<HighlightActuatorComponent>()
+        );
         assert_eq!(select_id, ComponentId::of::<SelectActuatorComponent>());
         assert_eq!(move_id, ComponentId::of::<MoveActuatorComponent>());
     }
@@ -807,7 +828,7 @@ mod tests {
     #[test]
     fn test_registry_clear() {
         let mut registry = ComponentRegistry::new();
-        
+
         registry.register::<SignalStateComponent>();
         registry.register::<MouseSensorComponent>();
 
