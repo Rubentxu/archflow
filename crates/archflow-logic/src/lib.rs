@@ -242,6 +242,7 @@ pub use simd::{
 // Provides A-Frame compatible declarative entity/component definitions
 #[cfg(feature = "std")]
 pub use api::json::{
-    BehaviorDefinition, ComponentDefinition, EntityDefinition, FogSettings, Scene,
-    SceneLoaderError, SceneMetadata,
+    BehaviorDefinition, ComponentDefinition, ComponentFactory, DefaultComponentFactory,
+    EntityDefinition, FogSettings, Scene, SceneLoadResult, SceneLoader, SceneLoaderError,
+    SceneMetadata,
 };

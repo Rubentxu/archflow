@@ -18,6 +18,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════════════
 #![cfg(feature = "std")]
 
+use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
@@ -635,6 +636,408 @@ pub const SCENE_SCHEMA: &str = r#"{
   "required": ["id", "entities"],
   "additionalProperties": false
 }"#;
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// SceneLoader - Integración JSON → ECS World
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+/// Factory trait for creating components from JSON definitions.
+///
+/// This trait enables flexible component creation strategies:
+/// - Default factory for standard component types
+/// - Custom factories for application-specific components
+/// - Test factories with mock components
+pub trait ComponentFactory {
+    /// Creates a component from a definition, or returns an error.
+    ///
+    /// # Errors
+    /// Returns `SceneLoaderError::ComponentCreationFailed` if creation fails.
+    fn create_component(
+        &self,
+        component_type: &str,
+        data: &serde_json::Value,
+    ) -> Result<alloc::boxed::Box<dyn core::any::Any + Send + Sync>, SceneLoaderError>;
+
+    /// Returns true if this factory can create the given component type.
+    fn can_create(&self, component_type: &str) -> bool;
+}
+
+/// Default component factory with built-in physics component support.
+///
+/// Supports standard ECS components like Velocity, Acceleration, Transform, etc.
+#[derive(Debug)]
+pub struct DefaultComponentFactory;
+
+impl DefaultComponentFactory {
+    /// Creates a new DefaultComponentFactory
+    #[inline]
+    #[must_use]
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl ComponentFactory for DefaultComponentFactory {
+    fn can_create(&self, component_type: &str) -> bool {
+        matches!(
+            component_type,
+            "Velocity" | "Acceleration" | "Transform" | "PhysicsMaterial"
+        )
+    }
+
+    fn create_component(
+        &self,
+        component_type: &str,
+        data: &serde_json::Value,
+    ) -> Result<alloc::boxed::Box<dyn core::any::Any + Send + Sync>, SceneLoaderError> {
+        match component_type {
+            "Velocity" => self.create_velocity(data),
+            "Acceleration" => self.create_acceleration(data),
+            "Transform" => self.create_transform(data),
+            "PhysicsMaterial" => self.create_physics_material(data),
+            _ => Err(SceneLoaderError::ComponentCreationFailed(format!(
+                "Unknown component type: '{}'",
+                component_type
+            ))),
+        }
+    }
+}
+
+impl DefaultComponentFactory {
+    #[inline]
+    fn extract_f32(&self, data: &serde_json::Value, key: &str) -> Result<f32, SceneLoaderError> {
+        data.get(key)
+            .and_then(|v| v.as_f64())
+            .map(|v| v as f32)
+            .ok_or_else(|| {
+                SceneLoaderError::ComponentCreationFailed(format!(
+                    "Missing or invalid '{}' field",
+                    key
+                ))
+            })
+    }
+
+    #[inline]
+    fn extract_opt_f32(
+        &self,
+        data: &serde_json::Value,
+        key: &str,
+    ) -> Result<Option<f32>, SceneLoaderError> {
+        Ok(data.get(key).and_then(|v| v.as_f64().map(|v| v as f32)))
+    }
+
+    #[inline]
+    fn extract_bool(&self, data: &serde_json::Value, key: &str) -> Result<bool, SceneLoaderError> {
+        data.get(key).and_then(|v| v.as_bool()).ok_or_else(|| {
+            SceneLoaderError::ComponentCreationFailed(format!("Missing or invalid '{}' field", key))
+        })
+    }
+
+    fn create_velocity(
+        &self,
+        data: &serde_json::Value,
+    ) -> Result<alloc::boxed::Box<dyn core::any::Any + Send + Sync>, SceneLoaderError> {
+        use crate::ecs::physics_components::Velocity;
+        Ok(alloc::boxed::Box::new(Velocity {
+            dx: self.extract_f32(data, "dx")?,
+            dy: self.extract_f32(data, "dy")?,
+        }))
+    }
+
+    fn create_acceleration(
+        &self,
+        data: &serde_json::Value,
+    ) -> Result<alloc::boxed::Box<dyn core::any::Any + Send + Sync>, SceneLoaderError> {
+        use crate::ecs::physics_components::Acceleration;
+        Ok(alloc::boxed::Box::new(Acceleration {
+            ax: self.extract_f32(data, "ax")?,
+            ay: self.extract_f32(data, "ay")?,
+        }))
+    }
+
+    fn create_transform(
+        &self,
+        data: &serde_json::Value,
+    ) -> Result<alloc::boxed::Box<dyn core::any::Any + Send + Sync>, SceneLoaderError> {
+        use crate::ecs::physics_components::Transform;
+        Ok(alloc::boxed::Box::new(Transform {
+            position_x: self.extract_f32(data, "x")?,
+            position_y: self.extract_f32(data, "y")?,
+            rotation: self.extract_opt_f32(data, "rotation")?.unwrap_or(0.0),
+            scale_x: self.extract_opt_f32(data, "scale_x")?.unwrap_or(1.0),
+            scale_y: self.extract_opt_f32(data, "scale_y")?.unwrap_or(1.0),
+        }))
+    }
+
+    fn create_physics_material(
+        &self,
+        data: &serde_json::Value,
+    ) -> Result<alloc::boxed::Box<dyn core::any::Any + Send + Sync>, SceneLoaderError> {
+        use crate::ecs::physics_components::PhysicsMaterial;
+        Ok(alloc::boxed::Box::new(PhysicsMaterial {
+            restitution: self.extract_opt_f32(data, "restitution")?.unwrap_or(0.3),
+            friction: self.extract_opt_f32(data, "friction")?.unwrap_or(0.5),
+            mass: self.extract_opt_f32(data, "mass")?.unwrap_or(1.0),
+            is_sensor: self
+                .extract_opt_f32(data, "is_sensor")?
+                .map(|v| v > 0.5)
+                .unwrap_or(false),
+        }))
+    }
+}
+
+/// Result of loading a scene.
+#[derive(Debug)]
+pub struct SceneLoadResult {
+    /// Number of entities created
+    pub entity_count: usize,
+    /// Mapping from JSON entity ID to ECS EntityId
+    pub entity_map: alloc::collections::BTreeMap<alloc::string::String, crate::ecs::EntityId>,
+}
+
+/// Loads a scene from JSON data into an ECS World.
+///
+/// This is the main entry point for scene loading. It parses the JSON,
+/// validates the scene structure, and creates entities in the World.
+///
+/// # Examples
+///
+/// ```ignore
+/// use archflow_logic::ecs::{World, Component};
+/// use archflow_logic::api::json::{SceneLoader, DefaultComponentFactory};
+///
+/// // Define your component types
+/// #[derive(Clone, Debug)]
+/// struct Position { x: f32, y: f32 }
+/// impl Component for Position { type Storage = VecStorage<Position>; }
+///
+/// // Load scene
+/// let json = load_scene_from_file("level.json");
+/// let mut world = World::new();
+/// let factory = DefaultComponentFactory::new();
+///
+/// let loader = SceneLoader::new(factory);
+/// let result = loader.load_scene(&mut world, &json).unwrap();
+///
+/// println!("Created {} entities", result.entity_count);
+/// ```
+#[derive(Debug)]
+pub struct SceneLoader<F = DefaultComponentFactory>
+where
+    F: ComponentFactory,
+{
+    factory: F,
+}
+
+impl<F> SceneLoader<F>
+where
+    F: ComponentFactory,
+{
+    /// Creates a new SceneLoader with the given component factory.
+    #[inline]
+    #[must_use]
+    pub fn new(factory: F) -> Self {
+        Self { factory }
+    }
+
+    /// Loads a scene from a JSON string into the World.
+    ///
+    /// # Errors
+    /// Returns errors for invalid JSON, missing references, or component creation failures.
+    #[inline]
+    pub fn load_scene(
+        &self,
+        world: &mut crate::ecs::World,
+        json: &str,
+    ) -> Result<SceneLoadResult, SceneLoaderError> {
+        let scene: Scene =
+            serde_json::from_str(json).map_err(|e| SceneLoaderError::InvalidJson(e.to_string()))?;
+
+        self.load_parsed_scene(world, &scene)
+    }
+
+    /// Loads a pre-parsed Scene into the World.
+    ///
+    /// This is useful when you already have a Scene struct (e.g., from caching).
+    #[inline]
+    pub fn load_parsed_scene(
+        &self,
+        world: &mut crate::ecs::World,
+        scene: &Scene,
+    ) -> Result<SceneLoadResult, SceneLoaderError> {
+        let mut entity_map = alloc::collections::BTreeMap::new();
+        let mut entity_count = 0;
+
+        // Register behaviors for quick lookup
+        let behavior_map: alloc::collections::BTreeMap<&str, &BehaviorDefinition> =
+            scene.behaviors.iter().map(|b| (b.id.as_str(), b)).collect();
+
+        // Process top-level entities
+        for entity_def in &scene.entities {
+            let count = self.load_entity_recursive(
+                world,
+                entity_def,
+                &behavior_map,
+                &self.factory,
+                &mut entity_map,
+                None,
+            )?;
+            entity_count += count;
+        }
+
+        Ok(SceneLoadResult {
+            entity_count,
+            entity_map,
+        })
+    }
+
+    #[inline]
+    fn load_entity_recursive(
+        &self,
+        world: &mut crate::ecs::World,
+        entity_def: &EntityDefinition,
+        behavior_map: &alloc::collections::BTreeMap<&str, &BehaviorDefinition>,
+        factory: &F,
+        entity_map: &mut alloc::collections::BTreeMap<alloc::string::String, crate::ecs::EntityId>,
+        parent_entity: Option<crate::ecs::EntityId>,
+    ) -> Result<usize, SceneLoaderError> {
+        // Create entity
+        let entity = world.create_entity();
+        let mut count = 1;
+
+        // Map entity ID if present
+        if !entity_def.id.is_empty() {
+            entity_map.insert(entity_def.id.clone(), entity);
+        }
+
+        // Add components from the entity definition
+        for comp_def in &entity_def.components {
+            self.add_component_to_entity(world, entity, comp_def, factory)?;
+        }
+
+        // Apply behaviors
+        for behavior_id in &entity_def.behaviors {
+            let behavior = behavior_map
+                .get(behavior_id.as_str())
+                .ok_or_else(|| SceneLoaderError::BehaviorNotFound(behavior_id.clone()))?;
+
+            for comp_def in &behavior.components {
+                self.add_component_to_entity(world, entity, comp_def, factory)?;
+            }
+        }
+
+        // Process child entities
+        for child_def in &entity_def.children {
+            let child_count = self.load_entity_recursive(
+                world,
+                child_def,
+                behavior_map,
+                factory,
+                entity_map,
+                Some(entity),
+            )?;
+            count += child_count;
+        }
+
+        Ok(count)
+    }
+
+    #[inline]
+    fn add_component_to_entity(
+        &self,
+        world: &mut crate::ecs::World,
+        entity: crate::ecs::EntityId,
+        component_def: &ComponentDefinition,
+        factory: &F,
+    ) -> Result<(), SceneLoaderError> {
+        let component_type = component_def.component_type();
+
+        // Use factory to create component
+        let component = factory
+            .create_component(component_type, component_def.data())
+            .map_err(|e| {
+                SceneLoaderError::ComponentCreationFailed(format!(
+                    "Failed to create component '{}': {}",
+                    component_type, e
+                ))
+            })?;
+
+        // Add to world using type-based dispatch
+        // This is a simplified version - in production you'd use a registry
+        self.add_component_by_type(world, entity, component_type, component)?;
+
+        Ok(())
+    }
+
+    #[inline]
+    fn add_component_by_type(
+        &self,
+        world: &mut crate::ecs::World,
+        entity: crate::ecs::EntityId,
+        component_type: &str,
+        component: alloc::boxed::Box<dyn core::any::Any + Send + Sync>,
+    ) -> Result<(), SceneLoaderError> {
+        // Type-based component addition
+        // In a full implementation, this would use the ComponentRegistry
+        match component_type {
+            "Velocity" => {
+                if let Ok(vel) = component.downcast::<crate::ecs::physics_components::Velocity>() {
+                    world.add_component(entity, *vel);
+                    Ok(())
+                } else {
+                    Err(SceneLoaderError::ComponentCreationFailed(
+                        "Type mismatch for Velocity".to_string(),
+                    ))
+                }
+            }
+            "Acceleration" => {
+                if let Ok(acc) =
+                    component.downcast::<crate::ecs::physics_components::Acceleration>()
+                {
+                    world.add_component(entity, *acc);
+                    Ok(())
+                } else {
+                    Err(SceneLoaderError::ComponentCreationFailed(
+                        "Type mismatch for Acceleration".to_string(),
+                    ))
+                }
+            }
+            "Transform" => {
+                if let Ok(transform) =
+                    component.downcast::<crate::ecs::physics_components::Transform>()
+                {
+                    world.add_component(entity, *transform);
+                    Ok(())
+                } else {
+                    Err(SceneLoaderError::ComponentCreationFailed(
+                        "Type mismatch for Transform".to_string(),
+                    ))
+                }
+            }
+            "PhysicsMaterial" => {
+                if let Ok(mat) =
+                    component.downcast::<crate::ecs::physics_components::PhysicsMaterial>()
+                {
+                    world.add_component(entity, *mat);
+                    Ok(())
+                } else {
+                    Err(SceneLoaderError::ComponentCreationFailed(
+                        "Type mismatch for PhysicsMaterial".to_string(),
+                    ))
+                }
+            }
+            _ => Err(SceneLoaderError::ComponentNotRegistered(
+                component_type.to_string(),
+            )),
+        }
+    }
+}
+
+impl Default for DefaultComponentFactory {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════
 // Tests
