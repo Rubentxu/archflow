@@ -88,7 +88,7 @@ impl Camera {
     pub fn world_to_camera(&self, world_pos: Vec2f64) -> Vec2 {
         // Subtract camera position (f64 precision)
         // Result is small (~hundreds or thousands) even for far-away points
-        let relative = world_pos.sub(self.center);
+        let relative = world_pos - self.center;
         // Convert to f32 - now safe because values are small
         Vec2::new(relative.x as f32, relative.y as f32)
     }
@@ -99,7 +99,7 @@ impl Camera {
     #[inline(always)]
     pub fn world_to_camera_f32(&self, world_pos: Vec2) -> Vec2 {
         // Convert entity pos to f64, subtract camera, convert back to f32
-        let relative = Vec2f64::new(world_pos.x as f64, world_pos.y as f64).sub(self.center);
+        let relative = Vec2f64::new(world_pos.x as f64, world_pos.y as f64) - self.center;
         // Convert f64 back to archflow_core::Vec2
         Vec2::new(relative.x as f32, relative.y as f32)
     }

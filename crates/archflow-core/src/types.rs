@@ -1,15 +1,40 @@
 //! Types - Tipos base con soporte serde
 //!
 //! Este módulo define tipos base como Vec2 y Mat3 que incluyen serialización serde.
+//!
+//! # Arquitectura
+//!
+//! Los tipos están diseñados siguiendo principios de:
+//! - **Zero-cost abstractions**: Trait implementations son `#[inline]`
+//! - **Cache-friendly**: Alignment de 8 bytes para Vec2
+//! - **Type safety**: Sin type aliases confusos como `f32` para vectores
 
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::ops::{Add, Div, Mul, MulAssign, Neg, Sub, SubAssign};
 
-/// Vector 2D con soporte serde
+/// Vector 2D con soporte serde.
+///
+/// # Memory Layout
+///
+/// ```ignore
+/// Vec2 { x: f32, y: f32 }  // 8 bytes, 4-byte aligned
+/// ```
+///
+/// # Ejemplo
+///
+/// ```
+/// use archflow_core::types::Vec2;
+///
+/// let v = Vec2::new(1.0, 2.0);
+/// assert_eq!(v.dot(v), 5.0);
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[repr(C)]
 pub struct Vec2 {
+    /// X component
     pub x: f32,
+    /// Y component
     pub y: f32,
 }
 
@@ -26,26 +51,64 @@ impl Vec2 {
     /// Eje Y unitario
     pub const Y: Vec2 = Vec2 { x: 0.0, y: 1.0 };
 
+    /// Creates a new vector from components.
+    ///
+    /// # Arguments
+    ///
+    /// * `x` - X component
+    /// * `y` - Y component
+    ///
+    /// # Returns
+    ///
+    /// A new `Vec2` with the given components.
     #[inline]
     pub fn new(x: f32, y: f32) -> Self {
         Self { x, y }
     }
 
+    /// Creates a vector with all components set to the same value.
+    ///
+    /// # Arguments
+    ///
+    /// * `v` - Value for all components
+    ///
+    /// # Returns
+    ///
+    /// A vector with `x = v` and `y = v`.
     #[inline]
     pub fn splat(v: f32) -> Self {
         Self { x: v, y: v }
     }
 
+    /// Calculates the squared length of the vector.
+    ///
+    /// This is faster than `length()` as it avoids the square root.
+    ///
+    /// # Returns
+    ///
+    /// The squared length `x² + y²`.
     #[inline]
     pub fn length_squared(&self) -> f32 {
         self.x * self.x + self.y * self.y
     }
 
+    /// Calculates the length (magnitude) of the vector.
+    ///
+    /// # Returns
+    ///
+    /// The length `sqrt(x² + y²)`.
     #[inline]
     pub fn length(&self) -> f32 {
         self.length_squared().sqrt()
     }
 
+    /// Returns a normalized vector with length 1.0.
+    ///
+    /// If the vector has zero length, returns `ZERO`.
+    ///
+    /// # Returns
+    ///
+    /// A normalized copy of this vector.
     #[inline]
     pub fn normalize(&self) -> Self {
         let len = self.length();
@@ -56,21 +119,57 @@ impl Vec2 {
         }
     }
 
+    /// Calculates the dot product with another vector.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - The other vector
+    ///
+    /// # Returns
+    ///
+    /// The dot product `x₁·x₂ + y₁·y₂`.
     #[inline]
     pub fn dot(&self, other: Vec2) -> f32 {
         self.x * other.x + self.y * other.y
     }
 
+    /// Calculates the 2D cross product (perp-dot product).
+    ///
+    /// Returns `x₁·y₂ - y₁·x₂`, equivalent to the z-component
+    /// of the 3D cross product.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - The other vector
+    ///
+    /// # Returns
+    ///
+    /// The cross product value.
     #[inline]
     pub fn cross(&self, other: Vec2) -> f32 {
         self.x * other.y - self.y * other.x
     }
 
+    /// Returns a perpendicular vector (rotated 90° counter-clockwise).
+    ///
+    /// # Returns
+    ///
+    /// A perpendicular vector `(-y, x)`.
     #[inline]
     pub fn perpendicular(&self) -> Self {
         Self::new(-self.y, self.x)
     }
 
+    /// Linear interpolation between this and another vector.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - The destination vector
+    /// * `t` - Interpolation factor in range [0, 1]
+    ///
+    /// # Returns
+    ///
+    /// A linearly interpolated vector.
     #[inline]
     pub fn lerp(&self, other: Vec2, t: f32) -> Self {
         Self::new(
@@ -79,11 +178,29 @@ impl Vec2 {
         )
     }
 
+    /// Component-wise minimum with another vector.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - The other vector
+    ///
+    /// # Returns
+    ///
+    /// A vector with `min(x₁, x₂)` and `min(y₁, y₂)`.
     #[inline]
     pub fn min(&self, other: Vec2) -> Self {
         Self::new(self.x.min(other.x), self.y.min(other.y))
     }
 
+    /// Component-wise maximum with another vector.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - The other vector
+    ///
+    /// # Returns
+    ///
+    /// A vector with `max(x₁, x₂)` and `max(y₁, y₂)`.
     #[inline]
     pub fn max(&self, other: Vec2) -> Self {
         Self::new(self.x.max(other.x), self.y.max(other.y))
@@ -149,18 +266,27 @@ impl fmt::Display for Vec2 {
 // - Posición de cámara (evita jittering en zoom extremo)
 // - Coordenadas de mundo (antes de conversión a f32 para GPU)
 // - Conversión precisa a f32 para shaders
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════════
 
-/// Vector 2D de doble precisión para coordenadas de cámara
+/// Vector 2D de doble precisión para coordenadas de cámara.
 ///
 /// Problem: En zoom extremo (1000x+), coordenadas como 10_000_000.0
 /// pierden precisión cuando se convierten a f32 (~7 dígitos significativos).
 ///
 /// Solution: Usar f64 para posición de cámara, convertir a f32
 /// SOLO después de restar la posición de cámara (coordinates relativas).
+///
+/// # Memory Layout
+///
+/// ```ignore
+/// Vec2f64 { x: f64, y: f64 }  // 16 bytes, 8-byte aligned
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[repr(C)]
 pub struct Vec2f64 {
+    /// X component in double precision
     pub x: f64,
+    /// Y component in double precision
     pub y: f64,
 }
 
@@ -168,46 +294,105 @@ impl Vec2f64 {
     /// Vector cero
     pub const ZERO: Vec2f64 = Vec2f64 { x: 0.0, y: 0.0 };
 
+    /// Creates a new vector from components.
+    ///
+    /// # Arguments
+    ///
+    /// * `x` - X component
+    /// * `y` - Y component
+    ///
+    /// # Returns
+    ///
+    /// A new `Vec2f64` with the given components.
     #[inline]
     pub fn new(x: f64, y: f64) -> Self {
         Self { x, y }
     }
 
+    /// Creates a vector with all components set to the same value.
+    ///
+    /// # Arguments
+    ///
+    /// * `v` - Value for all components
+    ///
+    /// # Returns
+    ///
+    /// A vector with `x = v` and `y = v`.
     #[inline]
     pub fn splat(v: f64) -> Self {
         Self { x: v, y: v }
     }
 
+    /// Calculates the length (magnitude) of the vector.
+    ///
+    /// # Returns
+    ///
+    /// The length `sqrt(x² + y²)`.
     #[inline]
     pub fn length(&self) -> f64 {
         (self.x * self.x + self.y * self.y).sqrt()
     }
 
-    /// Restar otro vector (devuelve Vec2f64)
+    /// Subtracts a Vec2 (returns Vec2).
+    ///
+    /// Useful when the target precision is f32.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - The Vec2 to subtract
+    ///
+    /// # Returns
+    ///
+    /// A `Vec2` with the difference.
     #[inline]
-    pub fn sub(self, other: Self) -> Self {
-        Self::new(self.x - other.x, self.y - other.y)
-    }
-
-    /// Restar otro vector (devuelve Self)
-    #[inline]
+    #[allow(clippy::should_implement_trait)]
     pub fn sub_f32(self, other: Vec2) -> Vec2 {
         Vec2::new(self.x as f32 - other.x, self.y as f32 - other.y)
     }
 
-    /// Convertir a Vec2 (truncando/convirtiendo)
+    /// Converts to Vec2 (truncating/converting).
+    ///
+    /// Warning: May lose precision for large values.
+    ///
+    /// # Returns
+    ///
+    /// A `Vec2` with converted components.
     #[inline]
     pub fn to_vec2(self) -> Vec2 {
         Vec2::new(self.x as f32, self.y as f32)
     }
 
-    /// Convertir a Vec2 con conversión segura
-    /// Útil para coordenadas relativas (cercanas a 0)
+    /// Converts to Vec2 with safe relative conversion.
+    ///
+    /// Useful for coordinates relative to a reference point (near 0).
+    ///
+    /// # Arguments
+    ///
+    /// * `reference` - The reference point to subtract first
+    ///
+    /// # Returns
+    ///
+    /// A `Vec2` with components relative to the reference.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use archflow_core::types::{Vec2, Vec2f64};
+    ///
+    /// let world_pos = Vec2f64::new(10_000_000.0, 10_000_000.0);
+    /// let camera_pos = Vec2f64::new(9_999_990.0, 9_999_990.0);
+    ///
+    /// // This would lose precision if done directly:
+    /// // let _bad = world_pos.to_vec2(); // May lose precision
+    ///
+    /// // This preserves precision:
+    /// let relative = world_pos.to_relative_vec2(camera_pos);
+    /// ```
     #[inline]
     pub fn to_relative_vec2(self, reference: Self) -> Vec2 {
         let relative = self.sub(reference);
-        // Ahora relative.x e relative.y son pequeños (~decenas o cientos)
-        // por lo que la conversión a f32 preserva precisión
+        // Now relative.x and relative.y are small (~tens or hundreds)
+        // so f32 conversion preserves precision
         Vec2::new(relative.x as f32, relative.y as f32)
     }
 }
@@ -263,23 +448,50 @@ impl fmt::Display for Vec2f64 {
     }
 }
 
-/// Matriz 3x3 para transformaciones 2D
-/// [[m00, m01, m02], [m10, m11, m12], [m20, m21, m22]]
+/// Matriz 3x3 para transformaciones 2D.
+///
+/// Column-major order representation:
+/// ```ignore
+/// [[m00, m01, m02],
+///  [m10, m11, m12],
+///  [m20, m21, m22]]
+/// ```
+///
+/// Used for:
+/// - 2D affine transformations (translation, rotation, scale)
+/// - World-to-screen projection
+/// - Hierarchical transforms (parent-child relationships)
+///
+/// # Memory Layout
+///
+/// ```ignore
+/// Mat3 { m00..m22 }  // 36 bytes, 4-byte aligned
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[repr(C)]
 pub struct Mat3 {
+    /// Column 0, row 0
     pub m00: f32,
+    /// Column 1, row 0
     pub m01: f32,
+    /// Column 2, row 0 (translation x)
     pub m02: f32,
+    /// Column 0, row 1
     pub m10: f32,
+    /// Column 1, row 1
     pub m11: f32,
+    /// Column 2, row 1 (translation y)
     pub m12: f32,
+    /// Column 0, row 2
     pub m20: f32,
+    /// Column 1, row 2
     pub m21: f32,
+    /// Column 2, row 2
     pub m22: f32,
 }
 
 impl Mat3 {
-    /// Matriz identidad
+    /// Identity matrix
     pub const IDENTITY: Mat3 = Mat3 {
         m00: 1.0,
         m01: 0.0,
@@ -292,7 +504,18 @@ impl Mat3 {
         m22: 1.0,
     };
 
-    /// Crear desde array
+    /// Creates a matrix from column vectors.
+    ///
+    /// # Arguments
+    ///
+    /// * `c0` - First column (basis vector x)
+    /// * `c1` - Second column (basis vector y)
+    /// * `c2` - Third column (translation)
+    ///
+    /// # Returns
+    ///
+    /// A new matrix with the given columns.
+    #[inline]
     pub fn from_cols(c0: Vec2, c1: Vec2, c2: Vec2) -> Self {
         Self {
             m00: c0.x,
@@ -307,7 +530,16 @@ impl Mat3 {
         }
     }
 
-    /// Crear matriz de traslación
+    /// Creates a translation matrix.
+    ///
+    /// # Arguments
+    ///
+    /// * `v` - Translation vector
+    ///
+    /// # Returns
+    ///
+    /// A matrix representing the translation.
+    #[inline]
     pub fn from_translation(v: Vec2) -> Self {
         Self {
             m00: 1.0,
@@ -322,7 +554,16 @@ impl Mat3 {
         }
     }
 
-    /// Crear matriz de rotación
+    /// Creates a rotation matrix.
+    ///
+    /// # Arguments
+    ///
+    /// * `angle` - Rotation angle in radians
+    ///
+    /// # Returns
+    ///
+    /// A matrix representing the rotation.
+    #[inline]
     pub fn from_rotation(angle: f32) -> Self {
         let s = angle.sin();
         let c = angle.cos();
@@ -339,7 +580,16 @@ impl Mat3 {
         }
     }
 
-    /// Crear matriz de escala
+    /// Creates a scale matrix.
+    ///
+    /// # Arguments
+    ///
+    /// * `v` - Scale factors for x and y
+    ///
+    /// # Returns
+    ///
+    /// A matrix representing the scale.
+    #[inline]
     pub fn from_scale(v: Vec2) -> Self {
         Self {
             m00: v.x,
@@ -354,7 +604,16 @@ impl Mat3 {
         }
     }
 
-    /// Multiplicar por otra matriz
+    /// Multiplies this matrix by another.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - The other matrix to multiply with
+    ///
+    /// # Returns
+    ///
+    /// A new matrix representing the composition.
+    #[inline]
     pub fn mul_mat(&self, other: Mat3) -> Self {
         Self {
             m00: self.m00 * other.m00 + self.m01 * other.m10 + self.m02 * other.m20,
@@ -369,7 +628,15 @@ impl Mat3 {
         }
     }
 
-    /// Multiplicar por vector 2D (transformar punto)
+    /// Transforms a 2D point (applies translation).
+    ///
+    /// # Arguments
+    ///
+    /// * `v` - The point to transform
+    ///
+    /// # Returns
+    ///
+    /// The transformed point.
     #[inline]
     pub fn transform_point2(&self, v: Vec2) -> Vec2 {
         let x = self.m00 * v.x + self.m01 * v.y + self.m02;
@@ -377,7 +644,15 @@ impl Mat3 {
         Vec2::new(x, y)
     }
 
-    /// Multiplicar por vector 2D (transformar dirección, sin traslación)
+    /// Transforms a 2D direction (no translation).
+    ///
+    /// # Arguments
+    ///
+    /// * `v` - The direction to transform
+    ///
+    /// # Returns
+    ///
+    /// The transformed direction.
     #[inline]
     pub fn transform_vector2(&self, v: Vec2) -> Vec2 {
         let x = self.m00 * v.x + self.m01 * v.y;
@@ -385,9 +660,14 @@ impl Mat3 {
         Vec2::new(x, y)
     }
 
-    /// Calcular la matriz inversa
-    /// Para matrices 2D affine: [a, b, tx; c, d, ty; 0, 0, 1]
-    /// La inversa es: [d/det, -b/det, (b*ty - d*tx)/det; -c/det, a/det, (c*tx - a*ty)/det; 0, 0, 1]
+    /// Calculates the inverse matrix.
+    ///
+    /// For 2D affine matrices, this uses the optimized formula.
+    ///
+    /// # Returns
+    ///
+    /// `Some(inverse)` if the matrix is invertible, `None` if singular.
+    #[inline]
     pub fn inverse(self) -> Option<Self> {
         let det = self.m00 * self.m11 - self.m01 * self.m10;
 
@@ -411,7 +691,12 @@ impl Mat3 {
         })
     }
 
-    /// Calcular el determinante
+    /// Calculates the determinant.
+    ///
+    /// # Returns
+    ///
+    /// The determinant value.
+    #[inline]
     pub fn determinant(&self) -> f32 {
         self.m00 * self.m11 - self.m01 * self.m10
     }

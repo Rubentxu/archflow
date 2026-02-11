@@ -12,7 +12,7 @@
 use alloc::vec::Vec;
 use archflow_engine::EntityStore;
 use archflow_logic::pulse::SensorState;
-use archflow_logic::{LogicEvent, LogicSystem, Pulse};
+use archflow_logic::{EventData, LogicEvent, LogicSystem, Pulse};
 use wasm_bindgen::prelude::*;
 
 /// WASM wrapper for LogicSystem
@@ -81,10 +81,24 @@ impl LogicSystemWasm {
         let events = self.inner.event_buffer().drain();
         events
             .into_iter()
-            .map(|event| JsLogicEventData {
-                event_type: event.event_type as u8,
-                entity_id: event.entity_id,
-                timestamp_us: event.timestamp_us,
+            .map(|event| {
+                // Extract context data based on EventData variant
+                let (data_1, data_2, data_3) = match event.data {
+                    EventData::None => (0.0, 0.0, 0),
+                    EventData::Proximity { distance } => (distance, 0.0, 0),
+                    EventData::Drag { start_pos, .. } => (start_pos.0, start_pos.1, 0),
+                    EventData::BoxSelection { count } => (0.0, 0.0, count),
+                    EventData::Hover { entity_id } => (0.0, 0.0, entity_id.unwrap_or(0)),
+                };
+
+                JsLogicEventData {
+                    event_type: event.event_type as u8,
+                    entity_id: event.entity_id,
+                    timestamp_us: event.timestamp_us,
+                    data_1,
+                    data_2,
+                    data_3,
+                }
             })
             .collect()
     }
@@ -196,6 +210,15 @@ pub struct JsLogicEventData {
 
     /// Timestamp in microseconds
     pub timestamp_us: u64,
+
+    /// Additional data depending on event type:
+    /// - ProximityAlert: f32 distance
+    /// - DragStarted/DragEnded: f32 x, f32 y position
+    /// - BoxSelectionCompleted: u32 count
+    /// - HoverChanged: u32 entity_id (or 0 for none)
+    pub data_1: f32,
+    pub data_2: f32,
+    pub data_3: u32,
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

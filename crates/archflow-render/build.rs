@@ -11,15 +11,21 @@
 fn main() {
     println!("cargo:rerun-if-changed=src/shaders");
 
-    let out_dir = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap());
-
     #[cfg(feature = "webgl2")]
     {
+        let out_dir = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap());
         let shaders_dir = std::path::Path::new("src/shaders");
         compile_shaders(shaders_dir, &out_dir);
     }
+
+    #[cfg(not(feature = "webgl2"))]
+    {
+        let _out_dir = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap());
+        // No-op when webgl2 feature is not enabled
+    }
 }
 
+#[cfg(feature = "webgl2")]
 /// Shader compilation configuration
 #[derive(Debug, Clone)]
 struct ShaderConfig {

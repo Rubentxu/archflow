@@ -25,35 +25,60 @@ use super::EntityStore;
 /// Basic query result with transform data
 #[derive(Debug, Clone, Copy)]
 pub struct QueryResult {
+    /// Entity identifier
     pub entity: EntityId,
+    /// Entity index in storage
     pub index: usize,
+    /// X position
     pub x: f32,
+    /// Y position
     pub y: f32,
+    /// Width of bounding box
     pub width: f32,
+    /// Height of bounding box
     pub height: f32,
+    /// Z-order layer
     pub layer: u8,
+    /// Whether the entity is visible
     pub is_visible: bool,
+    /// Whether the entity is selected
     pub is_selected: bool,
+    /// Whether the entity is locked
     pub is_locked: bool,
 }
 
 /// Full renderable entity with visual properties
 #[derive(Debug)]
 pub struct RenderableResult {
+    /// Entity identifier
     pub entity: EntityId,
+    /// Entity index in storage
     pub index: usize,
+    /// X position
     pub x: f32,
+    /// Y position
     pub y: f32,
+    /// Width of bounding box
     pub width: f32,
+    /// Height of bounding box
     pub height: f32,
+    /// Z-order layer
     pub layer: u8,
+    /// Fill color (ARGB format)
     pub fill_color: u32,
+    /// Stroke color (ARGB format)
     pub stroke_color: u32,
+    /// Stroke width in pixels
     pub stroke_width: f32,
+    /// Texture index for GPU rendering
     pub texture_index: u16,
+    /// UV coordinates for texture mapping [u_min, v_min, u_max, v_max]
     pub uv_rect: [f32; 4],
+    /// Whether the entity is visible
     pub is_visible: bool,
+    /// Whether the entity is selected
     pub is_selected: bool,
+    /// Whether the entity is locked
     pub is_locked: bool,
 }
 
@@ -95,6 +120,7 @@ impl<'a> RenderQuery<'a> {
     }
 
     /// Get entity size
+    /// Gets the size (width, height) for an entity.
     #[inline(always)]
     pub fn size(&self, index: usize) -> Option<(f32, f32)> {
         self.transform_view.size(index)
@@ -292,12 +318,14 @@ pub fn mark_clean(store: &mut EntityStore, indices: &[usize]) {
 pub struct TransformView<'a>(&'a EntityStore);
 
 impl<'a> TransformView<'a> {
+    /// Creates a new transform view.
     #[inline(always)]
     #[must_use]
     pub fn new(store: &'a EntityStore) -> Self {
         Self(store)
     }
 
+    /// Gets the transform array for an entity.
     #[inline(always)]
     pub fn transform(&self, index: usize) -> Option<[f32; 4]> {
         if !self.0.is_alive_index(index) {
@@ -306,6 +334,7 @@ impl<'a> TransformView<'a> {
         Some(self.0.transforms[index])
     }
 
+    /// Gets the position (x, y) for an entity.
     #[inline(always)]
     pub fn position(&self, index: usize) -> Option<(f32, f32)> {
         if !self.0.is_alive_index(index) {
@@ -315,6 +344,7 @@ impl<'a> TransformView<'a> {
         Some((t[0], t[1]))
     }
 
+    /// Gets the size (width, height) for an entity.
     #[inline(always)]
     pub fn size(&self, index: usize) -> Option<(f32, f32)> {
         if !self.0.is_alive_index(index) {
@@ -324,6 +354,7 @@ impl<'a> TransformView<'a> {
         Some((t[2], t[3]))
     }
 
+    /// Gets the world transform for an entity.
     #[inline(always)]
     pub fn world_transform(&self, index: usize) -> Option<[f32; 4]> {
         if !self.0.is_alive_index(index) {
@@ -338,12 +369,14 @@ impl<'a> TransformView<'a> {
 pub struct ColorView<'a>(&'a EntityStore);
 
 impl<'a> ColorView<'a> {
+    /// Creates a new color view.
     #[inline(always)]
     #[must_use]
     pub fn new(store: &'a EntityStore) -> Self {
         Self(store)
     }
 
+    /// Gets the fill color for an entity.
     #[inline(always)]
     pub fn fill_color(&self, index: usize) -> Option<u32> {
         if !self.0.is_alive_index(index) {
@@ -352,6 +385,7 @@ impl<'a> ColorView<'a> {
         Some(self.0.colors[index])
     }
 
+    /// Gets the stroke color for an entity.
     #[inline(always)]
     pub fn stroke_color(&self, index: usize) -> Option<u32> {
         if !self.0.is_alive_index(index) {
@@ -360,6 +394,7 @@ impl<'a> ColorView<'a> {
         Some(self.0.stroke_colors[index])
     }
 
+    /// Gets the stroke width for an entity.
     #[inline(always)]
     pub fn stroke_width(&self, index: usize) -> Option<f32> {
         if !self.0.is_alive_index(index) {
@@ -368,6 +403,7 @@ impl<'a> ColorView<'a> {
         Some(self.0.stroke_widths[index])
     }
 
+    /// Gets the texture index for an entity.
     #[inline(always)]
     pub fn texture_index(&self, index: usize) -> Option<u16> {
         if !self.0.is_alive_index(index) {
@@ -376,6 +412,7 @@ impl<'a> ColorView<'a> {
         Some(self.0.texture_index[index])
     }
 
+    /// Gets the UV rect for an entity.
     #[inline(always)]
     pub fn uv_rect(&self, index: usize) -> Option<[f32; 4]> {
         if !self.0.is_alive_index(index) {
@@ -390,12 +427,14 @@ impl<'a> ColorView<'a> {
 pub struct MetadataView<'a>(&'a EntityStore);
 
 impl<'a> MetadataView<'a> {
+    /// Creates a new metadata view.
     #[inline(always)]
     #[must_use]
     pub fn new(store: &'a EntityStore) -> Self {
         Self(store)
     }
 
+    /// Gets the layer for an entity.
     #[inline(always)]
     pub fn layer(&self, index: usize) -> Option<u8> {
         if !self.0.is_alive_index(index) {
@@ -404,6 +443,7 @@ impl<'a> MetadataView<'a> {
         Some(self.0.layer(index))
     }
 
+    /// Checks if an entity is visible.
     #[inline(always)]
     pub fn is_visible(&self, index: usize) -> Option<bool> {
         if !self.0.is_alive_index(index) {
@@ -412,6 +452,7 @@ impl<'a> MetadataView<'a> {
         Some(self.0.is_visible(index))
     }
 
+    /// Checks if an entity is locked.
     #[inline(always)]
     pub fn is_locked(&self, index: usize) -> Option<bool> {
         if !self.0.is_alive_index(index) {
@@ -420,6 +461,7 @@ impl<'a> MetadataView<'a> {
         Some((self.0.metadata[index] & (1 << 10)) != 0)
     }
 
+    /// Checks if an entity is selected.
     #[inline(always)]
     pub fn is_selected(&self, index: usize) -> Option<bool> {
         if !self.0.is_alive_index(index) {

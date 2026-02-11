@@ -58,7 +58,7 @@ impl DeltaMask {
     #[inline(always)]
     #[must_use]
     pub fn new(capacity: usize) -> Self {
-        let bytes = (capacity + 7) / 8;
+        let bytes = capacity.div_ceil(8);
         Self {
             bits: vec![0u8; bytes],
             capacity,
@@ -462,11 +462,7 @@ impl Command {
             Command::MoveGroup { root_id, .. } => Some(*root_id),
             Command::Select(_) => None, // Affects multiple entities
             // Connection commands - return associated entity if applicable
-            Command::CreateConnection {
-                source_id,
-                target_id,
-                ..
-            } => Some(*source_id),
+            Command::CreateConnection { source_id, .. } => Some(*source_id),
             Command::BindConnection { entity_id, .. } => Some(*entity_id),
             Command::DeleteConnection { .. }
             | Command::UpdateConnectionPath { .. }
@@ -819,7 +815,7 @@ impl Command {
                 connection_id,
                 style,
             } => {
-                store.set_connection_style(connection_id.index().0 as u32, *style);
+                store.set_connection_style(connection_id.index().0, *style);
             }
             // Anchor visibility commands - visual-only, handled by renderer
             Command::ShowAnchor { .. }
@@ -827,7 +823,7 @@ impl Command {
             | Command::HighlightAnchor { .. }
             | Command::ClearAnchorHighlight { .. } => {}
             Command::ZOrder {
-                entity,
+                entity: _,
                 old_z_index: _,
                 new_z_index: _,
             } => {

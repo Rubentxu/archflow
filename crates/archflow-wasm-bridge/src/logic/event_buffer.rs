@@ -123,32 +123,19 @@ impl EventRingBufferWasm {
     /// ```
     #[wasm_bindgen]
     pub fn drain(&mut self, system: &mut LogicSystemWasm) -> Vec<JsLogicEvent> {
-        // Get events from the logic system
+        // Get events from the logic system (metadata already extracted)
         let events_data = system.drain_events();
 
-        // Convert to WASM-friendly format with context data
+        // Convert to JS-friendly format
         events_data
             .into_iter()
-            .map(|data| {
-                // Extract context data based on event type
-                let (data_1, data_2, data_3) = match data.event_type {
-                    0 => (0.0, 0.0, 0), // EntitySelected
-                    1 => (0.0, 0.0, 0), // ProximityAlert - would need distance
-                    2 => (0.0, 0.0, 0), // DragStarted - would need position
-                    3 => (0.0, 0.0, 0), // DragEnded - would need position
-                    4 => (0.0, 0.0, 0), // BoxSelectionCompleted - would need count
-                    5 => (0.0, 0.0, 0), // HoverChanged - would need entity_id
-                    _ => (0.0, 0.0, 0),
-                };
-
-                JsLogicEvent {
-                    event_type: data.event_type,
-                    entity_id: data.entity_id,
-                    timestamp_us: data.timestamp_us,
-                    data_1,
-                    data_2,
-                    data_3,
-                }
+            .map(|data| JsLogicEvent {
+                event_type: data.event_type,
+                entity_id: data.entity_id,
+                timestamp_us: data.timestamp_us,
+                data_1: data.data_1,
+                data_2: data.data_2,
+                data_3: data.data_3,
             })
             .collect()
     }

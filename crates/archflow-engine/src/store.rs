@@ -1041,6 +1041,7 @@ impl EntityStore {
         let start = start_idx.min(len);
 
         // Process contiguous range (auto-vectorized by LLVM)
+        #[allow(clippy::needless_range_loop)]
         for idx in start..len {
             transforms[idx][0] += delta.x;
             transforms[idx][1] += delta.y;
@@ -1064,7 +1065,7 @@ impl EntityStore {
     /// Vector of child entity indices
     #[inline]
     pub fn get_children(&self, entity_id: EntityId) -> Vec<usize> {
-        let parent_idx = entity_id.index().0 as usize;
+        let _parent_idx = entity_id.index().0 as usize;
         let mut children = Vec::new();
 
         for (idx, &parent) in self.parent_id.iter().enumerate() {
@@ -1389,28 +1390,25 @@ impl EntityStore {
         let src = self.entity_world_center(self.connection_source[idx]);
         let tgt = self.entity_world_center(self.connection_target[idx]);
 
-        match (src, tgt) {
-            (Some(s), Some(t)) => {
-                match style {
-                    1 | 3 => {
-                        // Orthogonal or Elbow
-                        self.calculate_orthogonal_path(connection_id, s, t);
-                    }
-                    2 => {
-                        // Bezier
-                        self.calculate_bezier_path(connection_id, s, t);
-                    }
-                    _ => {
-                        // Straight
-                        self.connection_paths[idx].clear();
-                        self.connection_paths[idx].push(s.x);
-                        self.connection_paths[idx].push(s.y);
-                        self.connection_paths[idx].push(t.x);
-                        self.connection_paths[idx].push(t.y);
-                    }
+        if let (Some(s), Some(t)) = (src, tgt) {
+            match style {
+                1 | 3 => {
+                    // Orthogonal or Elbow
+                    self.calculate_orthogonal_path(connection_id, s, t);
+                }
+                2 => {
+                    // Bezier
+                    self.calculate_bezier_path(connection_id, s, t);
+                }
+                _ => {
+                    // Straight
+                    self.connection_paths[idx].clear();
+                    self.connection_paths[idx].push(s.x);
+                    self.connection_paths[idx].push(s.y);
+                    self.connection_paths[idx].push(t.x);
+                    self.connection_paths[idx].push(t.y);
                 }
             }
-            _ => {}
         }
     }
 

@@ -80,6 +80,31 @@ export { CameraBridge, createCameraBridge } from "./CameraBridge";
 export { InputBridge, createInputBridge } from "./InputBridge";
 export { HistoryBridge, createHistoryBridge } from "./HistoryBridge";
 export { EventsBridge, createEventsBridge } from "./EventsBridge";
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// POLL EVENTS SDK - Minimal WASM Event Polling API
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+export {
+  pollEvents,
+  eventCount,
+  hasEvents,
+  filterByType,
+  findLast,
+  hasEvent,
+  EventType,
+  type EventType,
+  type ArchFlowEvent,
+  type EntitySelectedEvent,
+  type ProximityAlertEvent,
+  type DragStartedEvent,
+  type DragEndedEvent,
+  type EntityDestroyedEvent,
+  type BoxSelectionCompletedEvent,
+  type HoverChangedEvent,
+} from "./poll-events-sdk";
+
+export { PollEventsSDK } from "./poll-events-sdk";
 export {
   EventEmitter,
   globalEvents,
