@@ -12,6 +12,7 @@ use alloc::vec::Vec;
 use core::any::TypeId;
 use core::ops::Range;
 
+use super::archetype::{ArchetypeId, ArchetypeStorage};
 use super::component::{Component, ComponentId, ComponentStorage};
 use super::query::{EntityId, Query, QueryMut, QueryParameter};
 use super::registry::ComponentRegistry;
@@ -65,6 +66,8 @@ impl Default for EntityMeta {
 pub struct World {
     /// Component registry holding all component storage
     registry: ComponentRegistry,
+    /// Archetype storage for Data-Oriented queries
+    archetype_storage: ArchetypeStorage,
     /// Entity metadata (generation, alive status, component types)
     entities: Vec<EntityMeta>,
     /// Free list for entity reuse
@@ -81,6 +84,7 @@ impl World {
     pub fn new() -> Self {
         Self {
             registry: ComponentRegistry::new(),
+            archetype_storage: ArchetypeStorage::new(),
             entities: Vec::new(),
             free_list: Vec::new(),
             next_index: 0,
@@ -141,6 +145,9 @@ impl World {
     }
 
     /// Adds a component to an entity
+    ///
+    /// This method also synchronizes the entity with the archetype storage,
+    /// automatically migrating entities between archetypes when components change.
     #[inline]
     pub fn add_component<T: Component>(&mut self, entity: EntityId, component: T) -> bool {
         if !self.is_entity_alive(entity) {
@@ -154,16 +161,91 @@ impl World {
         let index = entity.as_usize();
         let type_id = TypeId::of::<T>();
 
+        // Get current components from registry for archetype migration
+        let current_types: Vec<ComponentId> = self
+            .registry
+            .iter()
+            .filter(|(tid, _)| {
+                // Check if this component type is registered for this entity
+                self.entities
+                    .get(index)
+                    .map_or(false, |meta| meta.components.contains(tid))
+            })
+            .map(|(tid, _)| ComponentId::new(*tid))
+            .collect();
+
+        // Check if entity is already in an archetype
+        let old_archetype_id = self.archetype_storage.get_archetype_id(index);
+
+        // Insert new component into registry
+        if let Some(storage) = self.registry.get_storage_mut::<T>() {
+            storage.insert(index, component);
+        } else {
+            return false;
+        }
+
         // Track component in entity metadata
         if let Some(meta) = self.entities.get_mut(index) {
             meta.components.insert(type_id);
         }
 
-        if let Some(storage) = self.registry.get_storage_mut::<T>() {
-            storage.insert(index, component);
-            true
-        } else {
-            false
+        // Migrate entity to new archetype if needed
+        if current_types.len() > 0 {
+            // Entity was in an archetype, migrate it
+            let new_types: Vec<ComponentId> = current_types
+                .into_iter()
+                .chain(core::iter::once(ComponentId::new(type_id)))
+                .collect();
+
+            self.migrate_entity_to_archetype(index, old_archetype_id, &new_types);
+        } else if old_archetype_id.is_none() {
+            // First component for entity, add to archetype
+            self.add_entity_to_archetype(index, &[(ComponentId::new(type_id))]);
+        }
+
+        true
+    }
+
+    /// Helper: Migrates an entity from one archetype to another
+    fn migrate_entity_to_archetype(
+        &mut self,
+        entity_id: usize,
+        old_archetype_id: Option<ArchetypeId>,
+        new_types: &[ComponentId],
+    ) {
+        // Determine the new archetype ID
+        let new_archetype_id = ArchetypeId::from_types(new_types);
+
+        // If no change in archetype, we're done
+        if old_archetype_id == Some(new_archetype_id) {
+            return;
+        }
+
+        // Remove from old archetype if it existed
+        if let Some(old_id) = old_archetype_id {
+            self.archetype_storage.remove_entity(entity_id);
+        }
+
+        // Add to new archetype
+        self.add_entity_to_archetype(entity_id, new_types);
+    }
+
+    /// Helper: Adds an entity to the appropriate archetype
+    fn add_entity_to_archetype(&mut self, entity_id: usize, types: &[ComponentId]) {
+        use alloc::collections::BTreeMap;
+
+        let mut component_strides = BTreeMap::new();
+
+        for component_id in types {
+            // Get stride from registry for this component type
+            if let Some(storage) = self.registry.get_storage_by_id(*component_id) {
+                component_strides.insert(*component_id, storage.stride());
+            }
+        }
+
+        if !component_strides.is_empty() {
+            self.archetype_storage
+                .add_entity(entity_id, component_strides);
         }
     }
 
@@ -295,6 +377,31 @@ impl World {
         Query::new(self)
     }
 
+    /// Creates an archetype-based query for the specified components.
+    ///
+    /// Archetype queries are optimized for cache-efficient iteration,
+    /// grouping entities by their component composition.
+    ///
+    /// # Returns
+    ///
+    /// An `ArchetypeQuery` for efficient batch processing.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let query = world.archetype_query::<(&Position, &Velocity)>();
+    /// for archetype in query.each_archetype_batch() {
+    ///     // Process archetype with batched component access
+    /// }
+    /// ```
+    #[inline]
+    pub fn archetype_query<'w, Q: super::archetype_query::QueryParam>(
+        &'w self,
+    ) -> super::archetype_query::ArchetypeQuery<'w> {
+        super::archetype_query::ArchetypeQuery::new::<Q>(self)
+    }
+
+    /// Creates a SIMD batch query for the specified components.
     /// Returns an iterator over all alive entities
     ///
     /// # Examples
@@ -424,6 +531,7 @@ impl World {
         self.free_list.clear();
         self.next_index = 0;
         self.registry.clear();
+        self.archetype_storage.clear();
         self.scheduler.clear();
     }
 
@@ -441,6 +549,18 @@ impl World {
     #[inline]
     pub(crate) fn registry_mut(&mut self) -> &mut ComponentRegistry {
         &mut self.registry
+    }
+
+    /// Get archetype storage (for ArchetypeQuery)
+    #[inline]
+    pub(crate) fn archetype_storage(&self) -> &ArchetypeStorage {
+        &self.archetype_storage
+    }
+
+    /// Get mutable archetype storage (for entity migration)
+    #[inline]
+    pub(crate) fn archetype_storage_mut(&mut self) -> &mut ArchetypeStorage {
+        &mut self.archetype_storage
     }
 
     /// Get entities slice (for Query iteration)

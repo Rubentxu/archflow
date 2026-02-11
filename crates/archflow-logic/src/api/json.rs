@@ -1,206 +1,129 @@
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
 // ArchFlow Logic - Declarative JSON API for ECS
 //
-// This module provides a declarative JSON-based API for defining and creating
-// ECS components and behaviors. It enables dynamic component creation from
-// JSON definitions, supporting data-driven game object creation.
+// This module provides pure data structures for declarative entity/component definition
+// compatible with A-Frame style JSON scene definitions.
 //
 // Key Features:
-// - ComponentDefinition: JSON-based component definitions
-// - BehaviorDefinition: Complete behavior definitions with multiple components
-// - ComponentFactory: Creates components from JSON definitions
-// - BehaviorRegistry: Stores and retrieves behavior definitions
+// - ComponentDefinition: Component type + configuration
+// - BehaviorDefinition: Collection of components for entity templates
+// - EntityDefinition: Complete entity with components, behaviors, children
+// - Scene: Complete scene with entities, behaviors, metadata
 //
-// Architecture:
-// - Type-safe component creation via factory pattern
-// - JSON Schema validation for component definitions
-// - Error handling with detailed error messages
-// - Supports dynamic component registration
+// Usage:
+// 1. Parse JSON to Scene/EntityDefinition using serde
+// 2. Use application-specific factories to create actual components
+// 3. Add components to World using your game's type system
 //
-// Note: serde_json requires std, so this module is conditionally compiled
-//       and only available when std is available (non-WASM builds).
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
 #![cfg(feature = "std")]
 
-use alloc::boxed::Box;
-use alloc::collections::BTreeMap;
-use alloc::collections::BTreeSet;
-use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-
-use archflow_core::EntityId;
 use serde::{Deserialize, Serialize};
 
-use crate::ecs::{Component, ComponentRegistry};
-
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
 // ComponentDefinition
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
 
 /// Defines a component in JSON format
 ///
-/// This structure represents a component that can be created from JSON data.
-/// It contains the component type identifier and a generic configuration
-/// object using serde_json::Value for flexible schema definition.
+/// A-Frame style: `{"type": "Position", "data": {"x": 10, "y": 20}}`
 ///
-/// # Examples
-///
-/// \`\`\`ignore
-/// use archflow_logic::api::json::ComponentDefinition;
-/// use serde_json::json;
-///
-/// let def = ComponentDefinition {
-///     type: "Position".to_string(),
-///     config: json!({ "x": 10.0, "y": 20.0 }),
-/// };
-/// \`\`\`
+/// This is PURE DATA - no component creation logic.
+/// Use with your application's factory to create actual components.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct ComponentDefinition {
-    /// The component type identifier (e.g., "Position", "Velocity")
+    /// Component type identifier (e.g., "Position", "Velocity", "Health")
     #[serde(rename = "type")]
     pub component_type: String,
 
     /// Component configuration data (flexible JSON structure)
-    pub config: serde_json::Value,
+    pub data: serde_json::Value,
 }
 
 impl ComponentDefinition {
     /// Creates a new ComponentDefinition
-    ///
-    /// # Arguments
-    ///
-    /// * \`component_type\` - The type identifier for the component
-    /// * \`config\` - The configuration data for the component
     #[inline]
     #[must_use]
-    pub const fn new(component_type: String, config: serde_json::Value) -> Self {
+    pub const fn new(component_type: String, data: serde_json::Value) -> Self {
         Self {
             component_type,
-            config,
+            data,
         }
     }
 
-    /// Creates a ComponentDefinition from a JSON string
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the JSON string is invalid or cannot be
-    /// deserialized into a ComponentDefinition.
-    ///
-    /// # Examples
-    ///
-    /// \`\`\`ignore
-    /// use archflow_logic::api::json::ComponentDefinition;
-    ///
-    /// let json = r#"{"type":"Position","config":{"x":10.0,"y":20.0}}"#;
-    /// let def = ComponentDefinition::from_json(json).unwrap();
-    /// \`\`\`
-    pub fn from_json(json_str: &str) -> Result<Self, serde_json::Error> {
-        serde_json::from_str(json_str)
+    /// Returns the component type
+    #[inline]
+    #[must_use]
+    pub fn component_type(&self) -> &str {
+        &self.component_type
     }
 
-    /// Serializes this ComponentDefinition to a JSON string
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if serialization fails.
-    ///
-    /// # Examples
-    ///
-    /// \`\`\`ignore
-    /// use archflow_logic::api::json::ComponentDefinition;
-    /// use serde_json::json;
-    ///
-    /// let def = ComponentDefinition::new("Position".to_string(), json!({ "x": 10.0 }));
-    /// let json_str = def.to_json().unwrap();
-    /// \`\`\`
-    pub fn to_json(&self) -> Result<String, serde_json::Error> {
-        serde_json::to_string(self)
+    /// Returns a reference to the component data
+    #[inline]
+    #[must_use]
+    pub fn data(&self) -> &serde_json::Value {
+        &self.data
     }
 
-    /// Validates that this component definition has a valid structure
-    ///
-    /// Checks that:
-    /// - The type string is not empty
-    /// - The config is an object (not a primitive or array)
-    ///
-    /// # Examples
-    ///
-    /// \`\`\`ignore
-    /// use archflow_logic::api::json::ComponentDefinition;
-    /// use serde_json::json;
-    ///
-    /// let def = ComponentDefinition::new("Position".to_string(), json!({ "x": 10.0 }));
-    /// assert!(def.validate().is_ok());
-    /// \`\`\`
-    pub fn validate(&self) -> Result<(), ComponentFactoryError> {
-        if self.component_type.is_empty() {
-            return Err(ComponentFactoryError::InvalidType(
-                "Component type cannot be empty".to_string(),
-            ));
-        }
+    /// Extracts a field from data as f32
+    #[must_use]
+    pub fn get_f32(&self, key: &str) -> Option<f32> {
+        self.data
+            .get(key)
+            .and_then(|v| v.as_f64())
+            .map(|v| v as f32)
+    }
 
-        if !self.config.is_object() {
-            return Err(ComponentFactoryError::InvalidConfig(
-                "Component config must be a JSON object".to_string(),
-            ));
-        }
+    /// Extracts a field from data as i32
+    #[must_use]
+    pub fn get_i32(&self, key: &str) -> Option<i32> {
+        self.data
+            .get(key)
+            .and_then(|v| v.as_i64())
+            .map(|v| v as i32)
+    }
 
-        Ok(())
+    /// Extracts a field from data as bool
+    #[must_use]
+    pub fn get_bool(&self, key: &str) -> Option<bool> {
+        self.data.get(key).and_then(|v| v.as_bool())
+    }
+
+    /// Extracts a string field from data
+    #[must_use]
+    pub fn get_string(&self, key: &str) -> Option<&str> {
+        self.data.get(key).and_then(|v| v.as_str())
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
 // BehaviorDefinition
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
 
-/// Complete definition of a behavior (collection of components)
+/// Complete definition of a behavior (template for entities)
 ///
-/// A behavior definition represents a complete set of components that
-/// define a particular entity behavior. For example, a "Player" behavior
-/// might include Position, Velocity, Health, and Input components.
-///
-/// # Examples
-///
-/// \`\`\`ignore
-/// use archflow_logic::api::json::{BehaviorDefinition, ComponentDefinition};
-/// use serde_json::json;
-///
-/// let behavior = BehaviorDefinition {
-///     id: "player_behavior".to_string(),
-///     name: "Player".to_string(),
-///     description: Some("Controllable player character".to_string()),
-///     components: vec![
-///         ComponentDefinition::new("Position".to_string(), json!({ "x": 0, "y": 0 })),
-///         ComponentDefinition::new("Velocity".to_string(), json!({ "dx": 0, "dy": 0 })),
-///     ],
-/// };
-/// \`\`\`
+/// A behavior is a reusable collection of components that define
+/// a particular entity behavior pattern.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct BehaviorDefinition {
     /// Unique identifier for this behavior definition
     pub id: String,
 
-    /// Human-readable name for this behavior
+    /// Human-readable name
     pub name: String,
 
-    /// Optional description of what this behavior does
+    /// Optional description
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
 
-    /// List of component definitions that make up this behavior
+    /// Components that make up this behavior
     pub components: Vec<ComponentDefinition>,
 }
 
 impl BehaviorDefinition {
     /// Creates a new BehaviorDefinition
-    ///
-    /// # Arguments
-    ///
-    /// * \`id\` - Unique identifier for the behavior
-    /// * \`name\` - Human-readable name
-    /// * \`description\` - Optional description
-    /// * \`components\` - List of component definitions
     #[inline]
     #[must_use]
     pub const fn new(
@@ -217,645 +140,578 @@ impl BehaviorDefinition {
         }
     }
 
-    /// Creates a BehaviorDefinition from a JSON string
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the JSON string is invalid or cannot be
-    /// deserialized into a BehaviorDefinition.
-    pub fn from_json(json_str: &str) -> Result<Self, serde_json::Error> {
-        serde_json::from_str(json_str)
-    }
-
-    /// Serializes this BehaviorDefinition to a JSON string
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if serialization fails.
-    pub fn to_json(&self) -> Result<String, serde_json::Error> {
-        serde_json::to_string(self)
-    }
-
-    /// Validates that this behavior definition has a valid structure
-    ///
-    /// Checks that:
-    /// - The id is not empty
-    /// - The name is not empty
-    /// - All component definitions are valid
-    /// - Component types are unique (no duplicates)
-    ///
-    /// # Errors
-    ///
-    /// Returns a ComponentFactoryError if validation fails.
-    pub fn validate(&self) -> Result<(), ComponentFactoryError> {
-        if self.id.is_empty() {
-            return Err(ComponentFactoryError::InvalidType(
-                "Behavior ID cannot be empty".to_string(),
-            ));
-        }
-
-        if self.name.is_empty() {
-            return Err(ComponentFactoryError::InvalidType(
-                "Behavior name cannot be empty".to_string(),
-            ));
-        }
-
-        // Validate all components
-        for component in &self.components {
-            component.validate()?;
-        }
-
-        // Check for duplicate component types
-        let mut seen_types = BTreeSet::new();
-        for component in &self.components {
-            if !seen_types.insert(&component.component_type) {
-                return Err(ComponentFactoryError::DuplicateComponent(
-                    component.component_type.clone(),
-                ));
-            }
-        }
-
-        Ok(())
-    }
-
-    /// Returns the number of components in this behavior definition
+    /// Returns the number of components
     #[inline]
     #[must_use]
     pub const fn component_count(&self) -> usize {
         self.components.len()
     }
 
-    /// Checks if this behavior contains a component of the given type
+    /// Checks if this behavior has a component of the given type
     #[must_use]
-    pub fn has_component_type(&self, component_type: &str) -> bool {
+    pub fn has_component(&self, component_type: &str) -> bool {
         self.components
             .iter()
             .any(|c| c.component_type == component_type)
     }
-}
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// ComponentFactoryError
-// ═══════════════════════════════════════════════════════════════════════════════
-
-/// Errors that can occur during component creation from JSON
-#[derive(Debug, Clone, PartialEq)]
-pub enum ComponentFactoryError {
-    /// The component type is not registered in the factory
-    UnregisteredType(String),
-
-    /// The component type string is invalid
-    InvalidType(String),
-
-    /// The component configuration is invalid
-    InvalidConfig(String),
-
-    /// A duplicate component type was found in a behavior definition
-    DuplicateComponent(String),
-
-    /// Failed to deserialize component configuration
-    DeserializationError(String),
-
-    /// Component creation failed
-    CreationFailed(String),
-}
-
-impl alloc::fmt::Display for ComponentFactoryError {
-    fn fmt(&self, f: &mut alloc::fmt::Formatter<'_>) -> alloc::fmt::Result {
-        match self {
-            Self::UnregisteredType(type_name) => {
-                write!(f, "Component type '{}' is not registered", type_name)
-            }
-            Self::InvalidType(msg) => write!(f, "Invalid component type: {}", msg),
-            Self::InvalidConfig(msg) => write!(f, "Invalid component configuration: {}", msg),
-            Self::DuplicateComponent(type_name) => {
-                write!(f, "Duplicate component type: '{}'", type_name)
-            }
-            Self::DeserializationError(msg) => {
-                write!(f, "Failed to deserialize component: {}", msg)
-            }
-            Self::CreationFailed(msg) => write!(f, "Component creation failed: {}", msg),
-        }
-    }
-}
-
-// Note: serde_json requires std, so std::error::Error is only available in std environments
-// The Display impl above provides error formatting for no_std compatibility
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// ComponentCreator Trait
-// ═══════════════════════════════════════════════════════════════════════════════
-
-/// Trait for creating components from JSON configuration
-///
-/// Implement this trait to enable JSON-based creation of custom components.
-pub trait ComponentCreator: Send + Sync {
-    /// Creates a component from JSON configuration and adds it to the registry
-    ///
-    /// # Arguments
-    ///
-    /// * \`entity_id\` - The entity ID to attach the component to
-    /// * \`config\` - The JSON configuration for the component
-    /// * \`registry\` - The component registry to add the component to
-    ///
-    /// # Errors
-    ///
-    /// Returns a ComponentFactoryError if creation fails.
-    fn create_component(
-        &self,
-        entity_id: EntityId,
-        config: &serde_json::Value,
-        registry: &mut ComponentRegistry,
-    ) -> Result<(), ComponentFactoryError>;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// ComponentFactory
-// ═══════════════════════════════════════════════════════════════════════════════
-
-/// Factory for creating components from JSON definitions
-///
-/// The ComponentFactory manages component type creators and provides
-/// a unified interface for creating components from JSON definitions.
-///
-/// # Examples
-///
-/// \`\`\`ignore
-/// use archflow_logic::api::json::ComponentFactory;
-/// use archflow_logic::ecs::ComponentRegistry;
-///
-/// let mut factory = ComponentFactory::new();
-/// let mut registry = ComponentRegistry::new();
-///
-/// // Register a component creator
-/// factory.register_creator("Position", Box::new(PositionCreator));
-///
-/// // Create a component from JSON
-/// let def = ComponentDefinition::new("Position".to_string(), json!({ "x": 10.0 }));
-/// factory.create_component_from_json(0, &def, &mut registry).unwrap();
-/// \`\`\`
-pub struct ComponentFactory {
-    /// Map of component type names to their creators
-    creators: BTreeMap<String, Box<dyn ComponentCreator>>,
-}
-
-impl ComponentFactory {
-    /// Creates a new empty ComponentFactory
-    #[inline]
+    /// Finds a component by type
     #[must_use]
-    pub fn new() -> Self {
-        Self {
-            creators: BTreeMap::new(),
-        }
-    }
-
-    /// Registers a component creator for a given type
-    ///
-    /// # Arguments
-    ///
-    /// * \`type_name\` - The type identifier (e.g., "Position")
-    /// * \`creator\` - The component creator implementation
-    ///
-    /// # Panics
-    ///
-    /// Panics if a creator is already registered for this type.
-    ///
-    /// # Examples
-    ///
-    /// \`\`\`ignore
-    /// factory.register_creator("Position", Box::new(PositionCreator));
-    /// \`\`\`
-    pub fn register_creator(&mut self, type_name: &str, creator: Box<dyn ComponentCreator>) {
-        if self.creators.contains_key(type_name) {
-            panic!(
-                "Component creator for type '{}' is already registered",
-                type_name
-            );
-        }
-        self.creators.insert(type_name.to_string(), creator);
-    }
-
-    /// Creates a component from a ComponentDefinition
-    ///
-    /// # Arguments
-    ///
-    /// * \`entity_id\` - The entity ID to attach the component to
-    /// * \`def\` - The component definition
-    /// * \`registry\` - The component registry to add the component to
-    ///
-    /// # Errors
-    ///
-    /// Returns a ComponentFactoryError if:
-    /// - The component type is not registered
-    /// - The configuration is invalid
-    /// - Component creation fails
-    ///
-    /// # Examples
-    ///
-    /// \`\`\`ignore
-    /// let def = ComponentDefinition::new("Position".to_string(), json!({ "x": 10.0 }));
-    /// factory.create_component_from_json(0, &def, &mut registry).unwrap();
-    /// \`\`\`
-    pub fn create_component_from_json(
-        &self,
-        entity_id: EntityId,
-        def: &ComponentDefinition,
-        registry: &mut ComponentRegistry,
-    ) -> Result<(), ComponentFactoryError> {
-        // Validate the definition
-        def.validate()?;
-
-        // Get the creator for this type
-        let creator = self
-            .creators
-            .get(&def.component_type)
-            .ok_or_else(|| ComponentFactoryError::UnregisteredType(def.component_type.clone()))?;
-
-        // Create the component
-        creator
-            .create_component(entity_id, &def.config, registry)
-            .map_err(|e| ComponentFactoryError::CreationFailed(format!("{}", e)))
-    }
-
-    /// Checks if a component type is registered
-    #[inline]
-    #[must_use]
-    pub fn has_creator(&self, type_name: &str) -> bool {
-        self.creators.contains_key(type_name)
-    }
-
-    /// Returns the number of registered component creators
-    #[inline]
-    #[must_use]
-    pub fn creator_count(&self) -> usize {
-        self.creators.len()
+    pub fn get_component(&self, component_type: &str) -> Option<&ComponentDefinition> {
+        self.components
+            .iter()
+            .find(|c| c.component_type == component_type)
     }
 }
 
-impl Default for ComponentFactory {
-    #[inline]
-    fn default() -> Self {
-        Self::new()
-    }
-}
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// EntityDefinition
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// BehaviorRegistry
-// ═══════════════════════════════════════════════════════════════════════════════
-
-/// Registry for behavior definitions
+/// Complete definition of an entity for scene loading
 ///
-/// The BehaviorRegistry stores and manages behavior definitions,
-/// allowing retrieval by ID and validation of behaviors.
+/// An entity definition contains all components and references to behaviors
+/// needed to recreate an entity. Child entities support hierarchical scenes.
 ///
-/// # Examples
-///
-/// \`\`\`ignore
-/// use archflow_logic::api::json::{BehaviorRegistry, BehaviorDefinition};
-///
-/// let mut registry = BehaviorRegistry::new();
-/// let behavior = BehaviorDefinition::new(
-///     "player".to_string(),
-///     "Player".to_string(),
-///     Some("Controllable character".to_string()),
-///     vec![],
-/// );
-///
-/// registry.add_behavior(behavior);
-/// assert!(registry.has_behavior("player"));
-/// \`\`\`
-pub struct BehaviorRegistry {
-    /// Map of behavior IDs to their definitions
-    behaviors: BTreeMap<String, BehaviorDefinition>,
-}
-
-impl BehaviorRegistry {
-    /// Creates a new empty BehaviorRegistry
-    #[inline]
-    #[must_use]
-    pub fn new() -> Self {
-        Self {
-            behaviors: BTreeMap::new(),
-        }
-    }
-
-    /// Adds a behavior definition to the registry
-    ///
-    /// # Arguments
-    ///
-    /// * \`behavior\` - The behavior definition to add
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - A behavior with the same ID already exists
-    /// - The behavior definition is invalid
-    ///
-    /// # Examples
-    ///
-    /// \`\`\`ignore
-    /// registry.add_behavior(behavior_definition).unwrap();
-    /// \`\`\`
-    pub fn add_behavior(
-        &mut self,
-        behavior: BehaviorDefinition,
-    ) -> Result<(), ComponentFactoryError> {
-        // Validate the behavior
-        behavior.validate()?;
-
-        // Check for duplicate ID
-        if self.behaviors.contains_key(&behavior.id) {
-            return Err(ComponentFactoryError::DuplicateComponent(behavior.id));
-        }
-
-        self.behaviors.insert(behavior.id.clone(), behavior);
-        Ok(())
-    }
-
-    /// Gets a behavior definition by ID
-    ///
-    /// # Arguments
-    ///
-    /// * \`id\` - The behavior ID to look up
-    ///
-    /// # Returns
-    ///
-    /// Some(&BehaviorDefinition) if found, None otherwise
-    ///
-    /// # Examples
-    ///
-    /// \`\`\`ignore
-    /// if let Some(behavior) = registry.get_behavior("player") {
-    ///     println!("Found behavior: {}", behavior.name);
-    /// }
-    /// \`\`\`
-    #[inline]
-    #[must_use]
-    pub fn get_behavior(&self, id: &str) -> Option<&BehaviorDefinition> {
-        self.behaviors.get(id)
-    }
-
-    /// Removes a behavior definition from the registry
-    ///
-    /// # Arguments
-    ///
-    /// * \`id\` - The behavior ID to remove
-    ///
-    /// # Returns
-    ///
-    /// Some(BehaviorDefinition) if found and removed, None otherwise
-    #[inline]
-    pub fn remove_behavior(&mut self, id: &str) -> Option<BehaviorDefinition> {
-        self.behaviors.remove(id)
-    }
-
-    /// Checks if a behavior ID is registered
-    #[inline]
-    #[must_use]
-    pub fn has_behavior(&self, id: &str) -> bool {
-        self.behaviors.contains_key(id)
-    }
-
-    /// Returns the number of registered behaviors
-    #[inline]
-    #[must_use]
-    pub fn behavior_count(&self) -> usize {
-        self.behaviors.len()
-    }
-
-    /// Returns an iterator over all behavior definitions
-    #[inline]
-    pub fn iter(&self) -> impl Iterator<Item = &BehaviorDefinition> {
-        self.behaviors.values()
-    }
-
-    /// Returns all behavior IDs
-    #[inline]
-    pub fn behavior_ids(&self) -> Vec<String> {
-        self.behaviors.keys().cloned().collect()
-    }
-}
-
-impl Default for BehaviorRegistry {
-    #[inline]
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// JSON Schema Definitions
-// ═══════════════════════════════════════════════════════════════════════════════
-
-/// JSON Schema for ComponentDefinition validation
-///
-/// This schema defines the expected structure for component definitions:
-/// \`\`\`json
+/// A-Frame style JSON:
+/// ```json
 /// {
-///   "type": "object",
-///   "properties": {
-///     "type": { "type": "string" },
-///     "config": { "type": "object" }
-///   },
-///   "required": ["type", "config"]
+///   "id": "player",
+///   "components": [
+///     {"type": "Position", "data": {"x": 0, "y": 0}},
+///     {"type": "Velocity", "data": {"dx": 0, "dy": 0}}
+///   ],
+///   "behaviors": ["player_behavior"],
+///   "children": [...]
 /// }
-/// \`\`\`
+/// ```
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
+#[serde(default)]
+pub struct EntityDefinition {
+    /// Entity identifier
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub id: String,
+
+    /// Human-readable name for debugging
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+
+    /// Components directly attached to this entity
+    #[serde(default)]
+    pub components: Vec<ComponentDefinition>,
+
+    /// Behavior IDs to apply
+    #[serde(default)]
+    pub behaviors: Vec<String>,
+
+    /// Child entities (hierarchical scenes)
+    #[serde(default)]
+    pub children: Vec<EntityDefinition>,
+}
+
+impl EntityDefinition {
+    /// Creates a new EntityDefinition
+    #[inline]
+    #[must_use]
+    pub fn new(id: String) -> Self {
+        Self {
+            id,
+            ..Self::default()
+        }
+    }
+
+    /// Builder: adds a component
+    #[inline]
+    pub fn with_component(mut self, component: ComponentDefinition) -> Self {
+        self.components.push(component);
+        self
+    }
+
+    /// Builder: adds a behavior reference
+    #[inline]
+    pub fn with_behavior(mut self, behavior_id: String) -> Self {
+        self.behaviors.push(behavior_id);
+        self
+    }
+
+    /// Builder: adds a child entity
+    #[inline]
+    pub fn with_child(mut self, child: EntityDefinition) -> Self {
+        self.children.push(child);
+        self
+    }
+
+    /// Builder: sets the name
+    #[inline]
+    pub fn with_name(mut self, name: String) -> Self {
+        self.name = Some(name);
+        self
+    }
+
+    /// Total component count including children
+    #[must_use]
+    pub fn total_component_count(&self) -> usize {
+        let mut count = self.components.len();
+        for child in &self.children {
+            count += child.total_component_count();
+        }
+        count
+    }
+
+    /// Total entity count including children
+    #[must_use]
+    pub fn total_entity_count(&self) -> usize {
+        let mut count = 1;
+        for child in &self.children {
+            count += child.total_entity_count();
+        }
+        count
+    }
+
+    /// Finds a component by type
+    #[must_use]
+    pub fn get_component(&self, component_type: &str) -> Option<&ComponentDefinition> {
+        self.components
+            .iter()
+            .find(|c| c.component_type == component_type)
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// SceneMetadata
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+/// Scene metadata for configuration
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(default)]
+pub struct SceneMetadata {
+    /// Scene author
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub author: Option<String>,
+
+    /// Scene description
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+
+    /// Default gravity (m/s²), defaults to Earth gravity
+    #[serde(default)]
+    pub gravity: [f32; 3],
+
+    /// Ambient light color (RGB, 0.0-1.0)
+    #[serde(default)]
+    pub ambient_light: [f32; 3],
+
+    /// Fog settings
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fog: Option<FogSettings>,
+}
+
+impl Default for SceneMetadata {
+    fn default() -> Self {
+        Self {
+            author: None,
+            description: None,
+            gravity: [0.0, -9.81, 0.0],
+            ambient_light: [0.3, 0.3, 0.3],
+            fog: None,
+        }
+    }
+}
+
+/// Fog effect settings
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct FogSettings {
+    /// Fog type: "linear" or "exponential"
+    #[serde(default = "default_fog_type")]
+    pub fog_type: String,
+
+    /// Fog color (RGB)
+    pub color: [f32; 3],
+
+    /// Linear fog: start distance
+    #[serde(default = "default_fog_start")]
+    pub start: f32,
+
+    /// Linear fog: end distance
+    #[serde(default = "default_fog_end")]
+    pub end: f32,
+
+    /// Exponential fog: density
+    #[serde(default = "default_fog_density")]
+    pub density: f32,
+}
+
+fn default_fog_type() -> String {
+    "exponential".to_string()
+}
+fn default_fog_start() -> f32 {
+    1.0
+}
+fn default_fog_end() -> f32 {
+    100.0
+}
+fn default_fog_density() -> f32 {
+    0.01
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// Scene
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+/// Complete definition of a scene
+///
+/// The root structure for A-Frame compatible scene definitions.
+/// Contains all entities, inline behaviors, and metadata needed to
+/// recreate a game scene.
+///
+/// A-Frame style JSON:
+/// ```json
+/// {
+///   "id": "level_1",
+///   "name": "First Level",
+///   "metadata": { "gravity": [0, -9.81, 0] },
+///   "entities": [...],
+///   "behaviors": [...]
+/// }
+/// ```
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(default)]
+pub struct Scene {
+    /// Unique scene identifier
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub id: String,
+
+    /// Human-readable name
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+
+    /// Scene version
+    #[serde(default)]
+    pub version: String,
+
+    /// Scene metadata
+    #[serde(default)]
+    pub metadata: SceneMetadata,
+
+    /// Top-level entities
+    #[serde(default)]
+    pub entities: Vec<EntityDefinition>,
+
+    /// Inline behavior definitions
+    #[serde(default)]
+    pub behaviors: Vec<BehaviorDefinition>,
+}
+
+impl Default for Scene {
+    fn default() -> Self {
+        Self {
+            id: String::new(),
+            name: None,
+            version: "1.0.0".to_string(),
+            metadata: SceneMetadata::default(),
+            entities: Vec::new(),
+            behaviors: Vec::new(),
+        }
+    }
+}
+
+impl Scene {
+    /// Creates a new Scene
+    #[inline]
+    #[must_use]
+    pub fn new(id: String) -> Self {
+        Self {
+            id,
+            ..Self::default()
+        }
+    }
+
+    /// Builder: adds an entity
+    #[inline]
+    pub fn with_entity(mut self, entity: EntityDefinition) -> Self {
+        self.entities.push(entity);
+        self
+    }
+
+    /// Builder: adds a behavior
+    #[inline]
+    pub fn with_behavior(mut self, behavior: BehaviorDefinition) -> Self {
+        self.behaviors.push(behavior);
+        self
+    }
+
+    /// Builder: sets the name
+    #[inline]
+    pub fn with_name(mut self, name: String) -> Self {
+        self.name = Some(name);
+        self
+    }
+
+    /// Total entity count including nested children
+    #[must_use]
+    pub fn total_entity_count(&self) -> usize {
+        let mut count = 0;
+        for entity in &self.entities {
+            count += entity.total_entity_count();
+        }
+        count
+    }
+
+    /// Finds a behavior by ID
+    #[must_use]
+    pub fn get_behavior(&self, behavior_id: &str) -> Option<&BehaviorDefinition> {
+        self.behaviors.iter().find(|b| b.id == behavior_id)
+    }
+
+    /// Finds an entity by ID (shallow search)
+    #[must_use]
+    pub fn get_entity(&self, entity_id: &str) -> Option<&EntityDefinition> {
+        self.entities.iter().find(|e| e.id == entity_id)
+    }
+
+    /// Finds an entity recursively by ID
+    #[must_use]
+    pub fn find_entity(&self, entity_id: &str) -> Option<&EntityDefinition> {
+        if let Some(e) = self.get_entity(entity_id) {
+            return Some(e);
+        }
+        for entity in &self.entities {
+            if let Some(e) = entity.children.iter().find(|e| e.id == entity_id) {
+                return Some(e);
+            }
+            if let Some(e) = self.find_entity_in_children(entity, entity_id) {
+                return Some(e);
+            }
+        }
+        None
+    }
+
+    fn find_entity_in_children<'a>(
+        &'a self,
+        entity: &'a EntityDefinition,
+        entity_id: &str,
+    ) -> Option<&'a EntityDefinition> {
+        if let Some(e) = entity.children.iter().find(|e| e.id == entity_id) {
+            return Some(e);
+        }
+        for child in &entity.children {
+            if let Some(e) = self.find_entity_in_children(child, entity_id) {
+                return Some(e);
+            }
+        }
+        None
+    }
+
+    /// Parses a Scene from JSON string
+    ///
+    /// # Errors
+    /// Returns `serde_json::Error` if the JSON is invalid
+    #[inline]
+    pub fn from_json(json: &str) -> Result<Self, serde_json::Error> {
+        serde_json::from_str(json)
+    }
+
+    /// Serializes this Scene to a JSON string
+    ///
+    /// # Errors
+    /// Returns `serde_json::Error` if serialization fails
+    #[inline]
+    pub fn to_json(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string_pretty(self)
+    }
+
+    /// Builder: sets the metadata
+    #[inline]
+    pub fn with_metadata(mut self, metadata: SceneMetadata) -> Self {
+        self.metadata = metadata;
+        self
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// Error Types
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+/// Errors during scene loading
+///
+/// These are PURE DATA errors - no I/O or system integration.
+/// Use in your application's error handling.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SceneLoaderError {
+    /// Invalid JSON format
+    InvalidJson(String),
+
+    /// Scene validation failed
+    ValidationError(String),
+
+    /// Referenced entity not found
+    EntityNotFound(String),
+
+    /// Referenced behavior not found
+    BehaviorNotFound(String),
+
+    /// Component type not registered
+    ComponentNotRegistered(String),
+
+    /// Failed to create component from data
+    ComponentCreationFailed(String),
+
+    /// Invalid metadata
+    InvalidMetadata(String),
+}
+
+impl core::fmt::Display for SceneLoaderError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::InvalidJson(msg) => write!(f, "Invalid JSON: {}", msg),
+            Self::ValidationError(msg) => write!(f, "Validation error: {}", msg),
+            Self::EntityNotFound(id) => write!(f, "Entity '{}' not found", id),
+            Self::BehaviorNotFound(id) => write!(f, "Behavior '{}' not found", id),
+            Self::ComponentNotRegistered(type_name) => {
+                write!(f, "Component type '{}' not registered", type_name)
+            }
+            Self::ComponentCreationFailed(msg) => write!(f, "Component creation failed: {}", msg),
+            Self::InvalidMetadata(msg) => write!(f, "Invalid metadata: {}", msg),
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// JSON Schemas (for validation)
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
 pub const COMPONENT_DEFINITION_SCHEMA: &str = r#"{
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "title": "ComponentDefinition",
-  "description": "Defines a component in JSON format",
   "properties": {
-    "type": {
-      "type": "string",
-      "description": "The component type identifier"
-    },
-    "config": {
-      "type": "object",
-      "description": "Component configuration data"
-    }
+    "type": { "type": "string" },
+    "data": { "type": "object" }
   },
-  "required": ["type", "config"],
+  "required": ["type", "data"],
   "additionalProperties": false
 }"#;
 
-/// JSON Schema for BehaviorDefinition validation
-///
-/// This schema defines the expected structure for behavior definitions:
-/// \`\`\`json
-/// {
-///   "type": "object",
-///   "properties": {
-///     "id": { "type": "string" },
-///     "name": { "type": "string" },
-///     "description": { "type": "string" },
-///     "components": {
-///       "type": "array",
-///       "items": { "$ref": "#ComponentDefinition" }
-///     }
-///   },
-///   "required": ["id", "name", "components"]
-/// }
-/// \`\`\`
 pub const BEHAVIOR_DEFINITION_SCHEMA: &str = r#"{
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "title": "BehaviorDefinition",
-  "description": "Complete definition of a behavior (collection of components)",
   "properties": {
-    "id": {
-      "type": "string",
-      "description": "Unique identifier for this behavior definition"
-    },
-    "name": {
-      "type": "string",
-      "description": "Human-readable name for this behavior"
-    },
-    "description": {
-      "type": "string",
-      "description": "Optional description of what this behavior does"
-    },
-    "components": {
-      "type": "array",
-      "description": "List of component definitions that make up this behavior",
-      "items": {
-        "type": "object",
-        "properties": {
-          "type": { "type": "string" },
-          "config": { "type": "object" }
-        },
-        "required": ["type", "config"]
-      }
-    }
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "components": { "type": "array" }
   },
   "required": ["id", "name", "components"],
   "additionalProperties": false
 }"#;
 
-// ═══════════════════════════════════════════════════════════════════════════════
+pub const ENTITY_DEFINITION_SCHEMA: &str = r#"{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "EntityDefinition",
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "components": { "type": "array" },
+    "behaviors": { "type": "array" },
+    "children": { "type": "array" }
+  },
+  "additionalProperties": false
+}"#;
+
+pub const SCENE_SCHEMA: &str = r#"{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Scene",
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "version": { "type": "string" },
+    "metadata": { "type": "object" },
+    "entities": { "type": "array" },
+    "behaviors": { "type": "array" }
+  },
+  "required": ["id", "entities"],
+  "additionalProperties": false
+}"#;
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
 // Tests
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ecs::{Component, VecStorage};
+    use alloc::vec;
 
-    // Test component for demonstration
-    #[derive(Clone, Debug, PartialEq)]
-    struct TestPosition {
-        x: f32,
-        y: f32,
-    }
-
-    impl Component for TestPosition {
-        type Storage = VecStorage<TestPosition>;
-    }
-
-    // Test component creator
-    struct TestPositionCreator;
-
-    impl ComponentCreator for TestPositionCreator {
-        fn create_component(
-            &self,
-            entity_id: EntityId,
-            config: &serde_json::Value,
-            registry: &mut ComponentRegistry,
-        ) -> Result<(), ComponentFactoryError> {
-            // Ensure the component type is registered
-            if !registry.is_registered::<TestPosition>() {
-                registry.register::<TestPosition>();
-            }
-
-            // Parse the configuration
-            let x = config.get("x").and_then(|v| v.as_f64()).ok_or_else(|| {
-                ComponentFactoryError::InvalidConfig("Missing or invalid 'x' field".to_string())
-            })? as f32;
-
-            let y = config.get("y").and_then(|v| v.as_f64()).ok_or_else(|| {
-                ComponentFactoryError::InvalidConfig("Missing or invalid 'y' field".to_string())
-            })? as f32;
-
-            // Create and insert the component
-            let storage = registry.get_storage_mut::<TestPosition>().ok_or_else(|| {
-                ComponentFactoryError::CreationFailed(
-                    "Failed to get TestPosition storage".to_string(),
-                )
-            })?;
-
-            storage.insert(entity_id, TestPosition { x, y });
-            Ok(())
-        }
-    }
+    // =========================================================================
+    // ComponentDefinition Tests
+    // =========================================================================
 
     #[test]
-    fn test_component_definition_serialization() {
-        let def = ComponentDefinition::new(
+    fn test_component_definition_new() {
+        let comp = ComponentDefinition::new(
             "Position".to_string(),
-            serde_json::json!({ "x": 10.0, "y": 20.0 }),
+            serde_json::json!({ "x": 10, "y": 20 }),
         );
 
-        let json_str = def.to_json().unwrap();
-        let deserialized = ComponentDefinition::from_json(&json_str).unwrap();
-
-        assert_eq!(def, deserialized);
+        assert_eq!(comp.component_type, "Position");
+        assert_eq!(comp.data["x"], 10);
+        assert_eq!(comp.data["y"], 20);
     }
 
     #[test]
-    fn test_component_definition_from_json() {
-        let json_str = r#"{"type":"Position","config":{"x":10.0,"y":20.0}}"#;
-        let def = ComponentDefinition::from_json(json_str).unwrap();
+    fn test_component_definition_serde_roundtrip() {
+        let original = ComponentDefinition::new(
+            "Position".to_string(),
+            serde_json::json!({ "x": 1.5, "y": 2.5 }),
+        );
 
-        assert_eq!(def.component_type, "Position");
-        assert_eq!(def.config["x"], 10.0);
-        assert_eq!(def.config["y"], 20.0);
+        let json = serde_json::to_string(&original).unwrap();
+        let deserialized: ComponentDefinition = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(original, deserialized);
     }
 
     #[test]
-    fn test_component_definition_validate() {
-        let valid_def =
-            ComponentDefinition::new("Position".to_string(), serde_json::json!({ "x": 10.0 }));
-        assert!(valid_def.validate().is_ok());
+    fn test_component_definition_get_f32() {
+        let comp = ComponentDefinition::new(
+            "Position".to_string(),
+            serde_json::json!({ "x": 10.5, "y": 20.0 }),
+        );
 
-        let empty_type = ComponentDefinition::new("".to_string(), serde_json::json!({ "x": 10.0 }));
-        assert!(empty_type.validate().is_err());
-
-        let invalid_config =
-            ComponentDefinition::new("Position".to_string(), serde_json::json!("not an object"));
-        assert!(invalid_config.validate().is_err());
+        assert_eq!(comp.get_f32("x"), Some(10.5));
+        assert_eq!(comp.get_f32("y"), Some(20.0));
+        assert_eq!(comp.get_f32("z"), None);
     }
 
     #[test]
-    fn test_behavior_definition_serialization() {
+    fn test_component_definition_get_i32() {
+        let comp = ComponentDefinition::new(
+            "Health".to_string(),
+            serde_json::json!({ "current": 100, "max": 100 }),
+        );
+
+        assert_eq!(comp.get_i32("current"), Some(100));
+        assert_eq!(comp.get_i32("missing"), None);
+    }
+
+    // =========================================================================
+    // BehaviorDefinition Tests
+    // =========================================================================
+
+    #[test]
+    fn test_behavior_definition_new() {
         let behavior = BehaviorDefinition::new(
             "player_behavior".to_string(),
             "Player".to_string(),
-            Some("Controllable player character".to_string()),
+            Some("Controllable character".to_string()),
             vec![ComponentDefinition::new(
                 "Position".to_string(),
-                serde_json::json!({ "x": 0, "y": 0 }),
+                serde_json::json!({ "x": 0 }),
             )],
         );
-
-        let json_str = behavior.to_json().unwrap();
-        let deserialized = BehaviorDefinition::from_json(&json_str).unwrap();
-
-        assert_eq!(behavior, deserialized);
-    }
-
-    #[test]
-    fn test_behavior_definition_from_json() {
-        let json_str = r#"{
-            "id":"player_behavior",
-            "name":"Player",
-            "description":"Controllable character",
-            "components":[
-                {"type":"Position","config":{"x":0,"y":0}},
-                {"type":"Velocity","config":{"dx":0,"dy":0}}
-            ]
-        }"#;
-
-        let behavior = BehaviorDefinition::from_json(json_str).unwrap();
 
         assert_eq!(behavior.id, "player_behavior");
         assert_eq!(behavior.name, "Player");
@@ -863,256 +719,390 @@ mod tests {
             behavior.description,
             Some("Controllable character".to_string())
         );
-        assert_eq!(behavior.components.len(), 2);
+        assert_eq!(behavior.component_count(), 1);
     }
 
     #[test]
-    fn test_behavior_definition_validate() {
-        let valid_behavior = BehaviorDefinition::new(
+    fn test_behavior_definition_has_component() {
+        let behavior = BehaviorDefinition::new(
             "player".to_string(),
             "Player".to_string(),
             None,
-            vec![ComponentDefinition::new(
+            vec![
+                ComponentDefinition::new("Position".to_string(), serde_json::json!({})),
+                ComponentDefinition::new("Velocity".to_string(), serde_json::json!({})),
+            ],
+        );
+
+        assert!(behavior.has_component("Position"));
+        assert!(behavior.has_component("Velocity"));
+        assert!(!behavior.has_component("Health"));
+    }
+
+    #[test]
+    fn test_behavior_definition_get_component() {
+        let pos = ComponentDefinition::new("Position".to_string(), serde_json::json!({"x": 0}));
+        let vel = ComponentDefinition::new("Velocity".to_string(), serde_json::json!({"dx": 0}));
+
+        let behavior = BehaviorDefinition::new(
+            "player".to_string(),
+            "Player".to_string(),
+            None,
+            vec![pos.clone(), vel],
+        );
+
+        let found = behavior.get_component("Position");
+        assert!(found.is_some());
+        assert_eq!(found.unwrap().component_type, "Position");
+    }
+
+    // =========================================================================
+    // EntityDefinition Tests
+    // =========================================================================
+
+    #[test]
+    fn test_entity_definition_new() {
+        let entity = EntityDefinition::new("player".to_string());
+
+        assert_eq!(entity.id, "player");
+        assert!(entity.components.is_empty());
+        assert!(entity.behaviors.is_empty());
+        assert!(entity.children.is_empty());
+    }
+
+    #[test]
+    fn test_entity_definition_builder() {
+        let entity = EntityDefinition::new("player".to_string())
+            .with_name("Player Entity".to_string())
+            .with_component(ComponentDefinition::new(
+                "Position".to_string(),
+                serde_json::json!({ "x": 10 }),
+            ))
+            .with_behavior("player_behavior".to_string());
+
+        assert_eq!(entity.name, Some("Player Entity".to_string()));
+        assert_eq!(entity.components.len(), 1);
+        assert_eq!(entity.behaviors.len(), 1);
+    }
+
+    #[test]
+    fn test_entity_definition_nested_children() {
+        let child = EntityDefinition::new("child".to_string()).with_component(
+            ComponentDefinition::new("Scale".to_string(), serde_json::json!({ "x": 1 })),
+        );
+
+        let parent = EntityDefinition::new("parent".to_string())
+            .with_component(ComponentDefinition::new(
                 "Position".to_string(),
                 serde_json::json!({ "x": 0 }),
-            )],
-        );
-        assert!(valid_behavior.validate().is_ok());
+            ))
+            .with_child(child);
 
-        let empty_id = BehaviorDefinition::new("".to_string(), "Player".to_string(), None, vec![]);
-        assert!(empty_id.validate().is_err());
-
-        let duplicate_components = BehaviorDefinition::new(
-            "player".to_string(),
-            "Player".to_string(),
-            None,
-            vec![
-                ComponentDefinition::new("Position".to_string(), serde_json::json!({})),
-                ComponentDefinition::new("Position".to_string(), serde_json::json!({})),
-            ],
-        );
-        assert!(duplicate_components.validate().is_err());
+        assert_eq!(parent.components.len(), 1);
+        assert_eq!(parent.children.len(), 1);
+        assert_eq!(parent.total_component_count(), 2);
+        assert_eq!(parent.total_entity_count(), 2);
     }
 
     #[test]
-    fn test_behavior_definition_has_component_type() {
+    fn test_entity_definition_get_component() {
+        let entity = EntityDefinition::new("player".to_string()).with_component(
+            ComponentDefinition::new("Position".to_string(), serde_json::json!({ "x": 10 })),
+        );
+
+        let pos = entity.get_component("Position");
+        assert!(pos.is_some());
+        assert_eq!(pos.unwrap().component_type, "Position");
+    }
+
+    #[test]
+    fn test_entity_definition_serde_roundtrip() {
+        let original = EntityDefinition::new("player".to_string())
+            .with_name("Test Player".to_string())
+            .with_component(ComponentDefinition::new(
+                "Position".to_string(),
+                serde_json::json!({ "x": 5 }),
+            ));
+
+        let json = serde_json::to_string_pretty(&original).unwrap();
+        let deserialized: EntityDefinition = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(original.id, deserialized.id);
+        assert_eq!(original.name, deserialized.name);
+        assert_eq!(original.components.len(), deserialized.components.len());
+    }
+
+    // =========================================================================
+    // Scene Tests
+    // =========================================================================
+
+    #[test]
+    fn test_scene_new() {
+        let scene = Scene::new("level_1".to_string());
+
+        assert_eq!(scene.id, "level_1");
+        assert_eq!(scene.version, "1.0.0");
+        assert!(scene.entities.is_empty());
+        assert!(scene.behaviors.is_empty());
+    }
+
+    #[test]
+    fn test_scene_builder() {
+        let scene = Scene::new("level_1".to_string())
+            .with_name("First Level".to_string())
+            .with_entity(EntityDefinition::new("player".to_string()))
+            .with_entity(EntityDefinition::new("enemy".to_string()));
+
+        assert_eq!(scene.name, Some("First Level".to_string()));
+        assert_eq!(scene.entities.len(), 2);
+    }
+
+    #[test]
+    fn test_scene_total_entity_count() {
+        let child = EntityDefinition::new("child".to_string());
+        let entity = EntityDefinition::new("parent".to_string()).with_child(child);
+
+        let scene = Scene::new("test".to_string())
+            .with_entity(EntityDefinition::new("e1".to_string()))
+            .with_entity(entity);
+
+        // e1 + parent + child = 3
+        assert_eq!(scene.total_entity_count(), 3);
+    }
+
+    #[test]
+    fn test_scene_get_behavior() {
+        let behavior = BehaviorDefinition::new("npc".to_string(), "NPC".to_string(), None, vec![]);
+
+        let scene = Scene::new("test".to_string()).with_behavior(behavior.clone());
+
+        let found = scene.get_behavior("npc");
+        assert!(found.is_some());
+        assert_eq!(found.unwrap().id, "npc");
+    }
+
+    #[test]
+    fn test_scene_find_entity_shallow() {
+        let scene = Scene::new("test".to_string())
+            .with_entity(EntityDefinition::new("player".to_string()))
+            .with_entity(EntityDefinition::new("enemy".to_string()));
+
+        let found = scene.find_entity("player");
+        assert!(found.is_some());
+        assert_eq!(found.unwrap().id, "player");
+    }
+
+    #[test]
+    fn test_scene_find_entity_nested() {
+        let child = EntityDefinition::new("child_entity".to_string());
+        let parent = EntityDefinition::new("parent_entity".to_string()).with_child(child);
+
+        let scene = Scene::new("test".to_string()).with_entity(parent);
+
+        let found = scene.find_entity("child_entity");
+        assert!(found.is_some());
+        assert_eq!(found.unwrap().id, "child_entity");
+    }
+
+    #[test]
+    fn test_scene_find_entity_not_found() {
+        let scene =
+            Scene::new("test".to_string()).with_entity(EntityDefinition::new("player".to_string()));
+
+        let found = scene.find_entity("nonexistent");
+        assert!(found.is_none());
+    }
+
+    #[test]
+    fn test_scene_from_json() {
+        let json = r#"{
+            "id": "test_scene",
+            "name": "Test Scene",
+            "version": "1.0.0",
+            "metadata": {
+                "author": "Test Author"
+            },
+            "entities": [
+                {
+                    "id": "player",
+                    "components": [
+                        {"type": "Position", "data": {"x": 0, "y": 0}}
+                    ]
+                }
+            ],
+            "behaviors": []
+        }"#;
+
+        let scene: Scene = serde_json::from_str(json).unwrap();
+
+        assert_eq!(scene.id, "test_scene");
+        assert_eq!(scene.name, Some("Test Scene".to_string()));
+        assert_eq!(scene.metadata.author, Some("Test Author".to_string()));
+        assert_eq!(scene.entities.len(), 1);
+        assert_eq!(scene.entities[0].id, "player");
+    }
+
+    #[test]
+    fn test_scene_to_json() {
+        let scene = Scene::new("test".to_string())
+            .with_name("Test".to_string())
+            .with_entity(EntityDefinition::new("entity_1".to_string()));
+
+        let json = scene.to_json().unwrap();
+        let deserialized: Scene = Scene::from_json(&json).unwrap();
+
+        assert_eq!(scene.id, deserialized.id);
+        assert_eq!(scene.name, deserialized.name);
+        assert_eq!(scene.entities.len(), deserialized.entities.len());
+    }
+
+    // =========================================================================
+    // SceneMetadata Tests
+    // =========================================================================
+
+    #[test]
+    fn test_scene_metadata_defaults() {
+        let metadata = SceneMetadata::default();
+
+        assert_eq!(metadata.gravity, [0.0, -9.81, 0.0]);
+        assert_eq!(metadata.ambient_light, [0.3, 0.3, 0.3]);
+        assert!(metadata.fog.is_none());
+        assert!(metadata.author.is_none());
+    }
+
+    #[test]
+    fn test_scene_metadata_with_fog() {
+        let fog = FogSettings {
+            fog_type: "exponential".to_string(),
+            color: [1.0, 1.0, 1.0],
+            start: 10.0,
+            end: 100.0,
+            density: 0.02,
+        };
+
+        let metadata = SceneMetadata {
+            fog: Some(fog),
+            author: Some("Test Author".to_string()),
+            description: Some("Test description".to_string()),
+            ..SceneMetadata::default()
+        };
+
+        assert!(metadata.fog.is_some());
+        assert_eq!(metadata.author, Some("Test Author".to_string()));
+    }
+
+    #[test]
+    fn test_fog_settings_defaults() {
+        let fog = FogSettings {
+            fog_type: "linear".to_string(),
+            color: [0.5, 0.5, 0.5],
+            start: 5.0,
+            end: 50.0,
+            density: 0.01,
+        };
+
+        assert_eq!(fog.fog_type, "linear");
+        assert_eq!(fog.start, 5.0);
+        assert_eq!(fog.end, 50.0);
+    }
+
+    // =========================================================================
+    // Error Display Tests
+    // =========================================================================
+
+    #[test]
+    fn test_error_display() {
+        let error = SceneLoaderError::InvalidJson("test".to_string());
+        assert!(alloc::format!("{}", error).contains("Invalid JSON"));
+
+        let error = SceneLoaderError::EntityNotFound("player".to_string());
+        assert!(alloc::format!("{}", error).contains("player"));
+    }
+
+    // =========================================================================
+    // Schema Validation Tests
+    // =========================================================================
+
+    #[test]
+    fn test_schemas_are_valid_json() {
+        let _: serde_json::Value = serde_json::from_str(COMPONENT_DEFINITION_SCHEMA).unwrap();
+        let _: serde_json::Value = serde_json::from_str(BEHAVIOR_DEFINITION_SCHEMA).unwrap();
+        let _: serde_json::Value = serde_json::from_str(ENTITY_DEFINITION_SCHEMA).unwrap();
+        let _: serde_json::Value = serde_json::from_str(SCENE_SCHEMA).unwrap();
+    }
+
+    // =========================================================================
+    // Full Scene Integration Test
+    // =========================================================================
+
+    #[test]
+    fn test_full_scene_serialization() {
+        // Create a complete scene with entities and behaviors
         let behavior = BehaviorDefinition::new(
-            "player".to_string(),
-            "Player".to_string(),
-            None,
+            "npc_behavior".to_string(),
+            "NPC".to_string(),
+            Some("Non-player character".to_string()),
             vec![
-                ComponentDefinition::new("Position".to_string(), serde_json::json!({})),
-                ComponentDefinition::new("Velocity".to_string(), serde_json::json!({})),
+                ComponentDefinition::new(
+                    "Health".to_string(),
+                    serde_json::json!({ "current": 100, "max": 100 }),
+                ),
+                ComponentDefinition::new("AI".to_string(), serde_json::json!({ "state": "idle" })),
             ],
         );
 
-        assert!(behavior.has_component_type("Position"));
-        assert!(behavior.has_component_type("Velocity"));
-        assert!(!behavior.has_component_type("Health"));
-    }
-
-    #[test]
-    fn test_behavior_definition_component_count() {
-        let behavior = BehaviorDefinition::new(
-            "player".to_string(),
-            "Player".to_string(),
-            None,
-            vec![
-                ComponentDefinition::new("Position".to_string(), serde_json::json!({})),
-                ComponentDefinition::new("Velocity".to_string(), serde_json::json!({})),
-                ComponentDefinition::new("Health".to_string(), serde_json::json!({})),
-            ],
+        let child_entity = EntityDefinition::new("weapon_slot".to_string()).with_component(
+            ComponentDefinition::new("Weapon".to_string(), serde_json::json!({ "damage": 10 })),
         );
 
-        assert_eq!(behavior.component_count(), 3);
-    }
+        let player_entity = EntityDefinition::new("player".to_string())
+            .with_name("Main Player".to_string())
+            .with_component(ComponentDefinition::new(
+                "Position".to_string(),
+                serde_json::json!({ "x": 100, "y": 50 }),
+            ))
+            .with_component(ComponentDefinition::new(
+                "Velocity".to_string(),
+                serde_json::json!({ "dx": 0, "dy": 0 }),
+            ))
+            .with_behavior("player_behavior".to_string())
+            .with_child(child_entity);
 
-    #[test]
-    fn test_component_factory_create() {
-        let mut factory = ComponentFactory::new();
-        factory.register_creator("Position", Box::new(TestPositionCreator));
+        let scene = Scene::new("level_1".to_string())
+            .with_name("First Level".to_string())
+            .with_metadata(SceneMetadata {
+                author: Some("Game Designer".to_string()),
+                description: Some("Tutorial level".to_string()),
+                ..SceneMetadata::default()
+            })
+            .with_entity(player_entity)
+            .with_entity(EntityDefinition::new("ground".to_string()))
+            .with_behavior(behavior);
 
-        let mut registry = ComponentRegistry::new();
-        let def = ComponentDefinition::new(
-            "Position".to_string(),
-            serde_json::json!({ "x": 10.5, "y": 20.5 }),
+        // Serialize to JSON
+        let json = scene.to_json().unwrap();
+
+        // Deserialize back
+        let deserialized: Scene = Scene::from_json(&json).unwrap();
+
+        // Verify
+        assert_eq!(deserialized.id, "level_1");
+        assert_eq!(deserialized.name, Some("First Level".to_string()));
+        assert_eq!(
+            deserialized.metadata.author,
+            Some("Game Designer".to_string())
         );
+        assert_eq!(deserialized.entities.len(), 2);
+        assert_eq!(deserialized.behaviors.len(), 1);
 
-        let result = factory.create_component_from_json(0, &def, &mut registry);
-        assert!(result.is_ok());
+        // Check nested entity
+        let player = deserialized.find_entity("player").unwrap();
+        assert_eq!(player.name, Some("Main Player".to_string()));
+        assert_eq!(player.components.len(), 2);
+        assert_eq!(player.children.len(), 1);
 
-        // Verify the component was created
-        let positions = registry.get_storage::<TestPosition>().unwrap();
-        let pos = positions.get(0).unwrap();
-        assert_eq!(pos.x, 10.5);
-        assert_eq!(pos.y, 20.5);
-    }
-
-    #[test]
-    fn test_component_factory_invalid_type() {
-        let factory = ComponentFactory::new();
-        let mut registry = ComponentRegistry::new();
-
-        let def =
-            ComponentDefinition::new("NonExistent".to_string(), serde_json::json!({ "x": 10.0 }));
-
-        let result = factory.create_component_from_json(0, &def, &mut registry);
-        assert!(matches!(
-            result,
-            Err(ComponentFactoryError::UnregisteredType(_))
-        ));
-    }
-
-    #[test]
-    fn test_component_factory_has_creator() {
-        let mut factory = ComponentFactory::new();
-        assert!(!factory.has_creator("Position"));
-
-        factory.register_creator("Position", Box::new(TestPositionCreator));
-        assert!(factory.has_creator("Position"));
-    }
-
-    #[test]
-    fn test_component_factory_creator_count() {
-        let mut factory = ComponentFactory::new();
-        assert_eq!(factory.creator_count(), 0);
-
-        factory.register_creator("Position", Box::new(TestPositionCreator));
-        factory.register_creator("Velocity", Box::new(TestPositionCreator));
-        assert_eq!(factory.creator_count(), 2);
-    }
-
-    #[test]
-    fn test_behavior_registry_add_get() {
-        let mut registry = BehaviorRegistry::new();
-        let behavior =
-            BehaviorDefinition::new("player".to_string(), "Player".to_string(), None, vec![]);
-
-        assert!(registry.add_behavior(behavior.clone()).is_ok());
-        assert!(registry.has_behavior("player"));
-
-        let retrieved = registry.get_behavior("player");
-        assert!(retrieved.is_some());
-        assert_eq!(retrieved.unwrap().id, "player");
-    }
-
-    #[test]
-    fn test_behavior_registry_duplicate() {
-        let mut registry = BehaviorRegistry::new();
-        let behavior =
-            BehaviorDefinition::new("player".to_string(), "Player".to_string(), None, vec![]);
-
-        assert!(registry.add_behavior(behavior.clone()).is_ok());
-        assert!(registry.add_behavior(behavior).is_err());
-    }
-
-    #[test]
-    fn test_behavior_registry_remove() {
-        let mut registry = BehaviorRegistry::new();
-        let behavior =
-            BehaviorDefinition::new("player".to_string(), "Player".to_string(), None, vec![]);
-
-        registry.add_behavior(behavior).unwrap();
-        assert!(registry.has_behavior("player"));
-
-        let removed = registry.remove_behavior("player");
-        assert!(removed.is_some());
-        assert!(!registry.has_behavior("player"));
-    }
-
-    #[test]
-    fn test_behavior_registry_behavior_count() {
-        let mut registry = BehaviorRegistry::new();
-        assert_eq!(registry.behavior_count(), 0);
-
-        registry
-            .add_behavior(BehaviorDefinition::new(
-                "player".to_string(),
-                "Player".to_string(),
-                None,
-                vec![],
-            ))
-            .unwrap();
-        registry
-            .add_behavior(BehaviorDefinition::new(
-                "enemy".to_string(),
-                "Enemy".to_string(),
-                None,
-                vec![],
-            ))
-            .unwrap();
-
-        assert_eq!(registry.behavior_count(), 2);
-    }
-
-    #[test]
-    fn test_behavior_registry_iter() {
-        let mut registry = BehaviorRegistry::new();
-
-        registry
-            .add_behavior(BehaviorDefinition::new(
-                "player".to_string(),
-                "Player".to_string(),
-                None,
-                vec![],
-            ))
-            .unwrap();
-        registry
-            .add_behavior(BehaviorDefinition::new(
-                "enemy".to_string(),
-                "Enemy".to_string(),
-                None,
-                vec![],
-            ))
-            .unwrap();
-
-        let ids: Vec<_> = registry.iter().map(|b| b.id.as_str()).collect();
-        assert_eq!(ids.len(), 2);
-        assert!(ids.contains(&"player"));
-        assert!(ids.contains(&"enemy"));
-    }
-
-    #[test]
-    fn test_behavior_registry_behavior_ids() {
-        let mut registry = BehaviorRegistry::new();
-
-        registry
-            .add_behavior(BehaviorDefinition::new(
-                "player".to_string(),
-                "Player".to_string(),
-                None,
-                vec![],
-            ))
-            .unwrap();
-        registry
-            .add_behavior(BehaviorDefinition::new(
-                "enemy".to_string(),
-                "Enemy".to_string(),
-                None,
-                vec![],
-            ))
-            .unwrap();
-
-        let ids = registry.behavior_ids();
-        assert_eq!(ids.len(), 2);
-        assert!(ids.contains(&"player".to_string()));
-        assert!(ids.contains(&"enemy".to_string()));
-    }
-
-    #[test]
-    fn test_component_factory_error_display() {
-        let error = ComponentFactoryError::UnregisteredType("TestType".to_string());
-        let display_str = alloc::format!("{}", error);
-        assert!(display_str.contains("TestType"));
-        assert!(display_str.contains("not registered"));
-    }
-
-    #[test]
-    fn test_json_schemas_defined() {
-        // Verify that the schemas are valid JSON
-        let _component_schema: serde_json::Value =
-            serde_json::from_str(COMPONENT_DEFINITION_SCHEMA).unwrap();
-        let _behavior_schema: serde_json::Value =
-            serde_json::from_str(BEHAVIOR_DEFINITION_SCHEMA).unwrap();
+        // Check behavior
+        let npc_behavior = deserialized.get_behavior("npc_behavior").unwrap();
+        assert_eq!(npc_behavior.component_count(), 2);
     }
 }

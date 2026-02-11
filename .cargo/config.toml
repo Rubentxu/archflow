@@ -1,0 +1,7 @@
+# Configuración para evitar OOM en compilaciones
+[profile.release]
+lto = "thin"  # Link-Time Optimization más ligero
+
+[build]
+# Limitar jobs de compilación
+jobs = 2  # Ajusta según tu RAM disponible

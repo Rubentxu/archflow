@@ -151,7 +151,9 @@ impl<T: Component> VecStorage<T> {
     #[inline]
     fn ensure_capacity(&mut self, entity_index: usize) {
         if entity_index >= self.data.len() {
-            while entity_index >= self.data.len() { self.data.push(None); }
+            while entity_index >= self.data.len() {
+                self.data.push(None);
+            }
         }
     }
 }

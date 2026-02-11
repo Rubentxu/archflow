@@ -28,7 +28,7 @@
 #![no_std]
 
 use alloc::collections::BTreeMap;
-    use alloc::vec;
+use alloc::vec;
 extern crate alloc;
 use alloc::vec::Vec;
 use core::any::TypeId;
@@ -36,6 +36,7 @@ use core::hash::{Hash, Hasher};
 use core::mem;
 
 use crate::ecs::component::ComponentId;
+use crate::ecs::pool::ColumnPool;
 
 /// Unique identifier for an archetype
 ///
@@ -162,6 +163,16 @@ impl ComponentColumn {
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.len == 0
+    }
+
+    /// Creates a ComponentColumn from pooled data
+    #[inline]
+    pub fn from_pool(data: Vec<u8>, stride: usize) -> Self {
+        Self {
+            data,
+            stride,
+            len: 0,
+        }
     }
 
     /// Returns the stride (size of each component in bytes)
@@ -514,7 +525,7 @@ impl Archetype {
 
         // Swap with last element for O(1) removal
         let last_index = self.len() - 1;
-        
+
         if index != last_index {
             // Swap entity IDs
             self.entity_ids.swap(index, last_index);
@@ -523,11 +534,11 @@ impl Archetype {
             for column in self.components.values_mut() {
                 column.swap(index, last_index);
             }
-            
+
             // After swap, the entity at 'index' is the one that was at 'last_index'
             // Return this ID so caller can update their references
             let entity_id = self.entity_ids[index];
-            
+
             // Remove last element
             self.entity_ids.pop();
             for column in self.components.values_mut() {
@@ -536,13 +547,13 @@ impl Archetype {
                     column.len -= 1;
                 }
             }
-            
+
             entity_id
         } else {
             // Removing the last element - no swap happened
             // Capture the ID before pop
             let entity_id = self.entity_ids[index];
-            
+
             // Remove last element
             self.entity_ids.pop();
             for column in self.components.values_mut() {
@@ -551,7 +562,7 @@ impl Archetype {
                     column.len -= 1;
                 }
             }
-            
+
             entity_id
         }
     }
@@ -590,6 +601,26 @@ impl Archetype {
             .and_then(|col| col.get_mut::<T>(index))
     }
 
+    /// Gets a reference to the component column for a specific component type
+    ///
+    /// # Parameters
+    ///
+    /// - `component_id`: The type of component to get
+    #[inline]
+    pub fn get_column(&self, component_id: ComponentId) -> Option<&ComponentColumn> {
+        self.components.get(&component_id)
+    }
+
+    /// Gets a mutable reference to the component column for a specific component type
+    ///
+    /// # Parameters
+    ///
+    /// - `component_id`: The type of component to get
+    #[inline]
+    pub fn get_column_mut(&mut self, component_id: ComponentId) -> Option<&mut ComponentColumn> {
+        self.components.get_mut(&component_id)
+    }
+
     /// Adds a new component column to this archetype
     ///
     /// # Panics
@@ -603,6 +634,22 @@ impl Archetype {
 
         self.components
             .insert(component_id, ComponentColumn::with_capacity(stride, 16));
+    }
+
+    /// Adds a pre-allocated component column to this archetype
+    ///
+    /// This is used by the pool system to reuse pre-allocated columns.
+    ///
+    /// # Panics
+    ///
+    /// Panics if a column for this component type already exists.
+    pub fn add_column_with_data(&mut self, component_id: ComponentId, column: ComponentColumn) {
+        assert!(
+            !self.components.contains_key(&component_id),
+            "Column already exists for component type"
+        );
+
+        self.components.insert(component_id, column);
     }
 
     /// Returns an iterator over entity IDs in this archetype
@@ -653,6 +700,8 @@ pub struct ArchetypeStorage {
     entity_archetype: Vec<Option<ArchetypeId>>,
     /// Maps entity ID to its index within the archetype
     entity_index: Vec<Option<usize>>,
+    /// Memory pool for reusable component columns
+    column_pool: ColumnPool,
 }
 
 impl ArchetypeStorage {
@@ -663,6 +712,7 @@ impl ArchetypeStorage {
             archetypes: BTreeMap::new(),
             entity_archetype: Vec::new(),
             entity_index: Vec::new(),
+            column_pool: ColumnPool::new(),
         }
     }
 
@@ -693,12 +743,23 @@ impl ArchetypeStorage {
             self.entity_index.resize(entity_id + 1, None);
         }
 
-        // Get or create archetype
+        // Get or create archetype, using pooled columns when available
         let archetype = self.archetypes.entry(archetype_id).or_insert_with(|| {
             let mut arch = Archetype::new(types.clone());
+
+            // Try to reuse columns from the pool
             for (component_id, &stride) in &component_strides {
-                arch.add_column(*component_id, stride);
+                // Try to acquire a column with initial capacity of 16
+                if let Some(column) = self.column_pool.try_acquire(*component_id, stride, 16) {
+                    arch.add_column_with_data(
+                        *component_id,
+                        ComponentColumn::from_pool(column, stride),
+                    );
+                } else {
+                    arch.add_column(*component_id, stride);
+                }
             }
+
             arch
         });
 
@@ -815,12 +876,19 @@ impl ArchetypeStorage {
         self.archetypes.clear();
         self.entity_archetype.clear();
         self.entity_index.clear();
+        self.column_pool.clear();
     }
 
     /// Returns an iterator over all archetypes
     #[inline]
     pub fn iter_archetypes(&self) -> impl Iterator<Item = (&ArchetypeId, &Archetype)> {
         self.archetypes.iter()
+    }
+
+    /// Returns pool statistics
+    #[inline]
+    pub fn pool_stats(&self) -> crate::ecs::pool::PoolStats {
+        self.column_pool.stats()
     }
 }
 

@@ -129,6 +129,32 @@ impl ComponentRegistry {
     pub fn clear(&mut self) {
         self.storages.clear();
     }
+
+    /// Returns an iterator over all registered component IDs and their storages
+    #[inline]
+    pub fn iter(&self) -> impl Iterator<Item = (&TypeId, &Box<dyn AnyComponentStorage>)> {
+        self.storages.iter()
+    }
+
+    /// Gets storage by ComponentId
+    ///
+    /// Returns `None` if the component type is not registered.
+    #[inline]
+    pub fn get_storage_by_id(&self, component_id: ComponentId) -> Option<&dyn AnyComponentStorage> {
+        self.storages
+            .get(&component_id.type_id())
+            .map(|boxed| boxed.as_ref() as &dyn AnyComponentStorage)
+    }
+
+    /// Gets stride for a component by ComponentId
+    ///
+    /// Returns `None` if the component type is not registered.
+    #[inline]
+    pub fn get_stride(&self, component_id: ComponentId) -> Option<usize> {
+        self.storages
+            .get(&component_id.type_id())
+            .map(|storage| storage.stride())
+    }
 }
 
 impl Default for ComponentRegistry {
@@ -139,9 +165,12 @@ impl Default for ComponentRegistry {
 }
 
 /// Type-erased component storage trait
-trait AnyComponentStorage {
+pub trait AnyComponentStorage {
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
+    fn stride(&self) -> usize;
+    /// Gets a reference to the component at the given entity index
+    fn get(&self, entity_index: usize) -> Option<&dyn Any>;
 }
 
 /// Wrapper for type-erasing ComponentStorage implementations
@@ -173,6 +202,16 @@ impl<S: ComponentStorage + 'static> AnyComponentStorage for AnyStorageWrapper<S>
     #[inline]
     fn as_any_mut(&mut self) -> &mut dyn Any {
         &mut self.storage
+    }
+
+    #[inline]
+    fn stride(&self) -> usize {
+        core::mem::size_of::<S::Item>()
+    }
+
+    #[inline]
+    fn get(&self, entity_index: usize) -> Option<&dyn Any> {
+        self.storage.get(entity_index).map(|item| item as &dyn Any)
     }
 }
 

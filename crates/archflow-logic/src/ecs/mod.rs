@@ -66,14 +66,24 @@
 
 // Re-export all public types
 pub mod archetype;
+pub mod archetype_query;
 pub mod component;
 pub mod components;
+pub mod hybrid;
+pub mod physics_components;
+pub mod physics_system;
+pub mod pool;
 pub mod query;
 pub mod registry;
 pub mod scheduler;
+pub mod simd;
+pub mod simd_integration;
 pub mod sparse_set;
 pub mod system;
 pub mod world;
+
+#[cfg(test)]
+mod integration_tests;
 
 // Core types
 pub use archetype::{Archetype, ArchetypeId, ArchetypeStorage, BatchIter, ComponentColumn};
@@ -82,9 +92,29 @@ pub use components::{
     HighlightActuatorComponent, MouseSensorComponent, MoveActuatorComponent,
     SelectActuatorComponent, SignalStateComponent,
 };
-pub use query::{EntityId, Query, QueryIter, QueryIterExt, QueryMut, QueryParameter};
+pub use hybrid::{
+    ActuatorComponent, BgeLogicConfig, BgeLogicStats, BgeLogicSystem, ClickType,
+    ControllerComponent, SensorComponent, SensorComponentType, SensorConfig, SensorEvaluation,
+    SensorRef,
+};
+pub use physics_components::{
+    Acceleration, AnimationState, HighlightState, PhysicsMaterial, SelectionState, Transform,
+    Velocity,
+};
+pub use physics_system::{PhysicsConfig, PhysicsStats, PhysicsSystem};
+pub use pool::{ColumnPool, PoolStats};
+pub use query::{
+    EntityId, Query, QueryIter, QueryIterExt, QueryMut, QueryParameter, With, Without,
+};
 pub use registry::ComponentRegistry;
 pub use scheduler::SystemScheduler;
+pub use simd::{
+    BatchPhysicsConfig, BatchPhysicsProcessor, BatchStats, MortonEncoder, SimdBatchIterator,
+    SimdPhysicsConfig, SimdPhysicsProcessor, SimdStats,
+};
+pub use simd_integration::{
+    Aabb2D, Aabb3D, CollisionSimdDetector, SIMD_F32_BATCH, SIMD_U8_BATCH, SpatialHash,
+};
 pub use sparse_set::SparseSet;
 pub use system::{System, SystemInfo};
 pub use world::World;

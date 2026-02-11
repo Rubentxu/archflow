@@ -35,28 +35,7 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/hodei-archFlow/archflow"
 homepage = "https://archflow.dev"
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# RELEASE PROFILE - Optimized for WASM size and performance
-# ═══════════════════════════════════════════════════════════════════════════════
-[profile.release]
-lto = true              # Link Time Optimization
-opt-level = "z"         # Optimized for size (z) instead of speed (3)
-codegen-units = 1       # Single codegen unit for better optimization
-panic = "abort"         # Eliminate unwinding support
-strip = true            # Remove debug symbols
-overflow-checks = false # Disable overflow checks in release
 
-# Optimize dependencies for performance even when we optimize for size
-[profile.release.package."*"]
-opt-level = 3
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# DEV PROFILE - Faster compilation for development
-# ═══════════════════════════════════════════════════════════════════════════════
-[profile.dev]
-opt-level = 0
-[profile.dev.package."*"]
-opt-level = 1
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # DEPENDENCIES - Centralized versions from Architecture V3
@@ -162,6 +141,11 @@ indexmap = { version = "2.7", features = ["serde"] }
 getrandom = { version = "0.4.1", features = ["js"] }
 sha2 = "0.10"
 constant_time_eq = "0.4.2"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Benchmarking
+# ═══════════════════════════════════════════════════════════════════════════════
+criterion = { version = "0.5", features = ["html_reports"] }
 array-init = "2.1"
 static_assertions = "1.1"
 

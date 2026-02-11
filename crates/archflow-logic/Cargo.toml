@@ -24,10 +24,18 @@ tracing = { workspace = true }
 default = []
 tracing = []  # Enable tracing instrumentation (always available, non-optional dependency)
 simd = []  # Enable WebAssembly SIMD optimizations
+std = []  # Enable std support for JSON API (default enabled by serde_json)
 
 [dev-dependencies]
 # Tests only - will be needed for integration tests (Epic 2+)
 # archflow-engine = { path = "../archflow-engine" }
+
+# Benchmarking
+criterion = { workspace = true, features = ["html_reports"] }
+
+[[bench]]
+name = "ecs_benchmark"
+harness = false
 
 [lib]
 doctest = false

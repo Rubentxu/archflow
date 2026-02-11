@@ -183,28 +183,41 @@ pub use visibility::{VisibilityActuator, VisibilityBitset, VisibilityConfig, Vis
 
 // ECS module - Entity Component System for flexible component management
 pub use ecs::{
+    // Hybrid BGE integration
+    ActuatorComponent,
     // Core ECS types
     Archetype,
     ArchetypeId,
     ArchetypeStorage,
     BatchIter,
+    // Systems
+    BgeLogicConfig,
+    BgeLogicStats,
+    BgeLogicSystem,
+    ClickType,
     Component,
     ComponentColumn,
     ComponentId,
     // Registry and storage
     ComponentRegistry,
     ComponentStorage,
+    ControllerComponent,
     EntityId,
     // Component implementations
     HighlightActuatorComponent,
-    MouseSensorComponent,
     MoveActuatorComponent,
     // Query types
     Query,
     QueryMut,
     QueryParameter,
     SelectActuatorComponent,
+    SensorComponent,
+    SensorComponentType,
+    SensorConfig,
+    SensorEvaluation,
+    SensorRef,
     SignalStateComponent,
+    SimdBatchIterator,
     // Storage
     SparseSet,
     // System execution
@@ -212,6 +225,9 @@ pub use ecs::{
     SystemInfo,
     SystemScheduler,
     VecStorage,
+    // Filters
+    With,
+    Without,
     // World
     World,
 };
@@ -222,7 +238,10 @@ pub use simd::{
     process_signals, process_signals_scalar, update_positions, update_positions_scalar,
 };
 
-// Declarative JSON API (requires std) - commented out due to api module being experimental
-// Note: These types use serde_json and are primarily intended for non-WASM builds
-// #[cfg(feature = "std")]
-// pub use api::json::{BehaviorDefinition, BehaviorRegistry};
+// Declarative JSON API (requires std feature)
+// Provides A-Frame compatible declarative entity/component definitions
+#[cfg(feature = "std")]
+pub use api::json::{
+    BehaviorDefinition, ComponentDefinition, EntityDefinition, FogSettings, Scene,
+    SceneLoaderError, SceneMetadata,
+};
