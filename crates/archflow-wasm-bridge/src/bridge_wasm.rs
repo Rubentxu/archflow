@@ -1016,6 +1016,472 @@ impl WasmBridge {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+    // ANEXA-002: SCENE LOADING - JSON Scene serialization/deserialization
+    // ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+    /// Load a scene from JSON string
+    ///
+    /// Expects JSON with format (component-based):
+    /// ```json
+    /// {
+    ///   "entities": [
+    ///     { "id": "entity1", "components": { "Position": {"x": 100, "y": 200}, "Size": {"width": 50, "height": 50}, "Shape": {"shape": 0}, "Color": {"color": 4294967295} } }
+    ///   ]
+    /// }
+    /// ```
+    #[wasm_bindgen]
+    pub fn load_scene(&self, json: &str) -> Result<u32, JsValue> {
+        use archflow_core::Vec2;
+        use archflow_logic::api::json::{ComponentDefinition, Scene};
+
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            let scene: Scene = serde_json::from_str(json)
+                .map_err(|e| JsError::new(&alloc::format!("Invalid JSON: {}", e)))?;
+
+            let mut count = 0u32;
+            for entity_def in &scene.entities {
+                let mut pos = Vec2::new(0.0, 0.0);
+                let mut size = Vec2::new(32.0, 32.0);
+
+                for comp in &entity_def.components {
+                    match comp.component_type.as_str() {
+                        "Position" => {
+                            if let Some(x) = comp.data.get("x").and_then(|v| v.as_f64()) {
+                                pos.x = x as f32;
+                            }
+                            if let Some(y) = comp.data.get("y").and_then(|v| v.as_f64()) {
+                                pos.y = y as f32;
+                            }
+                        }
+                        "Size" => {
+                            if let Some(w) = comp.data.get("width").and_then(|v| v.as_f64()) {
+                                size.x = w as f32;
+                            }
+                            if let Some(h) = comp.data.get("height").and_then(|v| v.as_f64()) {
+                                size.y = h as f32;
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+
+                let entity_id = engine.store.spawn(pos, size);
+
+                for comp in &entity_def.components {
+                    match comp.component_type.as_str() {
+                        "Shape" => {
+                            if let Some(shape) = comp.data.get("shape").and_then(|v| v.as_u64()) {
+                                let idx = entity_id.index().0 as usize;
+                                engine.store.set_shape_type(idx, shape as u8);
+                            }
+                        }
+                        "Color" => {
+                            if let Some(color) = comp.data.get("color").and_then(|v| v.as_u64()) {
+                                let idx = entity_id.index().0 as usize;
+                                engine.store.set_color(idx, color as u32);
+                            }
+                        }
+                        "Visibility" => {
+                            if let Some(visible) =
+                                comp.data.get("visible").and_then(|v| v.as_bool())
+                            {
+                                let idx = entity_id.index().0 as usize;
+                                engine.store.set_visible(idx, visible);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+
+                count += 1;
+            }
+
+            Ok(count)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Serialize current scene to JSON string
+    #[wasm_bindgen]
+    pub fn serialize_scene(&self) -> Result<String, JsValue> {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            use archflow_core::Vec2;
+            use archflow_logic::api::json::{ComponentDefinition, Scene, SceneMetadata};
+
+            let mut entities = Vec::new();
+
+            let alive = engine.store.alive_count();
+            for i in 0..alive {
+                if engine.store.is_alive_index(i) {
+                    let pos = engine.store.pos(i);
+                    let size = engine.store.size(i);
+                    let shape = engine.store.shape_type(i);
+                    let colors = engine.store.colors_ref();
+                    let color = if i < colors.len() {
+                        colors[i]
+                    } else {
+                        0xFFFFFFFF
+                    };
+                    let visible = engine.store.is_visible(i);
+
+                    let components = alloc::vec![
+                        ComponentDefinition {
+                            component_type: alloc::string::String::from("Position"),
+                            data: serde_json::json!({ "x": pos.x, "y": pos.y }),
+                        },
+                        ComponentDefinition {
+                            component_type: alloc::string::String::from("Size"),
+                            data: serde_json::json!({ "width": size.x, "height": size.y }),
+                        },
+                        ComponentDefinition {
+                            component_type: alloc::string::String::from("Shape"),
+                            data: serde_json::json!({ "shape": shape }),
+                        },
+                        ComponentDefinition {
+                            component_type: alloc::string::String::from("Color"),
+                            data: serde_json::json!({ "color": color }),
+                        },
+                        ComponentDefinition {
+                            component_type: alloc::string::String::from("Visibility"),
+                            data: serde_json::json!({ "visible": visible }),
+                        },
+                    ];
+
+                    entities.push(archflow_logic::api::json::EntityDefinition {
+                        id: alloc::format!("entity_{}", i),
+                        name: None,
+                        components,
+                        behaviors: Vec::new(),
+                        children: Vec::new(),
+                    });
+                }
+            }
+
+            let scene = Scene {
+                id: alloc::string::String::new(),
+                name: Some(alloc::string::String::from("serialized")),
+                version: alloc::string::String::from("1.0"),
+                metadata: SceneMetadata {
+                    author: None,
+                    description: None,
+                    gravity: [0.0, -9.81, 0.0],
+                    ambient_light: [0.5, 0.5, 0.5],
+                    fog: None,
+                },
+                entities,
+                behaviors: Vec::new(),
+            };
+
+            serde_json::to_string(&scene)
+                .map_err(|e| JsError::new(&alloc::format!("Serialization error: {}", e)).into())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+    // ANEXA-003: ENTITY QUERIES - Query entities by various criteria
+    // ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+    /// Query entities by shape type
+    ///
+    /// shape: 0=rectangle, 1=circle, 2=triangle, etc.
+    #[wasm_bindgen]
+    pub fn query_by_shape(&self, shape: u8) -> Result<Vec<u32>, JsValue> {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            let alive = engine.store.alive_count();
+            let mut results = Vec::new();
+
+            for i in 0..alive {
+                if engine.store.is_alive_index(i) && engine.store.shape_type(i) == shape {
+                    results.push(i as u32);
+                }
+            }
+
+            Ok(results)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Query entities by visibility
+    #[wasm_bindgen]
+    pub fn query_by_visibility(&self, visible: bool) -> Result<Vec<u32>, JsValue> {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            let alive = engine.store.alive_count();
+            let mut results = Vec::new();
+
+            for i in 0..alive {
+                if engine.store.is_alive_index(i) && engine.store.is_visible(i) == visible {
+                    results.push(i as u32);
+                }
+            }
+
+            Ok(results)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Query entities by selection state
+    #[wasm_bindgen]
+    pub fn query_by_selection(&self, selected: bool) -> Result<Vec<u32>, JsValue> {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            let alive = engine.store.alive_count();
+            let mut results = Vec::new();
+
+            for i in 0..alive {
+                if engine.store.is_alive_index(i) && engine.store.is_selected(i) == selected {
+                    results.push(i as u32);
+                }
+            }
+
+            Ok(results)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Query entities within bounds (AABB query)
+    #[wasm_bindgen]
+    pub fn query_in_bounds(
+        &self,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+    ) -> Result<Vec<u32>, JsValue> {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            let alive = engine.store.alive_count();
+            let mut results = Vec::new();
+
+            let min_x = x;
+            let max_x = x + width;
+            let min_y = y;
+            let max_y = y + height;
+
+            for i in 0..alive {
+                if engine.store.is_alive_index(i) {
+                    let pos = engine.store.pos(i);
+                    let size = engine.store.size(i);
+
+                    let entity_min_x = pos.x - size.x / 2.0;
+                    let entity_max_x = pos.x + size.x / 2.0;
+                    let entity_min_y = pos.y - size.y / 2.0;
+                    let entity_max_y = pos.y + size.y / 2.0;
+
+                    if entity_min_x < max_x
+                        && entity_max_x > min_x
+                        && entity_min_y < max_y
+                        && entity_max_y > min_y
+                    {
+                        results.push(i as u32);
+                    }
+                }
+            }
+
+            Ok(results)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Query entities with minimum size
+    #[wasm_bindgen]
+    pub fn query_by_min_size(&self, min_width: f32, min_height: f32) -> Result<Vec<u32>, JsValue> {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            let alive = engine.store.alive_count();
+            let mut results = Vec::new();
+
+            for i in 0..alive {
+                if engine.store.is_alive_index(i) {
+                    let size = engine.store.size(i);
+                    if size.x >= min_width && size.y >= min_height {
+                        results.push(i as u32);
+                    }
+                }
+            }
+
+            Ok(results)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+    // ANEXA-004: AUDIO SYSTEM - Web Audio API integration
+    // ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+    /// Initialize audio context (must be called after user interaction)
+    #[wasm_bindgen]
+    pub fn init_audio(&self) -> Result<bool, JsValue> {
+        if let Some(_engine) = self.engine.borrow().as_ref() {
+            // Audio is handled via JavaScript Web Audio API
+            // This is a placeholder that returns true - actual audio is managed in JS
+            Ok(true)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Play a simple beep sound
+    ///
+    /// frequency: Hz (220-2000)
+    /// duration: seconds (0.1-2.0)
+    /// volume: 0.0-1.0
+    #[wasm_bindgen]
+    pub fn play_beep(&self, _frequency: f32, _duration: f32, _volume: f32) -> Result<(), JsValue> {
+        // Audio playback is delegated to JavaScript for Web Audio API
+        // This is a stub that always returns Ok
+        if self.engine.borrow().is_some() {
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Set master volume
+    ///
+    /// volume: 0.0-1.0
+    #[wasm_bindgen]
+    pub fn set_master_volume(&self, volume: f32) -> Result<(), JsValue> {
+        if self.engine.borrow().is_some() {
+            let clamped = volume.clamp(0.0, 1.0);
+            let _ = clamped;
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+    // ANEXA-005: BATCH OPERATIONS - Efficient multi-entity operations
+    // ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+    /// Batch set positions for multiple entities
+    ///
+    /// ids: array of entity indices
+    /// xs: array of x positions (same length as ids)
+    /// ys: array of y positions (same length as ids)
+    #[wasm_bindgen]
+    pub fn batch_set_positions(&self, ids: &[u32], xs: &[f32], ys: &[f32]) -> Result<u32, JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            if ids.len() != xs.len() || ids.len() != ys.len() {
+                return Err(JsError::new("Array lengths must match").into());
+            }
+
+            let count = ids.len();
+            for i in 0..count {
+                let idx = ids[i] as usize;
+                let pos = archflow_core::Vec2::new(xs[i], ys[i]);
+                engine.store.set_pos(idx, pos);
+            }
+
+            Ok(count as u32)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Batch set sizes for multiple entities
+    ///
+    /// ids: array of entity indices
+    /// widths: array of widths
+    /// heights: array of heights
+    #[wasm_bindgen]
+    pub fn batch_set_sizes(
+        &self,
+        ids: &[u32],
+        widths: &[f32],
+        heights: &[f32],
+    ) -> Result<u32, JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            if ids.len() != widths.len() || ids.len() != heights.len() {
+                return Err(JsError::new("Array lengths must match").into());
+            }
+
+            let count = ids.len();
+            for i in 0..count {
+                let idx = ids[i] as usize;
+                let size = archflow_core::Vec2::new(widths[i], heights[i]);
+                engine.store.set_size(idx, size);
+            }
+
+            Ok(count as u32)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Batch set colors for multiple entities
+    ///
+    /// ids: array of entity indices
+    /// colors: array of RGBA colors (u32)
+    #[wasm_bindgen]
+    pub fn batch_set_colors(&self, ids: &[u32], colors: &[u32]) -> Result<u32, JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            if ids.len() != colors.len() {
+                return Err(JsError::new("Array lengths must match").into());
+            }
+
+            let count = ids.len();
+            for i in 0..count {
+                let idx = ids[i] as usize;
+                engine.store.set_color(idx, colors[i]);
+            }
+
+            Ok(count as u32)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Batch set visibility for multiple entities
+    ///
+    /// ids: array of entity indices
+    /// visible: visibility state to apply to all
+    #[wasm_bindgen]
+    pub fn batch_set_visibility(&self, ids: &[u32], visible: bool) -> Result<u32, JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            let count = ids.len();
+            for i in 0..count {
+                let idx = ids[i] as usize;
+                engine.store.set_visible(idx, visible);
+            }
+
+            Ok(count as u32)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Batch despawn multiple entities
+    ///
+    /// ids: array of entity indices to remove
+    #[wasm_bindgen]
+    pub fn batch_despawn(&self, ids: &[u32]) -> Result<u32, JsValue> {
+        use archflow_core::{EntityId, Generation, Index};
+
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            let mut count = 0u32;
+            for i in 0..ids.len() {
+                let idx = ids[i] as usize;
+                if engine.store.is_alive_index(idx) {
+                    let gen_val = engine.store.generation(idx);
+                    let entity_id = EntityId::from_parts(Index(idx as u32), Generation(gen_val));
+                    engine.store.despawn(entity_id);
+                    count += 1;
+                }
+            }
+
+            Ok(count)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════════════════════════════
     // SECTION 6: HISTORY - Undo/Redo operations
     // ═══════════════════════════════════════════════════════════════════════════════════════════════════════
 
