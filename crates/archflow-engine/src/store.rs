@@ -188,6 +188,18 @@ pub struct EntityStore {
     /// Transforms: [x, y, w, h] - 16 bytes per entity
     pub transforms: Vec<[f32; 4]>,
 
+    /// Velocities for physics simulation: [vx, vy, ax, ay]
+    /// vx, vy = velocity in units/second
+    /// ax, ay = acceleration in units/second^2
+    pub velocities: Vec<[f32; 4]>,
+
+    /// Physics materials: [restitution, friction, mass, is_static]
+    /// restitution: 0.0 = no bounce, 1.0 = full bounce
+    /// friction: 0.0 = no friction, 1.0 = high friction
+    /// mass: 0.0 = infinite/static, >0 = dynamic
+    /// is_static: 1.0 = static, 0.0 = dynamic
+    pub physics_materials: Vec<[f32; 4]>,
+
     /// Metadata packed in u32 to save memory
     /// Layout: [shape:4 | layer:4 | visibility:1 | selected:1 | locked:1 | padding:21]
     pub metadata: Vec<u32>,
@@ -299,6 +311,8 @@ impl EntityStore {
         Self {
             // Hot data
             transforms: vec![[0.0, 0.0, 100.0, 60.0]; capacity],
+            velocities: vec![[0.0, 0.0, 0.0, 0.0]; capacity], // [vx, vy, ax, ay]
+            physics_materials: vec![[0.3, 0.5, 1.0, 0.0]; capacity], // [restitution, friction, mass, is_static]
             metadata: vec![0; capacity],
             colors: vec![0xFFCCDDEE; capacity], // Default light blue
             stroke_colors: vec![0x000000FF; capacity], // Default black
@@ -646,6 +660,180 @@ impl EntityStore {
         self.transforms[idx][3] = size.y;
         self.dirty_transform.insert(idx);
         self.dirty_render.insert(idx);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // PHYSICS METHODS (EPIC-AFRAME-006)
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    /// Set velocity for physics simulation
+    /// vx, vy = velocity in units/second
+    #[inline]
+    pub fn set_velocity(&mut self, idx: usize, vx: f32, vy: f32) {
+        self.velocities[idx][0] = vx;
+        self.velocities[idx][1] = vy;
+    }
+
+    /// Get velocity
+    #[inline]
+    pub fn velocity(&self, idx: usize) -> Vec2 {
+        Vec2::new(self.velocities[idx][0], self.velocities[idx][1])
+    }
+
+    /// Set acceleration for physics simulation
+    /// ax, ay = acceleration in units/second^2
+    #[inline]
+    pub fn set_acceleration(&mut self, idx: usize, ax: f32, ay: f32) {
+        self.velocities[idx][2] = ax;
+        self.velocities[idx][3] = ay;
+    }
+
+    /// Get acceleration
+    #[inline]
+    pub fn acceleration(&self, idx: usize) -> Vec2 {
+        Vec2::new(self.velocities[idx][2], self.velocities[idx][3])
+    }
+
+    /// Set physics material properties
+    /// restitution: 0.0 = no bounce, 1.0 = full bounce
+    /// friction: 0.0 = no friction, 1.0 = high friction
+    /// mass: 0.0 = infinite/static, >0 = dynamic
+    #[inline]
+    pub fn set_physics_material(&mut self, idx: usize, restitution: f32, friction: f32, mass: f32) {
+        self.physics_materials[idx][0] = restitution;
+        self.physics_materials[idx][1] = friction;
+        self.physics_materials[idx][2] = mass;
+        self.physics_materials[idx][3] = if mass == 0.0 { 1.0 } else { 0.0 }; // is_static
+    }
+
+    /// Get physics material
+    #[inline]
+    pub fn physics_material(&self, idx: usize) -> (f32, f32, f32, bool) {
+        (
+            self.physics_materials[idx][0],
+            self.physics_materials[idx][1],
+            self.physics_materials[idx][2],
+            self.physics_materials[idx][3] > 0.5,
+        )
+    }
+
+    /// Check if entity is static
+    #[inline]
+    pub fn is_static(&self, idx: usize) -> bool {
+        self.physics_materials[idx][3] > 0.5
+    }
+
+    /// Apply velocity to position (physics integration step)
+    /// This is called by the physics system each frame
+    #[inline]
+    pub fn integrate_physics(&mut self, idx: usize, dt: f32) {
+        // Skip static entities
+        if self.is_static(idx) {
+            return;
+        }
+
+        let vel = self.velocities[idx];
+        let mat = self.physics_materials[idx];
+
+        // Apply acceleration to velocity
+        let ax = vel[2];
+        let ay = vel[3];
+        self.velocities[idx][0] += ax * dt;
+        self.velocities[idx][1] += ay * dt;
+
+        // Apply friction
+        let friction = 1.0 - mat[1] * dt;
+        self.velocities[idx][0] *= friction;
+        self.velocities[idx][1] *= friction;
+
+        // Integrate position
+        self.transforms[idx][0] += self.velocities[idx][0] * dt;
+        self.transforms[idx][1] += self.velocities[idx][1] * dt;
+
+        // Mark as dirty for rendering
+        self.dirty_transform.insert(idx);
+        self.dirty_render.insert(idx);
+    }
+
+    /// Check and handle boundary collision
+    /// Returns true if collision occurred
+    #[inline]
+    pub fn check_boundary_collision(
+        &mut self,
+        idx: usize,
+        min_x: f32,
+        min_y: f32,
+        max_x: f32,
+        max_y: f32,
+    ) -> bool {
+        // Skip static entities
+        if self.is_static(idx) {
+            return false;
+        }
+
+        let pos = self.transforms[idx];
+        let vel = self.velocities[idx];
+        let mat = self.physics_materials[idx];
+        let restitution = mat[0];
+
+        let x = pos[0];
+        let y = pos[1];
+        let vx = vel[0];
+        let vy = vel[1];
+        let mut collided = false;
+
+        // Check X boundaries
+        if x < min_x {
+            self.transforms[idx][0] = min_x;
+            self.velocities[idx][0] = -vx * restitution;
+            collided = true;
+        } else if x > max_x {
+            self.transforms[idx][0] = max_x;
+            self.velocities[idx][0] = -vx * restitution;
+            collided = true;
+        }
+
+        // Check Y boundaries
+        if y < min_y {
+            self.transforms[idx][1] = min_y;
+            self.velocities[idx][1] = -vy * restitution;
+            collided = true;
+        } else if y > max_y {
+            self.transforms[idx][1] = max_y;
+            self.velocities[idx][1] = -vy * restitution;
+            collided = true;
+        }
+
+        if collided {
+            self.dirty_transform.insert(idx);
+            self.dirty_render.insert(idx);
+        }
+
+        collided
+    }
+
+    /// Batch physics integration for all alive entities
+    /// Returns number of entities processed
+    pub fn integrate_all_physics(
+        &mut self,
+        dt: f32,
+        min_x: f32,
+        min_y: f32,
+        max_x: f32,
+        max_y: f32,
+    ) -> usize {
+        let count = self.alive_count();
+        let mut processed = 0;
+
+        for i in 0..count {
+            if self.is_alive_index(i) && !self.is_static(i) {
+                self.integrate_physics(i, dt);
+                self.check_boundary_collision(i, min_x, min_y, max_x, max_y);
+                processed += 1;
+            }
+        }
+
+        processed
     }
 
     /// Get world transform (after hierarchy propagation)

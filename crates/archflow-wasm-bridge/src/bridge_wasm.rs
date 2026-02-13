@@ -16,6 +16,7 @@
 use alloc::boxed::Box;
 use alloc::format;
 use alloc::string::{String, ToString};
+use alloc::vec;
 use alloc::vec::Vec;
 use core::cell::{Cell, RefCell};
 use wasm_bindgen::prelude::*;
@@ -783,6 +784,237 @@ impl WasmBridge {
         }
     }
 
+    /// Bulk spawn multiple entities in a single call - ZERO-COPY
+    ///
+    /// This is the MOST EFFICIENT way to spawn entities:
+    /// - positions: flat array of [x0, y0, x1, y1, ...] (2 * count floats)
+    /// - sizes: flat array of [w0, h0, w1, h1, ...] (2 * count floats)
+    /// - colors: flat array of [r0, g0, b0, a0, r1, g1, b1, a1, ...] (4 * count u8s)
+    ///   Pass empty Uint8Array() for random colors
+    ///
+    /// Returns: array of spawned entity indices
+    ///
+    /// # Example (JavaScript)
+    /// ```js
+    /// const positions = new Float32Array([100, 100, 200, 200, 300, 300]);
+    /// const sizes = new Float32Array([50, 50, 60, 60, 70, 70]);
+    /// const colors = new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255]); // or empty for random
+    /// const ids = bridge.bulk_spawn(positions, sizes, colors);
+    /// ```
+    #[wasm_bindgen]
+    pub fn bulk_spawn(
+        &self,
+        positions: &[f32],
+        sizes: &[f32],
+        colors: &[u8],
+    ) -> Result<Vec<u32>, JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            let count = positions.len() / 2;
+            if sizes.len() / 2 != count {
+                return Err(JsError::new("positions and sizes length mismatch").into());
+            }
+            let has_colors = colors.len() >= count * 4;
+
+            let mut result = Vec::with_capacity(count);
+
+            for i in 0..count {
+                let x = positions[i * 2];
+                let y = positions[i * 2 + 1];
+                let w = sizes[i * 2];
+                let h = sizes[i * 2 + 1];
+
+                let id = engine.store.spawn(
+                    archflow_core::Vec2::new(x, y),
+                    archflow_core::Vec2::new(w, h),
+                );
+
+                // Set color if provided
+                if has_colors {
+                    let r = colors[i * 4];
+                    let g = colors[i * 4 + 1];
+                    let b = colors[i * 4 + 2];
+                    let a = colors[i * 4 + 3];
+                    let color = archflow_core::Color::rgba(r, g, b, a);
+                    let idx = id.index().0 as usize;
+                    engine.store.colors[idx] = color.0;
+                } else {
+                    // Random color
+                    let color = archflow_core::Color::rgb(
+                        (js_sys::Math::random() * 255.0) as u8,
+                        (js_sys::Math::random() * 255.0) as u8,
+                        (js_sys::Math::random() * 255.0) as u8,
+                    );
+                    let idx = id.index().0 as usize;
+                    engine.store.colors[idx] = color.0;
+                }
+
+                result.push(id.index().0);
+            }
+
+            Ok(result)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Spawn a pool of pre-allocated entities for optimal performance
+    ///
+    /// Use this to pre-allocate entities at startup, then use set_visible()
+    /// to show/hide them instead of spawning/despawning.
+    ///
+    /// Returns: number of entities spawned
+    #[wasm_bindgen]
+    pub fn spawn_pool(&self, count: u32) -> Result<u32, JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            for _ in 0..count {
+                engine.store.spawn(
+                    archflow_core::Vec2::new(-1000.0, -1000.0), // Off-screen
+                    archflow_core::Vec2::new(0.0, 0.0),
+                );
+            }
+            Ok(count)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // PHYSICS METHODS (EPIC-AFRAME-006)
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    /// Set velocity for physics simulation
+    /// vx, vy = velocity in units/second
+    #[wasm_bindgen]
+    pub fn set_velocity(&self, entity_id: u32, vx: f32, vy: f32) -> Result<(), JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            let idx = entity_id as usize;
+            if idx >= archflow_engine::MAX_ENTITIES {
+                return Err(JsError::new("Entity ID out of bounds").into());
+            }
+            engine.store.set_velocity(idx, vx, vy);
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Get velocity of an entity
+    /// Returns [vx, vy]
+    #[wasm_bindgen]
+    pub fn get_velocity(&self, entity_id: u32) -> Result<Vec<f32>, JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            let idx = entity_id as usize;
+            if idx >= archflow_engine::MAX_ENTITIES {
+                return Err(JsError::new("Entity ID out of bounds").into());
+            }
+            let vel = engine.store.velocity(idx);
+            Ok(vec![vel.x, vel.y])
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Set acceleration for physics simulation
+    /// ax, ay = acceleration in units/second^2
+    #[wasm_bindgen]
+    pub fn set_acceleration(&self, entity_id: u32, ax: f32, ay: f32) -> Result<(), JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            let idx = entity_id as usize;
+            if idx >= archflow_engine::MAX_ENTITIES {
+                return Err(JsError::new("Entity ID out of bounds").into());
+            }
+            engine.store.set_acceleration(idx, ax, ay);
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Set physics material properties
+    /// restitution: 0.0 = no bounce, 1.0 = full bounce
+    /// friction: 0.0 = no friction, 1.0 = high friction
+    /// mass: 0.0 = infinite/static, >0 = dynamic
+    #[wasm_bindgen]
+    pub fn set_physics_material(
+        &self,
+        entity_id: u32,
+        restitution: f32,
+        friction: f32,
+        mass: f32,
+    ) -> Result<(), JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            let idx = entity_id as usize;
+            if idx >= archflow_engine::MAX_ENTITIES {
+                return Err(JsError::new("Entity ID out of bounds").into());
+            }
+            engine
+                .store
+                .set_physics_material(idx, restitution, friction, mass);
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Integrate physics for all entities
+    /// This should be called every frame for physics to work
+    /// Returns number of entities processed
+    #[wasm_bindgen]
+    pub fn integrate_physics(
+        &self,
+        dt: f32,
+        min_x: f32,
+        min_y: f32,
+        max_x: f32,
+        max_y: f32,
+    ) -> Result<u32, JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            let count = engine
+                .store
+                .integrate_all_physics(dt, min_x, min_y, max_x, max_y);
+            Ok(count as u32)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Batch set velocities for multiple entities
+    /// ids: array of entity IDs
+    /// vx, vy: flat arrays of velocities
+    #[wasm_bindgen]
+    pub fn batch_set_velocities(&self, ids: &[u32], vx: &[f32], vy: &[f32]) -> Result<(), JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            if ids.len() != vx.len() || ids.len() != vy.len() {
+                return Err(JsError::new("Array length mismatch").into());
+            }
+            for i in 0..ids.len() {
+                let idx = ids[i] as usize;
+                if idx < archflow_engine::MAX_ENTITIES {
+                    engine.store.set_velocity(idx, vx[i], vy[i]);
+                }
+            }
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Get the current entity count
+    #[wasm_bindgen]
+    pub fn get_entity_count(&self) -> Result<u32, JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            Ok(engine.store.alive_count() as u32)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Get the maximum entity capacity
+    #[wasm_bindgen]
+    pub fn get_max_entities(&self) -> u32 {
+        archflow_engine::MAX_ENTITIES as u32
+    }
+
     /// Move an entity by the given delta
     #[wasm_bindgen]
     pub fn move_entity(&self, entity_index: u32, dx: f32, dy: f32) -> Result<(), JsValue> {
@@ -1338,32 +1570,45 @@ impl WasmBridge {
         }
 
         // Validate frequency and volume
-        let freq_val = if frequency < 220.0 { 220.0 } else if frequency > 2000.0 { 2000.0 } else { frequency };
-        let vol_val = if volume < 0.0 { 0.0 } else if volume > 1.0 { 1.0 } else { volume };
+        let freq_val = if frequency < 220.0 {
+            220.0
+        } else if frequency > 2000.0 {
+            2000.0
+        } else {
+            frequency
+        };
+        let vol_val = if volume < 0.0 {
+            0.0
+        } else if volume > 1.0 {
+            1.0
+        } else {
+            volume
+        };
 
         let freq = (freq_val as i32).to_string();
         let vol = (vol_val * 100.0_f32) as i32;
 
         // Create JavaScript code to play beep using Web Audio API
         let js_code = alloc::format!(
-            r#"(function() {{ 
-                var ctx = window.audioContext; 
+            r#"(function() {{
+                var ctx = window.audioContext;
                 if (!ctx) return;
-                var osc = ctx.createOscillator(); 
-                var gain = ctx.createGain(); 
-                osc.frequency.value = {}; 
-                gain.gain.value = {} / 100; 
-                osc.connect(gain); 
-                gain.connect(ctx.destination); 
-                osc.start(); 
+                var osc = ctx.createOscillator();
+                var gain = ctx.createGain();
+                osc.frequency.value = {};
+                gain.gain.value = {} / 100;
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
                 setTimeout(function() {{ osc.stop(); }}, 200);
             }})()"#,
-            freq, vol
+            freq,
+            vol
         );
 
         // Evaluate JavaScript - ignore result as it just plays sound
         let _result = js_sys::eval(&js_code);
-        
+
         Ok(())
     }
 
