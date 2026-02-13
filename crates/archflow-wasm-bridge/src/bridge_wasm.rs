@@ -1213,6 +1213,119 @@ impl WasmBridge {
         }
     }
 
+    /// Set highlight tint color (for visual feedback on hover/selection)
+    #[wasm_bindgen]
+    pub fn set_color_tint(
+        &self,
+        entity_index: u32,
+        r: f32,
+        g: f32,
+        b: f32,
+        a: f32,
+    ) -> Result<(), JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            let idx = entity_index as usize;
+            if idx >= MAX_ENTITIES {
+                return Err(JsError::new("Entity index out of bounds").into());
+            }
+            engine.store.set_color_tint(idx, [r, g, b, a]);
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Clear highlight tint (reset to default)
+    #[wasm_bindgen]
+    pub fn clear_color_tint(&self, entity_index: u32) -> Result<(), JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            let idx = entity_index as usize;
+            if idx >= MAX_ENTITIES {
+                return Err(JsError::new("Entity index out of bounds").into());
+            }
+            engine.store.set_color_tint(idx, [0.0, 0.0, 0.0, 0.0]);
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Set selection state of an entity
+    #[wasm_bindgen]
+    pub fn set_selected(&self, entity_index: u32, selected: bool) -> Result<(), JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            let idx = entity_index as usize;
+            if idx >= MAX_ENTITIES {
+                return Err(JsError::new("Entity index out of bounds").into());
+            }
+            engine.store.set_selected(idx, selected);
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Get selection state of an entity
+    #[wasm_bindgen]
+    pub fn is_selected(&self, entity_index: u32) -> Result<bool, JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            let idx = entity_index as usize;
+            if idx >= MAX_ENTITIES {
+                return Err(JsError::new("Entity index out of bounds").into());
+            }
+            Ok(engine.store.is_selected(idx))
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Move entity by delta (direct position update, not command queue)
+    #[wasm_bindgen]
+    pub fn move_entity_by(&self, entity_index: u32, dx: f32, dy: f32) -> Result<(), JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            let idx = entity_index as usize;
+            if idx >= MAX_ENTITIES {
+                return Err(JsError::new("Entity index out of bounds").into());
+            }
+            // Direct position update - moves entity immediately
+            engine.store.transforms[idx][0] += dx;
+            engine.store.transforms[idx][1] += dy;
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Set velocity directly (for physics integration)
+    #[wasm_bindgen]
+    pub fn set_entity_velocity(&self, entity_index: u32, vx: f32, vy: f32) -> Result<(), JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            let idx = entity_index as usize;
+            if idx >= MAX_ENTITIES {
+                return Err(JsError::new("Entity index out of bounds").into());
+            }
+            engine.store.set_velocity(idx, vx, vy);
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Get current velocity of an entity
+    #[wasm_bindgen]
+    pub fn get_entity_velocity(&self, entity_index: u32) -> Result<Vec<f32>, JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            let idx = entity_index as usize;
+            if idx >= MAX_ENTITIES {
+                return Err(JsError::new("Entity index out of bounds").into());
+            }
+            let vel = engine.store.velocity(idx);
+            Ok(vec![vel.x, vel.y])
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
     /// Set the stroke color of an entity
     #[wasm_bindgen]
     pub fn set_stroke_color(
