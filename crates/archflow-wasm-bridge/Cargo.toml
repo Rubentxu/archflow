@@ -14,7 +14,11 @@ archflow-core = { path = "../archflow-core" }
 archflow-diagram = { path = "../archflow-diagram" }
 archflow-engine = { path = "../archflow-engine", features = ["tracing"] }
 archflow-export = { path = "../archflow-export" }
-archflow-logic = { path = "../archflow-logic", features = ["tracing"] }
+archflow-logic = { path = "../archflow-logic", features = ["tracing", "std"] }
+
+# Serialization for JSON scene loading
+serde = { workspace = true }
+serde_json = { workspace = true }
 archflow-render = { path = "../archflow-render", features = [
     "wasm-bindgen",
     "webgl2",
