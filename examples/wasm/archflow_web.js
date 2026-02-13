@@ -2993,6 +2993,46 @@ export class WasmBridge {
         return ret[0] >>> 0;
     }
     /**
+     * Bulk spawn multiple entities in a single call - ZERO-COPY
+     *
+     * This is the MOST EFFICIENT way to spawn entities:
+     * - positions: flat array of [x0, y0, x1, y1, ...] (2 * count floats)
+     * - sizes: flat array of [w0, h0, w1, h1, ...] (2 * count floats)
+     * - colors: flat array of [r0, g0, b0, a0, r1, g1, b1, a1, ...] (4 * count u8s)
+     *   Pass empty Uint8Array() for random colors
+     *
+     * Returns: array of spawned entity indices
+     *
+     * # Example (JavaScript)
+     * ```js
+     * const positions = new Float32Array([100, 100, 200, 200, 300, 300]);
+     * const sizes = new Float32Array([50, 50, 60, 60, 70, 70]);
+     * const colors = new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255]); // or empty for random
+     * const ids = bridge.bulk_spawn(positions, sizes, colors);
+     * ```
+     * @param {Float32Array} positions
+     * @param {Float32Array} sizes
+     * @param {Uint8Array} colors
+     * @returns {Uint32Array}
+     */
+    bulk_spawn(positions, sizes, colors) {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        const ptr0 = passArrayF32ToWasm0(positions, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passArrayF32ToWasm0(sizes, wasm.__wbindgen_malloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passArray8ToWasm0(colors, wasm.__wbindgen_malloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ret = wasm.wasmbridge_bulk_spawn(this.__wbg_ptr, ptr0, len0, ptr1, len1, ptr2, len2);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v4 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v4;
+    }
+    /**
      * Check if redo is available
      * @returns {boolean}
      */
@@ -3234,6 +3274,19 @@ export class WasmBridge {
         }
     }
     /**
+     * Get the current entity count
+     * @returns {number}
+     */
+    get_entity_count() {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        const ret = wasm.wasmbridge_get_entity_count(this.__wbg_ptr);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return ret[0] >>> 0;
+    }
+    /**
      * Get entity label from string pool
      * @param {number} entity_index
      * @returns {string}
@@ -3377,6 +3430,16 @@ export class WasmBridge {
      */
     static get_input_buffer_size() {
         const ret = wasm.wasmbridge_get_input_buffer_size();
+        return ret >>> 0;
+    }
+    /**
+     * Get the maximum entity capacity
+     * @returns {number}
+     */
+    get_max_entities() {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        const ret = wasm.wasmbridge_get_max_entities(this.__wbg_ptr);
         return ret >>> 0;
     }
     /**
@@ -4293,6 +4356,26 @@ export class WasmBridge {
         if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
         _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_spawn_entity(this.__wbg_ptr, x, y, width, height);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return ret[0] >>> 0;
+    }
+    /**
+     * Spawn a pool of pre-allocated entities for optimal performance
+     *
+     * Use this to pre-allocate entities at startup, then use set_visible()
+     * to show/hide them instead of spawning/despawning.
+     *
+     * Returns: number of entities spawned
+     * @param {number} count
+     * @returns {number}
+     */
+    spawn_pool(count) {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        _assertNum(count);
+        const ret = wasm.wasmbridge_spawn_pool(this.__wbg_ptr, count);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }
@@ -5701,6 +5784,13 @@ function makeMutClosure(arg0, arg1, dtor, f) {
 function passArray32ToWasm0(arg, malloc) {
     const ptr = malloc(arg.length * 4, 4) >>> 0;
     getUint32ArrayMemory0().set(arg, ptr / 4);
+    WASM_VECTOR_LEN = arg.length;
+    return ptr;
+}
+
+function passArray8ToWasm0(arg, malloc) {
+    const ptr = malloc(arg.length * 1, 1) >>> 0;
+    getUint8ArrayMemory0().set(arg, ptr / 1);
     WASM_VECTOR_LEN = arg.length;
     return ptr;
 }

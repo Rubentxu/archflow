@@ -17,13 +17,18 @@
                 overflow: hidden;
                 background: #0a0a0f;
                 font-family: "JetBrains Mono", monospace;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
             }
 
             canvas {
                 display: block;
-                position: absolute;
-                top: 0;
-                left: 0;
+                width: 1000px;
+                height: 600px;
+                border: 1px solid rgba(0, 212, 255, 0.2);
+                border-radius: 4px;
             }
 
             #stats-panel {
@@ -187,7 +192,7 @@
         </style>
     </head>
     <body>
-        <canvas id="canvas"></canvas>
+        <canvas id="canvas" width="1000" height="600"></canvas>
 
         <div id="stats-panel">
             <h2>Performance Metrics</h2>
@@ -232,7 +237,8 @@
         <div id="batch-indicator">⚡ Batch Update</div>
 
         <div id="instructions">
-            <span class="key">Click</span> spawn 20 shapes
+            <span class="key">Click</span> spawn
+            <span id="spawn-count">150</span> shapes
             <span class="key">Space</span> clear all
             <span class="action">FPS: Real-time</span>
         </div>
@@ -243,8 +249,12 @@
             // ============================================================
             // Stress Test - Performance Benchmark
             // ============================================================
+            // CONFIGURABLE: Entities per spawn (change this value)
+            const ENTITIES_PER_SPAWN = 150; // CHANGE THIS: 20, 50, 100, 150, 200...
+            // ============================================================
+            //
             // This demo measures WASM engine performance under load:
-            // - Click to spawn 20 shapes with random velocities
+            // - Click to spawn N shapes (configurable above) with random velocities
             // - Shapes bounce off screen edges
             // - All position updates use batch_set_positions (1 WASM call)
             // - Metrics show FPS, entity count, batch operation time
@@ -253,6 +263,10 @@
             // ============================================================
 
             const { bridge, canvas, loop } = await createEngine("canvas");
+
+            // Update spawn count display dynamically
+            document.getElementById("spawn-count").textContent =
+                ENTITIES_PER_SPAWN;
 
             // State
             let shapes = [];
@@ -264,52 +278,64 @@
             let fpsAccum = 0;
             let fpsSamples = 0;
 
-            // Click handler - spawn 20 shapes
+            // Click handler - spawn 20 shapes using BULK SPAWN
             canvas.addEventListener("click", (e) => {
                 const rect = canvas.getBoundingClientRect();
                 const clickX = e.clientX - rect.left;
                 const clickY = e.clientY - rect.top;
 
                 const spawnStart = performance.now();
-                const newShapes = [];
 
-                for (let i = 0; i < 20; i++) {
+                // Prepare flat arrays for bulk_spawn - ZERO-COPY
+                const positions = new Float32Array(ENTITIES_PER_SPAWN * 2); // [x0, y0, x1, y1, ...]
+                const sizes = new Float32Array(ENTITIES_PER_SPAWN * 2); // [w0, h0, w1, h1, ...]
+                const colors = new Uint8Array(ENTITIES_PER_SPAWN * 4); // [r0, g0, b0, a0, ...]
+
+                for (let i = 0; i < ENTITIES_PER_SPAWN; i++) {
                     const x = clickX + (Math.random() - 0.5) * 40;
                     const y = clickY + (Math.random() - 0.5) * 40;
                     const size = 15 + Math.random() * 15;
 
-                    const id = bridge.spawn_entity(x, y, size, size);
-                    bridge.set_shape(id, Math.random() > 0.5 ? 0 : 1); // 0=rect, 1=circle
+                    positions[i * 2] = x;
+                    positions[i * 2 + 1] = y;
+                    sizes[i * 2] = size;
+                    sizes[i * 2 + 1] = size;
 
                     // Random bright color
                     const hue = Math.random() * 360;
-                    const color = hslToRgb(hue, 75, 55);
-                    bridge.set_color(
-                        id,
-                        (color >> 16) & 0xff,
-                        (color >> 8) & 0xff,
-                        color & 0xff,
-                        255,
-                    );
-
-                    newShapes.push({
-                        id,
-                        x,
-                        y,
-                        vx: (Math.random() - 0.5) * 8,
-                        vy: (Math.random() - 0.5) * 8,
-                        size,
-                    });
+                    const rgb = hslToRgbBytes(hue, 75, 55);
+                    colors[i * 4] = rgb.r;
+                    colors[i * 4 + 1] = rgb.g;
+                    colors[i * 4 + 2] = rgb.b;
+                    colors[i * 4 + 3] = 255;
                 }
 
-                shapes = shapes.concat(newShapes);
+                // Single call to bulk_spawn - MUCH FASTER!
+                const ids = bridge.bulk_spawn(positions, sizes, colors);
+
+                // Now set shapes (this is still one-by-one, but shapes don't change often)
+                for (let i = 0; i < ids.length; i++) {
+                    bridge.set_shape(ids[i], Math.random() > 0.5 ? 0 : 1);
+                }
+
+                // Track shapes for physics
+                for (let i = 0; i < ids.length; i++) {
+                    shapes.push({
+                        id: ids[i],
+                        x: positions[i * 2],
+                        y: positions[i * 2 + 1],
+                        vx: (Math.random() - 0.5) * 8,
+                        vy: (Math.random() - 0.5) * 8,
+                        size: sizes[i * 2],
+                    });
+                }
 
                 const spawnTime = (performance.now() - spawnStart).toFixed(2);
                 document.getElementById("spawn-time").textContent =
                     `${spawnTime}ms`;
                 document.getElementById("entities").textContent = shapes.length;
 
-                batchCallCount += 1; // spawn calls
+                batchCallCount += 1; // Only 1 call now!
                 document.getElementById("batch-calls").textContent =
                     batchCallCount;
             });
@@ -440,6 +466,22 @@
                     (Math.round(255 * f(8)) << 8) |
                     Math.round(255 * f(4))
                 );
+            }
+
+            // Utility: HSL to RGB bytes (for Uint8Array)
+            function hslToRgbBytes(h, s, l) {
+                s /= 100;
+                l /= 100;
+                const k = (n) => (n + h / 30) % 12;
+                const a = s * Math.min(l, 1 - l);
+                const f = (n) =>
+                    l -
+                    a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+                return {
+                    r: Math.round(255 * f(0)),
+                    g: Math.round(255 * f(8)),
+                    b: Math.round(255 * f(4)),
+                };
             }
         </script>
     </body>
