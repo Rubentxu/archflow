@@ -208,10 +208,60 @@ watch-all:
     @echo Starting full watch mode...
     @echo "Run these commands in separate terminals:"
     @echo ""
-    @echo 1. Rust watch: "  just rust-watch"
-    @echo 2. WASM watch: " just wasm-watch"
-    @echo 3. Frontend: "  just frontend"
+    @echo "1. Rust watch:  just rust-watch"
+    @echo "2. WASM watch:  just wasm-watch"
+    @echo "3. Frontend:    just frontend"
     @echo ""
+
+# Serve examples with Vite dev server (builds WASM first, copies to examples)
+[doc("Serve examples with Vite dev server")]
+serve-examples: build-wasm
+    @echo "Copying WASM to examples..."
+    @cp crates/archflow-web-ui/public/wasm/archflow_web.js examples/pkg/
+    @cp crates/archflow-web-ui/public/wasm/archflow_web_bg.wasm examples/pkg/
+    @cp crates/archflow-web-ui/public/wasm/archflow_web.d.ts examples/pkg/
+    @for dir in examples/0*; do \
+        cp examples/pkg/archflow_web.js "$$dir/" 2>/dev/null || true; \
+        cp examples/pkg/archflow_web_bg.wasm "$$dir/" 2>/dev/null || true; \
+        cp examples/pkg/archflow_web.d.ts "$$dir/" 2>/dev/null || true; \
+    done
+    @echo ""
+    @echo "Serving examples at http://localhost:5174"
+    @echo ""
+    @echo "Available examples:"
+    @echo "  - http://localhost:5174/examples/03-entity-properties/"
+    @echo "  - http://localhost:5174/examples/04-scene-json/"
+    @echo "  - http://localhost:5174/examples/05-entity-queries/"
+    @echo "  - http://localhost:5174/examples/06-audio/"
+    @echo "  - http://localhost:5174/examples/07-performance/"
+    @echo ""
+    @echo "Press Ctrl+C to stop"
+    @echo ""
+    @cd {{PROJECT_ROOT}}/examples && npm run dev
+
+# Build examples for production
+[doc("Build examples for production")]
+build-examples: build-wasm
+    @echo "Copying WASM to examples..."
+    @cp crates/archflow-web-ui/public/wasm/archflow_web.js examples/pkg/
+    @cp crates/archflow-web-ui/public/wasm/archflow_web_bg.wasm examples/pkg/
+    @cp crates/archflow-web-ui/public/wasm/archflow_web.d.ts examples/pkg/
+    @for dir in examples/0*; do \
+        cp examples/pkg/archflow_web.js "$$dir/" 2>/dev/null || true; \
+        cp examples/pkg/archflow_web_bg.wasm "$$dir/" 2>/dev/null || true; \
+        cp examples/pkg/archflow_web.d.ts "$$dir/" 2>/dev/null || true; \
+    done
+    @echo "Building examples..."
+    @cd {{PROJECT_ROOT}}/examples && npm run build
+
+# Serve www example (archflow-wasm-bridge) - builds WASM first
+[doc("Serve www example from wasm-bridge crate")]
+serve-www: build-wasm
+    @echo "Serving www example at http://localhost:8081"
+    @echo ""
+    @echo "This serves: crates/archflow-wasm-bridge/www/"
+    @echo ""
+    @cd {{PROJECT_ROOT}}/crates/archflow-wasm-bridge/www && python3 -m http.server 8081
 
 # =============================================================================
 # TESTING

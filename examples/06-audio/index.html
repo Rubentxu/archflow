@@ -1,694 +1,90 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ArchFlow - Audio System</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            overflow: hidden;
-            background: #1a1a2e;
-            color: #eee;
-        }
-
-        #canvas-container {
-            width: 100vw;
-            height: 100vh;
-        }
-
-        canvas {
-            display: block;
-            background: #0f0f1a;
-        }
-
-        #loading {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid #333;
-            border-top-color: #00d4ff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        #audio-panel {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.85);
-            padding: 15px;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 12px;
-            min-width: 300px;
-        }
-
-        h2 {
-            color: #00d4ff;
-            margin-bottom: 12px;
-            font-size: 14px;
-            border-bottom: 1px solid #333;
-            padding-bottom: 8px;
-        }
-
-        .audio-section {
-            margin-bottom: 15px;
-            padding: 10px;
-            background: rgba(255,255,255,0.03);
-            border-radius: 4px;
-        }
-
-        .audio-section h3 {
-            color: #888;
-            font-size: 11px;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-        }
-
-        button {
-            background: #00d4ff;
-            color: #1a1a2e;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 11px;
-            margin-right: 6px;
-            margin-bottom: 6px;
-            transition: background 0.2s;
-        }
-
-        button:hover {
-            background: #00b8e6;
-        }
-
-        button.sound-btn {
-            background: #2a4a6a;
-            color: #00d4ff;
-        }
-
-        button.sound-btn:hover {
-            background: #3a5a7a;
-        }
-
-        .slider-group {
-            margin-bottom: 10px;
-        }
-
-        .slider-group label {
-            display: block;
-            color: #888;
-            margin-bottom: 4px;
-            font-size: 11px;
-        }
-
-        input[type="range"] {
-            width: 100%;
-            height: 6px;
-            background: #333;
-            border-radius: 3px;
-            outline: none;
-            -webkit-appearance: none;
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 16px;
-            height: 16px;
-            background: #00d4ff;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-
-        .value-display {
-            color: #00ff88;
-            font-size: 11px;
-            float: right;
-        }
-
-        #status-panel {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.85);
-            padding: 15px;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 12px;
-            min-width: 200px;
-        }
-
-        .status-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 6px;
-        }
-
-        .status-label {
-            color: #888;
-        }
-
-        .status-value {
-            color: #00ff88;
-        }
-
-        .status-active {
-            color: #00ff88;
-        }
-
-        .status-inactive {
-            color: #ff4444;
-        }
-
-        #instructions {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.85);
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-size: 12px;
-            color: #888;
-        }
-    </style>
-</head>
-<body>
-    <div id="canvas-container">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>ArchFlow - Audio</title>
+        <style>
+            body {
+                margin: 0;
+                overflow: hidden;
+                background: #0f0f1a;
+                font-family: monospace;
+            }
+            canvas {
+                display: block;
+            }
+            #controls {
+                position: absolute;
+                top: 10px;
+                left: 10px;
+                background: rgba(0, 0, 0, 0.8);
+                padding: 15px;
+                border-radius: 8px;
+                color: #eee;
+                font-size: 12px;
+            }
+            button {
+                background: #00d4ff;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                cursor: pointer;
+                margin: 2px;
+            }
+            button:hover {
+                background: #00b8e6;
+            }
+            #info {
+                margin-top: 10px;
+                color: #00ff88;
+            }
+        </style>
+    </head>
+    <body>
         <canvas id="canvas"></canvas>
-    </div>
-
-    <div id="loading">
-        <div class="spinner"></div>
-        <div>Loading...</div>
-    </div>
-
-    <div id="audio-panel">
-        <h2>🔊 Audio System</h2>
-
-        <!-- Master Volume -->
-        <div class="audio-section">
-            <h3>Master Controls</h3>
-            <div class="slider-group">
-                <label>Master Volume <span class="value-display" id="master-vol-val">80%</span></label>
-                <input type="range" id="master-volume" min="0" max="100" value="80">
+        <div id="controls">
+            <div><strong>Audio Demo</strong></div>
+            <div style="margin-top: 10px">
+                <button id="btn-init">Init Audio</button>
+                <button id="btn-beep">Beep!</button>
             </div>
-            <button id="btn-mute" style="background: #4a4a5a; color: #fff;">Mute</button>
+            <div id="info">Click Init Audio to start</div>
         </div>
 
-        <!-- Sound Effects -->
-        <div class="audio-section">
-            <h3>Sound Effects</h3>
-            <button class="sound-btn" onclick="playSound('click')">Click</button>
-            <button class="sound-btn" onclick="playSound('hover')">Hover</button>
-            <button class="sound-btn" onclick="playSound('spawn')">Spawn</button>
-            <button class="sound-btn" onclick="playSound('select')">Select</button>
-            <button class="sound-btn" onclick="playSound('delete')">Delete</button>
-        </div>
+        <script type="module">
+            import { createEngine } from "../shared/archflow-client.js";
 
-        <!-- Spatial Audio -->
-        <div class="audio-section">
-            <h3>Spatial Audio (3D)</h3>
-            <button class="sound-btn" onclick="playSpatialSound('ambient')">Ambient Loop</button>
-            <button class="sound-btn" onclick="playSpatialSound('footsteps')">Footsteps</button>
-            <button class="sound-btn" onclick="playSpatialSound('engine')">Engine</button>
-        </div>
+            // ============================================================
+            // 06 - Audio
+            // ============================================================
+            // init_audio() creates WebAudio context inside WASM
+            // play_beep(frequency, duration, volume) synthesizes sound
+            // No external audio files — all generated in WASM
+            // ============================================================
 
-        <!-- Music -->
-        <div class="audio-section">
-            <h3>Music</h3>
-            <button class="sound-btn" onclick="playMusic('peaceful')">Peaceful</button>
-            <button class="sound-btn" onclick="playMusic('action')">Action</button>
-            <button class="sound-btn" onclick="stopMusic()">Stop Music</button>
-        </div>
+            const { bridge } = await createEngine("canvas");
 
-        <!-- Audio Visualizer -->
-        <div class="audio-section">
-            <h3>Audio Visualizer</h3>
-            <canvas id="visualizer" width="270" height="60" style="background: #222; border-radius: 4px;"></canvas>
-        </div>
-    </div>
+            // Visual speaker entity - centered in viewport
+            const id = bridge.spawn_entity(200, 200, 80, 80);
+            bridge.set_shape(id, 1); // circle
+            bridge.set_color(id, 0, 212, 255, 255);
 
-    <div id="status-panel">
-        <h2>📊 Audio Status</h2>
-        <div class="status-row">
-            <span class="status-label">Audio Context:</span>
-            <span class="status-value status-active" id="audio-context-status">Active</span>
-        </div>
-        <div class="status-row">
-            <span class="status-label">Master Volume:</span>
-            <span class="status-value" id="master-status">80%</span>
-        </div>
-        <div class="status-row">
-            <span class="status-label">Active Sources:</span>
-            <span class="status-value" id="sources-count">0</span>
-        </div>
-        <div class="status-row">
-            <span class="status-label">Music Playing:</span>
-            <span class="status-value" id="music-status">None</span>
-        </div>
-    </div>
+            let audioReady = false;
 
-    <div id="instructions">
-        Click buttons to play sounds • Move slider to adjust volume • Audio is spatial (works with entity positions)
-    </div>
-
-    <script type="module">
-        import init from './archflow_web.js';
-
-        // ============================================
-        // Audio System API Design (for future WASM integration)
-        // ============================================
-        // Future WASM API (when implemented):
-        // - audio_init() - Initialize Web Audio context
-        // - audio_play_sound(id, volume, loop) - Play sound effect
-        // - audio_play_spatial(id, entity_id, options) - Play spatial sound
-        // - audio_set_master_volume(volume)
-        // - audio_pause_all()
-        // - audio_resume_all()
-        // ============================================
-
-        let wasm = null;
-        let audioCtx = null;
-        let masterGain = null;
-        let analyser = null;
-        let currentMusic = null;
-        let activeSources = new Set();
-
-        // Generate synthetic sounds using Web Audio API
-        const SoundGenerator = {
-            // Generate a click sound
-            click: (ctx, destination) => {
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(800, ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.1);
-
-                gain.gain.setValueAtTime(0.3, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-
-                osc.connect(gain);
-                gain.connect(destination);
-
-                osc.start(ctx.currentTime);
-                osc.stop(ctx.currentTime + 0.1);
-            },
-
-            // Generate a hover sound
-            hover: (ctx, destination) => {
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(600, ctx.currentTime);
-
-                gain.gain.setValueAtTime(0.1, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.05);
-
-                osc.connect(gain);
-                gain.connect(destination);
-
-                osc.start(ctx.currentTime);
-                osc.stop(ctx.currentTime + 0.05);
-            },
-
-            // Generate a spawn sound
-            spawn: (ctx, destination) => {
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-
-                osc.type = 'square';
-                osc.frequency.setValueAtTime(200, ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.15);
-
-                gain.gain.setValueAtTime(0.15, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
-
-                osc.connect(gain);
-                gain.connect(destination);
-
-                osc.start(ctx.currentTime);
-                osc.stop(ctx.currentTime + 0.15);
-            },
-
-            // Generate a select sound
-            select: (ctx, destination) => {
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(400, ctx.currentTime);
-                osc.frequency.setValueAtTime(600, ctx.currentTime + 0.05);
-                osc.frequency.setValueAtTime(800, ctx.currentTime + 0.1);
-
-                gain.gain.setValueAtTime(0.2, ctx.currentTime);
-                gain.gain.setValueAtTime(0.2, ctx.currentTime + 0.15);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-
-                osc.connect(gain);
-                gain.connect(destination);
-
-                osc.start(ctx.currentTime);
-                osc.stop(ctx.currentTime + 0.2);
-            },
-
-            // Generate a delete sound
-            delete: (ctx, destination) => {
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(400, ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.2);
-
-                gain.gain.setValueAtTime(0.15, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-
-                osc.connect(gain);
-                gain.connect(destination);
-
-                osc.start(ctx.currentTime);
-                osc.stop(ctx.currentTime + 0.2);
-            }
-        };
-
-        // Ambient drone
-        function createAmbientSound(ctx, destination) {
-            const osc1 = ctx.createOscillator();
-            const osc2 = ctx.createOscillator();
-            const gain = ctx.createGain();
-
-            osc1.type = 'sine';
-            osc1.frequency.setValueAtTime(110, ctx.currentTime); // A2
-
-            osc2.type = 'sine';
-            osc2.frequency.setValueAtTime(165, ctx.currentTime); // E3
-
-            gain.gain.setValueAtTime(0.08, ctx.currentTime);
-
-            osc1.connect(gain);
-            osc2.connect(gain);
-            gain.connect(destination);
-
-            osc1.start();
-            osc2.start();
-
-            return { osc1, osc2, gain };
-        }
-
-        // Music track generator
-        function createMusic(ctx, destination, type) {
-            const notes = type === 'peaceful'
-                ? [261.63, 293.66, 329.63, 349.23, 392.00] // C major pentatonic
-                : [220, 246.94, 293.66, 329.63, 392]; // A minor
-
-            const gain = ctx.createGain();
-            gain.gain.setValueAtTime(0.1, ctx.currentTime);
-            gain.connect(destination);
-
-            const playNote = (time) => {
-                const osc = ctx.createOscillator();
-                const noteGain = ctx.createGain();
-
-                osc.type = 'triangle';
-                const freq = notes[Math.floor(Math.random() * notes.length)];
-                osc.frequency.setValueAtTime(freq, time);
-
-                noteGain.gain.setValueAtTime(0.15, time);
-                noteGain.gain.exponentialRampToValueAtTime(0.01, time + 0.5);
-
-                osc.connect(noteGain);
-                noteGain.connect(gain);
-
-                osc.start(time);
-                osc.stop(time + 0.5);
+            document.getElementById("btn-init").onclick = () => {
+                audioReady = bridge.init_audio();
+                document.getElementById("info").textContent = audioReady
+                    ? "Audio ready!"
+                    : "Audio failed";
             };
 
-            // Start arpeggiator
-            const interval = setInterval(() => {
-                playNote(ctx.currentTime);
-            }, type === 'peaceful' ? 400 : 200);
-
-            return {
-                stop: () => clearInterval(interval),
-                gain
+            document.getElementById("btn-beep").onclick = () => {
+                if (audioReady) {
+                    bridge.play_beep(440, 0.2, 0.5);
+                    document.getElementById("info").textContent = "Beep!";
+                }
             };
-        }
-
-        async function main() {
-            const canvas = document.getElementById('canvas');
-            const loading = document.getElementById('loading');
-
-            try {
-                wasm = await init();
-
-                const rect = canvas.getBoundingClientRect();
-                wasm.initialize(rect.width, rect.height);
-
-                loading.style.display = 'none';
-
-                // Initialize Web Audio
-                initAudio();
-
-                // Spawn some entities
-                for (let i = 0; i < 3; i++) {
-                    const id = wasm.spawn_entity(200 + i * 150, 200, 50, 50);
-                    wasm.set_color(id, 100 + i * 50, 150, 200, 255);
-                }
-
-                // Setup events
-                setupEvents();
-
-                // Start render loop
-                startRenderLoop();
-
-            } catch (err) {
-                console.error('Failed to initialize:', err);
-                loading.innerHTML = `<div style="color: red;">Error: ${err.message}</div>`;
-            }
-        }
-
-        function initAudio() {
-            try {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-                // Master gain
-                masterGain = audioCtx.createGain();
-                masterGain.gain.setValueAtTime(0.8, audioCtx.currentTime);
-                masterGain.connect(audioCtx.destination);
-
-                // Analyser for visualizer
-                analyser = audioCtx.createAnalyser();
-                analyser.fftSize = 256;
-                masterGain.connect(analyser);
-
-                document.getElementById('audio-context-status').textContent = 'Active';
-                document.getElementById('audio-context-status').className = 'status-value status-active';
-
-                // Start visualizer
-                drawVisualizer();
-
-            } catch (e) {
-                console.error('Audio init failed:', e);
-                document.getElementById('audio-context-status').textContent = 'Failed';
-                document.getElementById('audio-context-status').className = 'status-value status-inactive';
-            }
-        }
-
-        // Sound playback functions
-        function playSound(type) {
-            if (!audioCtx) return;
-
-            // Resume audio context if suspended
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-
-            if (SoundGenerator[type]) {
-                SoundGenerator[type](audioCtx, masterGain);
-                activeSources.add(type);
-                updateSourcesCount();
-            }
-
-            // Auto-remove after sound completes
-            setTimeout(() => {
-                activeSources.delete(type);
-                updateSourcesCount();
-            }, 500);
-        }
-
-        function playSpatialSound(type) {
-            if (!audioCtx) return;
-
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-
-            // Create panner for spatial audio
-            const panner = audioCtx.createPanner();
-            panner.panningModel = 'HRTF';
-            panner.distanceModel = 'inverse';
-            panner.refDistance = 1;
-            panner.maxDistance = 100;
-            panner.rolloffFactor = 1;
-            panner.setPosition(Math.random() * 2 - 1, Math.random() * 2 - 1, 0);
-
-            panner.connect(masterGain);
-
-            if (type === 'ambient') {
-                const ambient = createAmbientSound(audioCtx, panner);
-                activeSources.add('ambient');
-                // Store for cleanup
-                window._ambientSound = ambient;
-            } else if (type === 'footsteps') {
-                SoundGenerator.click(audioCtx, panner);
-            } else if (type === 'engine') {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(80, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-                osc.connect(gain);
-                gain.connect(panner);
-                osc.start();
-                window._engineSound = { osc, gain };
-            }
-
-            updateSourcesCount();
-        }
-
-        function playMusic(type) {
-            if (!audioCtx) return;
-
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-
-            // Stop current music
-            if (currentMusic) {
-                currentMusic.stop();
-            }
-
-            currentMusic = createMusic(audioCtx, masterGain, type);
-            document.getElementById('music-status').textContent = type.charAt(0).toUpperCase() + type.slice(1);
-        }
-
-        function stopMusic() {
-            if (currentMusic) {
-                currentMusic.stop();
-                currentMusic = null;
-            }
-            document.getElementById('music-status').textContent = 'None';
-        }
-
-        function updateSourcesCount() {
-            document.getElementById('sources-count').textContent = activeSources.size;
-        }
-
-        // Visualizer
-        function drawVisualizer() {
-            const canvas = document.getElementById('visualizer');
-            const ctx = canvas.getContext('2d');
-            const bufferLength = analyser.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
-
-            function draw() {
-                requestAnimationFrame(draw);
-
-                analyser.getByteFrequencyData(dataArray);
-
-                ctx.fillStyle = '#222';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                const barWidth = (canvas.width / bufferLength) * 2.5;
-                let x = 0;
-
-                for (let i = 0; i < bufferLength; i++) {
-                    const barHeight = (dataArray[i] / 255) * canvas.height;
-
-                    const hue = i * 2;
-                    ctx.fillStyle = `hsl(${hue}, 80%, 50%)`;
-                    ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
-
-                    x += barWidth + 1;
-                }
-            }
-
-            draw();
-        }
-
-        function setupEvents() {
-            // Master volume slider
-            document.getElementById('master-volume').addEventListener('input', (e) => {
-                const vol = e.target.value / 100;
-                if (masterGain) {
-                    masterGain.gain.setValueAtTime(vol, audioCtx.currentTime);
-                }
-                document.getElementById('master-vol-val').textContent = `${e.target.value}%`;
-                document.getElementById('master-status').textContent = `${e.target.value}%`;
-            });
-
-            // Mute button
-            document.getElementById('btn-mute').addEventListener('click', () => {
-                if (masterGain) {
-                    if (masterGain.gain.value > 0) {
-                        masterGain.gain.setValueAtTime(0, audioCtx.currentTime);
-                        document.getElementById('btn-mute').textContent = 'Unmute';
-                    } else {
-                        masterGain.gain.setValueAtTime(0.8, audioCtx.currentTime);
-                        document.getElementById('btn-mute').textContent = 'Mute';
-                    }
-                }
-            });
-        }
-
-        function startRenderLoop() {
-            let lastTime = 0;
-
-            function render(timestamp) {
-                const deltaTime = (timestamp - lastTime) / 1000;
-                lastTime = timestamp;
-
-                wasm.tick(deltaTime);
-                requestAnimationFrame(render);
-            }
-
-            requestAnimationFrame(render);
-        }
-
-        // Handle resize
-        window.addEventListener('resize', () => {
-            const canvas = document.getElementById('canvas');
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            if (wasm) {
-                wasm.resize(canvas.width, canvas.height);
-            }
-        });
-
-        window.dispatchEvent(new Event('resize'));
-        main();
-    </script>
-</body>
+        </script>
+    </body>
 </html>

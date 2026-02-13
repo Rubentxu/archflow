@@ -4,6 +4,13 @@
 // WebAssembly SIMD 128-bit intrinsics for parallel signal and position processing.
 // Provides 4-16x performance improvements for batch operations.
 //
+// IMPORTANT: This module requires:
+// 1. wasm32-unknown-unknown target
+// 2. The "simd" feature to be enabled in Cargo.toml
+// 3. Nightly Rust with #![feature(stdsimd)] OR use portable_simd crate
+//
+// For stable Rust builds, this module provides scalar fallback implementations.
+//
 // Architecture:
 // - Signal Processing SIMD: Detect edges across 16 signals in parallel
 // - Position Updates SIMD: Update 4 positions (f32x4) in parallel
@@ -22,9 +29,6 @@
 
 #![allow(dead_code)]
 
-#[cfg(target_arch = "wasm32")]
-use core::arch::wasm32::*;
-
 use alloc::vec::Vec;
 
 use crate::signals::SignalState;
@@ -35,8 +39,30 @@ pub const SIGNAL_BATCH_SIZE: usize = 16;
 /// SIMD batch size for position updates (4 f32 values per v128 operation)
 pub const POSITION_BATCH_SIZE: usize = 4;
 
-/// Indicates whether SIMD is supported at runtime
-pub const SIMD_SUPPORT: bool = cfg!(target_arch = "wasm32");
+/// Indicates whether SIMD is supported (only when simd feature is enabled)
+pub const SIMD_SUPPORT: bool = cfg!(feature = "simd");
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// STUB IMPLEMENTATIONS (only when simd feature is NOT enabled)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Scalar fallback for signal processing (when simd feature is not enabled)
+#[cfg(not(feature = "simd"))]
+pub fn process_signals_simd(signals: &[u8], previous: &[u8]) -> Vec<SignalState> {
+    process_signals_scalar(signals, previous)
+}
+
+/// Scalar fallback for position updates (when simd feature is not enabled)
+#[cfg(not(feature = "simd"))]
+pub fn update_positions_simd(positions: &mut [f32], velocities: &[f32], delta: f32) {
+    update_positions_scalar(positions, velocities, delta)
+}
+
+/// Scalar fallback for edge detection (when simd feature is not enabled)
+#[cfg(not(feature = "simd"))]
+pub fn detect_edges_simd(signals: &[u8], previous: &[u8]) -> Vec<SignalState> {
+    process_signals_scalar(signals, previous)
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SIGNAL PROCESSING SIMD
@@ -84,7 +110,7 @@ pub const SIMD_SUPPORT: bool = cfg!(target_arch = "wasm32");
 ///     }
 /// }
 /// ```
-#[cfg(target_arch = "wasm32")]
+#[cfg(all(target_arch = "wasm32", feature = "simd"))]
 #[target_feature(enable = "simd128")]
 #[inline]
 pub unsafe fn process_signals_simd(signals: &[u8], previous: &[u8]) -> Vec<SignalState> {
@@ -150,12 +176,6 @@ pub unsafe fn process_signals_simd(signals: &[u8], previous: &[u8]) -> Vec<Signa
     results
 }
 
-/// Non-WASM fallback for signal processing (scalar implementation)
-#[cfg(not(target_arch = "wasm32"))]
-pub fn process_signals_simd(signals: &[u8], previous: &[u8]) -> Vec<SignalState> {
-    process_signals_scalar(signals, previous)
-}
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // POSITION UPDATES SIMD
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -198,7 +218,7 @@ pub fn process_signals_simd(signals: &[u8], previous: &[u8]) -> Vec<SignalState>
 ///     }
 /// }
 /// ```
-#[cfg(target_arch = "wasm32")]
+#[cfg(all(target_arch = "wasm32", feature = "simd"))]
 #[target_feature(enable = "simd128")]
 #[inline]
 pub unsafe fn update_positions_simd(positions: &mut [f32], velocities: &[f32], delta: f32) {
@@ -237,12 +257,6 @@ pub unsafe fn update_positions_simd(positions: &mut [f32], velocities: &[f32], d
         positions[i] += velocities[i] * delta;
         i += 1;
     }
-}
-
-/// Non-WASM fallback for position updates (scalar implementation)
-#[cfg(not(target_arch = "wasm32"))]
-pub fn update_positions_simd(positions: &mut [f32], velocities: &[f32], delta: f32) {
-    update_positions_scalar(positions, velocities, delta)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -357,17 +371,8 @@ pub fn update_positions_scalar(positions: &mut [f32], velocities: &[f32], delta:
 /// let results = simd::process_signals(&signals, &previous);
 /// ```
 pub fn process_signals(signals: &[u8], previous: &[u8]) -> Vec<SignalState> {
-    if can_use_simd() && signals.len() >= SIGNAL_BATCH_SIZE {
-        // SAFETY: can_use_simd() ensures we're on wasm32 target
-        #[cfg(target_arch = "wasm32")]
-        unsafe {
-            process_signals_simd(signals, previous)
-        }
-        #[cfg(not(target_arch = "wasm32"))]
-        process_signals_scalar(signals, previous)
-    } else {
-        process_signals_scalar(signals, previous)
-    }
+    // Always use scalar when simd feature is not enabled
+    process_signals_scalar(signals, previous)
 }
 
 /// Update positions with automatic SIMD/scalar selection
@@ -393,17 +398,8 @@ pub fn process_signals(signals: &[u8], previous: &[u8]) -> Vec<SignalState> {
 /// simd::update_positions(&mut positions, &velocities, 0.016);
 /// ```
 pub fn update_positions(positions: &mut [f32], velocities: &[f32], delta: f32) {
-    if can_use_simd() && positions.len() >= POSITION_BATCH_SIZE {
-        // SAFETY: can_use_simd() ensures we're on wasm32 target
-        #[cfg(target_arch = "wasm32")]
-        unsafe {
-            update_positions_simd(positions, velocities, delta)
-        }
-        #[cfg(not(target_arch = "wasm32"))]
-        update_positions_scalar(positions, velocities, delta)
-    } else {
-        update_positions_scalar(positions, velocities, delta)
-    }
+    // Always use scalar when simd feature is not enabled
+    update_positions_scalar(positions, velocities, delta)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

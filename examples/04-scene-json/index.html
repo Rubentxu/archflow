@@ -1,459 +1,103 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ArchFlow - JSON Scene Loading</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            overflow: hidden;
-            background: #1a1a2e;
-            color: #eee;
-        }
-
-        #canvas-container {
-            width: 100vw;
-            height: 100vh;
-        }
-
-        canvas {
-            display: block;
-            background: #0f0f1a;
-        }
-
-        #loading {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid #333;
-            border-top-color: #00d4ff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        #scene-selector {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 15px;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 12px;
-        }
-
-        h2 {
-            color: #00d4ff;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
-
-        select {
-            width: 100%;
-            background: #333;
-            border: 1px solid #444;
-            color: #fff;
-            padding: 8px;
-            border-radius: 4px;
-            margin-bottom: 10px;
-        }
-
-        button {
-            background: #00d4ff;
-            color: #1a1a2e;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 600;
-            width: 100%;
-            margin-bottom: 8px;
-            transition: background 0.2s;
-        }
-
-        button:hover {
-            background: #00b8e6;
-        }
-
-        #status {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 15px;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 12px;
-            min-width: 200px;
-        }
-
-        .status-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 6px;
-        }
-
-        .status-label {
-            color: #888;
-        }
-
-        .status-value {
-            color: #00ff88;
-        }
-
-        .status-error {
-            color: #ff4444;
-        }
-
-        #json-preview {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 10px;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 11px;
-            max-height: 200px;
-            overflow-y: auto;
-            max-width: 400px;
-        }
-
-        #json-preview h3 {
-            color: #00d4ff;
-            margin-bottom: 5px;
-            font-size: 12px;
-        }
-
-        pre {
-            color: #aaa;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-
-        #instructions {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-size: 12px;
-            color: #888;
-        }
-    </style>
-</head>
-<body>
-    <div id="canvas-container">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>ArchFlow - Scene JSON</title>
+        <style>
+            body {
+                margin: 0;
+                overflow: hidden;
+                background: #0f0f1a;
+                font-family: monospace;
+            }
+            canvas {
+                display: block;
+            }
+            #controls {
+                position: absolute;
+                top: 10px;
+                left: 10px;
+                background: rgba(0, 0, 0, 0.8);
+                padding: 15px;
+                border-radius: 8px;
+                color: #eee;
+                font-size: 12px;
+            }
+            button {
+                background: #00d4ff;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                cursor: pointer;
+                margin-right: 5px;
+                font-weight: bold;
+            }
+            button:hover {
+                background: #00b8e6;
+            }
+            #status {
+                margin-top: 10px;
+                color: #00ff88;
+            }
+        </style>
+    </head>
+    <body>
         <canvas id="canvas"></canvas>
-    </div>
-
-    <div id="loading">
-        <div class="spinner"></div>
-        <div>Loading ArchFlow Engine...</div>
-    </div>
-
-    <div id="scene-selector">
-        <h2>📁 Scene Loader</h2>
-
-        <label>Select Scene:</label>
-        <select id="scene-select">
-            <option value="basic">Basic Scene</option>
-            <option value="physics">Physics Demo</option>
-            <option value="particles">Particle Effects</option>
-            <option value="interactive">Interactive Demo</option>
-        </select>
-
-        <button id="btn-load">Load Scene</button>
-        <button id="btn-serialize">Serialize Current</button>
-        <button id="btn-clear">Clear All</button>
-    </div>
-
-    <div id="status">
-        <h2>📊 Engine Status</h2>
-        <div class="status-row">
-            <span class="status-label">Status:</span>
-            <span class="status-value" id="status-text">Ready</span>
+        <div id="controls">
+            <div><strong>Scene Serialization</strong></div>
+            <div style="margin-top: 10px">
+                <button id="btn-spawn">Spawn 5</button>
+                <button id="btn-serialize">Serialize</button>
+                <button id="btn-clear">Clear</button>
+            </div>
+            <div id="status">Click a button</div>
         </div>
-        <div class="status-row">
-            <span class="status-label">Entities:</span>
-            <span class="status-value" id="entity-count">0</span>
-        </div>
-        <div class="status-row">
-            <span class="status-label">Scene:</span>
-            <span class="status-value" id="current-scene">None</span>
-        </div>
-    </div>
 
-    <div id="json-preview">
-        <h3>📄 JSON Preview</h3>
-        <pre id="json-content">// Scene JSON will appear here</pre>
-    </div>
+        <script type="module">
+            import { createEngine } from "../shared/archflow-client.js";
 
-    <div id="instructions">
-        Select scene • Load • Modify • Serialize
-    </div>
+            // ============================================================
+            // 04 - Scene JSON
+            // ============================================================
+            // spawn_entity + set_color to create entities
+            // serialize_scene() exports ECS state to JSON
+            // clear() resets the scene
+            // ============================================================
 
-    <script type="module">
-        import init from './archflow_web.js';
+            const { bridge } = await createEngine("canvas");
 
-        // ============================================
-        // Scene Definitions (simulating external JSON)
-        // ============================================
+            const colors = [0xff6b6b, 0x4ecdc4, 0xffe66d, 0x95e1d3, 0xf38181];
 
-        const SCENES = {
-            basic: {
-                version: "1.0.0",
-                metadata: { name: "Basic Scene", description: "Simple shapes" },
-                config: { physics: { gravity: [0, -9.81, 0] } },
-                entities: [
-                    { id: "bg", components: { transform: { position: { x: 400, y: 300 } }, render: { shape: "rect", color: "#222233", width: 800, height: 600 } } },
-                    { id: "box1", components: { transform: { position: { x: 200, y: 200 } }, render: { shape: "rect", color: "#ff6b6b", width: 60, height: 60 } } },
-                    { id: "box2", components: { transform: { position: { x: 400, y: 150 } }, render: { shape: "rect", color: "#4ecdc4", width: 80, height: 80 } } },
-                    { id: "box3", components: { transform: { position: { x: 600, y: 250 } }, render: { shape: "rect", color: "#ffe66d", width: 100, height: 40 } } }
-                ]
-            },
-            physics: {
-                version: "1.0.0",
-                metadata: { name: "Physics Demo", description: "Falling objects" },
-                config: { physics: { gravity: [0, -9.81, 0] } },
-                entities: [
-                    { id: "ground", components: { transform: { position: { x: 400, y: 550 }, scale: { x: 800, y: 20 } }, render: { shape: "rect", color: "#444444", width: 800, height: 20 }, physics: { type: "static", friction: 0.8 } } },
-                    { id: "ball1", components: { transform: { position: { x: 300, y: 100 } }, render: { shape: "circle", color: "#ff6b6b", radius: 20 }, physics: { type: "dynamic", mass: 1.0, restitution: 0.8 } } },
-                    { id: "ball2", components: { transform: { position: { x: 400, y: 50 } }, render: { shape: "circle", color: "#4ecdc4", radius: 25 }, physics: { type: "dynamic", mass: 2.0, restitution: 0.6 } } },
-                    { id: "ball3", components: { transform: { position: { x: 500, y: 80 } }, render: { shape: "circle", color: "#ffe66d", radius: 15 }, physics: { type: "dynamic", mass: 0.5, restitution: 0.9 } } },
-                    { id: "platform1", components: { transform: { position: { x: 200, y: 350 }, rotation: 15 }, render: { shape: "rect", color: "#666666", width: 150, height: 15 }, physics: { type: "static" } } },
-                    { id: "platform2", components: { transform: { position: { x: 600, y: 250 }, rotation: -15 }, render: { shape: "rect", color: "#666666", width: 150, height: 15 }, physics: { type: "static" } } }
-                ]
-            },
-            particles: {
-                version: "1.0.0",
-                metadata: { name: "Particle Effects", description: "Visual particles" },
-                entities: [
-                    { id: "emitter1", components: { transform: { position: { x: 400, y: 300 } }, render: { shape: "circle", color: "#ff6b6b", radius: 10 } } },
-                    { id: "p1", components: { transform: { position: { x: 380, y: 280 } }, render: { shape: "circle", color: "#ff9999", radius: 3 } } },
-                    { id: "p2", components: { transform: { position: { x: 420, y: 290 } }, render: { shape: "circle", color: "#ffaaaa", radius: 4 } } },
-                    { id: "p3", components: { transform: { position: { x: 360, y: 310 } }, render: { shape: "circle", color: "#ff8888", radius: 2 } } },
-                    { id: "p4", components: { transform: { position: { x: 440, y: 320 } }, render: { shape: "circle", color: "#ffbbbb", radius: 3 } } }
-                ]
-            },
-            interactive: {
-                version: "1.0.0",
-                metadata: { name: "Interactive Demo", description: "Click to interact" },
-                entities: [
-                    { id: "btn1", components: { transform: { position: { x: 300, y: 200 } }, render: { shape: "rect", color: "#00d4ff", width: 120, height: 40 }, sensor: { type: "click", action: "highlight" } } },
-                    { id: "btn2", components: { transform: { position: { x: 500, y: 200 } }, render: { shape: "rect", color: "#ff6b6b", width: 120, height: 40 }, sensor: { type: "click", action: "spawn" } } },
-                    { id: "target", components: { transform: { position: { x: 400, y: 400 } }, render: { shape: "circle", color: "#4ecdc4", radius: 30 } } }
-                ]
-            }
-        };
-
-        let wasm = null;
-        let currentSceneJson = null;
-
-        async function main() {
-            const canvas = document.getElementById('canvas');
-            const loading = document.getElementById('loading');
-
-            try {
-                wasm = await init();
-
-                const rect = canvas.getBoundingClientRect();
-                wasm.initialize(rect.width, rect.height);
-
-                loading.style.display = 'none';
-
-                // Setup handlers
-                setupHandlers();
-
-                // Start render loop
-                startRenderLoop();
-
-                // Update status
-                updateStatus('Ready');
-
-            } catch (err) {
-                console.error('Failed to initialize:', err);
-                loading.innerHTML = `<div style="color: red;">Error: ${err.message}</div>`;
-                updateStatus('Error: ' + err.message, true);
-            }
-        }
-
-        function setupHandlers() {
-            // Load scene button
-            document.getElementById('btn-load').addEventListener('click', () => {
-                const sceneKey = document.getElementById('scene-select').value;
-                loadScene(SCENES[sceneKey]);
-            });
-
-            // Serialize button
-            document.getElementById('btn-serialize').addEventListener('click', () => {
-                serializeCurrentScene();
-            });
-
-            // Clear button
-            document.getElementById('btn-clear').addEventListener('click', () => {
-                wasm.clear();
-                currentSceneJson = null;
-                document.getElementById('json-content').textContent = '// Scene cleared';
-                document.getElementById('current-scene').textContent = 'None';
-                updateEntityCount();
-            });
-
-            // Scene select change - show preview
-            document.getElementById('scene-select').addEventListener('change', (e) => {
-                const scene = SCENES[e.target.value];
-                document.getElementById('json-content').textContent = JSON.stringify(scene, null, 2);
-            });
-
-            // Show initial preview
-            document.getElementById('json-content').textContent = JSON.stringify(SCENES.basic, null, 2);
-        }
-
-        function loadScene(sceneJson) {
-            try {
-                updateStatus('Loading...');
-
-                // Clear existing
-                wasm.clear();
-
-                // Parse entities and create them
-                let entityCount = 0;
-
-                for (const entity of sceneJson.entities) {
-                    const components = entity.components;
-
-                    // Extract transform
-                    const transform = components.transform || {};
-                    const x = transform.position?.x || 0;
-                    const y = transform.position?.y || 0;
-                    const w = transform.scale?.width || transform.scale?.x || 60;
-                    const h = transform.scale?.height || transform.scale?.y || 60;
-
-                    // Extract render
-                    const render = components.render || {};
-                    const color = render.color || '#ffffff';
-                    const shape = render.shape || 'rect';
-
-                    // Parse color
-                    const r = parseInt(color.slice(1, 3), 16);
-                    const g = parseInt(color.slice(3, 5), 16);
-                    const b = parseInt(color.slice(5, 7), 16);
-
-                    // Spawn entity
-                    const entityId = wasm.spawn_entity(x, y, w, h);
-                    wasm.set_color(entityId, r, g, b, 255);
-
-                    // Set shape (0 = rect, 1 = circle)
-                    const shapeType = shape === 'circle' ? 1 : 0;
-                    wasm.set_shape(entityId, shapeType);
-
-                    entityCount++;
+            document.getElementById("btn-spawn").onclick = () => {
+                for (let i = 0; i < 5; i++) {
+                    const x = 100 + i * 120;
+                    const y = 200 + Math.sin(i) * 50;
+                    const id = bridge.spawn_entity(x, y, 50, 50);
+                    const c = colors[i];
+                    bridge.set_color(
+                        id,
+                        (c >> 16) & 0xff,
+                        (c >> 8) & 0xff,
+                        c & 0xff,
+                        255,
+                    );
                 }
+                document.getElementById("status").textContent =
+                    `Spawned 5 entities (total: ${bridge.entity_count()})`;
+            };
 
-                currentSceneJson = sceneJson;
+            document.getElementById("btn-serialize").onclick = () => {
+                const json = bridge.serialize_scene();
+                console.log("Scene JSON:", JSON.parse(json));
+                document.getElementById("status").textContent =
+                    "Serialized to console (F12)";
+            };
 
-                updateStatus('Loaded');
-                document.getElementById('current-scene').textContent = sceneJson.metadata.name;
-                updateEntityCount();
-
-            } catch (err) {
-                console.error('Failed to load scene:', err);
-                updateStatus('Error: ' + err.message, true);
-            }
-        }
-
-        function serializeCurrentScene() {
-            try {
-                // Get all entities
-                const entityCount = wasm.entity_count();
-                const entities = [];
-
-                // Note: Full serialization would need query system
-                // This is a simplified version
-
-                const scene = {
-                    version: "1.0.0",
-                    metadata: {
-                        name: "Serialized Scene",
-                        exported: new Date().toISOString()
-                    },
-                    entities: entities,
-                    note: "Full serialization requires query system (ANEXA-003)"
-                };
-
-                document.getElementById('json-content').textContent = JSON.stringify(scene, null, 2);
-                updateStatus('Serialized');
-
-            } catch (err) {
-                console.error('Failed to serialize:', err);
-                updateStatus('Error: ' + err.message, true);
-            }
-        }
-
-        function updateStatus(text, isError = false) {
-            document.getElementById('status-text').textContent = text;
-            document.getElementById('status-text').className = isError ? 'status-error' : 'status-value';
-        }
-
-        function updateEntityCount() {
-            const count = wasm.entity_count();
-            document.getElementById('entity-count').textContent = count;
-        }
-
-        function startRenderLoop() {
-            let lastTime = 0;
-
-            function render(timestamp) {
-                const deltaTime = (timestamp - lastTime) / 1000;
-                lastTime = timestamp;
-
-                // Update engine
-                wasm.tick(deltaTime);
-
-                // Update entity count
-                updateEntityCount();
-
-                requestAnimationFrame(render);
-            }
-
-            requestAnimationFrame(render);
-        }
-
-        // Handle resize
-        window.addEventListener('resize', () => {
-            const canvas = document.getElementById('canvas');
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            if (wasm) {
-                wasm.resize(canvas.width, canvas.height);
-            }
-        });
-
-        // Initial resize
-        window.dispatchEvent(new Event('resize'));
-
-        // Start
-        main();
-    </script>
-</body>
+            document.getElementById("btn-clear").onclick = () => {
+                bridge.clear();
+                document.getElementById("status").textContent = "Cleared";
+            };
+        </script>
+    </body>
 </html>

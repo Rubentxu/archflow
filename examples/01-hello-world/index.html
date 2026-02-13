@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>ArchFlow - Entity Properties</title>
+        <title>ArchFlow - Hello World</title>
         <style>
             body {
                 margin: 0;
@@ -28,29 +28,25 @@
     </head>
     <body>
         <canvas id="canvas"></canvas>
-        <div id="info">Click to create entities</div>
+        <div id="info">Initializing...</div>
 
         <script type="module">
             import { createEngine } from "../shared/archflow-client.js";
 
             // ============================================================
-            // 03 - Entity Properties
+            // 01 - Hello World
             // ============================================================
-            // set_active_color() configures new entity color
-            // Click events → ring buffer → Logic Bricks → entity spawn
-            // entity_count() queries the ECS
+            // One line: createEngine() handles EVERYTHING:
+            //   WASM loading → WasmBridge → initialize → graphics →
+            //   push_input_event ring buffer → resize → render loop
             // ============================================================
 
             const { bridge } = await createEngine("canvas", {
-                onFrame(dt, fps) {
-                    const count = bridge.entity_count();
-                    document.getElementById("info").innerHTML =
-                        `Entities: ${count} | FPS: ${fps}<br>Click to create (WASM Logic Bricks)`;
+                onFrame: (dt, fps) => {
+                    document.getElementById("info").textContent =
+                        `Engine running! FPS: ${fps}`;
                 },
             });
-
-            // Configure what color new entities get
-            bridge.set_active_color(255, 107, 107, 255);
         </script>
     </body>
 </html>

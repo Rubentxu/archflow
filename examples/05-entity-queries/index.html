@@ -1,576 +1,119 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ArchFlow - Entity Queries</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            overflow: hidden;
-            background: #1a1a2e;
-            color: #eee;
-        }
-
-        #canvas-container {
-            width: 100vw;
-            height: 100vh;
-        }
-
-        canvas {
-            display: block;
-            background: #0f0f1a;
-        }
-
-        #loading {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid #333;
-            border-top-color: #00d4ff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        #query-panel {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.85);
-            padding: 15px;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 12px;
-            min-width: 300px;
-            max-height: calc(100vh - 80px);
-            overflow-y: auto;
-        }
-
-        h2 {
-            color: #00d4ff;
-            margin-bottom: 12px;
-            font-size: 14px;
-            border-bottom: 1px solid #333;
-            padding-bottom: 8px;
-        }
-
-        .query-section {
-            margin-bottom: 15px;
-            padding: 10px;
-            background: rgba(255,255,255,0.03);
-            border-radius: 4px;
-        }
-
-        .query-section h3 {
-            color: #888;
-            font-size: 11px;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-        }
-
-        button {
-            background: #00d4ff;
-            color: #1a1a2e;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 11px;
-            margin-right: 6px;
-            margin-bottom: 6px;
-            transition: background 0.2s;
-        }
-
-        button:hover {
-            background: #00b8e6;
-        }
-
-        button.query-btn {
-            background: #2a4a6a;
-            color: #00d4ff;
-        }
-
-        button.query-btn:hover {
-            background: #3a5a7a;
-        }
-
-        #results {
-            margin-top: 15px;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .entity-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 6px 8px;
-            margin-bottom: 4px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .entity-item:hover {
-            background: rgba(0, 212, 255, 0.1);
-        }
-
-        .entity-item.selected {
-            background: rgba(0, 212, 255, 0.2);
-            border: 1px solid #00d4ff;
-        }
-
-        .entity-id {
-            color: #00ff88;
-            font-weight: bold;
-        }
-
-        .entity-info {
-            color: #888;
-            font-size: 10px;
-        }
-
-        #stats-panel {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.85);
-            padding: 15px;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 12px;
-            min-width: 200px;
-        }
-
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 6px;
-        }
-
-        .stat-label {
-            color: #888;
-        }
-
-        .stat-value {
-            color: #00ff88;
-        }
-
-        #instructions {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.85);
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-size: 12px;
-            color: #888;
-        }
-    </style>
-</head>
-<body>
-    <div id="canvas-container">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>ArchFlow - Entity Queries</title>
+        <style>
+            body {
+                margin: 0;
+                overflow: hidden;
+                background: #0f0f1a;
+                font-family: monospace;
+            }
+            canvas {
+                display: block;
+            }
+            #controls {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                background: rgba(0, 0, 0, 0.8);
+                padding: 15px;
+                border-radius: 8px;
+                color: #eee;
+                font-size: 12px;
+                min-width: 200px;
+            }
+            button {
+                background: #00d4ff;
+                border: none;
+                padding: 8px 12px;
+                border-radius: 4px;
+                cursor: pointer;
+                margin: 2px;
+                font-size: 11px;
+            }
+            button:hover {
+                background: #00b8e6;
+            }
+            #results {
+                margin-top: 10px;
+                color: #00ff88;
+                max-height: 200px;
+                overflow-y: auto;
+            }
+        </style>
+    </head>
+    <body>
         <canvas id="canvas"></canvas>
-    </div>
-
-    <div id="loading">
-        <div class="spinner"></div>
-        <div>Loading...</div>
-    </div>
-
-    <div id="query-panel">
-        <h2>🔍 Entity Queries</h2>
-
-        <!-- Query by Shape -->
-        <div class="query-section">
-            <h3>Query by Shape</h3>
-            <button class="query-btn" onclick="queryByShape(0)">Rectangles</button>
-            <button class="query-btn" onclick="queryByShape(1)">Circles</button>
-            <button class="query-btn" onclick="queryAll()">All Entities</button>
+        <div id="controls">
+            <div><strong>Entity Queries</strong></div>
+            <div style="margin: 10px 0">
+                <button id="q-all">All</button>
+                <button id="q-rect">Rectangles</button>
+                <button id="q-circle">Circles</button>
+            </div>
+            <div><strong>Results:</strong></div>
+            <div id="results">-</div>
         </div>
 
-        <!-- Query by Bounds -->
-        <div class="query-section">
-            <h3>Query by Bounds</h3>
-            <button class="query-btn" onclick="queryInBounds(0, 0, 400, 300)">Left Half</button>
-            <button class="query-btn" onclick="queryInBounds(400, 0, 800, 300)">Right Half</button>
-            <button class="query-btn" onclick="queryInBounds(200, 200, 400, 400)">Center Area</button>
-        </div>
+        <script type="module">
+            import { createEngine } from "../shared/archflow-client.js";
 
-        <!-- Query by Property -->
-        <div class="query-section">
-            <h3>Query by Property</h3>
-            <button class="query-btn" onclick="queryVisible()">Visible Only</button>
-            <button class="query-btn" onclick="querySelected()">Selected Only</button>
-            <button class="query-btn" onclick="queryLarge(50)">Size &gt; 50</button>
-        </div>
+            // ============================================================
+            // 05 - Entity Queries
+            // ============================================================
+            // get_alive_entities() returns Uint32Array of all entity IDs
+            // query_by_shape(0) = rectangles, query_by_shape(1) = circles
+            // Results are Uint32Array — use Array.from() for JS methods
+            // ============================================================
 
-        <!-- Batch Operations -->
-        <div class="query-section">
-            <h3>Batch Operations</h3>
-            <button onclick="selectAllResults()">Select All Results</button>
-            <button onclick="deleteAllResults()" style="background: #ff6b6b;">Delete Results</button>
-            <button onclick="highlightResults()" style="background: #ffd700; color: #000;">Highlight</button>
-        </div>
+            const { bridge } = await createEngine("canvas");
 
-        <!-- Results -->
-        <h2>📊 Results <span id="result-count">(0)</span></h2>
-        <div id="results"></div>
-    </div>
-
-    <div id="stats-panel">
-        <h2>📈 Engine Stats</h2>
-        <div class="stat-row">
-            <span class="stat-label">Total Entities:</span>
-            <span class="stat-value" id="stat-total">0</span>
-        </div>
-        <div class="stat-row">
-            <span class="stat-label">Visible:</span>
-            <span class="stat-value" id="stat-visible">0</span>
-        </div>
-        <div class="stat-row">
-            <span class="stat-label">Selected:</span>
-            <span class="stat-value" id="stat-selected">0</span>
-        </div>
-        <div class="stat-row">
-            <span class="stat-label">Rectangles:</span>
-            <span class="stat-value" id="stat-rects">0</span>
-        </div>
-        <div class="stat-row">
-            <span class="stat-label">Circles:</span>
-            <span class="stat-value" id="stat-circles">0</span>
-        </div>
-    </div>
-
-    <div id="instructions">
-        Click to select • Use query buttons to filter • Batch operations on results
-    </div>
-
-    <script type="module">
-        import init from './archflow_web.js';
-
-        // ============================================
-        // Query API Reference
-        // ============================================
-        // Available functions:
-        // - get_alive_entities() → [entity_ids]
-        // - entity_count() → number
-        // - is_entity_visible(id) → bool
-        // - is_entity_selected(id) → bool
-        // - get_entity_shape(id) → 0=rect, 1=circle
-        // - get_entity_position_world(id) → [x, y]
-        // - get_entity_size_world(id) → [width, height]
-        // - get_entity_color_hex(id) → "#RRGGBB"
-        // - select_entity(id)
-        // - clear_selection()
-        // - get_selection() → [entity_ids]
-        // ============================================
-
-        let wasm = null;
-        let lastQueryResults = [];
-
-        async function main() {
-            const canvas = document.getElementById('canvas');
-            const loading = document.getElementById('loading');
-
-            try {
-                wasm = await init();
-
-                const rect = canvas.getBoundingClientRect();
-                wasm.initialize(rect.width, rect.height);
-
-                loading.style.display = 'none';
-
-                // Spawn test entities
-                spawnTestEntities();
-
-                // Setup events
-                setupCanvasEvents(canvas);
-
-                // Initial query
-                queryAll();
-
-                // Start render loop
-                startRenderLoop();
-
-                // Update stats
-                updateStats();
-
-            } catch (err) {
-                console.error('Failed to initialize:', err);
-                loading.innerHTML = `<div style="color: red;">Error: ${err.message}</div>`;
-            }
-        }
-
-        function spawnTestEntities() {
-            // Spawn rectangles in left side
+            // Create 5 red rectangles + 5 blue circles
             for (let i = 0; i < 5; i++) {
-                const id = wasm.spawn_entity(
+                const id = bridge.spawn_entity(
                     100 + i * 60,
-                    100 + Math.random() * 200,
-                    40 + Math.random() * 40,
-                    40 + Math.random() * 40
+                    100 + Math.random() * 100,
+                    40,
+                    40,
                 );
-                wasm.set_color(id, 255, 107 + i * 20, 107, 255);
-                wasm.set_shape(id, 0); // rectangle
+                bridge.set_color(id, 231, 76, 60, 255);
+                bridge.set_shape(id, 0); // rectangle
             }
-
-            // Spawn circles in right side
             for (let i = 0; i < 5; i++) {
-                const id = wasm.spawn_entity(
-                    500 + i * 60,
-                    100 + Math.random() * 200,
-                    30 + Math.random() * 30,
-                    30 + Math.random() * 30
+                const id = bridge.spawn_entity(
+                    400 + i * 60,
+                    100 + Math.random() * 100,
+                    35,
+                    35,
                 );
-                wasm.set_color(id, 78 + i * 20, 205, 196, 255);
-                wasm.set_shape(id, 1); // circle
+                bridge.set_color(id, 52, 152, 219, 255);
+                bridge.set_shape(id, 1); // circle
             }
 
-            // Spawn some in center
-            for (let i = 0; i < 3; i++) {
-                const id = wasm.spawn_entity(
-                    300 + i * 80,
-                    400 + Math.random() * 100,
-                    60,
-                    60
-                );
-                wasm.set_color(id, 255, 230, 109, 255);
-                wasm.set_shape(id, i % 2);
-            }
-        }
+            function runQuery(type) {
+                const results =
+                    type === "all"
+                        ? bridge.get_alive_entities()
+                        : type === "rectangle"
+                          ? bridge.query_by_shape(0)
+                          : bridge.query_by_shape(1);
 
-        // ============================================
-        // Query Functions
-        // ============================================
-
-        function queryAll() {
-            const entities = wasm.get_alive_entities();
-            displayResults(entities, 'All Entities');
-        }
-
-        function queryByShape(shapeType) {
-            const allEntities = wasm.get_alive_entities();
-            const filtered = allEntities.filter(id => {
-                return wasm.get_entity_shape(id) === shapeType;
-            });
-
-            const label = shapeType === 0 ? 'Rectangles' : 'Circles';
-            displayResults(filtered, label);
-        }
-
-        function queryInBounds(x, y, width, height) {
-            const allEntities = wasm.get_alive_entities();
-            const filtered = allEntities.filter(id => {
-                const pos = wasm.get_entity_position_world(id);
-                const size = wasm.get_entity_size_world(id);
-
-                // Check if entity overlaps with bounds
-                const ex = pos[0], ey = pos[1];
-                const ew = size[0], eh = size[1];
-
-                return (ex + ew/2 > x && ex - ew/2 < x + width &&
-                        ey + eh/2 > y && ey - eh/2 < y + height);
-            });
-
-            displayResults(filtered, `Bounds: ${x},${y} ${width}x${height}`);
-        }
-
-        function queryVisible() {
-            const allEntities = wasm.get_alive_entities();
-            const filtered = allEntities.filter(id => {
-                return wasm.is_entity_visible(id);
-            });
-            displayResults(filtered, 'Visible Only');
-        }
-
-        function querySelected() {
-            const selected = wasm.get_selection();
-            displayResults(Array.from(selected), 'Selected');
-        }
-
-        function queryLarge(minSize) {
-            const allEntities = wasm.get_alive_entities();
-            const filtered = allEntities.filter(id => {
-                const size = wasm.get_entity_size_world(id);
-                return size[0] > minSize || size[1] > minSize;
-            });
-            displayResults(filtered, `Size > ${minSize}`);
-        }
-
-        function displayResults(entities, queryName) {
-            lastQueryResults = entities;
-
-            const resultsDiv = document.getElementById('results');
-            document.getElementById('result-count').textContent = `(${entities.length}) - ${queryName}`;
-
-            if (entities.length === 0) {
-                resultsDiv.innerHTML = '<div style="color: #888; padding: 10px;">No entities found</div>';
-                return;
+                const ids = Array.from(results || []);
+                document.getElementById("results").innerHTML =
+                    ids.map((id) => `<div>Entity ${id}</div>`).join("") ||
+                    "<div>None</div>";
             }
 
-            resultsDiv.innerHTML = entities.map(id => {
-                const pos = wasm.get_entity_position_world(id);
-                const size = wasm.get_entity_size_world(id);
-                const color = wasm.get_entity_color_hex(id);
-                const shape = wasm.get_entity_shape(id);
-                const shapeName = shape === 0 ? 'Rect' : 'Circle';
-                const selected = wasm.is_entity_selected(id) ? 'selected' : '';
+            document.getElementById("q-all").onclick = () => runQuery("all");
+            document.getElementById("q-rect").onclick = () =>
+                runQuery("rectangle");
+            document.getElementById("q-circle").onclick = () =>
+                runQuery("circle");
 
-                return `
-                    <div class="entity-item ${selected}" onclick="selectEntity(${id})">
-                        <div>
-                            <span class="entity-id">#${id}</span>
-                            <span class="entity-info">${shapeName}</span>
-                        </div>
-                        <div class="entity-info">
-                            ${pos[0].toFixed(0)}, ${pos[1].toFixed(0)} | ${size[0].toFixed(0)}x${size[1].toFixed(0)}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function selectEntity(id) {
-            wasm.clear_selection();
-            wasm.select_entity(id);
-            displayResults(lastQueryResults, 'Selected');
-            updateStats();
-        }
-
-        // ============================================
-        // Batch Operations
-        // ============================================
-
-        function selectAllResults() {
-            lastQueryResults.forEach(id => {
-                wasm.select_entity(id);
-            });
-            displayResults(lastQueryResults, 'All Selected');
-            updateStats();
-        }
-
-        function deleteAllResults() {
-            // Note: No direct delete by ID exposed, clear selection instead
-            lastQueryResults.forEach(id => {
-                wasm.clear_selection();
-            });
-            queryAll();
-            updateStats();
-        }
-
-        function highlightResults() {
-            lastQueryResults.forEach((id, i) => {
-                // Change color to highlight
-                const hue = (i * 60) % 360;
-                const r = Math.sin(hue * Math.PI / 180) * 127 + 128;
-                const g = Math.sin((hue + 120) * Math.PI / 180) * 127 + 128;
-                const b = Math.sin((hue + 240) * Math.PI / 180) * 127 + 128;
-                wasm.set_color(id, r, g, b, 255);
-            });
-        }
-
-        // ============================================
-        // Stats Update
-        // ============================================
-
-        function updateStats() {
-            const total = wasm.entity_count();
-            const all = wasm.get_alive_entities();
-            const selected = wasm.get_selection();
-
-            let visible = 0;
-            let rects = 0;
-            let circles = 0;
-
-            all.forEach(id => {
-                if (wasm.is_entity_visible(id)) visible++;
-                const shape = wasm.get_entity_shape(id);
-                if (shape === 0) rects++;
-                else if (shape === 1) circles++;
-            });
-
-            document.getElementById('stat-total').textContent = total;
-            document.getElementById('stat-visible').textContent = visible;
-            document.getElementById('stat-selected').textContent = selected.length;
-            document.getElementById('stat-rects').textContent = rects;
-            document.getElementById('stat-circles').textContent = circles;
-        }
-
-        // ============================================
-        // Canvas Events
-        // ============================================
-
-        function setupCanvasEvents(canvas) {
-            canvas.addEventListener('pointerdown', (e) => {
-                const rect = canvas.getBoundingClientRect();
-                wasm.on_mouse_down(e.clientX - rect.left, e.clientY - rect.top, e.button, 0);
-            });
-
-            canvas.addEventListener('pointermove', (e) => {
-                const rect = canvas.getBoundingClientRect();
-                wasm.on_mouse_move(e.clientX - rect.left, e.clientY - rect.top, e.buttons, 0);
-            });
-
-            canvas.addEventListener('pointerup', (e) => {
-                const rect = canvas.getBoundingClientRect();
-                wasm.on_mouse_up(e.clientX - rect.left, e.clientY - rect.top, e.button, 0);
-                updateStats();
-            });
-        }
-
-        // ============================================
-        // Render Loop
-        // ============================================
-
-        function startRenderLoop() {
-            let lastTime = 0;
-
-            function render(timestamp) {
-                const deltaTime = (timestamp - lastTime) / 1000;
-                lastTime = timestamp;
-
-                wasm.tick(deltaTime);
-                updateStats();
-
-                requestAnimationFrame(render);
-            }
-
-            requestAnimationFrame(render);
-        }
-
-        // Handle resize
-        window.addEventListener('resize', () => {
-            const canvas = document.getElementById('canvas');
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            if (wasm) {
-                wasm.resize(canvas.width, canvas.height);
-            }
-        });
-
-        window.dispatchEvent(new Event('resize'));
-        main();
-    </script>
-</body>
+            runQuery("all");
+        </script>
+    </body>
 </html>

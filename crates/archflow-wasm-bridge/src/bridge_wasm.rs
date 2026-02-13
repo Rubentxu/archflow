@@ -1325,20 +1325,46 @@ impl WasmBridge {
         }
     }
 
-    /// Play a simple beep sound
+    /// Play a beep sound using Web Audio API oscillator
     ///
-    /// frequency: Hz (220-2000)
-    /// duration: seconds (0.1-2.0)
-    /// volume: 0.0-1.0
+    /// # Arguments
+    /// * `frequency` - Frequency in Hz (220.0 to 2000.0)
+    /// * `duration` - Duration in seconds (0.1 to 2.0)
+    /// * `volume` - Volume/gain from 0.0 to 1.0
     #[wasm_bindgen]
-    pub fn play_beep(&self, _frequency: f32, _duration: f32, _volume: f32) -> Result<(), JsValue> {
-        // Audio playback is delegated to JavaScript for Web Audio API
-        // This is a stub that always returns Ok
-        if self.engine.borrow().is_some() {
-            Ok(())
-        } else {
-            Err(JsError::new("Engine not initialized").into())
+    pub fn play_beep(&self, frequency: f32, _duration: f32, volume: f32) -> Result<(), JsValue> {
+        if self.engine.borrow().is_none() {
+            return Err(JsError::new("Engine not initialized").into());
         }
+
+        // Validate frequency and volume
+        let freq_val = if frequency < 220.0 { 220.0 } else if frequency > 2000.0 { 2000.0 } else { frequency };
+        let vol_val = if volume < 0.0 { 0.0 } else if volume > 1.0 { 1.0 } else { volume };
+
+        let freq = (freq_val as i32).to_string();
+        let vol = (vol_val * 100.0_f32) as i32;
+
+        // Create JavaScript code to play beep using Web Audio API
+        let js_code = alloc::format!(
+            r#"(function() {{ 
+                var ctx = window.audioContext; 
+                if (!ctx) return;
+                var osc = ctx.createOscillator(); 
+                var gain = ctx.createGain(); 
+                osc.frequency.value = {}; 
+                gain.gain.value = {} / 100; 
+                osc.connect(gain); 
+                gain.connect(ctx.destination); 
+                osc.start(); 
+                setTimeout(function() {{ osc.stop(); }}, 200);
+            }})()"#,
+            freq, vol
+        );
+
+        // Evaluate JavaScript - ignore result as it just plays sound
+        let _result = js_sys::eval(&js_code);
+        
+        Ok(())
     }
 
     /// Set master volume
