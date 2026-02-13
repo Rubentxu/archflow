@@ -285,6 +285,21 @@ impl LogicBricksSystem {
         self.pending_commands.drain(..).collect()
     }
 
+    /// Get a reference to the mapping table (internal use)
+    pub fn mapping_table(&self) -> &LogicMappingTable {
+        &self.mapping_table
+    }
+
+    /// Get a mutable reference to the mapping table
+    pub fn mapping_table_mut(&mut self) -> &mut LogicMappingTable {
+        &mut self.mapping_table
+    }
+
+    /// Get a mutable reference to the logic system
+    pub fn logic_system_mut(&mut self) -> &mut LogicSystem {
+        &mut self.logic_system
+    }
+
     /// Execute one frame of logic processing
     pub fn tick(
         &mut self,

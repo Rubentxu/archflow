@@ -29,6 +29,7 @@ use crate::input::{InputEventType, InputProcessor, InputRingBuffer};
 
 use archflow_engine::store::MAX_ENTITIES;
 use archflow_engine::{Command, DeltaMask};
+use archflow_logic::mapping::{ActuatorType, Controller, LogicMappingTable, SensorType};
 use archflow_render::Renderer;
 
 #[cfg(target_arch = "wasm32")]
@@ -993,6 +994,168 @@ impl WasmBridge {
                     engine.store.set_velocity(idx, vx[i], vy[i]);
                 }
             }
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+    // SECTION 6: LOGIC BRICKS - Sensors, Controllers, Actuators
+    // ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+    /// Add a sensor connection to an entity
+    ///
+    /// Creates a sensor-to-actuator connection using the LogicMappingTable.
+    ///
+    /// # Arguments
+    ///
+    /// * `entity_id` - The entity to add the sensor to
+    /// * `sensor_type` - Type of sensor (0=MouseOver, 1=MouseClick, 2=Proximity, 3=KeyShortcut, 4=Touch, 5=Radar, 6=DoubleTap, 7=LongPress, 8=RightClick)
+    /// * `controller_type` - Type of controller (0=Direct, 1=AND, 2=OR, 3=NOT)
+    /// * `actuator_type` - Type of actuator (0=Highlight, 1=Select, 2=Move, 3=Sound, 4=Animation, 5=Custom, 6=Property, 7=Visibility)
+    ///
+    /// # Returns
+    ///
+    /// Ok(true) if connection was added successfully
+    #[wasm_bindgen]
+    pub fn add_sensor(
+        &self,
+        entity_id: u32,
+        sensor_type: u8,
+        controller_type: u8,
+        actuator_type: u8,
+    ) -> Result<bool, JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            let entity = archflow_core::EntityId::new(entity_id);
+
+            // Convert sensor_type to SensorType
+            let sensor = match SensorType::from_index(sensor_type) {
+                Some(s) => s,
+                None => {
+                    return Err(JsError::new("Invalid sensor type").into());
+                }
+            };
+
+            // Convert controller_type to Controller
+            let controller = match controller_type {
+                0 => Controller::Direct,
+                1 => Controller::AND(SensorType::MouseOver), // Default AND sensor
+                2 => Controller::OR(SensorType::MouseOver),  // Default OR sensor
+                3 => Controller::NOT,
+                4 => Controller::Blinky { interval: 30 },
+                5 => Controller::Debounce { ticks: 5 },
+                _ => Controller::Direct,
+            };
+
+            // Convert actuator_type to ActuatorType (only 7 types: Highlight, Select, Move, Delete, Undo, Redo, Camera)
+            let actuator = match actuator_type {
+                0 => ActuatorType::Highlight,
+                1 => ActuatorType::Select,
+                2 => ActuatorType::Move,
+                3 => ActuatorType::Delete,
+                4 => ActuatorType::Undo,
+                5 => ActuatorType::Redo,
+                6 => ActuatorType::Camera,
+                _ => ActuatorType::Highlight,
+            };
+
+            // Add the connection to mapping table
+            engine
+                .logic_bricks
+                .mapping_table_mut()
+                .add_connection(entity, sensor, controller, actuator);
+
+            Ok(true)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Remove a sensor connection from an entity
+    ///
+    /// # Arguments
+    ///
+    /// * `entity_id` - The entity to remove the sensor from
+    /// * `sensor_type` - Type of sensor to disconnect
+    #[wasm_bindgen]
+    pub fn remove_sensor(&self, entity_id: u32, sensor_type: u8) -> Result<(), JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            let entity = archflow_core::EntityId::new(entity_id);
+
+            if let Some(sensor) = SensorType::from_index(sensor_type) {
+                engine
+                    .logic_bricks
+                    .mapping_table_mut()
+                    .remove_connection(entity, sensor);
+            }
+
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Get number of connections for an entity
+    #[wasm_bindgen]
+    pub fn connection_count(&self, entity_id: u32) -> Result<usize, JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            let entity = archflow_core::EntityId::new(entity_id);
+            Ok(engine.logic_bricks.mapping_table().connection_count(entity))
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Clear all logic connections for an entity
+    #[wasm_bindgen]
+    pub fn clear_entity_logic(&self, entity_id: u32) -> Result<(), JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            let entity = archflow_core::EntityId::new(entity_id);
+            engine.logic_bricks.mapping_table_mut().clear_entity(entity);
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Clear all logic connections for all entities
+    #[wasm_bindgen]
+    pub fn clear_all_logic(&self) -> Result<(), JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            // Get all entities from the store and clear their connections
+            // For simplicity, we create a new mapping table
+            *engine.logic_bricks.mapping_table_mut() = LogicMappingTable::new();
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Configure mouse sensor for an entity
+    ///
+    /// # Arguments
+    ///
+    /// * `mode` - Mouse mode: 0=movement, 1=left_button, 2=right_button, 3=middle_button, 4=wheel_up
+    /// * `tap` - Enable tap detection (true) or continuous (false)
+    #[wasm_bindgen]
+    pub fn configure_mouse_sensor(&self, mode: u8, tap: bool) -> Result<(), JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            use archflow_logic::sensors::MouseConfig;
+
+            let config = match mode {
+                0 => MouseConfig::movement(),
+                1 => MouseConfig::left_button().tap(tap),
+                2 => MouseConfig::right_button().tap(tap),
+                3 => MouseConfig::middle_button().tap(tap),
+                4 => MouseConfig::wheel_up(),
+                _ => MouseConfig::left_button().tap(tap),
+            };
+
+            engine
+                .logic_bricks
+                .logic_system_mut()
+                .configure_mouse(config);
             Ok(())
         } else {
             Err(JsError::new("Engine not initialized").into())
