@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArchFlow - Entity Properties</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+            background: #1a1a2e;
+            color: #eee;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        canvas {
+            display: block;
+            background: #0f0f1a;
+            cursor: crosshair;
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #333;
+            border-top-color: #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            min-width: 280px;
+        }
+
+        h2 {
+            color: #00d4ff;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .control-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        input[type="number"] {
+            width: 80px;
+            background: #333;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        input[type="color"] {
+            width: 40px;
+            height: 25px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button {
+            background: #00d4ff;
+            color: #1a1a2e;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-right: 8px;
+            margin-top: 8px;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #00b8e6;
+        }
+
+        #entity-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            min-width: 200px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .info-label {
+            color: #888;
+        }
+
+        .info-value {
+            color: #00ff88;
+        }
+
+        #instructions {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container">
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <div id="loading">
+        <div class="spinner"></div>
+        <div>Loading...</div>
+    </div>
+
+    <div id="controls">
+        <h2>🛠️ Entity Controls</h2>
+
+        <div class="control-group">
+            <label>Selected Entity: <span id="selected-id">None</span></label>
+        </div>
+
+        <div class="control-group">
+            <label>Position X</label>
+            <input type="number" id="pos-x" value="100">
+        </div>
+
+        <div class="control-group">
+            <label>Position Y</label>
+            <input type="number" id="pos-y" value="100">
+        </div>
+
+        <div class="control-group">
+            <label>Width</label>
+            <input type="number" id="size-w" value="80">
+        </div>
+
+        <div class="control-group">
+            <label>Height</label>
+            <input type="number" id="size-h" value="60">
+        </div>
+
+        <div class="control-group">
+            <label>Color</label>
+            <input type="color" id="color" value="#ff6b6b">
+        </div>
+
+        <button id="btn-update">Update Entity</button>
+        <button id="btn-spawn">Spawn New</button>
+        <button id="btn-delete">Delete</button>
+    </div>
+
+    <div id="entity-info">
+        <h2>📊 Entity Info</h2>
+        <div class="info-row">
+            <span class="info-label">ID:</span>
+            <span class="info-value" id="info-id">-</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Position:</span>
+            <span class="info-value" id="info-pos">-</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Size:</span>
+            <span class="info-value" id="info-size">-</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Color:</span>
+            <span class="info-value" id="info-color">-</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Shape:</span>
+            <span class="info-value" id="info-shape">-</span>
+        </div>
+    </div>
+
+    <div id="instructions">
+        Click on entity to select • Drag to move • Use controls to edit properties
+    </div>
+
+    <script type="module">
+        import init from './archflow_web.js';
+
+        // ============================================
+        // API Reference - Entity Properties
+        // ============================================
+        // Available functions in wasm module:
+        // - spawn_entity(x, y, width, height) → entity_id
+        // - set_position(entity_id, x, y)
+        // - get_entity_position_world(entity_id) → [x, y]
+        // - set_size(entity_id, width, height)
+        // - get_entity_size_world(entity_id) → [width, height]
+        // - set_color(entity_id, r, g, b, a)
+        // - get_entity_color_hex(entity_id) → "#RRGGBB"
+        // - get_entity_shape(entity_id) → shape_type
+        // - select_entity(entity_id)
+        // - clear_selection()
+        // - get_selection() → [entity_ids]
+        // - is_entity_selected(entity_id) → bool
+        // ============================================
+
+        let wasm = null;
+        let selectedEntity = null;
+
+        async function main() {
+            const canvas = document.getElementById('canvas');
+            const loading = document.getElementById('loading');
+
+            try {
+                // Initialize WASM
+                wasm = await init();
+
+                const rect = canvas.getBoundingClientRect();
+                wasm.initialize(rect.width, rect.height);
+
+                loading.style.display = 'none';
+
+                // Spawn initial entity
+                selectedEntity = wasm.spawn_entity(200, 200, 80, 60);
+                wasm.set_color(selectedEntity, 255, 107, 107, 255);
+
+                // Setup event handlers
+                setupControls();
+                setupCanvasEvents(canvas);
+
+                // Start render loop
+                startRenderLoop();
+
+                // Update UI
+                updateEntityInfo();
+
+            } catch (err) {
+                console.error('Failed to initialize:', err);
+                loading.innerHTML = `<div style="color: red;">Error: ${err.message}</div>`;
+            }
+        }
+
+        function setupControls() {
+            // Update button
+            document.getElementById('btn-update').addEventListener('click', () => {
+                if (!selectedEntity) return;
+
+                const x = parseFloat(document.getElementById('pos-x').value);
+                const y = parseFloat(document.getElementById('pos-y').value);
+                const w = parseFloat(document.getElementById('size-w').value);
+                const h = parseFloat(document.getElementById('size-h').value);
+                const colorHex = document.getElementById('color').value;
+
+                // Parse hex color
+                const r = parseInt(colorHex.slice(1, 3), 16);
+                const g = parseInt(colorHex.slice(3, 5), 16);
+                const b = parseInt(colorHex.slice(5, 7), 16);
+
+                // Update entity using API
+                wasm.set_position(selectedEntity, x, y);
+                wasm.set_size(selectedEntity, w, h);
+                wasm.set_color(selectedEntity, r, g, b, 255);
+
+                updateEntityInfo();
+            });
+
+            // Spawn button
+            document.getElementById('btn-spawn').addEventListener('click', () => {
+                const x = 100 + Math.random() * 400;
+                const y = 100 + Math.random() * 300;
+                const w = 40 + Math.random() * 60;
+                const h = 40 + Math.random() * 60;
+
+                const newEntity = wasm.spawn_entity(x, y, w, h);
+
+                // Random color
+                const r = Math.floor(Math.random() * 255);
+                const g = Math.floor(Math.random() * 255);
+                const b = Math.floor(Math.random() * 255);
+                wasm.set_color(newEntity, r, g, b, 255);
+
+                selectEntity(newEntity);
+            });
+
+            // Delete button
+            document.getElementById('btn-delete').addEventListener('click', () => {
+                if (!selectedEntity) return;
+
+                // Delete selected (not exposed, so we'll just clear)
+                wasm.clear_selection();
+                selectedEntity = null;
+                document.getElementById('selected-id').textContent = 'None';
+                updateEntityInfo();
+            });
+        }
+
+        function setupCanvasEvents(canvas) {
+            let isDragging = false;
+
+            canvas.addEventListener('pointerdown', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                wasm.on_mouse_down(x, y, e.button, getModifiers(e));
+
+                // Try to select entity at position
+                // Note: Full selection API would need query system
+                isDragging = true;
+            });
+
+            canvas.addEventListener('pointermove', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                wasm.on_mouse_move(x, y, e.buttons, getModifiers(e));
+
+                // Drag selected entity
+                if (isDragging && selectedEntity) {
+                    const zoom = wasm.get_zoom();
+                    const center = wasm.get_camera_center();
+
+                    // Simple drag - would need proper world coords conversion
+                    const worldX = (x - rect.width / 2) / zoom + parseFloat(center[0]);
+                    const worldY = (y - rect.height / 2) / zoom + parseFloat(center[1]);
+
+                    wasm.set_position(selectedEntity, worldX, worldY);
+                    updateEntityInfo();
+                }
+            });
+
+            canvas.addEventListener('pointerup', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                wasm.on_mouse_up(x, y, e.button, getModifiers(e));
+                isDragging = false;
+            });
+
+            canvas.addEventListener('wheel', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                wasm.on_wheel(x, y, e.deltaY, getModifiers(e));
+            });
+        }
+
+        function getModifiers(e) {
+            let bits = 0;
+            if (e.shiftKey) bits |= 1;
+            if (e.ctrlKey || e.metaKey) bits |= 2;
+            if (e.altKey) bits |= 4;
+            return bits;
+        }
+
+        function selectEntity(entityId) {
+            wasm.clear_selection();
+            wasm.select_entity(entityId);
+            selectedEntity = entityId;
+            document.getElementById('selected-id').textContent = entityId;
+            updateEntityInfo();
+        }
+
+        function updateEntityInfo() {
+            if (!selectedEntity) {
+                document.getElementById('info-id').textContent = '-';
+                document.getElementById('info-pos').textContent = '-';
+                document.getElementById('info-size').textContent = '-';
+                document.getElementById('info-color').textContent = '-';
+                document.getElementById('info-shape').textContent = '-';
+                return;
+            }
+
+            // Get entity properties using API
+            const pos = wasm.get_entity_position_world(selectedEntity);
+            const size = wasm.get_entity_size_world(selectedEntity);
+            const color = wasm.get_entity_color_hex(selectedEntity);
+            const shape = wasm.get_entity_shape(selectedEntity);
+
+            const shapeNames = ['Circle', 'Rectangle', 'RoundedRect', 'Image', 'Text'];
+
+            document.getElementById('info-id').textContent = selectedEntity;
+            document.getElementById('info-pos').textContent =
+                `${pos[0].toFixed(1)}, ${pos[1].toFixed(1)}`;
+            document.getElementById('info-size').textContent =
+                `${size[0].toFixed(1)} x ${size[1].toFixed(1)}`;
+            document.getElementById('info-color').textContent = color;
+            document.getElementById('info-shape').textContent = shapeNames[shape] || 'Unknown';
+
+            // Update controls to match
+            document.getElementById('pos-x').value = pos[0].toFixed(0);
+            document.getElementById('pos-y').value = pos[1].toFixed(0);
+            document.getElementById('size-w').value = size[0].toFixed(0);
+            document.getElementById('size-h').value = size[1].toFixed(0);
+            document.getElementById('color').value = color;
+        }
+
+        function startRenderLoop() {
+            let lastTime = 0;
+
+            function render(timestamp) {
+                const deltaTime = (timestamp - lastTime) / 1000;
+                lastTime = timestamp;
+
+                // Update engine
+                wasm.tick(deltaTime);
+
+                requestAnimationFrame(render);
+            }
+
+            requestAnimationFrame(render);
+        }
+
+        // Handle resize
+        window.addEventListener('resize', () => {
+            const canvas = document.getElementById('canvas');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            if (wasm) {
+                wasm.resize(canvas.width, canvas.height);
+            }
+        });
+
+        // Initial resize
+        window.dispatchEvent(new Event('resize'));
+
+        // Start
+        main();
+    </script>
+</body>
+</html>

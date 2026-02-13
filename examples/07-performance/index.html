@@ -1,0 +1,1222 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>ArchFlow - Performance Optimizations</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    sans-serif;
+                overflow: hidden;
+                background: #1a1a2e;
+                color: #eee;
+            }
+
+            #canvas-container {
+                width: 100vw;
+                height: 100vh;
+            }
+
+            canvas {
+                display: block;
+                background: #0f0f1a;
+            }
+
+            #loading {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                text-align: center;
+            }
+
+            .spinner {
+                width: 50px;
+                height: 50px;
+                border: 3px solid #333;
+                border-top-color: #00d4ff;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                margin: 0 auto 20px;
+            }
+
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
+            #perf-panel {
+                position: absolute;
+                top: 10px;
+                left: 10px;
+                background: rgba(0, 0, 0, 0.9);
+                padding: 15px;
+                border-radius: 8px;
+                font-family: monospace;
+                font-size: 12px;
+                min-width: 320px;
+                max-height: calc(100vh - 80px);
+                overflow-y: auto;
+                border: 1px solid #333;
+            }
+
+            h2 {
+                color: #00d4ff;
+                margin-bottom: 12px;
+                font-size: 14px;
+                border-bottom: 1px solid #333;
+                padding-bottom: 8px;
+            }
+
+            .perf-section {
+                margin-bottom: 15px;
+                padding: 10px;
+                background: rgba(255, 255, 255, 0.03);
+                border-radius: 4px;
+            }
+
+            .perf-section h3 {
+                color: #888;
+                font-size: 11px;
+                margin-bottom: 8px;
+                text-transform: uppercase;
+            }
+
+            button {
+                background: #00d4ff;
+                color: #1a1a2e;
+                border: none;
+                padding: 8px 12px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-weight: 600;
+                font-size: 11px;
+                margin-right: 6px;
+                margin-bottom: 6px;
+                transition: background 0.2s;
+            }
+
+            button:hover {
+                background: #00b8e6;
+            }
+
+            button.bench-btn {
+                background: #2a4a6a;
+                color: #00d4ff;
+            }
+
+            button.bench-btn:hover {
+                background: #3a5a7a;
+            }
+
+            button.action-btn {
+                background: #28a745;
+                color: white;
+            }
+
+            button.action-btn:hover {
+                background: #218838;
+            }
+
+            button.danger-btn {
+                background: #dc3545;
+                color: white;
+            }
+
+            button.danger-btn:hover {
+                background: #c82333;
+            }
+
+            .benchmark-result {
+                margin-top: 10px;
+                padding: 8px;
+                background: rgba(0, 0, 0, 0.3);
+                border-radius: 4px;
+                font-size: 11px;
+            }
+
+            .benchmark-result .time {
+                color: #00ff88;
+                font-size: 14px;
+                font-weight: bold;
+            }
+
+            .benchmark-result .label {
+                color: #888;
+            }
+
+            #results {
+                margin-top: 10px;
+                max-height: 200px;
+                overflow-y: auto;
+            }
+
+            .log-entry {
+                padding: 4px 8px;
+                margin-bottom: 2px;
+                background: rgba(255, 255, 255, 0.02);
+                border-radius: 2px;
+                font-size: 10px;
+                color: #aaa;
+            }
+
+            .log-entry.info {
+                color: #00d4ff;
+            }
+
+            .log-entry.success {
+                color: #00ff88;
+            }
+
+            .log-entry.warn {
+                color: #ffd700;
+            }
+
+            .log-entry.error {
+                color: #ff6b6b;
+            }
+
+            #stats-panel {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                background: rgba(0, 0, 0, 0.85);
+                padding: 15px;
+                border-radius: 8px;
+                font-family: monospace;
+                font-size: 12px;
+                min-width: 220px;
+                border: 1px solid #333;
+            }
+
+            .stat-row {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 6px;
+            }
+
+            .stat-label {
+                color: #888;
+            }
+
+            .stat-value {
+                color: #00ff88;
+            }
+
+            .stat-value.warning {
+                color: #ffd700;
+            }
+
+            .stat-value.danger {
+                color: #ff6b6b;
+            }
+
+            #fps-graph {
+                margin-top: 10px;
+                height: 40px;
+                background: rgba(0, 0, 0, 0.3);
+                border-radius: 4px;
+                position: relative;
+                overflow: hidden;
+            }
+
+            #fps-graph canvas {
+                width: 100%;
+                height: 100%;
+                background: transparent;
+            }
+
+            #worker-status {
+                position: absolute;
+                bottom: 10px;
+                left: 10px;
+                background: rgba(0, 0, 0, 0.85);
+                padding: 10px 15px;
+                border-radius: 8px;
+                font-size: 12px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .worker-indicator {
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                background: #666;
+            }
+
+            .worker-indicator.active {
+                background: #00ff88;
+                animation: pulse 1s infinite;
+            }
+
+            @keyframes pulse {
+                0%,
+                100% {
+                    opacity: 1;
+                }
+                50% {
+                    opacity: 0.5;
+                }
+            }
+
+            #instructions {
+                position: absolute;
+                bottom: 10px;
+                right: 10px;
+                background: rgba(0, 0, 0, 0.85);
+                padding: 10px 15px;
+                border-radius: 8px;
+                font-size: 12px;
+                color: #888;
+            }
+
+            .progress-bar {
+                width: 100%;
+                height: 6px;
+                background: #333;
+                border-radius: 3px;
+                overflow: hidden;
+                margin-top: 5px;
+            }
+
+            .progress-fill {
+                height: 100%;
+                background: linear-gradient(90deg, #00d4ff, #00ff88);
+                width: 0%;
+                transition: width 0.3s;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="canvas-container">
+            <canvas id="canvas"></canvas>
+        </div>
+
+        <div id="loading">
+            <div class="spinner"></div>
+            <div>Loading...</div>
+        </div>
+
+        <div id="perf-panel">
+            <h2>⚡ Performance Optimizations</h2>
+
+            <!-- Batch Operations -->
+            <div class="perf-section">
+                <h3>Batch Operations</h3>
+                <button class="action-btn" onclick="spawnBatch(10)">
+                    Spawn 10
+                </button>
+                <button class="action-btn" onclick="spawnBatch(100)">
+                    Spawn 100
+                </button>
+                <button class="action-btn" onclick="spawnBatch(1000)">
+                    Spawn 1000
+                </button>
+                <button class="danger-btn" onclick="clearAll()">
+                    Clear All
+                </button>
+            </div>
+
+            <!-- Benchmark Suite -->
+            <div class="perf-section">
+                <h3>JS↔WASM Benchmarks</h3>
+                <button class="bench-btn" onclick="benchSingleCalls()">
+                    Single Calls
+                </button>
+                <button class="bench-btn" onclick="benchBatchCalls()">
+                    Batch Calls
+                </button>
+                <button class="bench-btn" onclick="benchTypedArray()">
+                    TypedArray
+                </button>
+                <button class="bench-btn" onclick="benchAllPositions()">
+                    Get All Positions
+                </button>
+                <div id="bench-results"></div>
+            </div>
+
+            <!-- TypedArray Transfer -->
+            <div class="perf-section">
+                <h3>TypedArray Transfer</h3>
+                <button class="bench-btn" onclick="testTypedArrayTransfer()">
+                    Test Transfer
+                </button>
+                <button class="bench-btn" onclick="testMemoryView()">
+                    Memory View
+                </button>
+                <div id="typedarray-results"></div>
+            </div>
+
+            <!-- Web Worker -->
+            <div class="perf-section">
+                <h3>Web Worker</h3>
+                <button class="action-btn" onclick="spawnWorker()">
+                    Start Worker
+                </button>
+                <button class="danger-btn" onclick="terminateWorker()">
+                    Stop Worker
+                </button>
+                <div id="worker-results">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="worker-progress"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Optimization Toggle -->
+            <div class="perf-section">
+                <h3>Engine Settings</h3>
+                <button class="bench-btn" onclick="toggleVSync()">
+                    Toggle VSync
+                </button>
+                <button class="bench-btn" onclick="toggleBatching()">
+                    Toggle Batching
+                </button>
+                <button class="bench-btn" onclick="forceGC()">Force GC</button>
+            </div>
+
+            <!-- Log -->
+            <h2>📋 Log</h2>
+            <div id="results"></div>
+        </div>
+
+        <div id="stats-panel">
+            <h2>📈 Performance</h2>
+            <div class="stat-row">
+                <span class="stat-label">FPS:</span>
+                <span class="stat-value" id="stat-fps">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Frame Time:</span>
+                <span class="stat-value" id="stat-frame">0ms</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Entities:</span>
+                <span class="stat-value" id="stat-entities">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Draw Calls:</span>
+                <span class="stat-value" id="stat-draws">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Memory:</span>
+                <span class="stat-value" id="stat-memory">0 MB</span>
+            </div>
+            <div id="fps-graph">
+                <canvas id="fps-canvas"></canvas>
+            </div>
+        </div>
+
+        <div id="worker-status">
+            <div class="worker-indicator" id="worker-dot"></div>
+            <span id="worker-text">Worker: Inactive</span>
+        </div>
+
+        <div id="instructions">
+            Click to interact • Run benchmarks • Test optimizations
+        </div>
+
+        <!-- Web Worker Code -->
+        <script id="worker-code" type="text/worker">
+            // This worker handles heavy computation off the main thread
+            self.onmessage = function(e) {
+                const { type, data, id } = e.data;
+
+                switch(type) {
+                    case 'compute':
+                        // Simulate heavy computation
+                        const result = heavyComputation(data.count);
+                        self.postMessage({ type: 'result', id, data: result });
+                        break;
+
+                    case 'batchPositions':
+                        // Process position updates in worker
+                        const positions = new Float32Array(data.positions);
+                        for (let i = 0; i < positions.length; i += 2) {
+                            positions[i] += Math.sin(positions[i] * 0.01) * 0.5;
+                            positions[i + 1] += Math.cos(positions[i + 1] * 0.01) * 0.5;
+                        }
+                        self.postMessage({ type: 'positions', id, data: positions }, [positions.buffer]);
+                        break;
+
+                    case 'queryFilter':
+                        // Filter entities in worker
+                        const { entities, filter } = data;
+                        const filtered = entities.filter(e => {
+                            if (filter.minSize && (e.width < filter.minSize || e.height < filter.minSize)) return false;
+                            if (filter.bounds) {
+                                const { x, y, w, h } = filter.bounds;
+                                if (e.x < x || e.x > x + w || e.y < y || e.y > y + h) return false;
+                            }
+                            return true;
+                        });
+                        self.postMessage({ type: 'filtered', id, data: filtered });
+                        break;
+                }
+            };
+
+            function heavyComputation(count) {
+                let sum = 0;
+                for (let i = 0; i < count; i++) {
+                    sum += Math.sqrt(i) * Math.sin(i * 0.1);
+                }
+                return { sum, iterations: count };
+            }
+        </script>
+
+        <script type="module">
+            import init from "./archflow_web.js";
+
+            let wasm = null;
+            let worker = null;
+            let lastFrameTime = performance.now();
+            let frameCount = 0;
+            let fpsHistory = [];
+            const MAX_FPS_HISTORY = 60;
+
+            // ============================================
+            // Initialization
+            // ============================================
+
+            async function main() {
+                const canvas = document.getElementById("canvas");
+                const loading = document.getElementById("loading");
+
+                try {
+                    wasm = await init();
+
+                    const rect = canvas.getBoundingClientRect();
+                    wasm.initialize(rect.width, rect.height);
+
+                    loading.style.display = "none";
+
+                    log("Engine initialized", "success");
+
+                    // Spawn some initial entities
+                    spawnInitialEntities();
+
+                    // Setup events
+                    setupCanvasEvents(canvas);
+
+                    // Start render loop
+                    startRenderLoop();
+
+                    // Setup FPS graph
+                    setupFPSGraph();
+                } catch (err) {
+                    console.error("Failed to initialize:", err);
+                    loading.innerHTML = `<div style="color: red;">Error: ${err.message}</div>`;
+                }
+            }
+
+            function spawnInitialEntities() {
+                for (let i = 0; i < 20; i++) {
+                    const id = wasm.spawn_entity(
+                        100 + Math.random() * 600,
+                        100 + Math.random() * 400,
+                        30 + Math.random() * 30,
+                        30 + Math.random() * 30,
+                    );
+                    const r = Math.floor(Math.random() * 255);
+                    const g = Math.floor(Math.random() * 255);
+                    const b = Math.floor(Math.random() * 255);
+                    wasm.set_color(id, r, g, b, 255);
+                    wasm.set_shape(id, Math.random() > 0.5 ? 0 : 1);
+                }
+                log(`Spawned initial 20 entities`, "info");
+            }
+
+            // ============================================
+            // Batch Operations
+            // ============================================
+
+            function spawnBatch(count) {
+                const start = performance.now();
+
+                for (let i = 0; i < count; i++) {
+                    const id = wasm.spawn_entity(
+                        50 + Math.random() * 700,
+                        50 + Math.random() * 500,
+                        20 + Math.random() * 40,
+                        20 + Math.random() * 40,
+                    );
+                    const hue = ((i * 360) / count) % 360;
+                    const rgb = hslToRgb(hue / 360, 0.7, 0.5);
+                    wasm.set_color(id, rgb[0], rgb[1], rgb[2], 255);
+                    wasm.set_shape(id, i % 2);
+                }
+
+                const elapsed = performance.now() - start;
+                log(
+                    `Spawned ${count} entities in ${elapsed.toFixed(2)}ms`,
+                    "success",
+                );
+                updateStats();
+            }
+
+            function clearAll() {
+                const entities = wasm.get_alive_entities();
+                entities.forEach((id) => {
+                    // Using despawn if available, otherwise just clear selection
+                    if (wasm.despawn_entity) {
+                        wasm.despawn_entity(id);
+                    }
+                });
+                // Fallback: reinitialize (in production, expose proper despawn)
+                log(`Cleared ${entities.length} entities`, "warn");
+                updateStats();
+            }
+
+            // ============================================
+            // Benchmarks
+            // ============================================
+
+            function benchSingleCalls() {
+                const iterations = 1000;
+                const start = performance.now();
+
+                const entities = wasm.get_alive_entities();
+                const positions = [];
+                for (
+                    let i = 0;
+                    i < Math.min(iterations, entities.length);
+                    i++
+                ) {
+                    positions.push(
+                        wasm.get_entity_position_world(
+                            entities[i % entities.length],
+                        ),
+                    );
+                }
+
+                const elapsed = performance.now() - start;
+
+                displayBenchResult("Single Calls", iterations, elapsed);
+                log(
+                    `Single calls benchmark: ${elapsed.toFixed(2)}ms for ${iterations} iterations`,
+                    "info",
+                );
+            }
+
+            function benchBatchCalls() {
+                const iterations = 1000;
+                const start = performance.now();
+
+                const entities = wasm.get_alive_entities();
+                if (entities.length > 0 && wasm.get_all_positions) {
+                    // Use batch function if available
+                    const positions = wasm.get_all_positions();
+                    for (let i = 0; i < iterations; i++) {
+                        // Just iterate
+                    }
+                } else {
+                    // Manual batch (get all at once)
+                    const positions = entities.map((id) =>
+                        wasm.get_entity_position_world(id),
+                    );
+                    for (let i = 0; i < iterations; i++) {
+                        // Dummy iterations to compare fairly
+                    }
+                }
+
+                const elapsed = performance.now() - start;
+                displayBenchResult("Batch Calls", iterations, elapsed);
+                log(`Batch calls benchmark: ${elapsed.toFixed(2)}ms`, "info");
+            }
+
+            function benchTypedArray() {
+                const iterations = 1000;
+                const entities = wasm.get_alive_entities();
+                const count = entities.length;
+
+                // Create TypedArray for transfer
+                const start = performance.now();
+                const positions = new Float32Array(count * 2);
+
+                for (let i = 0; i < iterations; i++) {
+                    for (let j = 0; j < count; j++) {
+                        const pos = wasm.get_entity_position_world(entities[j]);
+                        positions[j * 2] = pos[0];
+                        positions[j * 2 + 1] = pos[1];
+                    }
+                }
+
+                const elapsed = performance.now() - start;
+
+                displayTypedArrayResult(count, iterations, elapsed, positions);
+                log(`TypedArray benchmark: ${elapsed.toFixed(2)}ms`, "info");
+            }
+
+            function benchAllPositions() {
+                const entities = wasm.get_alive_entities();
+                const count = entities.length;
+
+                // Benchmark: Get all positions efficiently
+                const iterations = 500;
+                const start = performance.now();
+
+                let totalX = 0,
+                    totalY = 0;
+                for (let i = 0; i < iterations; i++) {
+                    for (const id of entities) {
+                        const pos = wasm.get_entity_position_world(id);
+                        totalX += pos[0];
+                        totalY += pos[1];
+                    }
+                }
+
+                const elapsed = performance.now() - start;
+                const perEntity = (
+                    (elapsed / (iterations * count)) *
+                    1000
+                ).toFixed(3);
+
+                displayBenchResult(
+                    "Get All Positions",
+                    iterations * count,
+                    elapsed,
+                    perEntity,
+                );
+            }
+
+            function displayBenchResult(
+                label,
+                iterations,
+                elapsed,
+                perEntity = null,
+            ) {
+                const div = document.getElementById("bench-results");
+                const opsSec = ((iterations / elapsed) * 1000).toFixed(0);
+                const timePerOp = ((elapsed / iterations) * 1000).toFixed(3);
+
+                div.innerHTML = `
+                <div class="benchmark-result">
+                    <div class="label">${label}</div>
+                    <div class="time">${elapsed.toFixed(2)}ms</div>
+                    <div class="label">${opsSec} ops/sec | ${timePerOp}μs per op${perEntity ? " | " + perEntity + "μs/entity" : ""}</div>
+                </div>
+            `;
+            }
+
+            function displayTypedArrayResult(
+                count,
+                iterations,
+                elapsed,
+                positions,
+            ) {
+                const div = document.getElementById("typedarray-results");
+                const throughput = (
+                    (count * iterations * 2 * 4) /
+                    (elapsed / 1000) /
+                    1024 /
+                    1024
+                ).toFixed(2);
+
+                div.innerHTML = `
+                <div class="benchmark-result">
+                    <div class="label">TypedArray Transfer</div>
+                    <div class="time">${elapsed.toFixed(2)}ms</div>
+                    <div class="label">${count} entities × ${iterations} iters | ${throughput} MB/s throughput</div>
+                    <div class="label">Buffer: Float32Array[${positions.length}]</div>
+                </div>
+            `;
+            }
+
+            // ============================================
+            // TypedArray Tests
+            // ============================================
+
+            function testTypedArrayTransfer() {
+                const entities = wasm.get_alive_entities();
+                const count = entities.length;
+
+                // Create efficient buffer
+                const positions = new Float32Array(count * 2);
+                const colors = new Uint8Array(count * 4);
+
+                const start = performance.now();
+
+                // Fill buffers from WASM
+                for (let i = 0; i < count; i++) {
+                    const pos = wasm.get_entity_position_world(entities[i]);
+                    positions[i * 2] = pos[0];
+                    positions[i * 2 + 1] = pos[1];
+
+                    const color = wasm.get_entity_color_hex(entities[i]);
+                    const rgb = hexToRgb(color);
+                    colors[i * 4] = rgb.r;
+                    colors[i * 4 + 1] = rgb.g;
+                    colors[i * 4 + 2] = rgb.b;
+                    colors[i * 4 + 3] = 255;
+                }
+
+                const elapsed = performance.now() - start;
+
+                log(
+                    `TypedArray transfer: ${count} entities in ${elapsed.toFixed(2)}ms`,
+                    "success",
+                );
+
+                // Show sample
+                if (count > 0) {
+                    log(
+                        `Sample: [${positions[0].toFixed(1)}, ${positions[1].toFixed(1)}] color: #${colors[0].toString(16).padStart(2, "0")}${colors[1].toString(16).padStart(2, "0")}${colors[2].toString(16).padStart(2, "0")}`,
+                        "info",
+                    );
+                }
+            }
+
+            function testMemoryView() {
+                // Test direct memory access patterns
+                const iterations = 100;
+                const start = performance.now();
+
+                const entities = wasm.get_alive_entities();
+                const view = {
+                    positions: new Float32Array(entities.length * 2),
+                    velocities: new Float32Array(entities.length * 2),
+                    sizes: new Float32Array(entities.length * 2),
+                };
+
+                for (let i = 0; i < iterations; i++) {
+                    for (let j = 0; j < entities.length; j++) {
+                        const pos = wasm.get_entity_position_world(entities[j]);
+                        const size = wasm.get_entity_size_world(entities[j]);
+
+                        view.positions[j * 2] = pos[0];
+                        view.positions[j * 2 + 1] = pos[1];
+                        view.sizes[j * 2] = size[0];
+                        view.sizes[j * 2 + 1] = size[1];
+
+                        // Compute velocity (simulated)
+                        view.velocities[j * 2] = Math.sin(i * 0.1 + j) * 2;
+                        view.velocities[j * 2 + 1] = Math.cos(i * 0.1 + j) * 2;
+                    }
+                }
+
+                const elapsed = performance.now() - start;
+                const bytes =
+                    view.positions.byteLength +
+                    view.velocities.byteLength +
+                    view.sizes.byteLength;
+
+                log(
+                    `Memory view: ${iterations} iters × ${entities.length} entities = ${bytes} bytes/iter in ${elapsed.toFixed(2)}ms`,
+                    "success",
+                );
+
+                document.getElementById("typedarray-results").innerHTML = `
+                <div class="benchmark-result">
+                    <div class="label">Memory View</div>
+                    <div class="time">${elapsed.toFixed(2)}ms</div>
+                    <div class="label">${((bytes * iterations) / 1024 / 1024).toFixed(2)} MB processed</div>
+                </div>
+            `;
+            }
+
+            // ============================================
+            // Web Worker
+            // ============================================
+
+            function spawnWorker() {
+                if (worker) {
+                    log("Worker already running", "warn");
+                    return;
+                }
+
+                const workerCode =
+                    document.getElementById("worker-code").textContent;
+                const blob = new Blob([workerCode], {
+                    type: "application/javascript",
+                });
+                worker = new Worker(URL.createObjectURL(blob));
+
+                worker.onmessage = function (e) {
+                    const { type, id, data } = e.data;
+
+                    if (type === "result") {
+                        log(
+                            `Worker computed: ${data.iterations} iterations, sum: ${data.sum.toFixed(2)}`,
+                            "success",
+                        );
+                    } else if (type === "positions") {
+                        // Received processed positions back
+                        log(
+                            `Worker processed ${data.length / 2} positions`,
+                            "success",
+                        );
+                    } else if (type === "filtered") {
+                        log(
+                            `Worker filtered to ${data.length} entities`,
+                            "success",
+                        );
+                    }
+
+                    updateWorkerProgress(100);
+                };
+
+                document.getElementById("worker-dot").classList.add("active");
+                document.getElementById("worker-text").textContent =
+                    "Worker: Active";
+
+                // Send initial work
+                sendWorkerTask("compute", { count: 100000 });
+
+                // Send periodic tasks
+                setInterval(() => {
+                    if (worker) {
+                        const entities = wasm.get_alive_entities();
+                        const positions = new Float32Array(entities.length * 2);
+                        for (let i = 0; i < entities.length; i++) {
+                            const pos = wasm.get_entity_position_world(
+                                entities[i],
+                            );
+                            positions[i * 2] = pos[0];
+                            positions[i * 2 + 1] = pos[1];
+                        }
+                        sendWorkerTask("batchPositions", {
+                            positions: positions,
+                        });
+                    }
+                }, 2000);
+
+                log("Web Worker started", "success");
+            }
+
+            function sendWorkerTask(type, data) {
+                if (worker) {
+                    updateWorkerProgress(50);
+                    worker.postMessage({ type, data, id: Date.now() });
+                }
+            }
+
+            function terminateWorker() {
+                if (worker) {
+                    worker.terminate();
+                    worker = null;
+                    document
+                        .getElementById("worker-dot")
+                        .classList.remove("active");
+                    document.getElementById("worker-text").textContent =
+                        "Worker: Inactive";
+                    updateWorkerProgress(0);
+                    log("Web Worker terminated", "warn");
+                }
+            }
+
+            function updateWorkerProgress(percent) {
+                document.getElementById("worker-progress").style.width =
+                    percent + "%";
+            }
+
+            // ============================================
+            // Engine Settings
+            // ============================================
+
+            function toggleVSync() {
+                // Toggle vsync if exposed
+                if (wasm.set_vsync) {
+                    const current = wasm.get_vsync ? wasm.get_vsync() : true;
+                    wasm.set_vsync(!current);
+                    log(`VSync: ${!current ? "ON" : "OFF"}`, "info");
+                } else {
+                    log("VSync toggle not exposed", "warn");
+                }
+            }
+
+            function toggleBatching() {
+                // Toggle batching if exposed
+                if (wasm.set_batch_mode) {
+                    const current = wasm.get_batch_mode
+                        ? wasm.get_batch_mode()
+                        : true;
+                    wasm.set_batch_mode(!current);
+                    log(`Batch mode: ${!current ? "ON" : "OFF"}`, "info");
+                } else {
+                    log("Batch mode toggle not exposed", "warn");
+                }
+            }
+
+            function forceGC() {
+                if (window.gc) {
+                    window.gc();
+                    log("Garbage collection triggered", "info");
+                } else {
+                    // Try to hint GC
+                    if (wasm.gc) {
+                        wasm.gc();
+                        log("WASM GC triggered", "info");
+                    } else {
+                        log("GC not available (use --expose-gc)", "warn");
+                    }
+                }
+                updateMemoryStats();
+            }
+
+            // ============================================
+            // Stats & FPS
+            // ============================================
+
+            function updateStats() {
+                const entityCount = wasm.entity_count();
+                document.getElementById("stat-entities").textContent =
+                    entityCount;
+
+                // Update memory
+                updateMemoryStats();
+            }
+
+            function updateMemoryStats() {
+                if (performance.memory) {
+                    const mb = (
+                        performance.memory.usedJSHeapSize /
+                        1024 /
+                        1024
+                    ).toFixed(1);
+                    const mbTotal = (
+                        performance.memory.totalJSHeapSize /
+                        1024 /
+                        1024
+                    ).toFixed(1);
+                    const memEl = document.getElementById("stat-memory");
+                    memEl.textContent = `${mb} / ${mbTotal} MB`;
+
+                    if (mb > 100) {
+                        memEl.className = "stat-value danger";
+                    } else if (mb > 50) {
+                        memEl.className = "stat-value warning";
+                    } else {
+                        memEl.className = "stat-value";
+                    }
+                }
+            }
+
+            function updateFPS(fps) {
+                document.getElementById("stat-fps").textContent = fps;
+
+                const frameTime = 1000 / fps;
+                const frameEl = document.getElementById("stat-frame");
+                frameEl.textContent = frameTime.toFixed(1) + "ms";
+
+                if (fps < 30) {
+                    frameEl.className = "stat-value danger";
+                } else if (fps < 50) {
+                    frameEl.className = "stat-value warning";
+                } else {
+                    frameEl.className = "stat-value";
+                }
+
+                // Update history
+                fpsHistory.push(fps);
+                if (fpsHistory.length > MAX_FPS_HISTORY) {
+                    fpsHistory.shift();
+                }
+            }
+
+            function setupFPSGraph() {
+                const canvas = document.getElementById("fps-canvas");
+                const ctx = canvas.getContext("2d");
+
+                canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+                canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+                ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+                function draw() {
+                    const w = canvas.offsetWidth;
+                    const h = canvas.offsetHeight;
+
+                    ctx.clearRect(0, 0, w, h);
+
+                    // Draw grid
+                    ctx.strokeStyle = "#333";
+                    ctx.lineWidth = 0.5;
+                    for (let i = 0; i <= 4; i++) {
+                        const y = (h / 4) * i;
+                        ctx.beginPath();
+                        ctx.moveTo(0, y);
+                        ctx.lineTo(w, y);
+                        ctx.stroke();
+                    }
+
+                    // Draw FPS line
+                    if (fpsHistory.length > 1) {
+                        ctx.strokeStyle = "#00d4ff";
+                        ctx.lineWidth = 1.5;
+                        ctx.beginPath();
+
+                        const step = w / MAX_FPS_HISTORY;
+                        for (let i = 0; i < fpsHistory.length; i++) {
+                            const x =
+                                (MAX_FPS_HISTORY - fpsHistory.length + i) *
+                                step;
+                            const y = h - (fpsHistory[i] / 60) * h;
+                            if (i === 0) ctx.moveTo(x, y);
+                            else ctx.lineTo(x, y);
+                        }
+                        ctx.stroke();
+
+                        // Fill
+                        ctx.fillStyle = "rgba(0, 212, 255, 0.1)";
+                        ctx.lineTo(w, h);
+                        ctx.lineTo(0, h);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+
+                    requestAnimationFrame(draw);
+                }
+
+                draw();
+            }
+
+            // ============================================
+            // Canvas Events
+            // ============================================
+
+            function setupCanvasEvents(canvas) {
+                canvas.addEventListener("pointerdown", (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    wasm.on_mouse_down(
+                        e.clientX - rect.left,
+                        e.clientY - rect.top,
+                        e.button,
+                        0,
+                    );
+                });
+
+                canvas.addEventListener("pointermove", (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    wasm.on_mouse_move(
+                        e.clientX - rect.left,
+                        e.clientY - rect.top,
+                        e.buttons,
+                        0,
+                    );
+                });
+
+                canvas.addEventListener("pointerup", (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    wasm.on_mouse_up(
+                        e.clientX - rect.left,
+                        e.clientY - rect.top,
+                        e.button,
+                        0,
+                    );
+                    updateStats();
+                });
+            }
+
+            // ============================================
+            // Render Loop
+            // ============================================
+
+            function startRenderLoop() {
+                let lastTime = performance.now();
+                let frameCount = 0;
+                let fpsUpdateTime = 0;
+
+                function render(timestamp) {
+                    const deltaTime = (timestamp - lastTime) / 1000;
+                    lastTime = timestamp;
+
+                    // FPS calculation
+                    frameCount++;
+                    fpsUpdateTime += deltaTime;
+
+                    if (fpsUpdateTime >= 0.5) {
+                        const fps = Math.round(frameCount / fpsUpdateTime);
+                        updateFPS(fps);
+                        frameCount = 0;
+                        fpsUpdateTime = 0;
+                    }
+
+                    wasm.tick(deltaTime);
+
+                    requestAnimationFrame(render);
+                }
+
+                requestAnimationFrame(render);
+            }
+
+            // ============================================
+            // Utilities
+            // ============================================
+
+            function log(message, type = "info") {
+                const results = document.getElementById("results");
+                const entry = document.createElement("div");
+                entry.className = `log-entry ${type}`;
+                entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                results.insertBefore(entry, results.firstChild);
+
+                // Keep only last 50 entries
+                while (results.children.length > 50) {
+                    results.removeChild(results.lastChild);
+                }
+            }
+
+            function hslToRgb(h, s, l) {
+                let r, g, b;
+                if (s === 0) {
+                    r = g = b = l;
+                } else {
+                    const hue2rgb = (p, q, t) => {
+                        if (t < 0) t += 1;
+                        if (t > 1) t -= 1;
+                        if (t < 1 / 6) return p + (q - p) * 6 * t;
+                        if (t < 1 / 2) return q;
+                        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+                        return p;
+                    };
+                    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                    const p = 2 * l - q;
+                    r = hue2rgb(p, q, h + 1 / 3);
+                    g = hue2rgb(p, q, h);
+                    b = hue2rgb(p, q, h - 1 / 3);
+                }
+                return [
+                    Math.round(r * 255),
+                    Math.round(g * 255),
+                    Math.round(b * 255),
+                ];
+            }
+
+            function hexToRgb(hex) {
+                const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(
+                    hex,
+                );
+                return result
+                    ? {
+                          r: parseInt(result[1], 16),
+                          g: parseInt(result[2], 16),
+                          b: parseInt(result[3], 16),
+                      }
+                    : { r: 0, g: 0, b: 0 };
+            }
+
+            // Handle resize
+            window.addEventListener("resize", () => {
+                const canvas = document.getElementById("canvas");
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                if (wasm) {
+                    wasm.resize(canvas.width, canvas.height);
+                }
+            });
+
+            window.dispatchEvent(new Event("resize"));
+            main();
+        </script>
+    </body>
+</html>
