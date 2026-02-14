@@ -1223,6 +1223,9 @@ impl WasmBridge {
     }
 
     /// Move an entity by the given delta
+    ///
+    /// DEPRECATED: Use MoveActuator via Logic Bricks or configure_entity() instead
+    #[deprecated(since = "0.61.0", note = "Use MoveActuator or configure_entity()")]
     #[wasm_bindgen]
     pub fn move_entity(&self, entity_index: u32, dx: f32, dy: f32) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
@@ -1241,6 +1244,9 @@ impl WasmBridge {
     }
 
     /// Set the color of an entity
+    ///
+    /// DEPRECATED: Use HighlightActuator via Logic Bricks instead
+    #[deprecated(since = "0.61.0", note = "Use HighlightActuator")]
     #[wasm_bindgen]
     pub fn set_color(&self, entity_index: u32, r: u8, g: u8, b: u8, a: u8) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
@@ -1258,6 +1264,9 @@ impl WasmBridge {
     }
 
     /// Set highlight tint color (for visual feedback on hover/selection)
+    ///
+    /// DEPRECATED: Use HighlightActuator via Logic Bricks instead
+    #[deprecated(since = "0.61.0", note = "Use HighlightActuator")]
     #[wasm_bindgen]
     pub fn set_color_tint(
         &self,
@@ -1280,6 +1289,9 @@ impl WasmBridge {
     }
 
     /// Clear highlight tint (reset to default)
+    ///
+    /// DEPRECATED: Use HighlightActuator via Logic Bricks instead
+    #[deprecated(since = "0.61.0", note = "Use HighlightActuator")]
     #[wasm_bindgen]
     pub fn clear_color_tint(&self, entity_index: u32) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
@@ -1324,6 +1336,9 @@ impl WasmBridge {
     }
 
     /// Move entity by delta (direct position update, not command queue)
+    ///
+    /// DEPRECATED: Use MoveActuator via Logic Bricks or configure_entity() instead
+    #[deprecated(since = "0.61.0", note = "Use MoveActuator or configure_entity()")]
     #[wasm_bindgen]
     pub fn move_entity_by(&self, entity_index: u32, dx: f32, dy: f32) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
@@ -1341,6 +1356,9 @@ impl WasmBridge {
     }
 
     /// Set velocity directly (for physics integration)
+    ///
+    /// DEPRECATED: Use PhysicsSystem via tick() with fixed timestep instead
+    #[deprecated(since = "0.61.0", note = "Use PhysicsSystem integrated in tick()")]
     #[wasm_bindgen]
     pub fn set_entity_velocity(&self, entity_index: u32, vx: f32, vy: f32) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
@@ -1356,6 +1374,9 @@ impl WasmBridge {
     }
 
     /// Get current velocity of an entity
+    ///
+    /// DEPRECATED: Use query_with_velocity() or EntityStore query instead
+    #[deprecated(since = "0.61.0", note = "Use query_with_velocity()")]
     #[wasm_bindgen]
     pub fn get_entity_velocity(&self, entity_index: u32) -> Result<Vec<f32>, JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
@@ -1371,6 +1392,9 @@ impl WasmBridge {
     }
 
     /// Set the stroke color of an entity
+    ///
+    /// DEPRECATED: Use HighlightActuator via Logic Bricks instead
+    #[deprecated(since = "0.61.0", note = "Use HighlightActuator")]
     #[wasm_bindgen]
     pub fn set_stroke_color(
         &self,
@@ -1394,6 +1418,9 @@ impl WasmBridge {
     }
 
     /// Set the stroke width of an entity
+    ///
+    /// DEPRECATED: Use HighlightActuator via Logic Bricks instead
+    #[deprecated(since = "0.61.0", note = "Use HighlightActuator")]
     #[wasm_bindgen]
     pub fn set_stroke_width(&self, entity_index: u32, width: f32) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
@@ -1408,6 +1435,9 @@ impl WasmBridge {
     }
 
     /// Get the color of an entity (returns hex string)
+    ///
+    /// DEPRECATED: Use query system or EntityStore directly instead
+    #[deprecated(since = "0.61.0", note = "Use query system")]
     #[wasm_bindgen]
     pub fn get_color(&self, entity_index: u32) -> Result<String, JsValue> {
         match self.engine.try_borrow() {
@@ -1432,6 +1462,9 @@ impl WasmBridge {
     }
 
     /// Get the stroke color of an entity (returns hex string)
+    ///
+    /// DEPRECATED: Use query system or EntityStore directly instead
+    #[deprecated(since = "0.61.0", note = "Use query system")]
     #[wasm_bindgen]
     pub fn get_stroke_color(&self, entity_index: u32) -> Result<String, JsValue> {
         if let Some(engine) = self.engine.borrow().as_ref() {
@@ -1451,6 +1484,9 @@ impl WasmBridge {
     }
 
     /// Get the stroke width of an entity
+    ///
+    /// DEPRECATED: Use query system or EntityStore directly instead
+    #[deprecated(since = "0.61.0", note = "Use query system")]
     #[wasm_bindgen]
     pub fn get_stroke_width(&self, entity_index: u32) -> Result<f32, JsValue> {
         if let Some(engine) = self.engine.borrow().as_ref() {
@@ -2093,6 +2129,9 @@ impl WasmBridge {
     ///
     /// ids: array of entity indices
     /// visible: visibility state to apply to all
+    ///
+    /// DEPRECATED: Use VisibilityActuator via Logic Bricks instead
+    #[deprecated(since = "0.61.0", note = "Use VisibilityActuator")]
     #[wasm_bindgen]
     pub fn batch_set_visibility(&self, ids: &[u32], visible: bool) -> Result<u32, JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
@@ -2111,6 +2150,9 @@ impl WasmBridge {
     /// Batch despawn multiple entities
     ///
     /// ids: array of entity indices to remove
+    ///
+    /// DEPRECATED: Use EntityManager or Command pattern instead
+    #[deprecated(since = "0.61.0", note = "Use EntityManager")]
     #[wasm_bindgen]
     pub fn batch_despawn(&self, ids: &[u32]) -> Result<u32, JsValue> {
         use archflow_core::{EntityId, Generation, Index};
@@ -2237,6 +2279,9 @@ impl WasmBridge {
     }
 
     /// Set the shape type of an entity
+    ///
+    /// DEPRECATED: Use PropertyActuator via Logic Bricks instead
+    #[deprecated(since = "0.61.0", note = "Use PropertyActuator")]
     #[wasm_bindgen]
     pub fn set_shape(&self, entity_index: u32, shape: u8) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
@@ -2252,6 +2297,9 @@ impl WasmBridge {
     }
 
     /// Batch set shapes for multiple entities (optimized)
+    ///
+    /// DEPRECATED: Use PropertyActuator via Logic Bricks instead
+    #[deprecated(since = "0.61.0", note = "Use PropertyActuator")]
     #[wasm_bindgen]
     pub fn batch_set_shapes(&self, ids: &[u32], shapes: &[u8]) -> Result<u32, JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
@@ -2462,6 +2510,9 @@ impl WasmBridge {
     }
 
     /// Set the label of an entity
+    ///
+    /// DEPRECATED: Use MetadataComponent or entity properties instead
+    #[deprecated(since = "0.61.0", note = "Use entity properties")]
     #[wasm_bindgen]
     pub fn set_label(&self, entity_index: u32, label: &str) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
@@ -2598,6 +2649,9 @@ impl WasmBridge {
     }
 
     /// Get entity label from string pool
+    ///
+    /// DEPRECATED: Use query system or EntityStore instead
+    #[deprecated(since = "0.61.0", note = "Use query system")]
     #[wasm_bindgen]
     pub fn get_entity_label(&self, entity_index: u32) -> Result<String, JsValue> {
         if let Some(engine) = self.engine.borrow().as_ref() {
@@ -2612,6 +2666,9 @@ impl WasmBridge {
     }
 
     /// Check if entity is visible
+    ///
+    /// DEPRECATED: Use query_by_visibility() instead
+    #[deprecated(since = "0.61.0", note = "Use query_by_visibility()")]
     #[wasm_bindgen]
     pub fn is_entity_visible(&self, entity_index: u32) -> Result<bool, JsValue> {
         if let Some(engine) = self.engine.borrow().as_ref() {
@@ -2640,6 +2697,9 @@ impl WasmBridge {
     }
 
     /// Set entity visibility
+    ///
+    /// DEPRECATED: Use VisibilityActuator via Logic Bricks instead
+    #[deprecated(since = "0.61.0", note = "Use VisibilityActuator")]
     #[wasm_bindgen]
     pub fn set_entity_visible(&self, entity_index: u32, visible: bool) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
@@ -2907,6 +2967,12 @@ impl WasmBridge {
     }
 
     /// Set the size of an entity
+    ///
+    /// DEPRECATED: Use GizmoScaleActuator or configure_entity() instead
+    #[deprecated(
+        since = "0.61.0",
+        note = "Use GizmoScaleActuator or configure_entity()"
+    )]
     #[wasm_bindgen]
     pub fn set_size(&self, entity_index: u32, width: f32, height: f32) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
@@ -2925,6 +2991,9 @@ impl WasmBridge {
     }
 
     /// Set the position of an entity
+    ///
+    /// DEPRECATED: Use MoveActuator via Logic Bricks or configure_entity() instead
+    #[deprecated(since = "0.61.0", note = "Use MoveActuator or configure_entity()")]
     #[wasm_bindgen]
     pub fn set_position(&self, entity_index: u32, x: f32, y: f32) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
@@ -2943,6 +3012,9 @@ impl WasmBridge {
     }
 
     /// Duplicate an entity (create a copy at a slight offset)
+    ///
+    /// DEPRECATED: Use EntityFactory or Command pattern instead
+    #[deprecated(since = "0.61.0", note = "Use EntityFactory")]
     #[wasm_bindgen]
     pub fn duplicate_entity(&self, entity_index: u32) -> Result<u32, JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
@@ -2966,6 +3038,9 @@ impl WasmBridge {
     }
 
     /// Delete all selected entities
+    ///
+    /// DEPRECATED: Use SelectActuator + DeleteActuator via Logic Bricks instead
+    #[deprecated(since = "0.61.0", note = "Use SelectActuator + DeleteActuator")]
     #[wasm_bindgen]
     pub fn delete_selected(&self) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {

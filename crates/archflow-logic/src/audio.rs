@@ -16,8 +16,8 @@
 // 3. Commands are forwarded to Web Audio API via bridge callbacks
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 use archflow_core::EntityId;
 
 use crate::actuators::audio::AudioCommand;
@@ -131,7 +131,7 @@ impl AudioSystem {
         // Add to playing
         self.playing.retain(|(e, _)| *e != entity);
         self.playing.push((entity, sound_id));
-        
+
         // Trigger callback
         if let Some(callback) = self.play_callback {
             callback(entity, sound_id, self.master_volume, 1.0, false);
@@ -141,7 +141,7 @@ impl AudioSystem {
     fn handle_stop(&mut self, entity: EntityId) {
         self.playing.retain(|(e, _)| *e != entity);
         self.paused.retain(|(e, _)| *e != entity);
-        
+
         if let Some(callback) = self.stop_callback {
             callback(entity);
         }
@@ -151,7 +151,7 @@ impl AudioSystem {
         if let Some(pos) = self.playing.iter().position(|(e, _)| *e == entity) {
             let (_, sound_id) = self.playing.remove(pos);
             self.paused.push((entity, sound_id));
-            
+
             if let Some(callback) = self.pause_callback {
                 callback(entity);
             }
@@ -162,7 +162,7 @@ impl AudioSystem {
         if let Some(pos) = self.paused.iter().position(|(e, _)| *e == entity) {
             let (_, sound_id) = self.paused.remove(pos);
             self.playing.push((entity, sound_id));
-            
+
             if let Some(callback) = self.resume_callback {
                 callback(entity);
             }
@@ -241,13 +241,14 @@ impl AudioSystem {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::vec;
 
     #[test]
     fn test_register_sound() {
         let mut system = AudioSystem::new();
         let id = system.register_sound("click", 0.5);
         assert_eq!(id, 0);
-        
+
         let sound = system.get_sound(0).unwrap();
         assert_eq!(sound.name, "click");
     }
@@ -256,13 +257,16 @@ mod tests {
     fn test_play_stop() {
         let mut system = AudioSystem::new();
         let entity = EntityId::new(1);
-        
+
         system.register_sound("click", 0.5);
-        
+
         // Play
-        system.process_commands(vec![AudioCommand::Play { entity, sound_id: 0 }]);
+        system.process_commands(vec![AudioCommand::Play {
+            entity,
+            sound_id: 0,
+        }]);
         assert!(system.is_playing(entity));
-        
+
         // Stop
         system.process_commands(vec![AudioCommand::Stop { entity }]);
         assert!(!system.is_playing(entity));
@@ -272,15 +276,18 @@ mod tests {
     fn test_pause_resume() {
         let mut system = AudioSystem::new();
         let entity = EntityId::new(1);
-        
+
         system.register_sound("click", 0.5);
-        
+
         // Play then pause
-        system.process_commands(vec![AudioCommand::Play { entity, sound_id: 0 }]);
+        system.process_commands(vec![AudioCommand::Play {
+            entity,
+            sound_id: 0,
+        }]);
         system.process_commands(vec![AudioCommand::Pause { entity }]);
         assert!(!system.is_playing(entity));
         assert!(system.is_paused(entity));
-        
+
         // Resume
         system.process_commands(vec![AudioCommand::Resume { entity }]);
         assert!(system.is_playing(entity));
@@ -290,10 +297,10 @@ mod tests {
     #[test]
     fn test_master_volume() {
         let mut system = AudioSystem::new();
-        
+
         system.set_master_volume(0.5);
         assert_eq!(system.master_volume(), 0.5);
-        
+
         // Clamp
         system.set_master_volume(1.5);
         assert_eq!(system.master_volume(), 1.0);
