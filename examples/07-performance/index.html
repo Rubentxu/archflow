@@ -239,16 +239,16 @@
         </div>
 
         <div class="tips">
-            <h4>🚀 Optimizado: Física en Rust</h4>
+            <h4>🚀 Física Automática en Rust</h4>
             <p>
-                • <span class="highlight">integrate_physics()</span> corre en
-                WASM
+                • <span class="highlight">bridge.tick()</span> ejecuta Physics
+                automáticamente
             </p>
-            <p>• Velocidad, rebote, damping automáticos</p>
+            <p>• Velocidad, rebote, damping automáticos con Fixed Timestep</p>
             <p>
                 • <span class="highlight">Meta: 60 FPS</span> con 20k+ entidades
             </p>
-            <p>• Solo 1-2 llamadas JS↔WASM por frame</p>
+            <p>• Solo 1 llamada JS↔WASM por frame</p>
         </div>
 
         <div id="instructions">
@@ -266,11 +266,11 @@
             } from "../shared/archflow-client.js";
 
             // ============================================================
-            // Stress Test - Performance Benchmark v3.1
+            // Stress Test - Performance Benchmark v3.2
             // ============================================================
             //
-            // OPTIMIZADO: Física ejecuta en Rust via integrate_physics()
-            // - bridge.integrate_physics() corre TODO en WASM
+            // Física ejecuta automáticamente en bridge.tick() con Fixed Timestep
+            // - tick() corre Logic Bricks y Physics
             // - JS solo llama 1 función por frame
             // - Meta: 60 FPS con 20k+ entidades
             // ============================================================
@@ -364,35 +364,6 @@
                     shapeIds.length;
             });
 
-            // ✅ OPTIMIZADO: Física en Rust - UNA SOLA LLAMADA por frame!
-            function updatePhysicsRust(dt) {
-                if (shapeIds.length === 0) return;
-
-                const physicsStart = performance.now();
-
-                // ✅ UNA LLAMADA - Rust hace TODO:
-                // - Integra velocidad a posición
-                // - Aplica damping
-                // - Detecta colisiones con bordes
-                // - Rebota si toca bordes
-                const count = bridge.integrate_physics(
-                    dt,
-                    0,
-                    0, // min bounds
-                    canvas.width,
-                    canvas.height, // max bounds
-                );
-                wasmCallsThisFrame++;
-
-                const physicsTime = (performance.now() - physicsStart).toFixed(
-                    2,
-                );
-                document.getElementById("physics-time").textContent =
-                    `${physicsTime}ms`;
-
-                return count;
-            }
-
             // Query demos
             function demoQueryAll() {
                 const start = performance.now();
@@ -463,13 +434,9 @@
                 // ✅tick() DELEGA a engine.tick() que incluye:
                 // - Logic Bricks (Sensors -> Controllers -> Actuators)
                 // - Fixed Timestep Physics (integrado en tick() - HU-PERF-001)
-                // Ya NO necesita llamar a integrate_physics() manualmente!
+                // Física se ejecuta automáticamente en tick()
                 bridge.tick(now);
                 wasmCallsThisFrame++;
-
-                // ✅ NOTA: La física ahora corre automáticamente en tick()
-                // con Fixed Timestep para estabilidad. No hace falta llamar
-                // a integrate_physics() manualmente.
 
                 updateFPS();
                 updateUptime();

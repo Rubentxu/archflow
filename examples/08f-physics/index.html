@@ -269,28 +269,6 @@
                     `${spawnTime}ms`;
             }
 
-            // Physics update - using Rust integrate_physics for full physics simulation
-            function updatePhysics() {
-                if (shapes.length === 0) return;
-
-                const physicsStart = performance.now();
-
-                // Use Rust physics system - handles velocity integration, damping, and boundary collisions
-                const count = bridge.integrate_physics(
-                    1 / 60, // fixed dt
-                    0,
-                    0,
-                    canvas.width,
-                    canvas.height,
-                );
-
-                const physicsTime = (performance.now() - physicsStart).toFixed(
-                    2,
-                );
-                document.getElementById("physics-time").textContent =
-                    `${physicsTime}ms`;
-            }
-
             // Click handler
             canvas.addEventListener("click", (e) => {
                 const rect = canvas.getBoundingClientRect();
@@ -328,11 +306,8 @@
                 const dt = (now - lastTime) / 1000;
                 lastTime = now;
 
-                // Tick the engine
+                // Tick the engine (includes physics automatically with Fixed Timestep)
                 bridge.tick(dt);
-
-                // Update physics
-                updatePhysics();
 
                 requestAnimationFrame(gameLoop);
             }
