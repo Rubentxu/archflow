@@ -14,6 +14,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 519 unit tests passing in archflow-logic
   - 1,176 tests passing workspace-wide
 
+## [0.58.0] - 2026-02-14
+
+### Added
+- **feat(wasm-bridge): Fixed Timestep Physics (HU-PERF-001)**
+  - Accumulator pattern for stable physics independent of frame rate
+  - Configurable timestep (default 60 Hz)
+  - Max substeps (default 8) to prevent "spiral of death"
+  - New API: `set_fixed_timestep_hz()`, `set_fixed_timestep()`, `get_fixed_timestep()`, `set_max_substeps()`, `get_max_substeps()`, `get_accumulator()`
+  - `WorldBounds` struct for boundary management
+  - Physics now integrated automatically in `tick()` - no manual `integrate_physics()` call needed
+
+### Changed
+- Physics examples now use integrated fixed timestep instead of manual integration
+- Performance example 07 updated for new physics API
+
 ## [0.45.0] - 2026-02-06
 
 ### Added
