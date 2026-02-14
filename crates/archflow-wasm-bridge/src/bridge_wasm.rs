@@ -957,6 +957,31 @@ impl WasmBridge {
         }
     }
 
+    /// Batch set physics material for multiple entities
+    /// This is more efficient than calling set_physics_material for each entity
+    #[wasm_bindgen]
+    pub fn batch_set_physics_materials(
+        &self,
+        ids: &[u32],
+        restitution: f32,
+        friction: f32,
+        mass: f32,
+    ) -> Result<(), JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            for &id in ids {
+                let idx = id as usize;
+                if idx < archflow_engine::MAX_ENTITIES {
+                    engine
+                        .store
+                        .set_physics_material(idx, restitution, friction, mass);
+                }
+            }
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
     /// Integrate physics for all entities
     /// This should be called every frame for physics to work
     /// Returns number of entities processed

@@ -243,6 +243,9 @@
                     const vy = (Math.random() - 0.5) * 6;
                     bridge.set_velocity(id, vx, vy);
 
+                    // Set physics material: restitution=0.8, friction=0 (no damping), mass=1 (dynamic)
+                    bridge.set_physics_material(id, 0.8, 0.0, 1.0);
+
                     // Add Logic Bricks
                     // Hover -> Highlight
                     bridge.add_sensor(id, 0, 0, 0);

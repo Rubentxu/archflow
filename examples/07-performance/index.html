@@ -343,6 +343,11 @@
                 bridge.batch_set_velocities(ids, vxArray, vyArray);
                 wasmCallsThisFrame++;
 
+                // Set physics material: restitution=0.8, friction=0 (no damping), mass=1 (dynamic)
+                // This makes entities bounce and keep moving without slowing down
+                bridge.batch_set_physics_materials(ids, 0.8, 0.0, 1.0);
+                wasmCallsThisFrame++;
+
                 // ✅ OPTIMIZADO: batch_set_shapes - 1 llamada en lugar de 1000
                 const shapeArray = new Uint8Array(ids.length);
                 for (let i = 0; i < ids.length; i++) {
