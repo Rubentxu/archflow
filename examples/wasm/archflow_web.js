@@ -5389,12 +5389,12 @@ function __wbg_get_imports() {
         },
         __wbindgen_cast_0000000000000001: function(arg0, arg1) {
             // Cast intrinsic for `Closure(Closure { dtor_idx: 62, function: Function { arguments: [NamedExternref("Event")], shim_idx: 65, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
-            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h23b9928cba70ff23, wasm_bindgen__convert__closures_____invoke__h2911aef8c4262211);
+            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h0fff7f8f8086545d, wasm_bindgen__convert__closures_____invoke__hb95fef9f40988300);
             return ret;
         },
         __wbindgen_cast_0000000000000002: function(arg0, arg1) {
             // Cast intrinsic for `Closure(Closure { dtor_idx: 62, function: Function { arguments: [], shim_idx: 63, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
-            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h23b9928cba70ff23, wasm_bindgen__convert__closures_____invoke__h01437567dc19afd0);
+            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h0fff7f8f8086545d, wasm_bindgen__convert__closures_____invoke__h5e346efc58a509bb);
             return ret;
         },
         __wbindgen_cast_0000000000000003: function(arg0) {
@@ -5433,12 +5433,12 @@ function __wbg_get_imports() {
     };
 }
 
-function wasm_bindgen__convert__closures_____invoke__h01437567dc19afd0(arg0, arg1) {
-    wasm.wasm_bindgen__convert__closures_____invoke__h01437567dc19afd0(arg0, arg1);
+function wasm_bindgen__convert__closures_____invoke__h5e346efc58a509bb(arg0, arg1) {
+    wasm.wasm_bindgen__convert__closures_____invoke__h5e346efc58a509bb(arg0, arg1);
 }
 
-function wasm_bindgen__convert__closures_____invoke__h2911aef8c4262211(arg0, arg1, arg2) {
-    wasm.wasm_bindgen__convert__closures_____invoke__h2911aef8c4262211(arg0, arg1, arg2);
+function wasm_bindgen__convert__closures_____invoke__hb95fef9f40988300(arg0, arg1, arg2) {
+    wasm.wasm_bindgen__convert__closures_____invoke__hb95fef9f40988300(arg0, arg1, arg2);
 }
 
 const BrickChainBuilderFinalization = (typeof FinalizationRegistry === 'undefined')

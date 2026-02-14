@@ -3017,9 +3017,9 @@ export interface InitOutput {
     readonly signalbytewasm_size: (a: number) => number;
     readonly signalbytewasm_is_steady_high: (a: number, b: number) => number;
     readonly get_global_callback_registry: () => number;
-    readonly wasm_bindgen__closure__destroy__h23b9928cba70ff23: (a: number, b: number) => void;
-    readonly wasm_bindgen__convert__closures_____invoke__h2911aef8c4262211: (a: number, b: number, c: any) => void;
-    readonly wasm_bindgen__convert__closures_____invoke__h01437567dc19afd0: (a: number, b: number) => void;
+    readonly wasm_bindgen__closure__destroy__h0fff7f8f8086545d: (a: number, b: number) => void;
+    readonly wasm_bindgen__convert__closures_____invoke__hb95fef9f40988300: (a: number, b: number, c: any) => void;
+    readonly wasm_bindgen__convert__closures_____invoke__h5e346efc58a509bb: (a: number, b: number) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_exn_store: (a: number) => void;
