@@ -24,6 +24,19 @@ use archflow_logic::{EventRingBuffer, LogicSystem, SelectMode};
 use archflow_render::{Camera, GpuRenderer, Renderer};
 use wasm_bindgen::JsValue;
 
+/// World boundaries for physics calculations
+#[derive(Clone, Copy, Debug, Default)]
+pub struct WorldBounds {
+    /// Minimum X coordinate (left edge)
+    pub min_x: f32,
+    /// Minimum Y coordinate (top edge)
+    pub min_y: f32,
+    /// Maximum X coordinate (right edge)
+    pub max_x: f32,
+    /// Maximum Y coordinate (bottom edge)
+    pub max_y: f32,
+}
+
 /// Converts RGBA color format to ABGR for WebGL compatibility.
 ///
 /// WebGL's UNSIGNED_BYTE normalized attributes read bytes in little-endian order,
@@ -153,6 +166,19 @@ impl ArchFlowEngine {
         self.canvas_width = width;
         self.canvas_height = height;
         self.camera.set_viewport_size(width, height);
+    }
+
+    /// Get world boundaries for physics
+    ///
+    /// Returns the world coordinates corresponding to the canvas edges.
+    /// Used by fixed timestep physics integration.
+    pub fn get_world_bounds(&self) -> WorldBounds {
+        WorldBounds {
+            min_x: 0.0,
+            min_y: 0.0,
+            max_x: self.canvas_width,
+            max_y: self.canvas_height,
+        }
     }
 
     /// ═══════════════════════════════════════════════════════════════════════════

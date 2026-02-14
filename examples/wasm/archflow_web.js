@@ -2954,6 +2954,24 @@ export class WasmBridge {
         return ret[0] >>> 0;
     }
     /**
+     * Batch set physics material for multiple entities
+     * This is more efficient than calling set_physics_material for each entity
+     * @param {Uint32Array} ids
+     * @param {number} restitution
+     * @param {number} friction
+     * @param {number} mass
+     */
+    batch_set_physics_materials(ids, restitution, friction, mass) {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        const ptr0 = passArray32ToWasm0(ids, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.wasmbridge_batch_set_physics_materials(this.__wbg_ptr, ptr0, len0, restitution, friction, mass);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
      * Batch set positions for multiple entities
      *
      * ids: array of entity indices

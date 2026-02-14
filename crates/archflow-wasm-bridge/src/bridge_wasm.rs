@@ -118,6 +118,14 @@ pub struct WasmBridge {
     engine: RefCell<Option<ArchFlowEngine>>,
     /// Input processor for handling user input events
     input_processor: RefCell<Option<InputProcessor>>,
+    /// Fixed timestep accumulator (HU-PERF-001)
+    accumulator: Cell<f32>,
+    /// Fixed timestep value in seconds (default: 1/60 ≈ 0.01667)
+    fixed_timestep: Cell<f32>,
+    /// Maximum substeps to prevent spiral of death
+    max_substeps: Cell<u32>,
+    /// Last timestamp for delta calculation
+    last_timestamp: Cell<f64>,
     /// Context loss handlers (HU-RENDER-009)
     #[cfg(target_arch = "wasm32")]
     on_context_lost: Cell<Option<Closure<dyn FnMut(web_sys::Event)>>>,
@@ -149,6 +157,11 @@ impl WasmBridge {
         Self {
             engine: RefCell::new(None),
             input_processor: RefCell::new(None),
+            // Fixed timestep defaults (HU-PERF-001)
+            accumulator: Cell::new(0.0),
+            fixed_timestep: Cell::new(1.0 / 60.0), // 60 Hz = 16.67ms
+            max_substeps: Cell::new(8),            // Prevent spiral of death
+            last_timestamp: Cell::new(0.0),
             #[cfg(target_arch = "wasm32")]
             on_context_lost: Cell::new(None),
             #[cfg(target_arch = "wasm32")]
@@ -580,6 +593,11 @@ impl WasmBridge {
     ///
     /// This should be called from requestAnimationFrame.
     /// Uses the fluent API: sample_input() → tick() → poll_events()
+    ///
+    /// Implements Fixed Timestep (HU-PERF-001) for stable physics:
+    /// - Uses an accumulator to decouple physics from frame rate
+    /// - Runs physics in fixed time steps (default: 60 Hz)
+    /// - Prevents "spiral of death" with max substeps limit
     #[wasm_bindgen]
     pub fn tick(&self, timestamp: f64) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
@@ -592,6 +610,51 @@ impl WasmBridge {
                     Self::process_input_event(engine, &event);
                 }
             }
+
+            // ═══════════════════════════════════════════════════════════════════════
+            // FIXED TIMESTEP PHYSICS (HU-PERF-001)
+            // ═══════════════════════════════════════════════════════════════════════
+
+            // Calculate frame delta time (in seconds)
+            let last_ts = self.last_timestamp.get();
+            let frame_dt = if last_ts > 0.0 {
+                ((timestamp - last_ts) / 1000.0) as f32
+            } else {
+                1.0 / 60.0 // Default on first frame
+            };
+            self.last_timestamp.set(timestamp);
+
+            // Clamp frame time to prevent huge jumps (e.g., tab switch)
+            let frame_dt = frame_dt.min(0.25);
+
+            // Add frame time to accumulator
+            let mut acc = self.accumulator.get() + frame_dt;
+            self.accumulator.set(acc);
+
+            // Get fixed timestep settings
+            let fixed_dt = self.fixed_timestep.get();
+            let max_steps = self.max_substeps.get();
+
+            // Get world boundaries from engine
+            let bounds = engine.get_world_bounds();
+
+            // Run physics in fixed timesteps
+            let mut steps = 0;
+            while acc >= fixed_dt && steps < max_steps {
+                // Integrate physics with fixed timestep
+                engine.store.integrate_all_physics_batched(
+                    fixed_dt,
+                    bounds.min_x,
+                    bounds.min_y,
+                    bounds.max_x,
+                    bounds.max_y,
+                );
+                acc -= fixed_dt;
+                steps += 1;
+            }
+
+            // Store remaining accumulator for next frame
+            self.accumulator.set(acc);
 
             // Delegate to the main engine tick which handles:
             // 1. Logic Bricks tick (Sensors -> Controllers -> Actuators)
@@ -1024,6 +1087,51 @@ impl WasmBridge {
         } else {
             Err(JsError::new("Engine not initialized").into())
         }
+    }
+
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // FIXED TIMESTEP CONFIGURATION (HU-PERF-001)
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    /// Set the fixed timestep for physics simulation (in Hz)
+    #[wasm_bindgen]
+    pub fn set_fixed_timestep_hz(&self, hz: f32) {
+        if hz > 0.0 {
+            self.fixed_timestep.set(1.0 / hz);
+        }
+    }
+
+    /// Set the fixed timestep directly in seconds
+    #[wasm_bindgen]
+    pub fn set_fixed_timestep(&self, dt: f32) {
+        if dt > 0.0 {
+            self.fixed_timestep.set(dt);
+        }
+    }
+
+    /// Get the current fixed timestep value
+    #[wasm_bindgen]
+    pub fn get_fixed_timestep(&self) -> f32 {
+        self.fixed_timestep.get()
+    }
+
+    /// Set the maximum number of substeps per frame
+    #[wasm_bindgen]
+    pub fn set_max_substeps(&self, max_steps: u32) {
+        self.max_substeps.set(max_steps);
+    }
+
+    /// Get the current maximum substeps setting
+    #[wasm_bindgen]
+    pub fn get_max_substeps(&self) -> u32 {
+        self.max_substeps.get()
+    }
+
+    /// Get the current accumulator value (for debugging)
+    #[wasm_bindgen]
+    pub fn get_accumulator(&self) -> f32 {
+        self.accumulator.get()
     }
 
     // ═══════════════════════════════════════════════════════════════════════════════════════════════════════

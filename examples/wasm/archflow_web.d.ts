@@ -1439,6 +1439,11 @@ export class WasmBridge {
      */
     batch_set_colors(ids: Uint32Array, colors: Uint32Array): number;
     /**
+     * Batch set physics material for multiple entities
+     * This is more efficient than calling set_physics_material for each entity
+     */
+    batch_set_physics_materials(ids: Uint32Array, restitution: number, friction: number, mass: number): void;
+    /**
      * Batch set positions for multiple entities
      *
      * ids: array of entity indices
@@ -2644,6 +2649,7 @@ export interface InitOutput {
     readonly wasmbridge_add_sensor: (a: number, b: number, c: number, d: number, e: number) => [number, number, number];
     readonly wasmbridge_batch_despawn: (a: number, b: number, c: number) => [number, number, number];
     readonly wasmbridge_batch_set_colors: (a: number, b: number, c: number, d: number, e: number) => [number, number, number];
+    readonly wasmbridge_batch_set_physics_materials: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
     readonly wasmbridge_batch_set_positions: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number];
     readonly wasmbridge_batch_set_shapes: (a: number, b: number, c: number, d: number, e: number) => [number, number, number];
     readonly wasmbridge_batch_set_sizes: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number];

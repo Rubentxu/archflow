@@ -461,14 +461,16 @@
                 const now = performance.now();
                 const dt = Math.min((now - lastFrameTime) / 1000, 0.1); // cap at 100ms
 
-                // ✅tick() delega a engine.tick() que corre Logic Bricks
+                // ✅tick() DELEGA a engine.tick() que incluye:
+                // - Logic Bricks (Sensors -> Controllers -> Actuators)
+                // - Fixed Timestep Physics (integrado en tick() - HU-PERF-001)
+                // Ya NO necesita llamar a integrate_physics() manualmente!
                 bridge.tick(now);
                 wasmCallsThisFrame++;
 
-                // ✅ FÍSICA EN RUST - UNA SOLA LLAMADA con dt correcto
-                // Usar fixed timestep para consistencia (aprox 60 FPS = 0.016s)
-                const fixedDt = 0.016;
-                updatePhysicsRust(fixedDt);
+                // ✅ NOTA: La física ahora corre automáticamente en tick()
+                // con Fixed Timestep para estabilidad. No hace falta llamar
+                // a integrate_physics() manualmente.
 
                 updateFPS();
                 updateUptime();
