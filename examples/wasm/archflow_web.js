@@ -2880,6 +2880,40 @@ export class WasmBridge {
         wasm.__wbg_wasmbridge_free(ptr, 0);
     }
     /**
+     * Add a sensor connection to an entity
+     *
+     * Creates a sensor-to-actuator connection using the LogicMappingTable.
+     *
+     * # Arguments
+     *
+     * * `entity_id` - The entity to add the sensor to
+     * * `sensor_type` - Type of sensor (0=MouseOver, 1=MouseClick, 2=Proximity, 3=KeyShortcut, 4=Touch, 5=Radar, 6=DoubleTap, 7=LongPress, 8=RightClick)
+     * * `controller_type` - Type of controller (0=Direct, 1=AND, 2=OR, 3=NOT)
+     * * `actuator_type` - Type of actuator (0=Highlight, 1=Select, 2=Move, 3=Sound, 4=Animation, 5=Custom, 6=Property, 7=Visibility)
+     *
+     * # Returns
+     *
+     * Ok(true) if connection was added successfully
+     * @param {number} entity_id
+     * @param {number} sensor_type
+     * @param {number} controller_type
+     * @param {number} actuator_type
+     * @returns {boolean}
+     */
+    add_sensor(entity_id, sensor_type, controller_type, actuator_type) {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        _assertNum(entity_id);
+        _assertNum(sensor_type);
+        _assertNum(controller_type);
+        _assertNum(actuator_type);
+        const ret = wasm.wasmbridge_add_sensor(this.__wbg_ptr, entity_id, sensor_type, controller_type, actuator_type);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return ret[0] !== 0;
+    }
+    /**
      * Batch despawn multiple entities
      *
      * ids: array of entity indices to remove
@@ -2946,6 +2980,25 @@ export class WasmBridge {
         return ret[0] >>> 0;
     }
     /**
+     * Batch set shapes for multiple entities (optimized)
+     * @param {Uint32Array} ids
+     * @param {Uint8Array} shapes
+     * @returns {number}
+     */
+    batch_set_shapes(ids, shapes) {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        const ptr0 = passArray32ToWasm0(ids, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passArray8ToWasm0(shapes, wasm.__wbindgen_malloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.wasmbridge_batch_set_shapes(this.__wbg_ptr, ptr0, len0, ptr1, len1);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return ret[0] >>> 0;
+    }
+    /**
      * Batch set sizes for multiple entities
      *
      * ids: array of entity indices
@@ -2970,6 +3023,28 @@ export class WasmBridge {
             throw takeFromExternrefTable0(ret[1]);
         }
         return ret[0] >>> 0;
+    }
+    /**
+     * Batch set velocities for multiple entities
+     * ids: array of entity IDs
+     * vx, vy: flat arrays of velocities
+     * @param {Uint32Array} ids
+     * @param {Float32Array} vx
+     * @param {Float32Array} vy
+     */
+    batch_set_velocities(ids, vx, vy) {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        const ptr0 = passArray32ToWasm0(ids, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passArrayF32ToWasm0(vx, wasm.__wbindgen_malloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passArrayF32ToWasm0(vy, wasm.__wbindgen_malloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ret = wasm.wasmbridge_batch_set_velocities(this.__wbg_ptr, ptr0, len0, ptr1, len1, ptr2, len2);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
     }
     /**
      * Batch set visibility for multiple entities
@@ -3070,6 +3145,43 @@ export class WasmBridge {
         }
     }
     /**
+     * Clear all logic connections for all entities
+     */
+    clear_all_logic() {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        const ret = wasm.wasmbridge_clear_all_logic(this.__wbg_ptr);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
+     * Clear highlight tint (reset to default)
+     * @param {number} entity_index
+     */
+    clear_color_tint(entity_index) {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        _assertNum(entity_index);
+        const ret = wasm.wasmbridge_clear_color_tint(this.__wbg_ptr, entity_index);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
+     * Clear all logic connections for an entity
+     * @param {number} entity_id
+     */
+    clear_entity_logic(entity_id) {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        _assertNum(entity_id);
+        const ret = wasm.wasmbridge_clear_entity_logic(this.__wbg_ptr, entity_id);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
      * Clear all selections (deselect all entities)
      */
     clear_selection() {
@@ -3079,6 +3191,41 @@ export class WasmBridge {
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
         }
+    }
+    /**
+     * Configure mouse sensor for an entity
+     *
+     * # Arguments
+     *
+     * * `mode` - Mouse mode: 0=movement, 1=left_button, 2=right_button, 3=middle_button, 4=wheel_up
+     * * `tap` - Enable tap detection (true) or continuous (false)
+     * @param {number} mode
+     * @param {boolean} tap
+     */
+    configure_mouse_sensor(mode, tap) {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        _assertNum(mode);
+        _assertBoolean(tap);
+        const ret = wasm.wasmbridge_configure_mouse_sensor(this.__wbg_ptr, mode, tap);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
+     * Get number of connections for an entity
+     * @param {number} entity_id
+     * @returns {number}
+     */
+    connection_count(entity_id) {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        _assertNum(entity_id);
+        const ret = wasm.wasmbridge_connection_count(this.__wbg_ptr, entity_id);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return ret[0] >>> 0;
     }
     /**
      * Delete all selected entities
@@ -3388,6 +3535,23 @@ export class WasmBridge {
         return takeFromExternrefTable0(ret[0]);
     }
     /**
+     * Get current velocity of an entity
+     * @param {number} entity_index
+     * @returns {Float32Array}
+     */
+    get_entity_velocity(entity_index) {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        _assertNum(entity_index);
+        const ret = wasm.wasmbridge_get_entity_velocity(this.__wbg_ptr, entity_index);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v1 = getArrayF32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
      * Get history state for UI feedback
      * @returns {string}
      */
@@ -3577,6 +3741,24 @@ export class WasmBridge {
         }
     }
     /**
+     * Get velocity of an entity
+     * Returns [vx, vy]
+     * @param {number} entity_id
+     * @returns {Float32Array}
+     */
+    get_velocity(entity_id) {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        _assertNum(entity_id);
+        const ret = wasm.wasmbridge_get_velocity(this.__wbg_ptr, entity_id);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v1 = getArrayF32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
      * Get the current camera zoom level
      * @returns {number}
      */
@@ -3649,6 +3831,26 @@ export class WasmBridge {
         }
     }
     /**
+     * Integrate physics for all entities
+     * This should be called every frame for physics to work
+     * Returns number of entities processed
+     * @param {number} dt
+     * @param {number} min_x
+     * @param {number} min_y
+     * @param {number} max_x
+     * @param {number} max_y
+     * @returns {number}
+     */
+    integrate_physics(dt, min_x, min_y, max_x, max_y) {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        const ret = wasm.wasmbridge_integrate_physics(this.__wbg_ptr, dt, min_x, min_y, max_x, max_y);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return ret[0] >>> 0;
+    }
+    /**
      * Check if entity is selected
      * @param {number} entity_index
      * @returns {boolean}
@@ -3689,6 +3891,21 @@ export class WasmBridge {
         return ret !== 0;
     }
     /**
+     * Get selection state of an entity
+     * @param {number} entity_index
+     * @returns {boolean}
+     */
+    is_selected(entity_index) {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        _assertNum(entity_index);
+        const ret = wasm.wasmbridge_is_selected(this.__wbg_ptr, entity_index);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return ret[0] !== 0;
+    }
+    /**
      * Load a scene from JSON string
      *
      * Expects JSON with format (component-based):
@@ -3724,6 +3941,21 @@ export class WasmBridge {
         _assertNum(this.__wbg_ptr);
         _assertNum(entity_index);
         const ret = wasm.wasmbridge_move_entity(this.__wbg_ptr, entity_index, dx, dy);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
+     * Move entity by delta (direct position update, not command queue)
+     * @param {number} entity_index
+     * @param {number} dx
+     * @param {number} dy
+     */
+    move_entity_by(entity_index, dx, dy) {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        _assertNum(entity_index);
+        const ret = wasm.wasmbridge_move_entity_by(this.__wbg_ptr, entity_index, dx, dy);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
         }
@@ -3930,6 +4162,38 @@ export class WasmBridge {
         }
     }
     /**
+     * Query all alive entities (returns all entity IDs)
+     * @returns {Uint32Array}
+     */
+    query_all() {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        const ret = wasm.wasmbridge_query_all(this.__wbg_ptr);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Query entities by layer
+     * @param {number} layer
+     * @returns {Uint32Array}
+     */
+    query_by_layer(layer) {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        _assertNum(layer);
+        const ret = wasm.wasmbridge_query_by_layer(this.__wbg_ptr, layer);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
      * Query entities with minimum size
      * @param {number} min_width
      * @param {number} min_height
@@ -4019,12 +4283,47 @@ export class WasmBridge {
         return v1;
     }
     /**
+     * Query entities that have velocity (moving entities)
+     * @returns {Uint32Array}
+     */
+    query_with_velocity() {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        const ret = wasm.wasmbridge_query_with_velocity(this.__wbg_ptr);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
      * Redo the last undone action
      */
     redo() {
         if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
         _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_redo(this.__wbg_ptr);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
+     * Remove a sensor connection from an entity
+     *
+     * # Arguments
+     *
+     * * `entity_id` - The entity to remove the sensor from
+     * * `sensor_type` - Type of sensor to disconnect
+     * @param {number} entity_id
+     * @param {number} sensor_type
+     */
+    remove_sensor(entity_id, sensor_type) {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        _assertNum(entity_id);
+        _assertNum(sensor_type);
+        const ret = wasm.wasmbridge_remove_sensor(this.__wbg_ptr, entity_id, sensor_type);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
         }
@@ -4090,6 +4389,22 @@ export class WasmBridge {
             return getStringFromWasm0(ptr1, len1);
         } finally {
             wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+        }
+    }
+    /**
+     * Set acceleration for physics simulation
+     * ax, ay = acceleration in units/second^2
+     * @param {number} entity_id
+     * @param {number} ax
+     * @param {number} ay
+     */
+    set_acceleration(entity_id, ax, ay) {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        _assertNum(entity_id);
+        const ret = wasm.wasmbridge_set_acceleration(this.__wbg_ptr, entity_id, ax, ay);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
         }
     }
     /**
@@ -4177,6 +4492,23 @@ export class WasmBridge {
         }
     }
     /**
+     * Set highlight tint color (for visual feedback on hover/selection)
+     * @param {number} entity_index
+     * @param {number} r
+     * @param {number} g
+     * @param {number} b
+     * @param {number} a
+     */
+    set_color_tint(entity_index, r, g, b, a) {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        _assertNum(entity_index);
+        const ret = wasm.wasmbridge_set_color_tint(this.__wbg_ptr, entity_index, r, g, b, a);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
      * Set the selection state of an entity directly
      *
      * Uses DeltaMask for memory-efficient undo/redo via command queue.
@@ -4189,6 +4521,21 @@ export class WasmBridge {
         _assertNum(entity_index);
         _assertBoolean(selected);
         const ret = wasm.wasmbridge_set_entity_selected(this.__wbg_ptr, entity_index, selected);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
+     * Set velocity directly (for physics integration)
+     * @param {number} entity_index
+     * @param {number} vx
+     * @param {number} vy
+     */
+    set_entity_velocity(entity_index, vx, vy) {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        _assertNum(entity_index);
+        const ret = wasm.wasmbridge_set_entity_velocity(this.__wbg_ptr, entity_index, vx, vy);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
         }
@@ -4239,6 +4586,25 @@ export class WasmBridge {
         }
     }
     /**
+     * Set physics material properties
+     * restitution: 0.0 = no bounce, 1.0 = full bounce
+     * friction: 0.0 = no friction, 1.0 = high friction
+     * mass: 0.0 = infinite/static, >0 = dynamic
+     * @param {number} entity_id
+     * @param {number} restitution
+     * @param {number} friction
+     * @param {number} mass
+     */
+    set_physics_material(entity_id, restitution, friction, mass) {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        _assertNum(entity_id);
+        const ret = wasm.wasmbridge_set_physics_material(this.__wbg_ptr, entity_id, restitution, friction, mass);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
      * Set the position of an entity
      * @param {number} entity_index
      * @param {number} x
@@ -4249,6 +4615,21 @@ export class WasmBridge {
         _assertNum(this.__wbg_ptr);
         _assertNum(entity_index);
         const ret = wasm.wasmbridge_set_position(this.__wbg_ptr, entity_index, x, y);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
+     * Set selection state of an entity
+     * @param {number} entity_index
+     * @param {boolean} selected
+     */
+    set_selected(entity_index, selected) {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        _assertNum(entity_index);
+        _assertBoolean(selected);
+        const ret = wasm.wasmbridge_set_selected(this.__wbg_ptr, entity_index, selected);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
         }
@@ -4328,6 +4709,22 @@ export class WasmBridge {
         const ptr0 = passStringToWasm0(tool, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         const ret = wasm.wasmbridge_set_tool(this.__wbg_ptr, ptr0, len0);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
+     * Set velocity for physics simulation
+     * vx, vy = velocity in units/second
+     * @param {number} entity_id
+     * @param {number} vx
+     * @param {number} vy
+     */
+    set_velocity(entity_id, vx, vy) {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        _assertNum(entity_id);
+        const ret = wasm.wasmbridge_set_velocity(this.__wbg_ptr, entity_id, vx, vy);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
         }
@@ -5441,13 +5838,13 @@ function __wbg_get_imports() {
             return ret;
         }, arguments); },
         __wbindgen_cast_0000000000000001: function() { return logError(function (arg0, arg1) {
-            // Cast intrinsic for `Closure(Closure { dtor_idx: 74, function: Function { arguments: [], shim_idx: 77, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
-            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h96062528e648a55b, wasm_bindgen__convert__closures_____invoke__h94443aa710b65810);
+            // Cast intrinsic for `Closure(Closure { dtor_idx: 77, function: Function { arguments: [NamedExternref("Event")], shim_idx: 33, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
+            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__hc38b9380b02f1ec5, wasm_bindgen__convert__closures_____invoke__h9fda7b72bb816cdd);
             return ret;
         }, arguments); },
         __wbindgen_cast_0000000000000002: function() { return logError(function (arg0, arg1) {
-            // Cast intrinsic for `Closure(Closure { dtor_idx: 75, function: Function { arguments: [NamedExternref("Event")], shim_idx: 78, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
-            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h2a605b4fd580e77c, wasm_bindgen__convert__closures_____invoke__heda04ac1732c350b);
+            // Cast intrinsic for `Closure(Closure { dtor_idx: 78, function: Function { arguments: [], shim_idx: 32, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
+            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__hea99d91bba3c1b0c, wasm_bindgen__convert__closures_____invoke__h262afefa095a225b);
             return ret;
         }, arguments); },
         __wbindgen_cast_0000000000000003: function() { return logError(function (arg0) {
@@ -5488,16 +5885,16 @@ function __wbg_get_imports() {
 
 
 //#endregion
-function wasm_bindgen__convert__closures_____invoke__h94443aa710b65810(arg0, arg1) {
+function wasm_bindgen__convert__closures_____invoke__h262afefa095a225b(arg0, arg1) {
     _assertNum(arg0);
     _assertNum(arg1);
-    wasm.wasm_bindgen__convert__closures_____invoke__h94443aa710b65810(arg0, arg1);
+    wasm.wasm_bindgen__convert__closures_____invoke__h262afefa095a225b(arg0, arg1);
 }
 
-function wasm_bindgen__convert__closures_____invoke__heda04ac1732c350b(arg0, arg1, arg2) {
+function wasm_bindgen__convert__closures_____invoke__h9fda7b72bb816cdd(arg0, arg1, arg2) {
     _assertNum(arg0);
     _assertNum(arg1);
-    wasm.wasm_bindgen__convert__closures_____invoke__heda04ac1732c350b(arg0, arg1, arg2);
+    wasm.wasm_bindgen__convert__closures_____invoke__h9fda7b72bb816cdd(arg0, arg1, arg2);
 }
 
 const BrickChainBuilderFinalization = (typeof FinalizationRegistry === 'undefined')

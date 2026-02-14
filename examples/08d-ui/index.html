@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>ArchFlow - Logic Bricks: UI</title>
+        <style>
+            @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;600&display=swap");
+
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                overflow: hidden;
+                background: #0a0a0f;
+                font-family: "Outfit", sans-serif;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                min-height: 100vh;
+            }
+
+            h1 {
+                color: #00d4ff;
+                font-size: 24px;
+                margin: 20px 0 10px;
+                font-weight: 600;
+                letter-spacing: 1px;
+            }
+
+            .subtitle {
+                color: #888;
+                font-size: 14px;
+                margin-bottom: 20px;
+                font-family: "JetBrains Mono", monospace;
+            }
+
+            canvas {
+                display: block;
+                border: 2px solid rgba(0, 212, 255, 0.3);
+                border-radius: 8px;
+                box-shadow: 0 0 40px rgba(0, 212, 255, 0.1);
+            }
+
+            .panel {
+                position: absolute;
+                top: 80px;
+                left: 20px;
+                background: linear-gradient(135deg, rgba(15, 15, 25, 0.95), rgba(20, 20, 35, 0.95));
+                border: 1px solid rgba(0, 212, 255, 0.3);
+                border-radius: 12px;
+                padding: 20px;
+                color: #e0e0e0;
+                font-size: 13px;
+                min-width: 260px;
+                backdrop-filter: blur(10px);
+            }
+
+            .panel h3 {
+                color: #00d4ff;
+                font-size: 14px;
+                margin-bottom: 15px;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+
+            .ui-item {
+                display: flex;
+                align-items: center;
+                padding: 12px;
+                margin: 10px 0;
+                background: rgba(255, 255, 255, 0.03);
+                border-radius: 8px;
+                gap: 12px;
+            }
+
+            .ui-icon {
+                width: 36px;
+                height: 36px;
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 18px;
+            }
+
+            .ui-icon.highlight {
+                background: linear-gradient(135deg, rgba(255, 217, 61, 0.3), rgba(255, 217, 61, 0.1));
+            }
+            .ui-icon.select {
+                background: linear-gradient(135deg, rgba(0, 212, 255, 0.3), rgba(0, 212, 255, 0.1));
+            }
+            .ui-icon.multi {
+                background: linear-gradient(135deg, rgba(155, 89, 182, 0.3), rgba(155, 89, 182, 0.1));
+            }
+
+            .ui-info {
+                flex: 1;
+            }
+
+            .ui-name {
+                font-family: "JetBrains Mono", monospace;
+                font-size: 12px;
+                color: #fff;
+            }
+
+            .ui-desc {
+                font-size: 10px;
+                color: #666;
+            }
+
+            .selection-info {
+                position: absolute;
+                top: 80px;
+                right: 20px;
+                background: linear-gradient(135deg, rgba(15, 15, 25, 0.95), rgba(20, 20, 35, 0.95));
+                border: 1px solid rgba(0, 255, 136, 0.3);
+                border-radius: 12px;
+                padding: 20px;
+                color: #e0e0e0;
+                font-size: 13px;
+                min-width: 200px;
+                backdrop-filter: blur(10px);
+            }
+
+            .selection-info h3 {
+                color: #00ff88;
+                font-size: 14px;
+                margin-bottom: 15px;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+
+            .selection-count {
+                font-size: 32px;
+                font-weight: 600;
+                color: #00ff88;
+                text-align: center;
+                margin: 10px 0;
+            }
+
+            .selection-label {
+                text-align: center;
+                color: #666;
+                font-size: 12px;
+            }
+
+            .legend {
+                position: absolute;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                display: flex;
+                gap: 30px;
+                background: rgba(15, 15, 25, 0.9);
+                border: 1px solid rgba(0, 212, 255, 0.2);
+                border-radius: 8px;
+                padding: 12px 24px;
+            }
+
+            .legend-item {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 12px;
+                color: #888;
+            }
+
+            .legend-item .key {
+                background: rgba(0, 212, 255, 0.2);
+                padding: 4px 10px;
+                border-radius: 4px;
+                color: #00d4ff;
+                font-family: "JetBrains Mono", monospace;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Logic Bricks: UI</h1>
+        <div class="subtitle">Highlight • Select</div>
+
+        <canvas id="canvas" width="900" height="500"></canvas>
+
+        <div class="panel">
+            <h3>UI Components</h3>
+
+            <div class="ui-item">
+                <div class="ui-icon highlight">✦</div>
+                <div class="ui-info">
+                    <div class="ui-name">Highlight</div>
+                    <div class="ui-desc">Hover to glow</div>
+                </div>
+            </div>
+
+            <div class="ui-item">
+                <div class="ui-icon select">◉</div>
+                <div class="ui-info">
+                    <div class="ui-name">Select</div>
+                    <div class="ui-desc">Click to select (exclusive)</div>
+                </div>
+            </div>
+
+            <div class="ui-item">
+                <div class="ui-icon multi">◎</div>
+                <div class="ui-info">
+                    <div class="ui-name">Multi-Select</div>
+                    <div class="ui-desc">Ctrl+Click for multiple</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="selection-info">
+            <h3>Selection</h3>
+            <div class="selection-count" id="selection-count">0</div>
+            <div class="selection-label">entities selected</div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <span class="key">Hover</span>
+                <span>Highlight glow</span>
+            </div>
+            <div class="legend-item">
+                <span class="key">Click</span>
+                <span>Select (exclusive)</span>
+            </div>
+            <div class="legend-item">
+                <span class="key">Ctrl+Click</span>
+                <span>Multi-select</span>
+            </div>
+        </div>
+
+        <script type="module">
+            import { createEngine } from "../shared/archflow-client.js";
+
+            // ============================================================
+            // 08d - Logic Bricks: UI
+            // ============================================================
+            // Demuestra: Highlight, Select (UI components)
+            //
+            // ACTUADORES:
+            // - actuator 0: Highlight (glow effect)
+            // - actuator 1: Select (mark as selected)
+            //
+            // SENSORES:
+            // - sensor 0: MouseOver -> Highlight
+            // - sensor 1: MouseClick -> Select
+            // ============================================================
+
+            const { bridge, canvas } = await createEngine("canvas");
+
+            // Grid of selectable entities
+            const rows = 3;
+            const cols = 4;
+            const entities = [];
+            const colors = [
+                [231, 76, 60],   // Red
+                [46, 204, 113],  // Green
+                [52, 152, 219],  // Blue
+                [241, 196, 15],  // Yellow
+                [155, 89, 182],  // Purple
+                [230, 126, 34],  // Orange
+                [26, 188, 156],  // Teal
+                [236, 240, 241],  // White
+                [149, 165, 166], // Gray
+                [231, 76, 60],   // Red
+                [46, 204, 113],  // Green
+                [52, 152, 219],  // Blue
+            ];
+
+            // Create grid
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    const idx = row * cols + col;
+                    const x = 180 + col * 140;
+                    const y = 150 + row * 100;
+
+                    const id = bridge.spawn_entity(x, y, 50, 50);
+                    bridge.set_color(id, colors[idx][0], colors[idx][1], colors[idx][2], 255);
+                    bridge.set_shape(id, col % 2); // alternating shapes
+
+                    // Add sensors
+                    // MouseOver -> Highlight (actuator 0)
+                    bridge.add_sensor(id, 0, 0, 0);
+                    // MouseClick -> Select (actuator 1)
+                    bridge.add_sensor(id, 1, 0, 1);
+
+                    entities.push({ id, x, y });
+                }
+            }
+
+            // Update selection count
+            function updateSelectionCount() {
+                const selected = bridge.get_selection();
+                const count = selected ? selected.length : 0;
+                document.getElementById("selection-count").textContent = count;
+            }
+
+            // Handle clicks for multi-select
+            let lastClickTime = 0;
+            let lastClickEntity = null;
+
+            canvas.addEventListener("click", (e) => {
+                const now = Date.now();
+
+                // Update selection display
+                setTimeout(updateSelectionCount, 50);
+            });
+
+            // Check selection on frame tick (simple polling)
+            setInterval(updateSelectionCount, 200);
+
+            // Initial count
+            updateSelectionCount();
+
+            console.log("08d-ui: Highlight and Select demo");
+            console.log("12 entities in grid with highlight/select sensors");
+        </script>
+    </body>
+</html>

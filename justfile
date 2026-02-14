@@ -147,7 +147,10 @@ build-wasm:
     @echo "Building WASM..."
     @cd crates/archflow-wasm-bridge && wasm-pack build --target web --debug
     @just sync-wasm-types
-    @echo "WASM built!"
+    @mkdir -p examples/wasm
+    @cp crates/archflow-web-ui/src/wasm/archflow_web.js examples/wasm/
+    @cp crates/archflow-web-ui/src/wasm/archflow_web_bg.wasm examples/wasm/
+    @echo "WASM built and synced to examples/wasm/!"
 
 # Sync WASM types to frontend
 [doc("Sync WASM types from Rust to TypeScript frontend")]
@@ -217,22 +220,14 @@ watch-all:
 [doc("Serve examples with Vite dev server")]
 serve-examples: build-wasm
     @echo "Copying WASM to examples..."
-    @cp crates/archflow-web-ui/public/wasm/archflow_web.js examples/pkg/
-    @cp crates/archflow-web-ui/public/wasm/archflow_web_bg.wasm examples/pkg/
-    @cp crates/archflow-web-ui/public/wasm/archflow_web.d.ts examples/pkg/
-    @for dir in examples/0*; do \
-        cp examples/pkg/archflow_web.js "$$dir/" 2>/dev/null || true; \
-        cp examples/pkg/archflow_web_bg.wasm "$$dir/" 2>/dev/null || true; \
-        cp examples/pkg/archflow_web.d.ts "$$dir/" 2>/dev/null || true; \
-    done
+    @mkdir -p examples/wasm
+    @cp crates/archflow-web-ui/src/wasm/archflow_web.js examples/wasm/
+    @cp crates/archflow-web-ui/src/wasm/archflow_web_bg.wasm examples/wasm/
+    @cp crates/archflow-web-ui/src/wasm/archflow_web.d.ts examples/wasm/
     @echo ""
     @echo "Serving examples at http://localhost:5174"
     @echo ""
     @echo "Available examples:"
-    @echo "  - http://localhost:5174/examples/03-entity-properties/"
-    @echo "  - http://localhost:5174/examples/04-scene-json/"
-    @echo "  - http://localhost:5174/examples/05-entity-queries/"
-    @echo "  - http://localhost:5174/examples/06-audio/"
     @echo "  - http://localhost:5174/examples/07-performance/"
     @echo ""
     @echo "Press Ctrl+C to stop"
@@ -243,14 +238,10 @@ serve-examples: build-wasm
 [doc("Build examples for production")]
 build-examples: build-wasm
     @echo "Copying WASM to examples..."
-    @cp crates/archflow-web-ui/public/wasm/archflow_web.js examples/pkg/
-    @cp crates/archflow-web-ui/public/wasm/archflow_web_bg.wasm examples/pkg/
-    @cp crates/archflow-web-ui/public/wasm/archflow_web.d.ts examples/pkg/
-    @for dir in examples/0*; do \
-        cp examples/pkg/archflow_web.js "$$dir/" 2>/dev/null || true; \
-        cp examples/pkg/archflow_web_bg.wasm "$$dir/" 2>/dev/null || true; \
-        cp examples/pkg/archflow_web.d.ts "$$dir/" 2>/dev/null || true; \
-    done
+    @mkdir -p examples/wasm
+    @cp crates/archflow-web-ui/src/wasm/archflow_web.js examples/wasm/
+    @cp crates/archflow-web-ui/src/wasm/archflow_web_bg.wasm examples/wasm/
+    @cp crates/archflow-web-ui/src/wasm/archflow_web.d.ts examples/wasm/
     @echo "Building examples..."
     @cd {{PROJECT_ROOT}}/examples && npm run build
 
