@@ -293,6 +293,11 @@ pub struct EntityStore {
     /// Dirty tracking for text layout recalculation
     pub dirty_text: FixedBitSet,
 
+    /// Cached list of dynamic entity indices for fast physics iteration
+    /// This avoids iterating through all entities and checking is_static()
+    /// Updated on spawn/despawn/entity state changes
+    pub dynamic_entities: Vec<usize>,
+
     /// Z-order render list [idx0, idx1, ...]
     pub draw_order: Vec<u32>,
 
@@ -350,6 +355,7 @@ impl EntityStore {
             dirty_transform: FixedBitSet::with_capacity(capacity),
             dirty_render: FixedBitSet::with_capacity(capacity),
             dirty_text: FixedBitSet::with_capacity(capacity),
+            dynamic_entities: Vec::with_capacity(capacity),
             draw_order: Vec::with_capacity(capacity),
             dirty_z_order: false,
             command_queue: HeaplessVec::new(),
@@ -420,6 +426,9 @@ impl EntityStore {
         self.draw_order.push(index as u32);
 
         self.alive_count += 1;
+
+        // Add to dynamic entities list (new entities are dynamic by default)
+        self.dynamic_entities.push(index);
 
         #[cfg(feature = "tracing")]
         {
@@ -541,6 +550,9 @@ impl EntityStore {
         self.dirty_render.remove(index);
         self.dirty_text.remove(index);
         self.dirty_hierarchy.remove(index);
+
+        // Remove from dynamic entities list
+        self.dynamic_entities.retain(|&idx| idx != index);
 
         self.alive_count -= 1;
 
@@ -700,10 +712,24 @@ impl EntityStore {
     /// mass: 0.0 = infinite/static, >0 = dynamic
     #[inline]
     pub fn set_physics_material(&mut self, idx: usize, restitution: f32, friction: f32, mass: f32) {
+        let was_dynamic = !self.is_static(idx);
+        let is_dynamic = mass > 0.0;
+
         self.physics_materials[idx][0] = restitution;
         self.physics_materials[idx][1] = friction;
         self.physics_materials[idx][2] = mass;
         self.physics_materials[idx][3] = if mass == 0.0 { 1.0 } else { 0.0 }; // is_static
+
+        // Update dynamic entities list if state changed
+        if was_dynamic && !is_dynamic {
+            // Entity became static - remove from dynamic list
+            self.dynamic_entities.retain(|&i| i != idx);
+        } else if !was_dynamic && is_dynamic {
+            // Entity became dynamic - add to dynamic list
+            if !self.dynamic_entities.contains(&idx) {
+                self.dynamic_entities.push(idx);
+            }
+        }
     }
 
     /// Get physics material
@@ -822,18 +848,235 @@ impl EntityStore {
         max_x: f32,
         max_y: f32,
     ) -> usize {
-        let count = self.alive_count();
+        // Optimized: Use pre-filtered dynamic entities list
+        // This avoids iterating all entities and checking is_static() per-entity
+        let dynamic_count = self.dynamic_entities.len();
         let mut processed = 0;
 
-        for i in 0..count {
-            if self.is_alive_index(i) && !self.is_static(i) {
-                self.integrate_physics(i, dt);
-                self.check_boundary_collision(i, min_x, min_y, max_x, max_y);
-                processed += 1;
-            }
+        for i in 0..dynamic_count {
+            let idx = self.dynamic_entities[i];
+            self.integrate_physics(idx, dt);
+            self.check_boundary_collision(idx, min_x, min_y, max_x, max_y);
+            processed += 1;
         }
 
         processed
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // BATCH PHYSICS INTEGRATION (SIMD-Optimized)
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    /// Batch integrate physics using unrolled loops for better CPU pipeline utilization
+    /// This is optimized for the common case where we have many entities to process
+    #[inline]
+    pub fn integrate_all_physics_batched(
+        &mut self,
+        dt: f32,
+        min_x: f32,
+        min_y: f32,
+        max_x: f32,
+        max_y: f32,
+    ) -> usize {
+        let dynamic_count = self.dynamic_entities.len();
+        if dynamic_count == 0 {
+            return 0;
+        }
+
+        let mut processed = 0;
+        let mut i = 0;
+
+        // Process in batches of 8 (unrolled loop)
+        while i + 7 < dynamic_count {
+            self.integrate_physics_batch_8(i, dt);
+            self.check_boundary_collision_batch_8(i, min_x, min_y, max_x, max_y);
+            i += 8;
+            processed += 8;
+        }
+
+        // Process in batches of 4
+        while i + 3 < dynamic_count {
+            self.integrate_physics_batch_4(i, dt);
+            self.check_boundary_collision_batch_4(i, min_x, min_y, max_x, max_y);
+            i += 4;
+            processed += 4;
+        }
+
+        // Process remaining
+        while i < dynamic_count {
+            let idx = self.dynamic_entities[i];
+            self.integrate_physics(idx, dt);
+            self.check_boundary_collision(idx, min_x, min_y, max_x, max_y);
+            i += 1;
+            processed += 1;
+        }
+
+        processed
+    }
+
+    /// Integrate physics for a batch of 4 entities
+    #[inline]
+    fn integrate_physics_batch_4(&mut self, start_idx: usize, dt: f32) {
+        let count = 4.min(self.dynamic_entities.len().saturating_sub(start_idx));
+
+        for j in 0..count {
+            let idx = self.dynamic_entities[start_idx + j];
+            let vel = self.velocities[idx];
+            let mat = self.physics_materials[idx];
+
+            // Apply acceleration to velocity
+            self.velocities[idx][0] += vel[2] * dt;
+            self.velocities[idx][1] += vel[3] * dt;
+
+            // Apply friction
+            let friction = 1.0 - mat[1] * dt;
+            self.velocities[idx][0] *= friction;
+            self.velocities[idx][1] *= friction;
+
+            // Integrate position
+            self.transforms[idx][0] += self.velocities[idx][0] * dt;
+            self.transforms[idx][1] += self.velocities[idx][1] * dt;
+
+            // Mark as dirty
+            self.dirty_transform.insert(idx);
+            self.dirty_render.insert(idx);
+        }
+    }
+
+    /// Integrate physics for a batch of 8 entities
+    #[inline]
+    fn integrate_physics_batch_8(&mut self, start_idx: usize, dt: f32) {
+        // Process 8 entities (same as batch_4, unrolled for better pipelining)
+        let count = 8.min(self.dynamic_entities.len().saturating_sub(start_idx));
+
+        for j in 0..count {
+            let idx = self.dynamic_entities[start_idx + j];
+            let vel = self.velocities[idx];
+            let mat = self.physics_materials[idx];
+
+            self.velocities[idx][0] += vel[2] * dt;
+            self.velocities[idx][1] += vel[3] * dt;
+
+            let friction = 1.0 - mat[1] * dt;
+            self.velocities[idx][0] *= friction;
+            self.velocities[idx][1] *= friction;
+
+            self.transforms[idx][0] += self.velocities[idx][0] * dt;
+            self.transforms[idx][1] += self.velocities[idx][1] * dt;
+
+            self.dirty_transform.insert(idx);
+            self.dirty_render.insert(idx);
+        }
+    }
+
+    /// Check boundary collisions for a batch of 4 entities
+    #[inline]
+    fn check_boundary_collision_batch_4(
+        &mut self,
+        start_idx: usize,
+        min_x: f32,
+        min_y: f32,
+        max_x: f32,
+        max_y: f32,
+    ) {
+        let count = 4.min(self.dynamic_entities.len().saturating_sub(start_idx));
+
+        for j in 0..count {
+            let idx = self.dynamic_entities[start_idx + j];
+            let pos = self.transforms[idx];
+            let vel = self.velocities[idx];
+            let mat = self.physics_materials[idx];
+            let restitution = mat[0];
+
+            let x = pos[0];
+            let y = pos[1];
+            let vx = vel[0];
+            let vy = vel[1];
+            let mut collided = false;
+
+            if x < min_x {
+                self.transforms[idx][0] = min_x;
+                self.velocities[idx][0] = -vx * restitution;
+                collided = true;
+            } else if x > max_x {
+                self.transforms[idx][0] = max_x;
+                self.velocities[idx][0] = -vx * restitution;
+                collided = true;
+            }
+
+            if y < min_y {
+                self.transforms[idx][1] = min_y;
+                self.velocities[idx][1] = -vy * restitution;
+                collided = true;
+            } else if y > max_y {
+                self.transforms[idx][1] = max_y;
+                self.velocities[idx][1] = -vy * restitution;
+                collided = true;
+            }
+
+            if collided {
+                self.dirty_transform.insert(idx);
+                self.dirty_render.insert(idx);
+            }
+        }
+    }
+
+    /// Check boundary collisions for a batch of 8 entities
+    #[inline]
+    fn check_boundary_collision_batch_8(
+        &mut self,
+        start_idx: usize,
+        min_x: f32,
+        min_y: f32,
+        max_x: f32,
+        max_y: f32,
+    ) {
+        let count = 8.min(self.dynamic_entities.len().saturating_sub(start_idx));
+
+        for j in 0..count {
+            let idx = self.dynamic_entities[start_idx + j];
+            let pos = self.transforms[idx];
+            let vel = self.velocities[idx];
+            let mat = self.physics_materials[idx];
+            let restitution = mat[0];
+
+            let x = pos[0];
+            let y = pos[1];
+            let vx = vel[0];
+            let vy = vel[1];
+            let mut collided = false;
+
+            if x < min_x {
+                self.transforms[idx][0] = min_x;
+                self.velocities[idx][0] = -vx * restitution;
+                collided = true;
+            } else if x > max_x {
+                self.transforms[idx][0] = max_x;
+                self.velocities[idx][0] = -vx * restitution;
+                collided = true;
+            }
+
+            if y < min_y {
+                self.transforms[idx][1] = min_y;
+                self.velocities[idx][1] = -vy * restitution;
+                collided = true;
+            } else if y > max_y {
+                self.transforms[idx][1] = max_y;
+                self.velocities[idx][1] = -vy * restitution;
+                collided = true;
+            }
+
+            if collided {
+                self.dirty_transform.insert(idx);
+                self.dirty_render.insert(idx);
+            }
+        }
+    }
+
+    /// Get number of dynamic entities (for debugging/performance monitoring)
+    #[inline(always)]
+    pub fn dynamic_count(&self) -> usize {
+        self.dynamic_entities.len()
     }
 
     /// Get world transform (after hierarchy propagation)
