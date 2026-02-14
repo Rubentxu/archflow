@@ -1,7 +1,5 @@
 /* @ts-self-types="./archflow_wasm_bridge.d.ts" */
 
-//#region exports
-
 /**
  * Actuator types for the Logic Bricks system
  *
@@ -63,8 +61,6 @@ export class BrickChainBuilder {
      * @returns {number}
      */
     actuator_count() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.brickchainbuilder_actuator_count(this.__wbg_ptr);
         return ret >>> 0;
     }
@@ -79,10 +75,7 @@ export class BrickChainBuilder {
      * @returns {BrickChainBuilder}
      */
     actuator_highlight(color_argb, opacity) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
         const ptr = this.__destroy_into_raw();
-        _assertNum(ptr);
-        _assertNum(color_argb);
         const ret = wasm.brickchainbuilder_actuator_highlight(ptr, color_argb, opacity);
         return BrickChainBuilder.__wrap(ret);
     }
@@ -99,10 +92,7 @@ export class BrickChainBuilder {
      * @returns {BrickChainBuilder}
      */
     actuator_move(mode, x, y) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
         const ptr = this.__destroy_into_raw();
-        _assertNum(ptr);
-        _assertNum(mode);
         const ret = wasm.brickchainbuilder_actuator_move(ptr, mode, x, y);
         return BrickChainBuilder.__wrap(ret);
     }
@@ -115,10 +105,7 @@ export class BrickChainBuilder {
      * @returns {BrickChainBuilder}
      */
     actuator_select(mode) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
         const ptr = this.__destroy_into_raw();
-        _assertNum(ptr);
-        _assertNum(mode);
         const ret = wasm.brickchainbuilder_actuator_select(ptr, mode);
         return BrickChainBuilder.__wrap(ret);
     }
@@ -127,9 +114,7 @@ export class BrickChainBuilder {
      * @returns {BrickHandle}
      */
     connect() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
         const ptr = this.__destroy_into_raw();
-        _assertNum(ptr);
         const ret = wasm.brickchainbuilder_connect(ptr);
         return BrickHandle.__wrap(ret);
     }
@@ -139,13 +124,8 @@ export class BrickChainBuilder {
      * @returns {BrickChainBuilder}
      */
     controller(controller) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
         const ptr = this.__destroy_into_raw();
-        _assertNum(ptr);
         _assertClass(controller, Controller);
-        if (controller.__wbg_ptr === 0) {
-            throw new Error('Attempt to use a moved value');
-        }
         var ptr0 = controller.__destroy_into_raw();
         const ret = wasm.brickchainbuilder_controller(ptr, ptr0);
         return BrickChainBuilder.__wrap(ret);
@@ -155,8 +135,6 @@ export class BrickChainBuilder {
      * @returns {number}
      */
     controller_count() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.brickchainbuilder_controller_count(this.__wbg_ptr);
         return ret >>> 0;
     }
@@ -165,8 +143,6 @@ export class BrickChainBuilder {
      * @returns {number}
      */
     entity_id() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.brickchainbuilder_entity_id(this.__wbg_ptr);
         return ret >>> 0;
     }
@@ -175,7 +151,6 @@ export class BrickChainBuilder {
      * @param {number} entity_id
      */
     constructor(entity_id) {
-        _assertNum(entity_id);
         const ret = wasm.brickchainbuilder_new(entity_id);
         this.__wbg_ptr = ret >>> 0;
         BrickChainBuilderFinalization.register(this, this.__wbg_ptr, this);
@@ -187,10 +162,7 @@ export class BrickChainBuilder {
      * @returns {BrickChainBuilder}
      */
     sensor(sensor) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
         const ptr = this.__destroy_into_raw();
-        _assertNum(ptr);
-        _assertNum(sensor);
         const ret = wasm.brickchainbuilder_sensor(ptr, sensor);
         return BrickChainBuilder.__wrap(ret);
     }
@@ -199,8 +171,6 @@ export class BrickChainBuilder {
      * @returns {number}
      */
     sensor_count() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.brickchainbuilder_sensor_count(this.__wbg_ptr);
         return ret >>> 0;
     }
@@ -210,10 +180,7 @@ export class BrickChainBuilder {
      * @returns {BrickChainBuilder}
      */
     sensor_key(key_code) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
         const ptr = this.__destroy_into_raw();
-        _assertNum(ptr);
-        _assertNum(key_code);
         const ret = wasm.brickchainbuilder_sensor_key(ptr, key_code);
         return BrickChainBuilder.__wrap(ret);
     }
@@ -224,11 +191,7 @@ export class BrickChainBuilder {
      * @returns {BrickChainBuilder}
      */
     static with_mapping_table(entity_id, mapping_table) {
-        _assertNum(entity_id);
         _assertClass(mapping_table, LogicMappingTableWasm);
-        if (mapping_table.__wbg_ptr === 0) {
-            throw new Error('Attempt to use a moved value');
-        }
         var ptr0 = mapping_table.__destroy_into_raw();
         const ret = wasm.brickchainbuilder_with_mapping_table(entity_id, ptr0);
         return BrickChainBuilder.__wrap(ret);
@@ -270,17 +233,13 @@ export class BrickHandle {
      * Disable the brick chain
      */
     disable() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         wasm.brickhandle_disable(this.__wbg_ptr);
     }
     /**
      * Enable the brick chain
      */
     enable() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        wasm.brickhandle_enable(this.__wbg_ptr);
+        wasm.brickhandle_disable(this.__wbg_ptr);
     }
     /**
      * Get the brick chain ID
@@ -290,8 +249,6 @@ export class BrickHandle {
         let deferred1_0;
         let deferred1_1;
         try {
-            if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-            _assertNum(this.__wbg_ptr);
             const ret = wasm.brickhandle_id(this.__wbg_ptr);
             deferred1_0 = ret[0];
             deferred1_1 = ret[1];
@@ -305,8 +262,6 @@ export class BrickHandle {
      * @returns {boolean}
      */
     is_enabled() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.brickhandle_is_enabled(this.__wbg_ptr);
         return ret !== 0;
     }
@@ -326,9 +281,7 @@ export class BrickHandle {
      * Remove the brick chain
      */
     remove() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
         const ptr = this.__destroy_into_raw();
-        _assertNum(ptr);
         wasm.brickhandle_remove(ptr);
     }
     /**
@@ -336,8 +289,6 @@ export class BrickHandle {
      * @returns {boolean}
      */
     toggle() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.brickhandle_toggle(this.__wbg_ptr);
         return ret !== 0;
     }
@@ -348,9 +299,6 @@ if (Symbol.dispose) BrickHandle.prototype[Symbol.dispose] = BrickHandle.prototyp
  * Unique callback identifier
  */
 export class CallbackId {
-    constructor() {
-        throw new Error('cannot invoke `new` directly');
-    }
     static __wrap(ptr) {
         ptr = ptr >>> 0;
         const obj = Object.create(CallbackId.prototype);
@@ -372,8 +320,6 @@ export class CallbackId {
      * @returns {number}
      */
     get value() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.callbackid_value(this.__wbg_ptr);
         return ret >>> 0;
     }
@@ -399,8 +345,6 @@ export class CallbackRegistry {
         wasm.__wbg_callbackregistry_free(ptr, 0);
     }
     clear() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         wasm.callbackregistry_clear(this.__wbg_ptr);
     }
     /**
@@ -408,8 +352,6 @@ export class CallbackRegistry {
      * @returns {number}
      */
     event_callback_count(event_type) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ptr0 = passStringToWasm0(event_type, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         const ret = wasm.callbackregistry_event_callback_count(this.__wbg_ptr, ptr0, len0);
@@ -421,8 +363,6 @@ export class CallbackRegistry {
      * @returns {number}
      */
     invoke(event_type, data) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ptr0 = passStringToWasm0(event_type, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         const ret = wasm.callbackregistry_invoke(this.__wbg_ptr, ptr0, len0, data);
@@ -441,11 +381,8 @@ export class CallbackRegistry {
      * @returns {CallbackId}
      */
     register(callback, event_type, is_oneshot) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ptr0 = passStringToWasm0(event_type, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        _assertBoolean(is_oneshot);
         const ret = wasm.callbackregistry_register(this.__wbg_ptr, callback, ptr0, len0, is_oneshot);
         return CallbackId.__wrap(ret);
     }
@@ -453,8 +390,6 @@ export class CallbackRegistry {
      * @returns {number}
      */
     get total_count() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.callbackregistry_total_count(this.__wbg_ptr);
         return ret >>> 0;
     }
@@ -463,12 +398,7 @@ export class CallbackRegistry {
      * @returns {boolean}
      */
     unregister(id) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         _assertClass(id, CallbackId);
-        if (id.__wbg_ptr === 0) {
-            throw new Error('Attempt to use a moved value');
-        }
         var ptr0 = id.__destroy_into_raw();
         const ret = wasm.callbackregistry_unregister(this.__wbg_ptr, ptr0);
         return ret !== 0;
@@ -478,8 +408,6 @@ export class CallbackRegistry {
      * @returns {number}
      */
     unregister_all(event_type) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ptr0 = passStringToWasm0(event_type, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         const ret = wasm.callbackregistry_unregister_all(this.__wbg_ptr, ptr0, len0);
@@ -507,8 +435,6 @@ export class CameraConfig {
      * @returns {number}
      */
     duration_ms() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.cameraconfig_duration_ms(this.__wbg_ptr);
         return ret >>> 0;
     }
@@ -521,7 +447,6 @@ export class CameraConfig {
      * @param {number} smooth
      */
     constructor(target_x, target_y, zoom, duration_ms, smooth) {
-        _assertNum(duration_ms);
         const ret = wasm.cameraconfig_new(target_x, target_y, zoom, duration_ms, smooth);
         this.__wbg_ptr = ret >>> 0;
         CameraConfigFinalization.register(this, this.__wbg_ptr, this);
@@ -532,8 +457,6 @@ export class CameraConfig {
      * @returns {number}
      */
     smooth() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.cameraconfig_smooth(this.__wbg_ptr);
         return ret;
     }
@@ -542,8 +465,6 @@ export class CameraConfig {
      * @returns {number}
      */
     target_x() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.cameraconfig_target_x(this.__wbg_ptr);
         return ret;
     }
@@ -552,8 +473,6 @@ export class CameraConfig {
      * @returns {number}
      */
     target_y() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.cameraconfig_target_y(this.__wbg_ptr);
         return ret;
     }
@@ -562,8 +481,6 @@ export class CameraConfig {
      * @returns {number}
      */
     zoom() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.cameraconfig_zoom(this.__wbg_ptr);
         return ret;
     }
@@ -580,9 +497,6 @@ if (Symbol.dispose) CameraConfig.prototype[Symbol.dispose] = CameraConfig.protot
  * - custom_data: for Custom controller (name, code)
  */
 export class Controller {
-    constructor() {
-        throw new Error('cannot invoke `new` directly');
-    }
     static __wrap(ptr) {
         ptr = ptr >>> 0;
         const obj = Object.create(Controller.prototype);
@@ -615,7 +529,6 @@ export class Controller {
      * @returns {Controller}
      */
     static and(sensor) {
-        _assertNum(sensor);
         const ret = wasm.controller_and(sensor);
         return Controller.__wrap(ret);
     }
@@ -648,7 +561,6 @@ export class Controller {
      * @returns {Controller}
      */
     static blinky(interval) {
-        _assertNum(interval);
         const ret = wasm.controller_blinky(interval);
         return Controller.__wrap(ret);
     }
@@ -657,8 +569,6 @@ export class Controller {
      * @returns {ControllerType}
      */
     controller_type() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.controller_controller_type(this.__wbg_ptr);
         return ret;
     }
@@ -693,8 +603,6 @@ export class Controller {
      * @returns {string | undefined}
      */
     custom_code() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.controller_custom_code(this.__wbg_ptr);
         let v1;
         if (ret[0] !== 0) {
@@ -708,8 +616,6 @@ export class Controller {
      * @returns {string | undefined}
      */
     custom_name() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.controller_custom_name(this.__wbg_ptr);
         let v1;
         if (ret[0] !== 0) {
@@ -733,7 +639,6 @@ export class Controller {
      * @returns {Controller}
      */
     static debounce(ticks) {
-        _assertNum(ticks);
         const ret = wasm.controller_debounce(ticks);
         return Controller.__wrap(ret);
     }
@@ -755,8 +660,6 @@ export class Controller {
      * @returns {number}
      */
     float_param1() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.controller_float_param1(this.__wbg_ptr);
         return ret;
     }
@@ -765,8 +668,6 @@ export class Controller {
      * @returns {number}
      */
     float_param2() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.controller_float_param2(this.__wbg_ptr);
         return ret;
     }
@@ -775,8 +676,6 @@ export class Controller {
      * @returns {boolean}
      */
     has_secondary_sensor() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.controller_has_secondary_sensor(this.__wbg_ptr);
         return ret !== 0;
     }
@@ -805,8 +704,6 @@ export class Controller {
      * @returns {boolean}
      */
     is_custom() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.controller_is_custom(this.__wbg_ptr);
         return ret !== 0;
     }
@@ -829,8 +726,6 @@ export class Controller {
      * @returns {number}
      */
     numeric_param() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.controller_numeric_param(this.__wbg_ptr);
         return ret;
     }
@@ -849,7 +744,6 @@ export class Controller {
      * @returns {Controller}
      */
     static or(sensor) {
-        _assertNum(sensor);
         const ret = wasm.controller_or(sensor);
         return Controller.__wrap(ret);
     }
@@ -882,7 +776,6 @@ export class Controller {
      * @returns {Controller}
      */
     static pattern(mask) {
-        _assertNum(mask);
         const ret = wasm.controller_pattern(mask);
         return Controller.__wrap(ret);
     }
@@ -893,8 +786,6 @@ export class Controller {
      * @returns {SensorType | undefined}
      */
     secondary_sensor() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.controller_secondary_sensor(this.__wbg_ptr);
         return ret === 9 ? undefined : ret;
     }
@@ -1034,12 +925,7 @@ export class EventRingBufferWasm {
      * @returns {JsLogicEvent[]}
      */
     drain(system) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         _assertClass(system, LogicSystemWasm);
-        if (system.__wbg_ptr === 0) {
-            throw new Error('Attempt to use a moved value');
-        }
         const ret = wasm.eventringbufferwasm_drain(this.__wbg_ptr, system.__wbg_ptr);
         var v1 = getArrayJsValueFromWasm0(ret[0], ret[1]).slice();
         wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
@@ -1055,12 +941,7 @@ export class EventRingBufferWasm {
      * @returns {number}
      */
     event_count(system) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         _assertClass(system, LogicSystemWasm);
-        if (system.__wbg_ptr === 0) {
-            throw new Error('Attempt to use a moved value');
-        }
         const ret = wasm.eventringbufferwasm_event_count(this.__wbg_ptr, system.__wbg_ptr);
         return ret >>> 0;
     }
@@ -1074,12 +955,7 @@ export class EventRingBufferWasm {
      * @returns {boolean}
      */
     has_events(system) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         _assertClass(system, LogicSystemWasm);
-        if (system.__wbg_ptr === 0) {
-            throw new Error('Attempt to use a moved value');
-        }
         const ret = wasm.eventringbufferwasm_has_events(this.__wbg_ptr, system.__wbg_ptr);
         return ret !== 0;
     }
@@ -1101,9 +977,6 @@ if (Symbol.dispose) EventRingBufferWasm.prototype[Symbol.dispose] = EventRingBuf
  * These correspond to the LogicEventType enum in Rust
  */
 export class EventType {
-    constructor() {
-        throw new Error('cannot invoke `new` directly');
-    }
     __destroy_into_raw() {
         const ptr = this.__wbg_ptr;
         this.__wbg_ptr = 0;
@@ -1223,8 +1096,6 @@ export class HighlightConfig {
      * @returns {number}
      */
     color() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.highlightconfig_color(this.__wbg_ptr);
         return ret >>> 0;
     }
@@ -1235,8 +1106,6 @@ export class HighlightConfig {
      * @param {number} opacity
      */
     constructor(color, restore_color, opacity) {
-        _assertNum(color);
-        _assertNum(restore_color);
         const ret = wasm.highlightconfig_new(color, restore_color, opacity);
         this.__wbg_ptr = ret >>> 0;
         HighlightConfigFinalization.register(this, this.__wbg_ptr, this);
@@ -1247,9 +1116,7 @@ export class HighlightConfig {
      * @returns {number}
      */
     opacity() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        const ret = wasm.highlightconfig_opacity(this.__wbg_ptr);
+        const ret = wasm.cameraconfig_zoom(this.__wbg_ptr);
         return ret;
     }
     /**
@@ -1257,8 +1124,6 @@ export class HighlightConfig {
      * @returns {number}
      */
     restore_color() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.highlightconfig_restore_color(this.__wbg_ptr);
         return ret >>> 0;
     }
@@ -1293,8 +1158,6 @@ export class JsError {
         let deferred1_0;
         let deferred1_1;
         try {
-            if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-            _assertNum(this.__wbg_ptr);
             const ret = wasm.jserror_message(this.__wbg_ptr);
             deferred1_0 = ret[0];
             deferred1_1 = ret[1];
@@ -1324,9 +1187,6 @@ if (Symbol.dispose) JsError.prototype[Symbol.dispose] = JsError.prototype.free;
  * across the WASM boundary.
  */
 export class JsLogicEvent {
-    constructor() {
-        throw new Error('cannot invoke `new` directly');
-    }
     static __wrap(ptr) {
         ptr = ptr >>> 0;
         const obj = Object.create(JsLogicEvent.prototype);
@@ -1349,8 +1209,6 @@ export class JsLogicEvent {
      * @returns {number}
      */
     get data_1() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.jslogicevent_data_1(this.__wbg_ptr);
         return ret;
     }
@@ -1359,8 +1217,6 @@ export class JsLogicEvent {
      * @returns {number}
      */
     get data_2() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.jslogicevent_data_2(this.__wbg_ptr);
         return ret;
     }
@@ -1369,8 +1225,6 @@ export class JsLogicEvent {
      * @returns {number}
      */
     get data_3() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.jslogicevent_data_3(this.__wbg_ptr);
         return ret >>> 0;
     }
@@ -1379,8 +1233,6 @@ export class JsLogicEvent {
      * @returns {number}
      */
     get entity_id() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.jslogicevent_entity_id(this.__wbg_ptr);
         return ret >>> 0;
     }
@@ -1389,8 +1241,6 @@ export class JsLogicEvent {
      * @returns {number}
      */
     get event_type() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.jslogicevent_event_type(this.__wbg_ptr);
         return ret;
     }
@@ -1399,8 +1249,6 @@ export class JsLogicEvent {
      * @returns {bigint}
      */
     get timestamp_us() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.jslogicevent_timestamp_us(this.__wbg_ptr);
         return BigInt.asUintN(64, ret);
     }
@@ -1411,9 +1259,6 @@ if (Symbol.dispose) JsLogicEvent.prototype[Symbol.dispose] = JsLogicEvent.protot
  * Simplified event data for WASM export
  */
 export class JsLogicEventData {
-    constructor() {
-        throw new Error('cannot invoke `new` directly');
-    }
     static __wrap(ptr) {
         ptr = ptr >>> 0;
         const obj = Object.create(JsLogicEventData.prototype);
@@ -1440,8 +1285,6 @@ export class JsLogicEventData {
      * @returns {number}
      */
     get data_1() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.__wbg_get_jslogiceventdata_data_1(this.__wbg_ptr);
         return ret;
     }
@@ -1449,8 +1292,6 @@ export class JsLogicEventData {
      * @returns {number}
      */
     get data_2() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.__wbg_get_jslogiceventdata_data_2(this.__wbg_ptr);
         return ret;
     }
@@ -1458,8 +1299,6 @@ export class JsLogicEventData {
      * @returns {number}
      */
     get data_3() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.__wbg_get_jslogiceventdata_data_3(this.__wbg_ptr);
         return ret >>> 0;
     }
@@ -1468,8 +1307,6 @@ export class JsLogicEventData {
      * @returns {number}
      */
     get entity_id() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.__wbg_get_jslogiceventdata_entity_id(this.__wbg_ptr);
         return ret >>> 0;
     }
@@ -1478,8 +1315,6 @@ export class JsLogicEventData {
      * @returns {number}
      */
     get event_type() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.__wbg_get_jslogiceventdata_event_type(this.__wbg_ptr);
         return ret;
     }
@@ -1488,8 +1323,6 @@ export class JsLogicEventData {
      * @returns {bigint}
      */
     get timestamp_us() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.__wbg_get_jslogiceventdata_timestamp_us(this.__wbg_ptr);
         return BigInt.asUintN(64, ret);
     }
@@ -1502,25 +1335,18 @@ export class JsLogicEventData {
      * @param {number} arg0
      */
     set data_1(arg0) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         wasm.__wbg_set_jslogiceventdata_data_1(this.__wbg_ptr, arg0);
     }
     /**
      * @param {number} arg0
      */
     set data_2(arg0) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         wasm.__wbg_set_jslogiceventdata_data_2(this.__wbg_ptr, arg0);
     }
     /**
      * @param {number} arg0
      */
     set data_3(arg0) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(arg0);
         wasm.__wbg_set_jslogiceventdata_data_3(this.__wbg_ptr, arg0);
     }
     /**
@@ -1528,9 +1354,6 @@ export class JsLogicEventData {
      * @param {number} arg0
      */
     set entity_id(arg0) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(arg0);
         wasm.__wbg_set_jslogiceventdata_entity_id(this.__wbg_ptr, arg0);
     }
     /**
@@ -1538,9 +1361,6 @@ export class JsLogicEventData {
      * @param {number} arg0
      */
     set event_type(arg0) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(arg0);
         wasm.__wbg_set_jslogiceventdata_event_type(this.__wbg_ptr, arg0);
     }
     /**
@@ -1548,9 +1368,6 @@ export class JsLogicEventData {
      * @param {bigint} arg0
      */
     set timestamp_us(arg0) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertBigInt(arg0);
         wasm.__wbg_set_jslogiceventdata_timestamp_us(this.__wbg_ptr, arg0);
     }
 }
@@ -1576,16 +1393,12 @@ export class LogicBricksSystem {
      * Clear creation state
      */
     clear_creation() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         wasm.logicbrickssystem_clear_creation(this.__wbg_ptr);
     }
     /**
      * Clear drag state
      */
     clear_drag_state() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         wasm.logicbrickssystem_clear_drag_state(this.__wbg_ptr);
     }
     /**
@@ -1593,8 +1406,6 @@ export class LogicBricksSystem {
      * @returns {number}
      */
     drag_count() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.logicbrickssystem_drag_count(this.__wbg_ptr);
         return ret >>> 0;
     }
@@ -1603,8 +1414,6 @@ export class LogicBricksSystem {
      * @returns {number}
      */
     event_buffer_len() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.logicbrickssystem_event_buffer_len(this.__wbg_ptr);
         return ret >>> 0;
     }
@@ -1616,8 +1425,6 @@ export class LogicBricksSystem {
         let deferred1_0;
         let deferred1_1;
         try {
-            if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-            _assertNum(this.__wbg_ptr);
             const ret = wasm.logicbrickssystem_get_active_tool(this.__wbg_ptr);
             deferred1_0 = ret[0];
             deferred1_1 = ret[1];
@@ -1631,8 +1438,6 @@ export class LogicBricksSystem {
      * @returns {number}
      */
     get_creation_start_pos() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.logicbrickssystem_get_creation_start_pos(this.__wbg_ptr);
         return ret;
     }
@@ -1641,8 +1446,6 @@ export class LogicBricksSystem {
      * @returns {Array<any>}
      */
     get_selected_entities() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.logicbrickssystem_get_selected_entities(this.__wbg_ptr);
         return ret;
     }
@@ -1651,9 +1454,7 @@ export class LogicBricksSystem {
      * @returns {boolean}
      */
     has_events() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        const ret = wasm.logicbrickssystem_has_events(this.__wbg_ptr);
+        const ret = wasm.logicbrickssystem_event_buffer_len(this.__wbg_ptr);
         return ret !== 0;
     }
     /**
@@ -1661,8 +1462,6 @@ export class LogicBricksSystem {
      * @returns {boolean}
      */
     is_creating() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.logicbrickssystem_is_creating(this.__wbg_ptr);
         return ret !== 0;
     }
@@ -1671,8 +1470,6 @@ export class LogicBricksSystem {
      * @returns {boolean}
      */
     is_dragging() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.logicbrickssystem_is_dragging(this.__wbg_ptr);
         return ret !== 0;
     }
@@ -1690,8 +1487,6 @@ export class LogicBricksSystem {
      * @returns {number}
      */
     pending_command_count() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.logicbrickssystem_pending_command_count(this.__wbg_ptr);
         return ret >>> 0;
     }
@@ -1700,8 +1495,6 @@ export class LogicBricksSystem {
      * @returns {number}
      */
     poll_events() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.logicbrickssystem_poll_events(this.__wbg_ptr);
         return ret >>> 0;
     }
@@ -1718,11 +1511,6 @@ export class LogicBricksSystem {
      * @param {number} modifiers
      */
     sample_input(screen_x, screen_y, world_x, world_y, buttons, wheel, modifiers) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(buttons);
-        _assertNum(wheel);
-        _assertNum(modifiers);
         wasm.logicbrickssystem_sample_input(this.__wbg_ptr, screen_x, screen_y, world_x, world_y, buttons, wheel, modifiers);
     }
     /**
@@ -1730,8 +1518,6 @@ export class LogicBricksSystem {
      * @returns {number}
      */
     selection_count() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.logicbrickssystem_selection_count(this.__wbg_ptr);
         return ret >>> 0;
     }
@@ -1740,8 +1526,6 @@ export class LogicBricksSystem {
      * @param {string} tool
      */
     set_active_tool(tool) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ptr0 = passStringToWasm0(tool, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         wasm.logicbrickssystem_set_active_tool(this.__wbg_ptr, ptr0, len0);
@@ -1752,8 +1536,6 @@ export class LogicBricksSystem {
      * @param {number} y
      */
     set_creation_start(x, y) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         wasm.logicbrickssystem_set_creation_start(this.__wbg_ptr, x, y);
     }
 }
@@ -1813,14 +1595,7 @@ export class LogicMappingTableWasm {
      * @param {Controller} controller
      */
     add_highlight(entity_id, sensor, controller) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_id);
-        _assertNum(sensor);
         _assertClass(controller, Controller);
-        if (controller.__wbg_ptr === 0) {
-            throw new Error('Attempt to use a moved value');
-        }
         var ptr0 = controller.__destroy_into_raw();
         wasm.logicmappingtablewasm_add_highlight(this.__wbg_ptr, entity_id, sensor, ptr0);
     }
@@ -1841,14 +1616,7 @@ export class LogicMappingTableWasm {
      * @param {Controller} controller
      */
     add_move(entity_id, sensor, controller) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_id);
-        _assertNum(sensor);
         _assertClass(controller, Controller);
-        if (controller.__wbg_ptr === 0) {
-            throw new Error('Attempt to use a moved value');
-        }
         var ptr0 = controller.__destroy_into_raw();
         wasm.logicmappingtablewasm_add_move(this.__wbg_ptr, entity_id, sensor, ptr0);
     }
@@ -1869,14 +1637,7 @@ export class LogicMappingTableWasm {
      * @param {Controller} controller
      */
     add_select(entity_id, sensor, controller) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_id);
-        _assertNum(sensor);
         _assertClass(controller, Controller);
-        if (controller.__wbg_ptr === 0) {
-            throw new Error('Attempt to use a moved value');
-        }
         var ptr0 = controller.__destroy_into_raw();
         wasm.logicmappingtablewasm_add_select(this.__wbg_ptr, entity_id, sensor, ptr0);
     }
@@ -1889,8 +1650,6 @@ export class LogicMappingTableWasm {
      * ```
      */
     clear() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         wasm.logicmappingtablewasm_clear(this.__wbg_ptr);
     }
     /**
@@ -1906,9 +1665,6 @@ export class LogicMappingTableWasm {
      * @param {number} entity_id
      */
     clear_entity(entity_id) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_id);
         wasm.logicmappingtablewasm_clear_entity(this.__wbg_ptr, entity_id);
     }
     /**
@@ -1929,9 +1685,6 @@ export class LogicMappingTableWasm {
      * @returns {number}
      */
     connection_count(entity_id) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_id);
         const ret = wasm.logicmappingtablewasm_connection_count(this.__wbg_ptr, entity_id);
         return ret >>> 0;
     }
@@ -1949,8 +1702,6 @@ export class LogicMappingTableWasm {
      * @returns {Uint32Array}
      */
     get_connected_entities() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.logicmappingtablewasm_get_connected_entities(this.__wbg_ptr);
         var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
         wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
@@ -1975,10 +1726,6 @@ export class LogicMappingTableWasm {
      * @returns {boolean}
      */
     has_connection(entity_id, sensor) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_id);
-        _assertNum(sensor);
         const ret = wasm.logicmappingtablewasm_has_connection(this.__wbg_ptr, entity_id, sensor);
         return ret !== 0;
     }
@@ -1992,8 +1739,6 @@ export class LogicMappingTableWasm {
      * @returns {boolean}
      */
     is_empty() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.logicmappingtablewasm_is_empty(this.__wbg_ptr);
         return ret !== 0;
     }
@@ -2026,10 +1771,6 @@ export class LogicMappingTableWasm {
      * @param {SensorType} sensor
      */
     remove_connection(entity_id, sensor) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_id);
-        _assertNum(sensor);
         wasm.logicmappingtablewasm_remove_connection(this.__wbg_ptr, entity_id, sensor);
     }
 }
@@ -2065,10 +1806,6 @@ export class LogicSystemWasm {
      * @param {number} _entity_id
      */
     attach_behavior(_behavior_id, _entity_id) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(_behavior_id);
-        _assertNum(_entity_id);
         wasm.logicsystemwasm_attach_behavior(this.__wbg_ptr, _behavior_id, _entity_id);
     }
     /**
@@ -2076,8 +1813,6 @@ export class LogicSystemWasm {
      * @returns {number}
      */
     behavior_count() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.logicsystemwasm_behavior_count(this.__wbg_ptr);
         return ret >>> 0;
     }
@@ -2087,9 +1822,6 @@ export class LogicSystemWasm {
      * @returns {boolean}
      */
     behavior_has_events(_behavior_id) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(_behavior_id);
         const ret = wasm.logicsystemwasm_behavior_has_events(this.__wbg_ptr, _behavior_id);
         return ret !== 0;
     }
@@ -2109,11 +1841,6 @@ export class LogicSystemWasm {
      * @returns {number}
      */
     create_behavior(_entity_id, _sensor_type, _actuator_type) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(_entity_id);
-        _assertNum(_sensor_type);
-        _assertNum(_actuator_type);
         const ret = wasm.logicsystemwasm_create_behavior(this.__wbg_ptr, _entity_id, _sensor_type, _actuator_type);
         return ret >>> 0;
     }
@@ -2122,9 +1849,6 @@ export class LogicSystemWasm {
      * @param {number} _behavior_id
      */
     detach_behavior(_behavior_id) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(_behavior_id);
         wasm.logicsystemwasm_detach_behavior(this.__wbg_ptr, _behavior_id);
     }
     /**
@@ -2135,8 +1859,6 @@ export class LogicSystemWasm {
      * @returns {JsLogicEventData[]}
      */
     drain_events() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.logicsystemwasm_drain_events(this.__wbg_ptr);
         var v1 = getArrayJsValueFromWasm0(ret[0], ret[1]).slice();
         wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
@@ -2150,8 +1872,6 @@ export class LogicSystemWasm {
      * @returns {number}
      */
     event_count() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.logicsystemwasm_event_count(this.__wbg_ptr);
         return ret >>> 0;
     }
@@ -2161,9 +1881,6 @@ export class LogicSystemWasm {
      * @returns {string}
      */
     get_behavior_state(_behavior_id) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(_behavior_id);
         const ret = wasm.logicsystemwasm_get_behavior_state(this.__wbg_ptr, _behavior_id);
         return ret;
     }
@@ -2175,8 +1892,6 @@ export class LogicSystemWasm {
      * @returns {boolean}
      */
     has_events() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.logicsystemwasm_has_events(this.__wbg_ptr);
         return ret !== 0;
     }
@@ -2200,11 +1915,7 @@ export class LogicSystemWasm {
      * @param {boolean} _enabled
      */
     set_behavior_enabled(_behavior_id, _enabled) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(_behavior_id);
-        _assertBoolean(_enabled);
-        wasm.logicsystemwasm_set_behavior_enabled(this.__wbg_ptr, _behavior_id, _enabled);
+        wasm.logicsystemwasm_attach_behavior(this.__wbg_ptr, _behavior_id, _enabled);
     }
     /**
      * Updates the logic system timestamp
@@ -2221,9 +1932,6 @@ export class LogicSystemWasm {
      * @param {bigint} timestamp_ms
      */
     update(timestamp_ms) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertBigInt(timestamp_ms);
         wasm.logicsystemwasm_update(this.__wbg_ptr, timestamp_ms);
     }
 }
@@ -2248,8 +1956,6 @@ export class MoveConfig {
      * @returns {boolean}
      */
     constrain_x() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.moveconfig_constrain_x(this.__wbg_ptr);
         return ret !== 0;
     }
@@ -2258,8 +1964,6 @@ export class MoveConfig {
      * @returns {boolean}
      */
     constrain_y() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.moveconfig_constrain_y(this.__wbg_ptr);
         return ret !== 0;
     }
@@ -2270,8 +1974,6 @@ export class MoveConfig {
      * @param {boolean} constrain_y
      */
     constructor(snap, constrain_x, constrain_y) {
-        _assertBoolean(constrain_x);
-        _assertBoolean(constrain_y);
         const ret = wasm.moveconfig_new(snap, constrain_x, constrain_y);
         this.__wbg_ptr = ret >>> 0;
         MoveConfigFinalization.register(this, this.__wbg_ptr, this);
@@ -2282,9 +1984,7 @@ export class MoveConfig {
      * @returns {number}
      */
     snap() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        const ret = wasm.moveconfig_snap(this.__wbg_ptr);
+        const ret = wasm.cameraconfig_target_x(this.__wbg_ptr);
         return ret;
     }
 }
@@ -2313,9 +2013,6 @@ export class PropertyConfig {
         const ptr0 = passStringToWasm0(property_name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         _assertClass(value, PropertyValue);
-        if (value.__wbg_ptr === 0) {
-            throw new Error('Attempt to use a moved value');
-        }
         var ptr1 = value.__destroy_into_raw();
         const ret = wasm.propertyconfig_new(ptr0, len0, ptr1);
         this.__wbg_ptr = ret >>> 0;
@@ -2330,8 +2027,6 @@ export class PropertyConfig {
         let deferred1_0;
         let deferred1_1;
         try {
-            if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-            _assertNum(this.__wbg_ptr);
             const ret = wasm.propertyconfig_property_name(this.__wbg_ptr);
             deferred1_0 = ret[0];
             deferred1_1 = ret[1];
@@ -2345,8 +2040,6 @@ export class PropertyConfig {
      * @returns {PropertyValue}
      */
     value() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.propertyconfig_value(this.__wbg_ptr);
         return PropertyValue.__wrap(ret);
     }
@@ -2357,9 +2050,6 @@ if (Symbol.dispose) PropertyConfig.prototype[Symbol.dispose] = PropertyConfig.pr
  * Property value wrapper for WASM
  */
 export class PropertyValue {
-    constructor() {
-        throw new Error('cannot invoke `new` directly');
-    }
     static __wrap(ptr) {
         ptr = ptr >>> 0;
         const obj = Object.create(PropertyValue.prototype);
@@ -2383,7 +2073,6 @@ export class PropertyValue {
      * @returns {PropertyValue}
      */
     static from_bool(value) {
-        _assertBoolean(value);
         const ret = wasm.propertyvalue_from_bool(value);
         return PropertyValue.__wrap(ret);
     }
@@ -2404,7 +2093,7 @@ export class PropertyValue {
     static from_string(value) {
         const ptr0 = passStringToWasm0(value, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.propertyvalue_from_string(ptr0, len0);
+        const ret = wasm.brickhandle_new(ptr0, len0);
         return PropertyValue.__wrap(ret);
     }
     /**
@@ -2415,8 +2104,6 @@ export class PropertyValue {
         let deferred1_0;
         let deferred1_1;
         try {
-            if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-            _assertNum(this.__wbg_ptr);
             const ret = wasm.propertyvalue_value(this.__wbg_ptr);
             deferred1_0 = ret[0];
             deferred1_1 = ret[1];
@@ -2459,8 +2146,6 @@ export class PulseWasm {
      * @returns {number}
      */
     get entity_id() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.pulsewasm_entity_id(this.__wbg_ptr);
         return ret >>> 0;
     }
@@ -2472,10 +2157,6 @@ export class PulseWasm {
      * @param {number} timestamp
      */
     constructor(entity_id, sensor_id, state, timestamp) {
-        _assertNum(entity_id);
-        _assertNum(sensor_id);
-        _assertNum(state);
-        _assertNum(timestamp);
         const ret = wasm.pulsewasm_new(entity_id, sensor_id, state, timestamp);
         this.__wbg_ptr = ret >>> 0;
         PulseWasmFinalization.register(this, this.__wbg_ptr, this);
@@ -2486,8 +2167,6 @@ export class PulseWasm {
      * @returns {number}
      */
     get sensor_id() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.pulsewasm_sensor_id(this.__wbg_ptr);
         return ret >>> 0;
     }
@@ -2496,8 +2175,6 @@ export class PulseWasm {
      * @returns {number}
      */
     get state() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.pulsewasm_state(this.__wbg_ptr);
         return ret;
     }
@@ -2506,8 +2183,6 @@ export class PulseWasm {
      * @returns {number}
      */
     get timestamp() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.pulsewasm_timestamp(this.__wbg_ptr);
         return ret >>> 0;
     }
@@ -2634,8 +2309,6 @@ export class SignalByteWasm {
      * @returns {boolean}
      */
     any_edge() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.signalbytewasm_any_edge(this.__wbg_ptr);
         return ret !== 0;
     }
@@ -2644,8 +2317,6 @@ export class SignalByteWasm {
      * @returns {number}
      */
     as_u8() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.signalbytewasm_as_u8(this.__wbg_ptr);
         return ret;
     }
@@ -2660,8 +2331,6 @@ export class SignalByteWasm {
      * @returns {number}
      */
     count_ones() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.signalbytewasm_count_ones(this.__wbg_ptr);
         return ret;
     }
@@ -2676,8 +2345,6 @@ export class SignalByteWasm {
      * @returns {number}
      */
     count_zeros() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.signalbytewasm_count_zeros(this.__wbg_ptr);
         return ret;
     }
@@ -2687,7 +2354,6 @@ export class SignalByteWasm {
      * @returns {SignalByteWasm}
      */
     static from(value) {
-        _assertNum(value);
         const ret = wasm.signalbytewasm_from(value);
         return SignalByteWasm.__wrap(ret);
     }
@@ -2703,8 +2369,6 @@ export class SignalByteWasm {
      * @returns {boolean}
      */
     get_current() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.signalbytewasm_get_current(this.__wbg_ptr);
         return ret !== 0;
     }
@@ -2722,8 +2386,6 @@ export class SignalByteWasm {
      * @returns {number}
      */
     get_history() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.signalbytewasm_get_history(this.__wbg_ptr);
         return ret;
     }
@@ -2742,8 +2404,6 @@ export class SignalByteWasm {
      * @returns {boolean}
      */
     is_falling_edge() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.signalbytewasm_is_falling_edge(this.__wbg_ptr);
         return ret !== 0;
     }
@@ -2762,8 +2422,6 @@ export class SignalByteWasm {
      * @returns {boolean}
      */
     is_rising_edge() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.signalbytewasm_is_rising_edge(this.__wbg_ptr);
         return ret !== 0;
     }
@@ -2773,9 +2431,6 @@ export class SignalByteWasm {
      * @returns {boolean}
      */
     is_steady(ticks) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(ticks);
         const ret = wasm.signalbytewasm_is_steady(this.__wbg_ptr, ticks);
         return ret !== 0;
     }
@@ -2795,10 +2450,7 @@ export class SignalByteWasm {
      * @returns {boolean}
      */
     is_steady_high(ticks) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(ticks);
-        const ret = wasm.signalbytewasm_is_steady_high(this.__wbg_ptr, ticks);
+        const ret = wasm.signalbytewasm_is_steady(this.__wbg_ptr, ticks);
         return ret !== 0;
     }
     /**
@@ -2813,9 +2465,6 @@ export class SignalByteWasm {
      * @returns {boolean}
      */
     is_steady_low(ticks) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(ticks);
         const ret = wasm.signalbytewasm_is_steady_low(this.__wbg_ptr, ticks);
         return ret !== 0;
     }
@@ -2844,9 +2493,6 @@ export class SignalByteWasm {
      * @param {boolean} active
      */
     push(active) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertBoolean(active);
         wasm.signalbytewasm_push(this.__wbg_ptr, active);
     }
     /**
@@ -2860,8 +2506,6 @@ export class SignalByteWasm {
      * @returns {number}
      */
     size() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.signalbytewasm_size(this.__wbg_ptr);
         return ret >>> 0;
     }
@@ -2880,15 +2524,99 @@ export class WasmBridge {
         wasm.__wbg_wasmbridge_free(ptr, 0);
     }
     /**
+     * Add a sensor connection to an entity
+     *
+     * Creates a sensor-to-actuator connection using the LogicMappingTable.
+     *
+     * # Arguments
+     *
+     * * `entity_id` - The entity to add the sensor to
+     * * `sensor_type` - Type of sensor (0=MouseOver, 1=MouseClick, 2=Proximity, 3=KeyShortcut, 4=Touch, 5=Radar, 6=DoubleTap, 7=LongPress, 8=RightClick)
+     * * `controller_type` - Type of controller (0=Direct, 1=AND, 2=OR, 3=NOT)
+     * * `actuator_type` - Type of actuator (0=Highlight, 1=Select, 2=Move, 3=Sound, 4=Animation, 5=Custom, 6=Property, 7=Visibility)
+     *
+     * # Returns
+     *
+     * Ok(true) if connection was added successfully
+     * @param {number} entity_id
+     * @param {number} sensor_type
+     * @param {number} controller_type
+     * @param {number} actuator_type
+     * @returns {boolean}
+     */
+    add_sensor(entity_id, sensor_type, controller_type, actuator_type) {
+        const ret = wasm.wasmbridge_add_sensor(this.__wbg_ptr, entity_id, sensor_type, controller_type, actuator_type);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return ret[0] !== 0;
+    }
+    /**
+     * Batch configure multiple entities with all properties in one call
+     *
+     * Arrays must all have the same length. Use NaN/0/255 to skip individual fields.
+     *
+     * # Arguments
+     *
+     * * `ids` - Entity indices
+     * * `xs`, `ys` - Positions (use NaN to skip)
+     * * `widths`, `heights` - Sizes (use NaN to skip)
+     * * `vxs`, `vys` - Velocities (use NaN to skip)
+     * * `axs`, `ays` - Accelerations (use NaN to skip)
+     * * `colors` - RGBA colors packed (use 0 to skip)
+     * * `shapes` - Shape types (use 255 to skip)
+     * @param {Uint32Array} ids
+     * @param {Float32Array} xs
+     * @param {Float32Array} ys
+     * @param {Float32Array} widths
+     * @param {Float32Array} heights
+     * @param {Float32Array} vxs
+     * @param {Float32Array} vys
+     * @param {Float32Array} axs
+     * @param {Float32Array} ays
+     * @param {Uint32Array} colors
+     * @param {Uint8Array} shapes
+     * @returns {number}
+     */
+    batch_configure_entities(ids, xs, ys, widths, heights, vxs, vys, axs, ays, colors, shapes) {
+        const ptr0 = passArray32ToWasm0(ids, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passArrayF32ToWasm0(xs, wasm.__wbindgen_malloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passArrayF32ToWasm0(ys, wasm.__wbindgen_malloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passArrayF32ToWasm0(widths, wasm.__wbindgen_malloc);
+        const len3 = WASM_VECTOR_LEN;
+        const ptr4 = passArrayF32ToWasm0(heights, wasm.__wbindgen_malloc);
+        const len4 = WASM_VECTOR_LEN;
+        const ptr5 = passArrayF32ToWasm0(vxs, wasm.__wbindgen_malloc);
+        const len5 = WASM_VECTOR_LEN;
+        const ptr6 = passArrayF32ToWasm0(vys, wasm.__wbindgen_malloc);
+        const len6 = WASM_VECTOR_LEN;
+        const ptr7 = passArrayF32ToWasm0(axs, wasm.__wbindgen_malloc);
+        const len7 = WASM_VECTOR_LEN;
+        const ptr8 = passArrayF32ToWasm0(ays, wasm.__wbindgen_malloc);
+        const len8 = WASM_VECTOR_LEN;
+        const ptr9 = passArray32ToWasm0(colors, wasm.__wbindgen_malloc);
+        const len9 = WASM_VECTOR_LEN;
+        const ptr10 = passArray8ToWasm0(shapes, wasm.__wbindgen_malloc);
+        const len10 = WASM_VECTOR_LEN;
+        const ret = wasm.wasmbridge_batch_configure_entities(this.__wbg_ptr, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4, ptr5, len5, ptr6, len6, ptr7, len7, ptr8, len8, ptr9, len9, ptr10, len10);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return ret[0] >>> 0;
+    }
+    /**
      * Batch despawn multiple entities
      *
      * ids: array of entity indices to remove
+     *
+     * DEPRECATED: Use EntityManager or Command pattern instead
      * @param {Uint32Array} ids
      * @returns {number}
      */
     batch_despawn(ids) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ptr0 = passArray32ToWasm0(ids, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
         const ret = wasm.wasmbridge_batch_despawn(this.__wbg_ptr, ptr0, len0);
@@ -2907,8 +2635,6 @@ export class WasmBridge {
      * @returns {number}
      */
     batch_set_colors(ids, colors) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ptr0 = passArray32ToWasm0(ids, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passArray32ToWasm0(colors, wasm.__wbindgen_malloc);
@@ -2931,8 +2657,6 @@ export class WasmBridge {
      * @returns {number}
      */
     batch_set_positions(ids, xs, ys) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ptr0 = passArray32ToWasm0(ids, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passArrayF32ToWasm0(xs, wasm.__wbindgen_malloc);
@@ -2940,6 +2664,25 @@ export class WasmBridge {
         const ptr2 = passArrayF32ToWasm0(ys, wasm.__wbindgen_malloc);
         const len2 = WASM_VECTOR_LEN;
         const ret = wasm.wasmbridge_batch_set_positions(this.__wbg_ptr, ptr0, len0, ptr1, len1, ptr2, len2);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return ret[0] >>> 0;
+    }
+    /**
+     * Batch set shapes for multiple entities (optimized)
+     *
+     * DEPRECATED: Use PropertyActuator via Logic Bricks instead
+     * @param {Uint32Array} ids
+     * @param {Uint8Array} shapes
+     * @returns {number}
+     */
+    batch_set_shapes(ids, shapes) {
+        const ptr0 = passArray32ToWasm0(ids, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passArray8ToWasm0(shapes, wasm.__wbindgen_malloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.wasmbridge_batch_set_shapes(this.__wbg_ptr, ptr0, len0, ptr1, len1);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }
@@ -2957,8 +2700,6 @@ export class WasmBridge {
      * @returns {number}
      */
     batch_set_sizes(ids, widths, heights) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ptr0 = passArray32ToWasm0(ids, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passArrayF32ToWasm0(widths, wasm.__wbindgen_malloc);
@@ -2976,16 +2717,15 @@ export class WasmBridge {
      *
      * ids: array of entity indices
      * visible: visibility state to apply to all
+     *
+     * DEPRECATED: Use VisibilityActuator via Logic Bricks instead
      * @param {Uint32Array} ids
      * @param {boolean} visible
      * @returns {number}
      */
     batch_set_visibility(ids, visible) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ptr0 = passArray32ToWasm0(ids, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
-        _assertBoolean(visible);
         const ret = wasm.wasmbridge_batch_set_visibility(this.__wbg_ptr, ptr0, len0, visible);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
@@ -3016,8 +2756,6 @@ export class WasmBridge {
      * @returns {Uint32Array}
      */
     bulk_spawn(positions, sizes, colors) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ptr0 = passArrayF32ToWasm0(positions, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passArrayF32ToWasm0(sizes, wasm.__wbindgen_malloc);
@@ -3037,8 +2775,6 @@ export class WasmBridge {
      * @returns {boolean}
      */
     can_redo() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_can_redo(this.__wbg_ptr);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
@@ -3050,8 +2786,6 @@ export class WasmBridge {
      * @returns {boolean}
      */
     can_undo() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_can_undo(this.__wbg_ptr);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
@@ -3062,9 +2796,38 @@ export class WasmBridge {
      * Clear all entities
      */
     clear() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_clear(this.__wbg_ptr);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
+     * Clear all logic connections for all entities
+     */
+    clear_all_logic() {
+        const ret = wasm.wasmbridge_clear_all_logic(this.__wbg_ptr);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
+     * Clear highlight tint (reset to default)
+     *
+     * DEPRECATED: Use HighlightActuator via Logic Bricks instead
+     * @param {number} entity_index
+     */
+    clear_color_tint(entity_index) {
+        const ret = wasm.wasmbridge_clear_color_tint(this.__wbg_ptr, entity_index);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
+     * Clear all logic connections for an entity
+     * @param {number} entity_id
+     */
+    clear_entity_logic(entity_id) {
+        const ret = wasm.wasmbridge_clear_entity_logic(this.__wbg_ptr, entity_id);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
         }
@@ -3073,19 +2836,83 @@ export class WasmBridge {
      * Clear all selections (deselect all entities)
      */
     clear_selection() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_clear_selection(this.__wbg_ptr);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
         }
     }
     /**
+     * Configure a single entity with all properties in one call
+     *
+     * This reduces JS-WASM call overhead by setting multiple properties at once.
+     *
+     * # Arguments
+     *
+     * * `entity_id` - Entity index to configure
+     * * `x`, `y` - Position (pass NaN to skip)
+     * * `width`, `height` - Size (pass NaN to skip)
+     * * `vx`, `vy` - Velocity (pass NaN to skip)
+     * * `ax`, `ay` - Acceleration (pass NaN to skip)
+     * * `color` - RGBA color packed (pass 0 to skip)
+     * * `stroke_color` - Stroke color packed (pass 0 to skip)
+     * * `stroke_width` - Stroke width (pass 0 to skip)
+     * * `shape` - Shape type (pass 255 to skip)
+     * * `visible` - Visibility (pass 2 to skip, 0=hidden, 1=visible, 2=skip)
+     * @param {number} entity_id
+     * @param {number} x
+     * @param {number} y
+     * @param {number} width
+     * @param {number} height
+     * @param {number} vx
+     * @param {number} vy
+     * @param {number} ax
+     * @param {number} ay
+     * @param {number} color
+     * @param {number} stroke_color
+     * @param {number} stroke_width
+     * @param {number} shape
+     * @param {number} visible
+     */
+    configure_entity(entity_id, x, y, width, height, vx, vy, ax, ay, color, stroke_color, stroke_width, shape, visible) {
+        const ret = wasm.wasmbridge_configure_entity(this.__wbg_ptr, entity_id, x, y, width, height, vx, vy, ax, ay, color, stroke_color, stroke_width, shape, visible);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
+     * Configure mouse sensor for an entity
+     *
+     * # Arguments
+     *
+     * * `mode` - Mouse mode: 0=movement, 1=left_button, 2=right_button, 3=middle_button, 4=wheel_up
+     * * `tap` - Enable tap detection (true) or continuous (false)
+     * @param {number} mode
+     * @param {boolean} tap
+     */
+    configure_mouse_sensor(mode, tap) {
+        const ret = wasm.wasmbridge_configure_mouse_sensor(this.__wbg_ptr, mode, tap);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
+     * Get number of connections for an entity
+     * @param {number} entity_id
+     * @returns {number}
+     */
+    connection_count(entity_id) {
+        const ret = wasm.wasmbridge_connection_count(this.__wbg_ptr, entity_id);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return ret[0] >>> 0;
+    }
+    /**
      * Delete all selected entities
+     *
+     * DEPRECATED: Use SelectActuator + DeleteActuator via Logic Bricks instead
      */
     delete_selected() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_delete_selected(this.__wbg_ptr);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
@@ -3096,8 +2923,6 @@ export class WasmBridge {
      * @returns {object}
      */
     detect_available_backends() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_detect_available_backends(this.__wbg_ptr);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
@@ -3106,13 +2931,12 @@ export class WasmBridge {
     }
     /**
      * Duplicate an entity (create a copy at a slight offset)
+     *
+     * DEPRECATED: Use EntityFactory or Command pattern instead
      * @param {number} entity_index
      * @returns {number}
      */
     duplicate_entity(entity_index) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_index);
         const ret = wasm.wasmbridge_duplicate_entity(this.__wbg_ptr, entity_index);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
@@ -3124,13 +2948,19 @@ export class WasmBridge {
      * @returns {number}
      */
     entity_count() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_entity_count(this.__wbg_ptr);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }
         return ret[0] >>> 0;
+    }
+    /**
+     * Get the current accumulator value (for debugging)
+     * @returns {number}
+     */
+    get_accumulator() {
+        const ret = wasm.wasmbridge_get_accumulator(this.__wbg_ptr);
+        return ret;
     }
     /**
      * Get the active fill color (returns RGBA as hex string)
@@ -3140,8 +2970,6 @@ export class WasmBridge {
         let deferred2_0;
         let deferred2_1;
         try {
-            if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-            _assertNum(this.__wbg_ptr);
             const ret = wasm.wasmbridge_get_active_color(this.__wbg_ptr);
             var ptr1 = ret[0];
             var len1 = ret[1];
@@ -3164,8 +2992,6 @@ export class WasmBridge {
         let deferred2_0;
         let deferred2_1;
         try {
-            if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-            _assertNum(this.__wbg_ptr);
             const ret = wasm.wasmbridge_get_active_stroke_color(this.__wbg_ptr);
             var ptr1 = ret[0];
             var len1 = ret[1];
@@ -3185,8 +3011,6 @@ export class WasmBridge {
      * @returns {number}
      */
     get_active_stroke_width() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_get_active_stroke_width(this.__wbg_ptr);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
@@ -3198,8 +3022,6 @@ export class WasmBridge {
      * @returns {Uint32Array}
      */
     get_alive_entities() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_get_alive_entities(this.__wbg_ptr);
         if (ret[3]) {
             throw takeFromExternrefTable0(ret[2]);
@@ -3209,12 +3031,21 @@ export class WasmBridge {
         return v1;
     }
     /**
+     * Get master volume for audio
+     * @returns {number}
+     */
+    get_audio_master_volume() {
+        const ret = wasm.wasmbridge_get_audio_master_volume(this.__wbg_ptr);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return ret[0];
+    }
+    /**
      * Get the camera center position
      * @returns {Array<any>}
      */
     get_camera_center() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_get_camera_center(this.__wbg_ptr);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
@@ -3223,6 +3054,8 @@ export class WasmBridge {
     }
     /**
      * Get the color of an entity (returns hex string)
+     *
+     * DEPRECATED: Use query system or EntityStore directly instead
      * @param {number} entity_index
      * @returns {string}
      */
@@ -3230,9 +3063,6 @@ export class WasmBridge {
         let deferred2_0;
         let deferred2_1;
         try {
-            if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-            _assertNum(this.__wbg_ptr);
-            _assertNum(entity_index);
             const ret = wasm.wasmbridge_get_color(this.__wbg_ptr, entity_index);
             var ptr1 = ret[0];
             var len1 = ret[1];
@@ -3248,6 +3078,16 @@ export class WasmBridge {
         }
     }
     /**
+     * Get pointer to entity colors data
+     *
+     * Returns a pointer to the colors array (RGBA packed u32) for all entities.
+     * @returns {number}
+     */
+    get_colors_ptr() {
+        const ret = wasm.wasmbridge_get_colors_ptr(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
      * Get entity color as hex string
      * @param {number} entity_index
      * @returns {string}
@@ -3256,9 +3096,6 @@ export class WasmBridge {
         let deferred2_0;
         let deferred2_1;
         try {
-            if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-            _assertNum(this.__wbg_ptr);
-            _assertNum(entity_index);
             const ret = wasm.wasmbridge_get_entity_color_hex(this.__wbg_ptr, entity_index);
             var ptr1 = ret[0];
             var len1 = ret[1];
@@ -3278,8 +3115,6 @@ export class WasmBridge {
      * @returns {number}
      */
     get_entity_count() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_get_entity_count(this.__wbg_ptr);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
@@ -3288,6 +3123,8 @@ export class WasmBridge {
     }
     /**
      * Get entity label from string pool
+     *
+     * DEPRECATED: Use query system or EntityStore instead
      * @param {number} entity_index
      * @returns {string}
      */
@@ -3295,9 +3132,6 @@ export class WasmBridge {
         let deferred2_0;
         let deferred2_1;
         try {
-            if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-            _assertNum(this.__wbg_ptr);
-            _assertNum(entity_index);
             const ret = wasm.wasmbridge_get_entity_label(this.__wbg_ptr, entity_index);
             var ptr1 = ret[0];
             var len1 = ret[1];
@@ -3318,9 +3152,6 @@ export class WasmBridge {
      * @returns {Array<any>}
      */
     get_entity_position_screen(entity_index) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_index);
         const ret = wasm.wasmbridge_get_entity_position_screen(this.__wbg_ptr, entity_index);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
@@ -3333,9 +3164,6 @@ export class WasmBridge {
      * @returns {Array<any>}
      */
     get_entity_position_world(entity_index) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_index);
         const ret = wasm.wasmbridge_get_entity_position_world(this.__wbg_ptr, entity_index);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
@@ -3348,9 +3176,6 @@ export class WasmBridge {
      * @returns {number}
      */
     get_entity_shape(entity_index) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_index);
         const ret = wasm.wasmbridge_get_entity_shape(this.__wbg_ptr, entity_index);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
@@ -3363,9 +3188,6 @@ export class WasmBridge {
      * @returns {Array<any>}
      */
     get_entity_size_screen(entity_index) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_index);
         const ret = wasm.wasmbridge_get_entity_size_screen(this.__wbg_ptr, entity_index);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
@@ -3378,14 +3200,35 @@ export class WasmBridge {
      * @returns {Array<any>}
      */
     get_entity_size_world(entity_index) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_index);
         const ret = wasm.wasmbridge_get_entity_size_world(this.__wbg_ptr, entity_index);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }
         return takeFromExternrefTable0(ret[0]);
+    }
+    /**
+     * Get current velocity of an entity
+     *
+     * DEPRECATED: Use query_with_velocity() or EntityStore query instead
+     * @param {number} entity_index
+     * @returns {Float32Array}
+     */
+    get_entity_velocity(entity_index) {
+        const ret = wasm.wasmbridge_get_entity_velocity(this.__wbg_ptr, entity_index);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v1 = getArrayF32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Get the current fixed timestep value
+     * @returns {number}
+     */
+    get_fixed_timestep() {
+        const ret = wasm.wasmbridge_get_fixed_timestep(this.__wbg_ptr);
+        return ret;
     }
     /**
      * Get history state for UI feedback
@@ -3395,8 +3238,6 @@ export class WasmBridge {
         let deferred2_0;
         let deferred2_1;
         try {
-            if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-            _assertNum(this.__wbg_ptr);
             const ret = wasm.wasmbridge_get_history_state(this.__wbg_ptr);
             var ptr1 = ret[0];
             var len1 = ret[1];
@@ -3419,8 +3260,6 @@ export class WasmBridge {
      * @returns {number}
      */
     get_input_buffer_ptr() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_get_input_buffer_ptr(this.__wbg_ptr);
         return ret >>> 0;
     }
@@ -3437,9 +3276,15 @@ export class WasmBridge {
      * @returns {number}
      */
     get_max_entities() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_get_max_entities(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Get the current maximum substeps setting
+     * @returns {number}
+     */
+    get_max_substeps() {
+        const ret = wasm.wasmbridge_get_max_substeps(this.__wbg_ptr);
         return ret >>> 0;
     }
     /**
@@ -3449,8 +3294,6 @@ export class WasmBridge {
      * @returns {number}
      */
     get_modifiers() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_get_modifiers(this.__wbg_ptr);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
@@ -3464,8 +3307,6 @@ export class WasmBridge {
      * @returns {number}
      */
     get_mouse_buttons() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_get_mouse_buttons(this.__wbg_ptr);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
@@ -3482,8 +3323,6 @@ export class WasmBridge {
         let deferred2_0;
         let deferred2_1;
         try {
-            if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-            _assertNum(this.__wbg_ptr);
             const ret = wasm.wasmbridge_get_mouse_position(this.__wbg_ptr);
             var ptr1 = ret[0];
             var len1 = ret[1];
@@ -3503,8 +3342,6 @@ export class WasmBridge {
      * @returns {Array<any>}
      */
     get_selection() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_get_selection(this.__wbg_ptr);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
@@ -3513,6 +3350,8 @@ export class WasmBridge {
     }
     /**
      * Get the stroke color of an entity (returns hex string)
+     *
+     * DEPRECATED: Use query system or EntityStore directly instead
      * @param {number} entity_index
      * @returns {string}
      */
@@ -3520,9 +3359,6 @@ export class WasmBridge {
         let deferred2_0;
         let deferred2_1;
         try {
-            if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-            _assertNum(this.__wbg_ptr);
-            _assertNum(entity_index);
             const ret = wasm.wasmbridge_get_stroke_color(this.__wbg_ptr, entity_index);
             var ptr1 = ret[0];
             var len1 = ret[1];
@@ -3539,13 +3375,12 @@ export class WasmBridge {
     }
     /**
      * Get the stroke width of an entity
+     *
+     * DEPRECATED: Use query system or EntityStore directly instead
      * @param {number} entity_index
      * @returns {number}
      */
     get_stroke_width(entity_index) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_index);
         const ret = wasm.wasmbridge_get_stroke_width(this.__wbg_ptr, entity_index);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
@@ -3560,8 +3395,6 @@ export class WasmBridge {
         let deferred2_0;
         let deferred2_1;
         try {
-            if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-            _assertNum(this.__wbg_ptr);
             const ret = wasm.wasmbridge_get_tool(this.__wbg_ptr);
             var ptr1 = ret[0];
             var len1 = ret[1];
@@ -3577,12 +3410,53 @@ export class WasmBridge {
         }
     }
     /**
+     * Get the current tool type as index
+     *
+     * Returns the tool index (u8) for type-safe handling in JavaScript.
+     * See set_tool_by_type for index mapping.
+     * @returns {number}
+     */
+    get_tool_index() {
+        const ret = wasm.wasmbridge_get_tool_index(this.__wbg_ptr);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return ret[0];
+    }
+    /**
+     * Get count of transforms (entities with valid data)
+     * @returns {number}
+     */
+    get_transforms_count() {
+        const ret = wasm.wasmbridge_get_transforms_count(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Get pointer to entity transforms data
+     *
+     * Returns a pointer to the transforms array [x, y, width, height] for all entities.
+     * Use with get_transforms_count() to know the valid range.
+     * @returns {number}
+     */
+    get_transforms_ptr() {
+        const ret = wasm.wasmbridge_get_transforms_ptr(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Get pointer to velocities data
+     *
+     * Returns a pointer to the velocities array [vx, vy] for all entities.
+     * @returns {number}
+     */
+    get_velocities_ptr() {
+        const ret = wasm.wasmbridge_get_velocities_ptr(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
      * Get the current camera zoom level
      * @returns {number}
      */
     get_zoom() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_get_zoom(this.__wbg_ptr);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
@@ -3594,8 +3468,6 @@ export class WasmBridge {
      * @returns {boolean}
      */
     init_audio() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_init_audio(this.__wbg_ptr);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
@@ -3610,8 +3482,6 @@ export class WasmBridge {
      * @param {number} canvas_height
      */
     initialize(canvas_width, canvas_height) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_initialize(this.__wbg_ptr, canvas_width, canvas_height);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
@@ -3624,8 +3494,6 @@ export class WasmBridge {
      * @param {HTMLCanvasElement} canvas
      */
     initialize_graphics(canvas) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_initialize_graphics(this.__wbg_ptr, canvas);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
@@ -3639,8 +3507,6 @@ export class WasmBridge {
      * @param {string} backend
      */
     initialize_graphics_with_backend(canvas, backend) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ptr0 = passStringToWasm0(backend, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         const ret = wasm.wasmbridge_initialize_graphics_with_backend(this.__wbg_ptr, canvas, ptr0, len0);
@@ -3654,9 +3520,6 @@ export class WasmBridge {
      * @returns {boolean}
      */
     is_entity_selected(entity_index) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_index);
         const ret = wasm.wasmbridge_is_entity_selected(this.__wbg_ptr, entity_index);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
@@ -3665,13 +3528,12 @@ export class WasmBridge {
     }
     /**
      * Check if entity is visible
+     *
+     * DEPRECATED: Use query_by_visibility() instead
      * @param {number} entity_index
      * @returns {boolean}
      */
     is_entity_visible(entity_index) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_index);
         const ret = wasm.wasmbridge_is_entity_visible(this.__wbg_ptr, entity_index);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
@@ -3683,10 +3545,20 @@ export class WasmBridge {
      * @returns {boolean}
      */
     is_recovering() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_is_recovering(this.__wbg_ptr);
         return ret !== 0;
+    }
+    /**
+     * Get selection state of an entity
+     * @param {number} entity_index
+     * @returns {boolean}
+     */
+    is_selected(entity_index) {
+        const ret = wasm.wasmbridge_is_selected(this.__wbg_ptr, entity_index);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return ret[0] !== 0;
     }
     /**
      * Load a scene from JSON string
@@ -3703,8 +3575,6 @@ export class WasmBridge {
      * @returns {number}
      */
     load_scene(json) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ptr0 = passStringToWasm0(json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         const ret = wasm.wasmbridge_load_scene(this.__wbg_ptr, ptr0, len0);
@@ -3714,16 +3584,49 @@ export class WasmBridge {
         return ret[0] >>> 0;
     }
     /**
+     * Load a sound from URL and register it
+     *
+     * Returns the sound ID that can be used to play this sound.
+     * Note: Actual loading happens asynchronously via Web Audio API.
+     * @param {string} name
+     * @param {string} _url
+     * @returns {number}
+     */
+    load_sound(name, _url) {
+        const ptr0 = passStringToWasm0(name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(_url, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.wasmbridge_load_sound(this.__wbg_ptr, ptr0, len0, ptr1, len1);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return ret[0] >>> 0;
+    }
+    /**
      * Move an entity by the given delta
+     *
+     * DEPRECATED: Use MoveActuator via Logic Bricks or configure_entity() instead
      * @param {number} entity_index
      * @param {number} dx
      * @param {number} dy
      */
     move_entity(entity_index, dx, dy) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_index);
         const ret = wasm.wasmbridge_move_entity(this.__wbg_ptr, entity_index, dx, dy);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
+     * Move entity by delta (direct position update, not command queue)
+     *
+     * DEPRECATED: Use MoveActuator via Logic Bricks or configure_entity() instead
+     * @param {number} entity_index
+     * @param {number} dx
+     * @param {number} dy
+     */
+    move_entity_by(entity_index, dx, dy) {
+        const ret = wasm.wasmbridge_move_entity_by(this.__wbg_ptr, entity_index, dx, dy);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
         }
@@ -3752,11 +3655,6 @@ export class WasmBridge {
      * @param {number} modifiers
      */
     on_key(key_code, is_down, modifiers) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(key_code);
-        _assertBoolean(is_down);
-        _assertNum(modifiers);
         wasm.wasmbridge_on_key(this.__wbg_ptr, key_code, is_down, modifiers);
     }
     /**
@@ -3776,10 +3674,6 @@ export class WasmBridge {
      * @param {number} modifiers
      */
     on_mouse_down(screen_x, screen_y, button, modifiers) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(button);
-        _assertNum(modifiers);
         wasm.wasmbridge_on_mouse_down(this.__wbg_ptr, screen_x, screen_y, button, modifiers);
     }
     /**
@@ -3799,10 +3693,6 @@ export class WasmBridge {
      * @param {number} modifiers
      */
     on_mouse_move(screen_x, screen_y, buttons, modifiers) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(buttons);
-        _assertNum(modifiers);
         wasm.wasmbridge_on_mouse_move(this.__wbg_ptr, screen_x, screen_y, buttons, modifiers);
     }
     /**
@@ -3821,10 +3711,6 @@ export class WasmBridge {
      * @param {number} modifiers
      */
     on_mouse_up(screen_x, screen_y, button, modifiers) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(button);
-        _assertNum(modifiers);
         wasm.wasmbridge_on_mouse_up(this.__wbg_ptr, screen_x, screen_y, button, modifiers);
     }
     /**
@@ -3844,9 +3730,6 @@ export class WasmBridge {
      * @param {number} modifiers
      */
     on_wheel(screen_x, screen_y, delta_y, modifiers) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(modifiers);
         wasm.wasmbridge_on_wheel(this.__wbg_ptr, screen_x, screen_y, delta_y, modifiers);
     }
     /**
@@ -3861,9 +3744,20 @@ export class WasmBridge {
      * @param {number} volume
      */
     play_beep(frequency, _duration, volume) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_play_beep(this.__wbg_ptr, frequency, _duration, volume);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
+     * Play a sound for a specific entity
+     *
+     * The sound will be played with entity-specific volume settings if AudioComponent exists.
+     * @param {number} entity_id
+     * @param {number} sound_id
+     */
+    play_sound(entity_id, sound_id) {
+        const ret = wasm.wasmbridge_play_sound(this.__wbg_ptr, entity_id, sound_id);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
         }
@@ -3891,8 +3785,6 @@ export class WasmBridge {
      * @returns {number}
      */
     poll_events() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_poll_events(this.__wbg_ptr);
         return ret >>> 0;
     }
@@ -3903,8 +3795,6 @@ export class WasmBridge {
      * Called automatically by tick(), but can be called manually if needed.
      */
     process_input_events() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         wasm.wasmbridge_process_input_events(this.__wbg_ptr);
     }
     /**
@@ -3919,15 +3809,37 @@ export class WasmBridge {
      * @param {number} modifiers
      */
     push_input_event(event_type, x, y, buttons, modifiers) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(event_type);
-        _assertNum(buttons);
-        _assertNum(modifiers);
         const ret = wasm.wasmbridge_push_input_event(this.__wbg_ptr, event_type, x, y, buttons, modifiers);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
         }
+    }
+    /**
+     * Query all alive entities (returns all entity IDs)
+     * @returns {Uint32Array}
+     */
+    query_all() {
+        const ret = wasm.wasmbridge_query_all(this.__wbg_ptr);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Query entities by layer
+     * @param {number} layer
+     * @returns {Uint32Array}
+     */
+    query_by_layer(layer) {
+        const ret = wasm.wasmbridge_query_by_layer(this.__wbg_ptr, layer);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
     }
     /**
      * Query entities with minimum size
@@ -3936,8 +3848,6 @@ export class WasmBridge {
      * @returns {Uint32Array}
      */
     query_by_min_size(min_width, min_height) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_query_by_min_size(this.__wbg_ptr, min_width, min_height);
         if (ret[3]) {
             throw takeFromExternrefTable0(ret[2]);
@@ -3952,9 +3862,6 @@ export class WasmBridge {
      * @returns {Uint32Array}
      */
     query_by_selection(selected) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertBoolean(selected);
         const ret = wasm.wasmbridge_query_by_selection(this.__wbg_ptr, selected);
         if (ret[3]) {
             throw takeFromExternrefTable0(ret[2]);
@@ -3971,9 +3878,6 @@ export class WasmBridge {
      * @returns {Uint32Array}
      */
     query_by_shape(shape) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(shape);
         const ret = wasm.wasmbridge_query_by_shape(this.__wbg_ptr, shape);
         if (ret[3]) {
             throw takeFromExternrefTable0(ret[2]);
@@ -3988,9 +3892,6 @@ export class WasmBridge {
      * @returns {Uint32Array}
      */
     query_by_visibility(visible) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertBoolean(visible);
         const ret = wasm.wasmbridge_query_by_visibility(this.__wbg_ptr, visible);
         if (ret[3]) {
             throw takeFromExternrefTable0(ret[2]);
@@ -4008,9 +3909,20 @@ export class WasmBridge {
      * @returns {Uint32Array}
      */
     query_in_bounds(x, y, width, height) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_query_in_bounds(this.__wbg_ptr, x, y, width, height);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Query entities that have velocity (moving entities)
+     * @returns {Uint32Array}
+     */
+    query_with_velocity() {
+        const ret = wasm.wasmbridge_query_with_velocity(this.__wbg_ptr);
         if (ret[3]) {
             throw takeFromExternrefTable0(ret[2]);
         }
@@ -4022,9 +3934,23 @@ export class WasmBridge {
      * Redo the last undone action
      */
     redo() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_redo(this.__wbg_ptr);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
+     * Remove a sensor connection from an entity
+     *
+     * # Arguments
+     *
+     * * `entity_id` - The entity to remove the sensor from
+     * * `sensor_type` - Type of sensor to disconnect
+     * @param {number} entity_id
+     * @param {number} sensor_type
+     */
+    remove_sensor(entity_id, sensor_type) {
+        const ret = wasm.wasmbridge_remove_sensor(this.__wbg_ptr, entity_id, sensor_type);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
         }
@@ -4035,8 +3961,6 @@ export class WasmBridge {
      * @param {number} height
      */
     resize(width, height) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_resize(this.__wbg_ptr, width, height);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
@@ -4047,9 +3971,6 @@ export class WasmBridge {
      * @param {number} entity_index
      */
     select_entity(entity_index) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_index);
         const ret = wasm.wasmbridge_select_entity(this.__wbg_ptr, entity_index);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
@@ -4060,8 +3981,6 @@ export class WasmBridge {
      * @returns {Uint8Array}
      */
     serialize_project() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_serialize_project(this.__wbg_ptr);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
@@ -4076,8 +3995,6 @@ export class WasmBridge {
         let deferred2_0;
         let deferred2_1;
         try {
-            if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-            _assertNum(this.__wbg_ptr);
             const ret = wasm.wasmbridge_serialize_scene(this.__wbg_ptr);
             var ptr1 = ret[0];
             var len1 = ret[1];
@@ -4100,12 +4017,6 @@ export class WasmBridge {
      * @param {number} a
      */
     set_active_color(r, g, b, a) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(r);
-        _assertNum(g);
-        _assertNum(b);
-        _assertNum(a);
         const ret = wasm.wasmbridge_set_active_color(this.__wbg_ptr, r, g, b, a);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
@@ -4119,12 +4030,6 @@ export class WasmBridge {
      * @param {number} a
      */
     set_active_stroke_color(r, g, b, a) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(r);
-        _assertNum(g);
-        _assertNum(b);
-        _assertNum(a);
         const ret = wasm.wasmbridge_set_active_stroke_color(this.__wbg_ptr, r, g, b, a);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
@@ -4135,9 +4040,27 @@ export class WasmBridge {
      * @param {number} width
      */
     set_active_stroke_width(width) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_set_active_stroke_width(this.__wbg_ptr, width);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
+     * Set master volume for all audio
+     * @param {number} volume
+     */
+    set_audio_master_volume(volume) {
+        const ret = wasm.wasmbridge_set_audio_master_volume(this.__wbg_ptr, volume);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
+     * Mute/unmute all audio
+     * @param {boolean} muted
+     */
+    set_audio_muted(muted) {
+        const ret = wasm.wasmbridge_set_audio_muted(this.__wbg_ptr, muted);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
         }
@@ -4148,8 +4071,6 @@ export class WasmBridge {
      * @param {number} y
      */
     set_camera_center(x, y) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_set_camera_center(this.__wbg_ptr, x, y);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
@@ -4157,6 +4078,8 @@ export class WasmBridge {
     }
     /**
      * Set the color of an entity
+     *
+     * DEPRECATED: Use HighlightActuator via Logic Bricks instead
      * @param {number} entity_index
      * @param {number} r
      * @param {number} g
@@ -4164,14 +4087,23 @@ export class WasmBridge {
      * @param {number} a
      */
     set_color(entity_index, r, g, b, a) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_index);
-        _assertNum(r);
-        _assertNum(g);
-        _assertNum(b);
-        _assertNum(a);
         const ret = wasm.wasmbridge_set_color(this.__wbg_ptr, entity_index, r, g, b, a);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
+     * Set highlight tint color (for visual feedback on hover/selection)
+     *
+     * DEPRECATED: Use HighlightActuator via Logic Bricks instead
+     * @param {number} entity_index
+     * @param {number} r
+     * @param {number} g
+     * @param {number} b
+     * @param {number} a
+     */
+    set_color_tint(entity_index, r, g, b, a) {
+        const ret = wasm.wasmbridge_set_color_tint(this.__wbg_ptr, entity_index, r, g, b, a);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
         }
@@ -4184,39 +4116,60 @@ export class WasmBridge {
      * @param {boolean} selected
      */
     set_entity_selected(entity_index, selected) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_index);
-        _assertBoolean(selected);
         const ret = wasm.wasmbridge_set_entity_selected(this.__wbg_ptr, entity_index, selected);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
         }
     }
     /**
+     * Set velocity directly (for physics integration)
+     *
+     * DEPRECATED: Use PhysicsSystem via tick() with fixed timestep instead
+     * @param {number} entity_index
+     * @param {number} vx
+     * @param {number} vy
+     */
+    set_entity_velocity(entity_index, vx, vy) {
+        const ret = wasm.wasmbridge_set_entity_velocity(this.__wbg_ptr, entity_index, vx, vy);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
      * Set entity visibility
+     *
+     * DEPRECATED: Use VisibilityActuator via Logic Bricks instead
      * @param {number} entity_index
      * @param {boolean} visible
      */
     set_entity_visible(entity_index, visible) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_index);
-        _assertBoolean(visible);
         const ret = wasm.wasmbridge_set_entity_visible(this.__wbg_ptr, entity_index, visible);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
         }
     }
     /**
+     * Set the fixed timestep directly in seconds
+     * @param {number} dt
+     */
+    set_fixed_timestep(dt) {
+        wasm.wasmbridge_set_fixed_timestep(this.__wbg_ptr, dt);
+    }
+    /**
+     * Set the fixed timestep for physics simulation (in Hz)
+     * @param {number} hz
+     */
+    set_fixed_timestep_hz(hz) {
+        wasm.wasmbridge_set_fixed_timestep_hz(this.__wbg_ptr, hz);
+    }
+    /**
      * Set the label of an entity
+     *
+     * DEPRECATED: Use MetadataComponent or entity properties instead
      * @param {number} entity_index
      * @param {string} label
      */
     set_label(entity_index, label) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_index);
         const ptr0 = passStringToWasm0(label, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         const ret = wasm.wasmbridge_set_label(this.__wbg_ptr, entity_index, ptr0, len0);
@@ -4231,38 +4184,51 @@ export class WasmBridge {
      * @param {number} volume
      */
     set_master_volume(volume) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_set_master_volume(this.__wbg_ptr, volume);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
         }
     }
     /**
+     * Set the maximum number of substeps per frame
+     * @param {number} max_steps
+     */
+    set_max_substeps(max_steps) {
+        wasm.wasmbridge_set_max_substeps(this.__wbg_ptr, max_steps);
+    }
+    /**
      * Set the position of an entity
+     *
+     * DEPRECATED: Use MoveActuator via Logic Bricks or configure_entity() instead
      * @param {number} entity_index
      * @param {number} x
      * @param {number} y
      */
     set_position(entity_index, x, y) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_index);
         const ret = wasm.wasmbridge_set_position(this.__wbg_ptr, entity_index, x, y);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
         }
     }
     /**
+     * Set selection state of an entity
+     * @param {number} entity_index
+     * @param {boolean} selected
+     */
+    set_selected(entity_index, selected) {
+        const ret = wasm.wasmbridge_set_selected(this.__wbg_ptr, entity_index, selected);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
      * Set the shape type of an entity
+     *
+     * DEPRECATED: Use PropertyActuator via Logic Bricks instead
      * @param {number} entity_index
      * @param {number} shape
      */
     set_shape(entity_index, shape) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_index);
-        _assertNum(shape);
         const ret = wasm.wasmbridge_set_shape(this.__wbg_ptr, entity_index, shape);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
@@ -4270,14 +4236,13 @@ export class WasmBridge {
     }
     /**
      * Set the size of an entity
+     *
+     * DEPRECATED: Use GizmoScaleActuator or configure_entity() instead
      * @param {number} entity_index
      * @param {number} width
      * @param {number} height
      */
     set_size(entity_index, width, height) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_index);
         const ret = wasm.wasmbridge_set_size(this.__wbg_ptr, entity_index, width, height);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
@@ -4285,6 +4250,8 @@ export class WasmBridge {
     }
     /**
      * Set the stroke color of an entity
+     *
+     * DEPRECATED: Use HighlightActuator via Logic Bricks instead
      * @param {number} entity_index
      * @param {number} r
      * @param {number} g
@@ -4292,13 +4259,6 @@ export class WasmBridge {
      * @param {number} a
      */
     set_stroke_color(entity_index, r, g, b, a) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_index);
-        _assertNum(r);
-        _assertNum(g);
-        _assertNum(b);
-        _assertNum(a);
         const ret = wasm.wasmbridge_set_stroke_color(this.__wbg_ptr, entity_index, r, g, b, a);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
@@ -4306,13 +4266,12 @@ export class WasmBridge {
     }
     /**
      * Set the stroke width of an entity
+     *
+     * DEPRECATED: Use HighlightActuator via Logic Bricks instead
      * @param {number} entity_index
      * @param {number} width
      */
     set_stroke_width(entity_index, width) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(entity_index);
         const ret = wasm.wasmbridge_set_stroke_width(this.__wbg_ptr, entity_index, width);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
@@ -4323,11 +4282,34 @@ export class WasmBridge {
      * @param {string} tool
      */
     set_tool(tool) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ptr0 = passStringToWasm0(tool, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         const ret = wasm.wasmbridge_set_tool(this.__wbg_ptr, ptr0, len0);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
+     * Set the current tool type (type-safe version)
+     *
+     * Takes a tool index (u8) that maps to ToolType enum:
+     * - 0: Select
+     * - 1: BoxSelect
+     * - 2: Pan
+     * - 3: Zoom
+     * - 4: Rectangle
+     * - 5: Circle
+     * - 6: Triangle
+     * - 7: Diamond
+     * - 8: Square
+     * - 9: Line
+     * - 10: Text
+     * - 11: Connection
+     * - 12: Delete
+     * @param {number} tool_index
+     */
+    set_tool_by_type(tool_index) {
+        const ret = wasm.wasmbridge_set_tool_by_type(this.__wbg_ptr, tool_index);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
         }
@@ -4337,8 +4319,6 @@ export class WasmBridge {
      * @param {number} zoom
      */
     set_zoom(zoom) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_set_zoom(this.__wbg_ptr, zoom);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
@@ -4353,8 +4333,6 @@ export class WasmBridge {
      * @returns {number}
      */
     spawn_entity(x, y, width, height) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_spawn_entity(this.__wbg_ptr, x, y, width, height);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
@@ -4372,9 +4350,6 @@ export class WasmBridge {
      * @returns {number}
      */
     spawn_pool(count) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
-        _assertNum(count);
         const ret = wasm.wasmbridge_spawn_pool(this.__wbg_ptr, count);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
@@ -4382,15 +4357,28 @@ export class WasmBridge {
         return ret[0] >>> 0;
     }
     /**
+     * Stop a sound for a specific entity
+     * @param {number} entity_id
+     */
+    stop_sound(entity_id) {
+        const ret = wasm.wasmbridge_stop_sound(this.__wbg_ptr, entity_id);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
      * Run one frame of the engine
      *
      * This should be called from requestAnimationFrame.
      * Uses the fluent API: sample_input() → tick() → poll_events()
+     *
+     * Implements Fixed Timestep (HU-PERF-001) for stable physics:
+     * - Uses an accumulator to decouple physics from frame rate
+     * - Runs physics in fixed time steps (default: 60 Hz)
+     * - Prevents "spiral of death" with max substeps limit
      * @param {number} timestamp
      */
     tick(timestamp) {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_tick(this.__wbg_ptr, timestamp);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
@@ -4400,8 +4388,6 @@ export class WasmBridge {
      * Undo the last action
      */
     undo() {
-        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
-        _assertNum(this.__wbg_ptr);
         const ret = wasm.wasmbridge_undo(this.__wbg_ptr);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
@@ -4469,7 +4455,6 @@ export function actuator_emit_event(event_name, event_data) {
  * @returns {ActuatorType}
  */
 export function actuator_highlight(color_argb, opacity) {
-    _assertNum(color_argb);
     const ret = wasm.actuator_highlight(color_argb, opacity);
     return ret;
 }
@@ -4495,7 +4480,6 @@ export function actuator_highlight(color_argb, opacity) {
  * @returns {ActuatorType}
  */
 export function actuator_move(mode, x, y) {
-    _assertNum(mode);
     const ret = wasm.actuator_move(mode, x, y);
     return ret;
 }
@@ -4530,7 +4514,7 @@ export function actuator_select_clear() {
  * @returns {ActuatorType}
  */
 export function actuator_select_multi() {
-    const ret = wasm.actuator_select_multi();
+    const ret = wasm.actuator_select_clear();
     return ret;
 }
 
@@ -4547,7 +4531,7 @@ export function actuator_select_multi() {
  * @returns {ActuatorType}
  */
 export function actuator_select_single() {
-    const ret = wasm.actuator_select_single();
+    const ret = wasm.actuator_select_clear();
     return ret;
 }
 
@@ -4564,7 +4548,7 @@ export function actuator_select_single() {
  * @returns {ActuatorType}
  */
 export function actuator_select_toggle() {
-    const ret = wasm.actuator_select_toggle();
+    const ret = wasm.actuator_select_clear();
     return ret;
 }
 
@@ -4585,7 +4569,6 @@ export function actuator_select_toggle() {
  * @returns {Controller}
  */
 export function factory_and(sensor) {
-    _assertNum(sensor);
     const ret = wasm.factory_and(sensor);
     return Controller.__wrap(ret);
 }
@@ -4607,7 +4590,6 @@ export function factory_and(sensor) {
  * @returns {Controller}
  */
 export function factory_blinky(interval) {
-    _assertNum(interval);
     const ret = wasm.factory_blinky(interval);
     return Controller.__wrap(ret);
 }
@@ -4656,7 +4638,6 @@ export function factory_custom(name, code) {
  * @returns {Controller}
  */
 export function factory_debounce(ticks) {
-    _assertNum(ticks);
     const ret = wasm.factory_debounce(ticks);
     return Controller.__wrap(ret);
 }
@@ -4769,7 +4750,6 @@ export function factory_not() {
  * @returns {Controller}
  */
 export function factory_or(sensor) {
-    _assertNum(sensor);
     const ret = wasm.factory_or(sensor);
     return Controller.__wrap(ret);
 }
@@ -4791,7 +4771,6 @@ export function factory_or(sensor) {
  * @returns {Controller}
  */
 export function factory_pattern(mask) {
-    _assertNum(mask);
     const ret = wasm.factory_pattern(mask);
     return Controller.__wrap(ret);
 }
@@ -4838,7 +4817,7 @@ export function factory_xor() {
  * @returns {CallbackRegistry}
  */
 export function get_global_callback_registry() {
-    const ret = wasm.get_global_callback_registry();
+    const ret = wasm.callbackregistry_new();
     return CallbackRegistry.__wrap(ret);
 }
 
@@ -4859,7 +4838,6 @@ export function get_global_callback_registry() {
  * @returns {SensorType}
  */
 export function sensor_collision_detect(layer_id) {
-    _assertNum(layer_id);
     const ret = wasm.sensor_collision_detect(layer_id);
     return ret;
 }
@@ -4900,8 +4878,6 @@ export function sensor_double_tap() {
  * @returns {SensorType}
  */
 export function sensor_keyboard_key(_key_code, _modifiers) {
-    _assertNum(_key_code);
-    _assertNum(_modifiers);
     const ret = wasm.sensor_keyboard_key(_key_code, _modifiers);
     return ret;
 }
@@ -4923,7 +4899,6 @@ export function sensor_keyboard_key(_key_code, _modifiers) {
  * @returns {SensorType}
  */
 export function sensor_long_press(threshold_ms) {
-    _assertNum(threshold_ms);
     const ret = wasm.sensor_long_press(threshold_ms);
     return ret;
 }
@@ -4946,7 +4921,6 @@ export function sensor_long_press(threshold_ms) {
  * @returns {SensorType}
  */
 export function sensor_mouse_click(button) {
-    _assertNum(button);
     const ret = wasm.sensor_mouse_click(button);
     return ret;
 }
@@ -4968,7 +4942,6 @@ export function sensor_mouse_click(button) {
  * @returns {SensorType}
  */
 export function sensor_mouse_drag(_button) {
-    _assertNum(_button);
     const ret = wasm.sensor_mouse_drag(_button);
     return ret;
 }
@@ -5007,7 +4980,6 @@ export function sensor_mouse_hover() {
  * @returns {SensorType}
  */
 export function sensor_mouse_wheel(_direction) {
-    _assertNum(_direction);
     const ret = wasm.sensor_mouse_wheel(_direction);
     return ret;
 }
@@ -5029,8 +5001,7 @@ export function sensor_mouse_wheel(_direction) {
  * @returns {SensorType}
  */
 export function sensor_property_changed(property_id) {
-    _assertNum(property_id);
-    const ret = wasm.sensor_property_changed(property_id);
+    const ret = wasm.sensor_mouse_wheel(property_id);
     return ret;
 }
 
@@ -5053,8 +5024,6 @@ export function sensor_property_changed(property_id) {
  * @returns {SensorType}
  */
 export function sensor_timer_delay(ms, once) {
-    _assertNum(ms);
-    _assertBoolean(once);
     const ret = wasm.sensor_timer_delay(ms, once);
     return ret;
 }
@@ -5076,14 +5045,9 @@ export function sensor_timer_delay(ms, once) {
  * @returns {SensorType}
  */
 export function sensor_timer_interval(ms) {
-    _assertNum(ms);
-    const ret = wasm.sensor_timer_interval(ms);
+    const ret = wasm.sensor_mouse_wheel(ms);
     return ret;
 }
-
-//#endregion
-
-//#region wasm imports
 
 function __wbg_get_imports() {
     const import0 = {
@@ -5091,9 +5055,6 @@ function __wbg_get_imports() {
         __wbg___wbindgen_boolean_get_bbbb1c18aa2f5e25: function(arg0) {
             const v = arg0;
             const ret = typeof(v) === 'boolean' ? v : undefined;
-            if (!isLikeNone(ret)) {
-                _assertBoolean(ret);
-            }
             return isLikeNone(ret) ? 0xFFFFFF : ret ? 1 : 0;
         },
         __wbg___wbindgen_debug_string_0bc8482c6e3508ae: function(arg0, arg1) {
@@ -5105,42 +5066,38 @@ function __wbg_get_imports() {
         },
         __wbg___wbindgen_is_undefined_9e4d92534c42d778: function(arg0) {
             const ret = arg0 === undefined;
-            _assertBoolean(ret);
             return ret;
         },
         __wbg___wbindgen_number_get_8ff4255516ccad3e: function(arg0, arg1) {
             const obj = arg1;
             const ret = typeof(obj) === 'number' ? obj : undefined;
-            if (!isLikeNone(ret)) {
-                _assertNum(ret);
-            }
             getDataViewMemory0().setFloat64(arg0 + 8 * 1, isLikeNone(ret) ? 0 : ret, true);
             getDataViewMemory0().setInt32(arg0 + 4 * 0, !isLikeNone(ret), true);
         },
         __wbg___wbindgen_throw_be289d5034ed271b: function(arg0, arg1) {
             throw new Error(getStringFromWasm0(arg0, arg1));
         },
-        __wbg__wbg_cb_unref_d9b87ff7982e3b21: function() { return logError(function (arg0) {
+        __wbg__wbg_cb_unref_d9b87ff7982e3b21: function(arg0) {
             arg0._wbg_cb_unref();
-        }, arguments); },
+        },
         __wbg_addEventListener_3acb0aad4483804c: function() { return handleError(function (arg0, arg1, arg2, arg3) {
             arg0.addEventListener(getStringFromWasm0(arg1, arg2), arg3);
         }, arguments); },
-        __wbg_attachShader_b36058e5c9eeaf54: function() { return logError(function (arg0, arg1, arg2) {
+        __wbg_attachShader_b36058e5c9eeaf54: function(arg0, arg1, arg2) {
             arg0.attachShader(arg1, arg2);
-        }, arguments); },
-        __wbg_bindBuffer_c9068e8712a034f5: function() { return logError(function (arg0, arg1, arg2) {
+        },
+        __wbg_bindBuffer_c9068e8712a034f5: function(arg0, arg1, arg2) {
             arg0.bindBuffer(arg1 >>> 0, arg2);
-        }, arguments); },
-        __wbg_bindVertexArray_78220d1edb1d2382: function() { return logError(function (arg0, arg1) {
+        },
+        __wbg_bindVertexArray_78220d1edb1d2382: function(arg0, arg1) {
             arg0.bindVertexArray(arg1);
-        }, arguments); },
-        __wbg_blendFunc_2ef59299d10c662d: function() { return logError(function (arg0, arg1, arg2) {
+        },
+        __wbg_blendFunc_2ef59299d10c662d: function(arg0, arg1, arg2) {
             arg0.blendFunc(arg1 >>> 0, arg2 >>> 0);
-        }, arguments); },
-        __wbg_bufferData_98f6c413a8f0f139: function() { return logError(function (arg0, arg1, arg2, arg3) {
+        },
+        __wbg_bufferData_98f6c413a8f0f139: function(arg0, arg1, arg2, arg3) {
             arg0.bufferData(arg1 >>> 0, arg2, arg3 >>> 0);
-        }, arguments); },
+        },
         __wbg_call_389efe28435a9388: function() { return handleError(function (arg0, arg1) {
             const ret = arg0.call(arg1);
             return ret;
@@ -5149,49 +5106,49 @@ function __wbg_get_imports() {
             const ret = arg0.call(arg1, arg2);
             return ret;
         }, arguments); },
-        __wbg_clearColor_404a3b16d43db93b: function() { return logError(function (arg0, arg1, arg2, arg3, arg4) {
+        __wbg_clearColor_404a3b16d43db93b: function(arg0, arg1, arg2, arg3, arg4) {
             arg0.clearColor(arg1, arg2, arg3, arg4);
-        }, arguments); },
-        __wbg_clear_7187030f892c5ca0: function() { return logError(function (arg0, arg1) {
+        },
+        __wbg_clear_7187030f892c5ca0: function(arg0, arg1) {
             arg0.clear(arg1 >>> 0);
-        }, arguments); },
-        __wbg_compileShader_94718a93495d565d: function() { return logError(function (arg0, arg1) {
+        },
+        __wbg_compileShader_94718a93495d565d: function(arg0, arg1) {
             arg0.compileShader(arg1);
-        }, arguments); },
-        __wbg_createBuffer_26534c05e01b8559: function() { return logError(function (arg0) {
+        },
+        __wbg_createBuffer_26534c05e01b8559: function(arg0) {
             const ret = arg0.createBuffer();
             return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
-        }, arguments); },
+        },
         __wbg_createElement_49f60fdcaae809c8: function() { return handleError(function (arg0, arg1, arg2) {
             const ret = arg0.createElement(getStringFromWasm0(arg1, arg2));
             return ret;
         }, arguments); },
-        __wbg_createProgram_9b7710a1f2701c2c: function() { return logError(function (arg0) {
+        __wbg_createProgram_9b7710a1f2701c2c: function(arg0) {
             const ret = arg0.createProgram();
             return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
-        }, arguments); },
-        __wbg_createShader_e3ac08ed8c5b14b2: function() { return logError(function (arg0, arg1) {
+        },
+        __wbg_createShader_e3ac08ed8c5b14b2: function(arg0, arg1) {
             const ret = arg0.createShader(arg1 >>> 0);
             return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
-        }, arguments); },
-        __wbg_createVertexArray_ad5294951ae57497: function() { return logError(function (arg0) {
+        },
+        __wbg_createVertexArray_ad5294951ae57497: function(arg0) {
             const ret = arg0.createVertexArray();
             return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
-        }, arguments); },
-        __wbg_document_ee35a3d3ae34ef6c: function() { return logError(function (arg0) {
+        },
+        __wbg_document_ee35a3d3ae34ef6c: function(arg0) {
             const ret = arg0.document;
             return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
-        }, arguments); },
-        __wbg_drawArraysInstanced_ec30adc616ec58d5: function() { return logError(function (arg0, arg1, arg2, arg3, arg4) {
+        },
+        __wbg_drawArraysInstanced_ec30adc616ec58d5: function(arg0, arg1, arg2, arg3, arg4) {
             arg0.drawArraysInstanced(arg1 >>> 0, arg2, arg3, arg4);
-        }, arguments); },
-        __wbg_enableVertexAttribArray_475e06c31777296d: function() { return logError(function (arg0, arg1) {
+        },
+        __wbg_enableVertexAttribArray_475e06c31777296d: function(arg0, arg1) {
             arg0.enableVertexAttribArray(arg1 >>> 0);
-        }, arguments); },
-        __wbg_enable_d1ac04dfdd2fb3ae: function() { return logError(function (arg0, arg1) {
+        },
+        __wbg_enable_d1ac04dfdd2fb3ae: function(arg0, arg1) {
             arg0.enable(arg1 >>> 0);
-        }, arguments); },
-        __wbg_error_7534b8e9a36f1ab4: function() { return logError(function (arg0, arg1) {
+        },
+        __wbg_error_7534b8e9a36f1ab4: function(arg0, arg1) {
             let deferred0_0;
             let deferred0_1;
             try {
@@ -5201,10 +5158,10 @@ function __wbg_get_imports() {
             } finally {
                 wasm.__wbindgen_free(deferred0_0, deferred0_1, 1);
             }
-        }, arguments); },
-        __wbg_error_9a7fe3f932034cde: function() { return logError(function (arg0) {
+        },
+        __wbg_error_9a7fe3f932034cde: function(arg0) {
             console.error(arg0);
-        }, arguments); },
+        },
         __wbg_eval_3f0b9f0cbaf45a34: function() { return handleError(function (arg0, arg1) {
             const ret = eval(getStringFromWasm0(arg0, arg1));
             return ret;
@@ -5213,47 +5170,45 @@ function __wbg_get_imports() {
             const ret = arg0.getContext(getStringFromWasm0(arg1, arg2));
             return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
         }, arguments); },
-        __wbg_getError_bba8594facbfd5e1: function() { return logError(function (arg0) {
+        __wbg_getError_bba8594facbfd5e1: function(arg0) {
             const ret = arg0.getError();
-            _assertNum(ret);
             return ret;
-        }, arguments); },
-        __wbg_getProgramInfoLog_2ffa30e3abb8b5c2: function() { return logError(function (arg0, arg1, arg2) {
+        },
+        __wbg_getProgramInfoLog_2ffa30e3abb8b5c2: function(arg0, arg1, arg2) {
             const ret = arg1.getProgramInfoLog(arg2);
             var ptr1 = isLikeNone(ret) ? 0 : passStringToWasm0(ret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
             var len1 = WASM_VECTOR_LEN;
             getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
             getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
-        }, arguments); },
-        __wbg_getProgramParameter_92e4540ca9da06b2: function() { return logError(function (arg0, arg1, arg2) {
+        },
+        __wbg_getProgramParameter_92e4540ca9da06b2: function(arg0, arg1, arg2) {
             const ret = arg0.getProgramParameter(arg1, arg2 >>> 0);
             return ret;
-        }, arguments); },
-        __wbg_getShaderInfoLog_9e0b96da4b13ae49: function() { return logError(function (arg0, arg1, arg2) {
+        },
+        __wbg_getShaderInfoLog_9e0b96da4b13ae49: function(arg0, arg1, arg2) {
             const ret = arg1.getShaderInfoLog(arg2);
             var ptr1 = isLikeNone(ret) ? 0 : passStringToWasm0(ret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
             var len1 = WASM_VECTOR_LEN;
             getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
             getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
-        }, arguments); },
-        __wbg_getShaderParameter_afa4a3dd9dd397c1: function() { return logError(function (arg0, arg1, arg2) {
+        },
+        __wbg_getShaderParameter_afa4a3dd9dd397c1: function(arg0, arg1, arg2) {
             const ret = arg0.getShaderParameter(arg1, arg2 >>> 0);
             return ret;
-        }, arguments); },
-        __wbg_getUniformLocation_d06b3a5b3c60e95c: function() { return logError(function (arg0, arg1, arg2, arg3) {
+        },
+        __wbg_getUniformLocation_d06b3a5b3c60e95c: function(arg0, arg1, arg2, arg3) {
             const ret = arg0.getUniformLocation(arg1, getStringFromWasm0(arg2, arg3));
             return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
-        }, arguments); },
+        },
         __wbg_get_b3ed3ad4be2bc8ac: function() { return handleError(function (arg0, arg1) {
             const ret = Reflect.get(arg0, arg1);
             return ret;
         }, arguments); },
-        __wbg_height_38750dc6de41ee75: function() { return logError(function (arg0) {
+        __wbg_height_38750dc6de41ee75: function(arg0) {
             const ret = arg0.height;
-            _assertNum(ret);
             return ret;
-        }, arguments); },
-        __wbg_instanceof_HtmlCanvasElement_3f2f6e1edb1c9792: function() { return logError(function (arg0) {
+        },
+        __wbg_instanceof_HtmlCanvasElement_3f2f6e1edb1c9792: function(arg0) {
             let result;
             try {
                 result = arg0 instanceof HTMLCanvasElement;
@@ -5261,10 +5216,9 @@ function __wbg_get_imports() {
                 result = false;
             }
             const ret = result;
-            _assertBoolean(ret);
             return ret;
-        }, arguments); },
-        __wbg_instanceof_WebGl2RenderingContext_4a08a94517ed5240: function() { return logError(function (arg0) {
+        },
+        __wbg_instanceof_WebGl2RenderingContext_4a08a94517ed5240: function(arg0) {
             let result;
             try {
                 result = arg0 instanceof WebGL2RenderingContext;
@@ -5272,10 +5226,9 @@ function __wbg_get_imports() {
                 result = false;
             }
             const ret = result;
-            _assertBoolean(ret);
             return ret;
-        }, arguments); },
-        __wbg_instanceof_Window_ed49b2db8df90359: function() { return logError(function (arg0) {
+        },
+        __wbg_instanceof_Window_ed49b2db8df90359: function(arg0) {
             let result;
             try {
                 result = arg0 instanceof Window;
@@ -5283,33 +5236,31 @@ function __wbg_get_imports() {
                 result = false;
             }
             const ret = result;
-            _assertBoolean(ret);
             return ret;
-        }, arguments); },
-        __wbg_jserror_new: function() { return logError(function (arg0) {
+        },
+        __wbg_jserror_new: function(arg0) {
             const ret = JsError.__wrap(arg0);
             return ret;
-        }, arguments); },
-        __wbg_jslogicevent_new: function() { return logError(function (arg0) {
+        },
+        __wbg_jslogicevent_new: function(arg0) {
             const ret = JsLogicEvent.__wrap(arg0);
             return ret;
-        }, arguments); },
-        __wbg_jslogiceventdata_new: function() { return logError(function (arg0) {
+        },
+        __wbg_jslogiceventdata_new: function(arg0) {
             const ret = JsLogicEventData.__wrap(arg0);
             return ret;
-        }, arguments); },
-        __wbg_length_35a7bace40f36eac: function() { return logError(function (arg0) {
+        },
+        __wbg_length_35a7bace40f36eac: function(arg0) {
             const ret = arg0.length;
-            _assertNum(ret);
             return ret;
-        }, arguments); },
-        __wbg_linkProgram_6600dd2c0863bbfd: function() { return logError(function (arg0, arg1) {
+        },
+        __wbg_linkProgram_6600dd2c0863bbfd: function(arg0, arg1) {
             arg0.linkProgram(arg1);
-        }, arguments); },
-        __wbg_log_6b5ca2e6124b2808: function() { return logError(function (arg0) {
+        },
+        __wbg_log_6b5ca2e6124b2808: function(arg0) {
             console.log(arg0);
-        }, arguments); },
-        __wbg_log_98ea330cbdc64a56: function() { return logError(function (arg0, arg1) {
+        },
+        __wbg_log_98ea330cbdc64a56: function(arg0, arg1) {
             let deferred0_0;
             let deferred0_1;
             try {
@@ -5319,8 +5270,8 @@ function __wbg_get_imports() {
             } finally {
                 wasm.__wbindgen_free(deferred0_0, deferred0_1, 1);
             }
-        }, arguments); },
-        __wbg_log_f996de40931ab7d1: function() { return logError(function (arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
+        },
+        __wbg_log_f996de40931ab7d1: function(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
             let deferred0_0;
             let deferred0_1;
             try {
@@ -5330,10 +5281,10 @@ function __wbg_get_imports() {
             } finally {
                 wasm.__wbindgen_free(deferred0_0, deferred0_1, 1);
             }
-        }, arguments); },
-        __wbg_mark_49688daf5a319979: function() { return logError(function (arg0, arg1) {
+        },
+        __wbg_mark_49688daf5a319979: function(arg0, arg1) {
             performance.mark(getStringFromWasm0(arg0, arg1));
-        }, arguments); },
+        },
         __wbg_measure_52555d98d3c0f41a: function() { return handleError(function (arg0, arg1, arg2, arg3) {
             let deferred0_0;
             let deferred0_1;
@@ -5350,126 +5301,122 @@ function __wbg_get_imports() {
                 wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
             }
         }, arguments); },
-        __wbg_new_361308b2356cecd0: function() { return logError(function () {
+        __wbg_new_361308b2356cecd0: function() {
             const ret = new Object();
             return ret;
-        }, arguments); },
-        __wbg_new_3eb36ae241fe6f44: function() { return logError(function () {
+        },
+        __wbg_new_3eb36ae241fe6f44: function() {
             const ret = new Array();
             return ret;
-        }, arguments); },
-        __wbg_new_8a6f238a6ece86ea: function() { return logError(function () {
+        },
+        __wbg_new_8a6f238a6ece86ea: function() {
             const ret = new Error();
             return ret;
-        }, arguments); },
-        __wbg_new_no_args_1c7c842f08d00ebb: function() { return logError(function (arg0, arg1) {
+        },
+        __wbg_new_no_args_1c7c842f08d00ebb: function(arg0, arg1) {
             const ret = new Function(getStringFromWasm0(arg0, arg1));
             return ret;
-        }, arguments); },
-        __wbg_preventDefault_cdcfcd7e301b9702: function() { return logError(function (arg0) {
+        },
+        __wbg_preventDefault_cdcfcd7e301b9702: function(arg0) {
             arg0.preventDefault();
-        }, arguments); },
-        __wbg_push_8ffdcb2063340ba5: function() { return logError(function (arg0, arg1) {
+        },
+        __wbg_push_8ffdcb2063340ba5: function(arg0, arg1) {
             const ret = arg0.push(arg1);
-            _assertNum(ret);
             return ret;
-        }, arguments); },
-        __wbg_random_912284dbf636f269: function() { return logError(function () {
+        },
+        __wbg_random_912284dbf636f269: function() {
             const ret = Math.random();
             return ret;
-        }, arguments); },
+        },
         __wbg_setTimeout_eff32631ea138533: function() { return handleError(function (arg0, arg1, arg2) {
             const ret = arg0.setTimeout(arg1, arg2);
-            _assertNum(ret);
             return ret;
         }, arguments); },
         __wbg_set_6cb8631f80447a67: function() { return handleError(function (arg0, arg1, arg2) {
             const ret = Reflect.set(arg0, arg1, arg2);
-            _assertBoolean(ret);
             return ret;
         }, arguments); },
-        __wbg_shaderSource_32425cfe6e5a1e52: function() { return logError(function (arg0, arg1, arg2, arg3) {
+        __wbg_shaderSource_32425cfe6e5a1e52: function(arg0, arg1, arg2, arg3) {
             arg0.shaderSource(arg1, getStringFromWasm0(arg2, arg3));
-        }, arguments); },
-        __wbg_stack_0ed75d68575b0f3c: function() { return logError(function (arg0, arg1) {
+        },
+        __wbg_stack_0ed75d68575b0f3c: function(arg0, arg1) {
             const ret = arg1.stack;
             const ptr1 = passStringToWasm0(ret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
             const len1 = WASM_VECTOR_LEN;
             getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
             getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
-        }, arguments); },
-        __wbg_static_accessor_GLOBAL_12837167ad935116: function() { return logError(function () {
+        },
+        __wbg_static_accessor_GLOBAL_12837167ad935116: function() {
             const ret = typeof global === 'undefined' ? null : global;
             return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
-        }, arguments); },
-        __wbg_static_accessor_GLOBAL_THIS_e628e89ab3b1c95f: function() { return logError(function () {
+        },
+        __wbg_static_accessor_GLOBAL_THIS_e628e89ab3b1c95f: function() {
             const ret = typeof globalThis === 'undefined' ? null : globalThis;
             return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
-        }, arguments); },
-        __wbg_static_accessor_SELF_a621d3dfbb60d0ce: function() { return logError(function () {
+        },
+        __wbg_static_accessor_SELF_a621d3dfbb60d0ce: function() {
             const ret = typeof self === 'undefined' ? null : self;
             return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
-        }, arguments); },
-        __wbg_static_accessor_WINDOW_f8727f0cf888e0bd: function() { return logError(function () {
+        },
+        __wbg_static_accessor_WINDOW_f8727f0cf888e0bd: function() {
             const ret = typeof window === 'undefined' ? null : window;
             return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
-        }, arguments); },
-        __wbg_uniform2f_1887b1268f65bfee: function() { return logError(function (arg0, arg1, arg2, arg3) {
+        },
+        __wbg_uniform2f_1887b1268f65bfee: function(arg0, arg1, arg2, arg3) {
             arg0.uniform2f(arg1, arg2, arg3);
-        }, arguments); },
-        __wbg_uniformMatrix4fv_0e724dbebd372526: function() { return logError(function (arg0, arg1, arg2, arg3, arg4) {
+        },
+        __wbg_uniformMatrix4fv_0e724dbebd372526: function(arg0, arg1, arg2, arg3, arg4) {
             arg0.uniformMatrix4fv(arg1, arg2 !== 0, getArrayF32FromWasm0(arg3, arg4));
-        }, arguments); },
-        __wbg_useProgram_fe720ade4d3b6edb: function() { return logError(function (arg0, arg1) {
+        },
+        __wbg_useProgram_fe720ade4d3b6edb: function(arg0, arg1) {
             arg0.useProgram(arg1);
-        }, arguments); },
-        __wbg_vertexAttribDivisor_744c0ca468594894: function() { return logError(function (arg0, arg1, arg2) {
+        },
+        __wbg_vertexAttribDivisor_744c0ca468594894: function(arg0, arg1, arg2) {
             arg0.vertexAttribDivisor(arg1 >>> 0, arg2 >>> 0);
-        }, arguments); },
-        __wbg_vertexAttribPointer_75f6ff47f6c9f8cb: function() { return logError(function (arg0, arg1, arg2, arg3, arg4, arg5, arg6) {
+        },
+        __wbg_vertexAttribPointer_75f6ff47f6c9f8cb: function(arg0, arg1, arg2, arg3, arg4, arg5, arg6) {
             arg0.vertexAttribPointer(arg1 >>> 0, arg2, arg3 >>> 0, arg4 !== 0, arg5, arg6);
-        }, arguments); },
-        __wbg_viewport_df236eac68bc7467: function() { return logError(function (arg0, arg1, arg2, arg3, arg4) {
+        },
+        __wbg_viewport_df236eac68bc7467: function(arg0, arg1, arg2, arg3, arg4) {
             arg0.viewport(arg1, arg2, arg3, arg4);
-        }, arguments); },
-        __wbg_warn_f7ae1b2e66ccb930: function() { return logError(function (arg0) {
+        },
+        __wbg_warn_f7ae1b2e66ccb930: function(arg0) {
             console.warn(arg0);
-        }, arguments); },
-        __wbg_width_5f66bde2e810fbde: function() { return logError(function (arg0) {
+        },
+        __wbg_width_5f66bde2e810fbde: function(arg0) {
             const ret = arg0.width;
-            _assertNum(ret);
             return ret;
-        }, arguments); },
-        __wbindgen_cast_0000000000000001: function() { return logError(function (arg0, arg1) {
-            // Cast intrinsic for `Closure(Closure { dtor_idx: 74, function: Function { arguments: [], shim_idx: 77, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
-            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h96062528e648a55b, wasm_bindgen__convert__closures_____invoke__h94443aa710b65810);
+        },
+        __wbindgen_cast_0000000000000001: function(arg0, arg1) {
+            // Cast intrinsic for `Closure(Closure { dtor_idx: 62, function: Function { arguments: [NamedExternref("Event")], shim_idx: 65, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
+            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h23b9928cba70ff23, wasm_bindgen__convert__closures_____invoke__h2911aef8c4262211);
             return ret;
-        }, arguments); },
-        __wbindgen_cast_0000000000000002: function() { return logError(function (arg0, arg1) {
-            // Cast intrinsic for `Closure(Closure { dtor_idx: 75, function: Function { arguments: [NamedExternref("Event")], shim_idx: 78, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
-            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h2a605b4fd580e77c, wasm_bindgen__convert__closures_____invoke__heda04ac1732c350b);
+        },
+        __wbindgen_cast_0000000000000002: function(arg0, arg1) {
+            // Cast intrinsic for `Closure(Closure { dtor_idx: 62, function: Function { arguments: [], shim_idx: 63, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
+            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h23b9928cba70ff23, wasm_bindgen__convert__closures_____invoke__h01437567dc19afd0);
             return ret;
-        }, arguments); },
-        __wbindgen_cast_0000000000000003: function() { return logError(function (arg0) {
+        },
+        __wbindgen_cast_0000000000000003: function(arg0) {
             // Cast intrinsic for `F64 -> Externref`.
             const ret = arg0;
             return ret;
-        }, arguments); },
-        __wbindgen_cast_0000000000000004: function() { return logError(function (arg0, arg1) {
+        },
+        __wbindgen_cast_0000000000000004: function(arg0, arg1) {
             // Cast intrinsic for `Ref(Slice(F32)) -> NamedExternref("Float32Array")`.
             const ret = getArrayF32FromWasm0(arg0, arg1);
             return ret;
-        }, arguments); },
-        __wbindgen_cast_0000000000000005: function() { return logError(function (arg0, arg1) {
+        },
+        __wbindgen_cast_0000000000000005: function(arg0, arg1) {
             // Cast intrinsic for `Ref(Slice(U8)) -> NamedExternref("Uint8Array")`.
             const ret = getArrayU8FromWasm0(arg0, arg1);
             return ret;
-        }, arguments); },
-        __wbindgen_cast_0000000000000006: function() { return logError(function (arg0, arg1) {
+        },
+        __wbindgen_cast_0000000000000006: function(arg0, arg1) {
             // Cast intrinsic for `Ref(String) -> Externref`.
             const ret = getStringFromWasm0(arg0, arg1);
             return ret;
-        }, arguments); },
+        },
         __wbindgen_init_externref_table: function() {
             const table = wasm.__wbindgen_externrefs;
             const offset = table.grow(4);
@@ -5486,18 +5433,12 @@ function __wbg_get_imports() {
     };
 }
 
-
-//#endregion
-function wasm_bindgen__convert__closures_____invoke__h94443aa710b65810(arg0, arg1) {
-    _assertNum(arg0);
-    _assertNum(arg1);
-    wasm.wasm_bindgen__convert__closures_____invoke__h94443aa710b65810(arg0, arg1);
+function wasm_bindgen__convert__closures_____invoke__h01437567dc19afd0(arg0, arg1) {
+    wasm.wasm_bindgen__convert__closures_____invoke__h01437567dc19afd0(arg0, arg1);
 }
 
-function wasm_bindgen__convert__closures_____invoke__heda04ac1732c350b(arg0, arg1, arg2) {
-    _assertNum(arg0);
-    _assertNum(arg1);
-    wasm.wasm_bindgen__convert__closures_____invoke__heda04ac1732c350b(arg0, arg1, arg2);
+function wasm_bindgen__convert__closures_____invoke__h2911aef8c4262211(arg0, arg1, arg2) {
+    wasm.wasm_bindgen__convert__closures_____invoke__h2911aef8c4262211(arg0, arg1, arg2);
 }
 
 const BrickChainBuilderFinalization = (typeof FinalizationRegistry === 'undefined')
@@ -5564,32 +5505,16 @@ const WasmBridgeFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_wasmbridge_free(ptr >>> 0, 1));
 
-
-//#region intrinsics
 function addToExternrefTable0(obj) {
     const idx = wasm.__externref_table_alloc();
     wasm.__wbindgen_externrefs.set(idx, obj);
     return idx;
 }
 
-function _assertBigInt(n) {
-    if (typeof(n) !== 'bigint') throw new Error(`expected a bigint argument, found ${typeof(n)}`);
-}
-
-function _assertBoolean(n) {
-    if (typeof(n) !== 'boolean') {
-        throw new Error(`expected a boolean argument, found ${typeof(n)}`);
-    }
-}
-
 function _assertClass(instance, klass) {
     if (!(instance instanceof klass)) {
         throw new Error(`expected instance of ${klass.name}`);
     }
-}
-
-function _assertNum(n) {
-    if (typeof(n) !== 'number') throw new Error(`expected a number argument, found ${typeof(n)}`);
 }
 
 const CLOSURE_DTORS = (typeof FinalizationRegistry === 'undefined')
@@ -5737,22 +5662,6 @@ function isLikeNone(x) {
     return x === undefined || x === null;
 }
 
-function logError(f, args) {
-    try {
-        return f.apply(this, args);
-    } catch (e) {
-        let error = (function () {
-            try {
-                return e instanceof Error ? `${e.message}\n\nStack:\n${e.stack}` : e.toString();
-            } catch(_) {
-                return "<failed to stringify thrown value>";
-            }
-        }());
-        console.error("wasm-bindgen: imported JS function that was not marked as `catch` threw an error:", error);
-        throw e;
-    }
-}
-
 function makeMutClosure(arg0, arg1, dtor, f) {
     const state = { a: arg0, b: arg1, cnt: 1, dtor };
     const real = (...args) => {
@@ -5803,7 +5712,6 @@ function passArrayF32ToWasm0(arg, malloc) {
 }
 
 function passStringToWasm0(arg, malloc, realloc) {
-    if (typeof(arg) !== 'string') throw new Error(`expected a string argument, found ${typeof(arg)}`);
     if (realloc === undefined) {
         const buf = cachedTextEncoder.encode(arg);
         const ptr = malloc(buf.length, 1) >>> 0;
@@ -5831,7 +5739,7 @@ function passStringToWasm0(arg, malloc, realloc) {
         ptr = realloc(ptr, len, len = offset + arg.length * 3, 1) >>> 0;
         const view = getUint8ArrayMemory0().subarray(ptr + offset, ptr + len);
         const ret = cachedTextEncoder.encodeInto(arg, view);
-        if (ret.read !== arg.length) throw new Error('failed to pass whole string');
+
         offset += ret.written;
         ptr = realloc(ptr, len, offset, 1) >>> 0;
     }
@@ -5875,10 +5783,6 @@ if (!('encodeInto' in cachedTextEncoder)) {
 
 let WASM_VECTOR_LEN = 0;
 
-
-//#endregion
-
-//#region wasm loading
 let wasmModule, wasm;
 function __wbg_finalize_init(instance, module) {
     wasm = instance.exports;
@@ -5959,7 +5863,7 @@ async function __wbg_init(module_or_path) {
     }
 
     if (module_or_path === undefined) {
-        module_or_path = new URL('archflow_web_bg.wasm', import.meta.url);
+        module_or_path = new URL('archflow_wasm_bridge_bg.wasm', import.meta.url);
     }
     const imports = __wbg_get_imports();
 
@@ -5973,5 +5877,3 @@ async function __wbg_init(module_or_path) {
 }
 
 export { initSync, __wbg_init as default };
-//#endregion
-export { wasm as __wasm }
