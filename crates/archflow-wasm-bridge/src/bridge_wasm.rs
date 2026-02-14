@@ -1359,7 +1359,10 @@ impl WasmBridge {
     /// Set velocity directly (for physics integration)
     ///
     /// DEPRECATED: Use PhysicsSystem via tick() with fixed timestep instead
-    #[deprecated(since = "0.61.0", note = "Use PhysicsSystem integrated in tick()")]
+    #[deprecated(
+        since = "0.61.0",
+        note = "Use PhysicsSystem integrated in tick() or configure_entity()"
+    )]
     #[wasm_bindgen]
     pub fn set_entity_velocity(&self, entity_index: u32, vx: f32, vy: f32) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
@@ -2901,6 +2904,9 @@ impl WasmBridge {
     // ═══════════════════════════════════════════════════════════════════════════════════════════════════════
 
     /// Clear all selections (deselect all entities)
+    ///
+    /// DEPRECATED: Use SelectActuator or query system instead
+    #[deprecated(since = "0.61.0", note = "Use SelectActuator or query system")]
     #[wasm_bindgen]
     pub fn clear_selection(&self) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
