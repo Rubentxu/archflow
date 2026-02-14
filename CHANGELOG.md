@@ -29,6 +29,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Physics examples now use integrated fixed timestep instead of manual integration
 - Performance example 07 updated for new physics API
 
+## [0.59.0] - 2026-02-14
+
+### Added
+- **feat(wasm-bridge): HU-PERF-003 Chunk API**
+  - `configure_entity()` - single call to set all entity properties (position, size, velocity, acceleration, color, stroke, shape, visibility)
+  - `batch_configure_entities()` - bulk configure multiple entities
+  - Direct memory access: `get_transforms_ptr()`, `get_colors_ptr()`, `get_velocities_ptr()`
+  - JavaScript declarative helpers: `spawnScene()`, `updateEntityPositions()`, `configureEntities()`
+  - Use NaN/0/255 as skip values for optional fields
+
+### Changed
+- Performance example 07 now uses declarative API helpers
+
 ## [0.45.0] - 2026-02-06
 
 ### Added
