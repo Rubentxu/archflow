@@ -970,9 +970,10 @@ impl WasmBridge {
         max_y: f32,
     ) -> Result<u32, JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            // Use batched integration for better performance with large entity counts
             let count = engine
                 .store
-                .integrate_all_physics(dt, min_x, min_y, max_x, max_y);
+                .integrate_all_physics_batched(dt, min_x, min_y, max_x, max_y);
             Ok(count as u32)
         } else {
             Err(JsError::new("Engine not initialized").into())
@@ -1817,6 +1818,67 @@ impl WasmBridge {
         }
     }
 
+    /// Query all alive entities (returns all entity IDs)
+    #[wasm_bindgen]
+    pub fn query_all(&self) -> Result<Vec<u32>, JsValue> {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            let alive = engine.store.alive_count();
+            let mut results = Vec::with_capacity(alive);
+
+            for i in 0..alive {
+                if engine.store.is_alive_index(i) {
+                    results.push(i as u32);
+                }
+            }
+
+            Ok(results)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Query entities by layer
+    #[wasm_bindgen]
+    pub fn query_by_layer(&self, layer: u8) -> Result<Vec<u32>, JsValue> {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            let alive = engine.store.alive_count();
+            let mut results = Vec::new();
+
+            for i in 0..alive {
+                if engine.store.is_alive_index(i) && engine.store.layer(i) == layer {
+                    results.push(i as u32);
+                }
+            }
+
+            Ok(results)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Query entities that have velocity (moving entities)
+    #[wasm_bindgen]
+    pub fn query_with_velocity(&self) -> Result<Vec<u32>, JsValue> {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            let alive = engine.store.alive_count();
+            let mut results = Vec::new();
+
+            for i in 0..alive {
+                if engine.store.is_alive_index(i) {
+                    let vel = engine.store.velocity(i);
+                    // Consider entity has velocity if either component is non-zero
+                    if vel.x != 0.0 || vel.y != 0.0 {
+                        results.push(i as u32);
+                    }
+                }
+            }
+
+            Ok(results)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════════════════════════════════
     // ANEXA-004: AUDIO SYSTEM - Web Audio API integration
     // ═══════════════════════════════════════════════════════════════════════════════════════════════════════
@@ -2141,6 +2203,27 @@ impl WasmBridge {
             let cmd = Command::SetShape { id, shape };
             engine.command_queue.push(cmd);
             Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Batch set shapes for multiple entities (optimized)
+    #[wasm_bindgen]
+    pub fn batch_set_shapes(&self, ids: &[u32], shapes: &[u8]) -> Result<u32, JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            use archflow_core::EntityId;
+            use archflow_engine::Command;
+            let count = ids.len().min(shapes.len());
+            for i in 0..count {
+                let id = EntityId::new(ids[i]);
+                let cmd = Command::SetShape {
+                    id,
+                    shape: shapes[i],
+                };
+                engine.command_queue.push(cmd);
+            }
+            Ok(count as u32)
         } else {
             Err(JsError::new("Engine not initialized").into())
         }
