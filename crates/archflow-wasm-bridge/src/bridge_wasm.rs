@@ -1092,7 +1092,7 @@ impl WasmBridge {
                 _ => Controller::Direct,
             };
 
-            // Convert actuator_type to ActuatorType (only 7 types: Highlight, Select, Move, Delete, Undo, Redo, Camera)
+            // Convert actuator_type to ActuatorType (only 8 types: Highlight, Select, Move, Delete, Undo, Redo, Camera, Property)
             let actuator = match actuator_type {
                 0 => ActuatorType::Highlight,
                 1 => ActuatorType::Select,
@@ -1101,6 +1101,7 @@ impl WasmBridge {
                 4 => ActuatorType::Undo,
                 5 => ActuatorType::Redo,
                 6 => ActuatorType::Camera,
+                7 => ActuatorType::Property,
                 _ => ActuatorType::Highlight,
             };
 

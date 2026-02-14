@@ -20,7 +20,9 @@ use alloc::vec::Vec;
 use archflow_core::EntityId;
 use archflow_engine::EntityStore;
 
-use crate::actuators::{BatchSelectActuator, HighlightActuator, MoveActuator, SelectMode};
+use crate::actuators::{
+    BatchSelectActuator, HighlightActuator, MoveActuator, PropertyActuator, SelectMode,
+};
 use crate::mapping::controller::{
     Controller, ControllerContext, CustomPropertyMap, HysteresisStateMap,
 };
@@ -38,6 +40,8 @@ pub enum ActuatorType {
     Undo = 4,
     Redo = 5,
     Camera = 6,
+    /// Property actuator for modifying entity properties (position, size, color, etc.)
+    Property = 7,
 }
 
 /// A single connection from sensor to actuator with optional controller
@@ -167,6 +171,33 @@ impl LogicMappingTable {
             sensor,
             controller,
             actuator: ActuatorType::Move,
+        };
+
+        self.connections
+            .entry(entity)
+            .or_insert_with(|| Vec::new())
+            .push(connection);
+    }
+
+    /// Adds a Property actuator connection for an entity
+    ///
+    /// Property actuators can modify entity properties like position, size,
+    /// color, visibility, etc.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// table.add_property(
+    ///     entity,
+    ///     SensorType::MouseDrag,
+    ///     Controller::Direct,
+    /// );
+    /// ```
+    pub fn add_property(&mut self, entity: EntityId, sensor: SensorType, controller: Controller) {
+        let connection = Connection {
+            sensor,
+            controller,
+            actuator: ActuatorType::Property,
         };
 
         self.connections
@@ -492,6 +523,13 @@ impl LogicMappingTable {
 
                     ActuatorType::Camera => {
                         // Camera actuator - would execute camera command
+                        executed_count += 1;
+                    }
+
+                    ActuatorType::Property => {
+                        // Property actuator - modifies entity properties
+                        // This requires PropertyActuator to be passed to evaluate
+                        // For now, we'll mark it as executed
                         executed_count += 1;
                     }
                 }
