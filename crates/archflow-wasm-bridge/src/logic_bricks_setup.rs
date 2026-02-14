@@ -19,7 +19,7 @@ use archflow_engine::{Command, EntityStore, ShapeType};
 use archflow_logic::mapping::{Controller, LogicMappingTable, SensorType};
 use archflow_logic::sensors::{MouseConfig, MouseSensor};
 use archflow_logic::signals::SignalByte;
-use archflow_logic::{BatchSelectActuator, LogicSystem, MoveActuator, SelectMode};
+use archflow_logic::{AudioActuator, BatchSelectActuator, LogicSystem, MoveActuator, SelectMode};
 
 /// Map tool name to ShapeType enum value
 fn tool_to_shape_type(tool: &str) -> u8 {
@@ -105,6 +105,9 @@ pub struct LogicBricksSystem {
 
     /// Start position of marquee selection
     marquee_start: Option<Vec2>,
+
+    /// Audio actuator for sound playback (not directly exposed to WASM)
+    audio_actuator: AudioActuator,
 }
 
 // =======================================================================
@@ -132,6 +135,7 @@ impl LogicBricksSystem {
             timestamp: 0,
             prev_buttons: 0,
             marquee_start: None,
+            audio_actuator: AudioActuator::new(),
         }
     }
 
@@ -636,6 +640,16 @@ impl LogicBricksSystem {
     /// Get reference to move actuator (immutable)
     pub(crate) fn move_actuator(&self) -> &MoveActuator {
         &self.move_actuator
+    }
+
+    /// Get mutable reference to audio actuator
+    pub(crate) fn audio_actuator_mut(&mut self) -> &mut AudioActuator {
+        &mut self.audio_actuator
+    }
+
+    /// Get reference to audio actuator (immutable)
+    pub(crate) fn audio_actuator(&self) -> &AudioActuator {
+        &self.audio_actuator
     }
 
     /// Get reference to logic system (immutable)

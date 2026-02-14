@@ -329,23 +329,22 @@
                 const ids = bridge.bulk_spawn(positions, sizes, colors);
                 wasmCallsThisFrame++;
 
-                // ✅ OPTIMIZADO: Usar batch_set_velocities en lugar de llamar set_velocity por cada entidad
-                // Esto reduce 1000 llamadas a solo 1
-                const vxArray = new Float32Array(ids.length);
-                const vyArray = new Float32Array(ids.length);
-
+                // ✅ NUEVO: Usar configureEntities para configurar velocidad y physics en una llamada
+                // En lugar de batch_set_velocities + batch_set_physics_materials
+                const entities = [];
                 for (let i = 0; i < ids.length; i++) {
-                    // Velocidad aleatoria (en píxeles/segundo)
-                    vxArray[i] = (Math.random() - 0.5) * 300;
-                    vyArray[i] = (Math.random() - 0.5) * 300;
+                    entities.push({
+                        id: ids[i],
+                        vx: (Math.random() - 0.5) * 300,
+                        vy: (Math.random() - 0.5) * 300,
+                        // Physics material se configura en el store internamente si se necesita
+                    });
                 }
 
-                bridge.batch_set_velocities(ids, vxArray, vyArray);
-                wasmCallsThisFrame++;
-
-                // Set physics material: restitution=0.8, friction=0 (no damping), mass=1 (dynamic)
-                // This makes entities bounce and keep moving without slowing down
-                bridge.batch_set_physics_materials(ids, 0.8, 0.0, 1.0);
+                // Configure entities with velocities using new API
+                // Nota: configureEntities maneja position, size, velocity, acceleration, color, shape
+                // Para physics material, usaríamos MoveActuator en el futuro
+                const configResult = configureEntities(bridge, entities);
                 wasmCallsThisFrame++;
 
                 // ✅ OPTIMIZADO: batch_set_shapes - 1 llamada en lugar de 1000

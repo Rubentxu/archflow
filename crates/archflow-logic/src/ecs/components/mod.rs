@@ -844,3 +844,93 @@ mod tests {
         assert!(registry.is_empty());
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// AudioActuatorComponent
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/// Component that stores audio properties for an entity
+///
+/// This component allows entities to have audio playback capabilities
+/// with per-entity volume, pitch, and spatial settings.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct AudioActuatorComponent {
+    /// Volume level (0.0 to 1.0)
+    pub volume: f32,
+    /// Playback speed (0.5 to 2.0)
+    pub pitch: f32,
+    /// Enable looping
+    pub loop_enabled: bool,
+    /// Enable spatial audio (3D positioning)
+    pub spatial: bool,
+    /// Sound ID to play (loaded in AudioSystem)
+    pub sound_id: Option<u32>,
+    /// Is currently playing
+    pub is_playing: bool,
+}
+
+impl Default for AudioActuatorComponent {
+    fn default() -> Self {
+        Self {
+            volume: 1.0,
+            pitch: 1.0,
+            loop_enabled: false,
+            spatial: false,
+            sound_id: None,
+            is_playing: false,
+        }
+    }
+}
+
+impl AudioActuatorComponent {
+    /// Creates a new AudioActuatorComponent with default settings
+    #[inline(always)]
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Creates an AudioActuatorComponent with a specific sound
+    #[inline(always)]
+    #[must_use]
+    pub fn with_sound(sound_id: u32) -> Self {
+        Self {
+            sound_id: Some(sound_id),
+            ..Self::default()
+        }
+    }
+
+    /// Set the volume level
+    #[inline(always)]
+    pub fn set_volume(&mut self, volume: f32) {
+        self.volume = volume.clamp(0.0, 1.0);
+    }
+
+    /// Set the playback pitch
+    #[inline(always)]
+    pub fn set_pitch(&mut self, pitch: f32) {
+        self.pitch = pitch.clamp(0.5, 2.0);
+    }
+
+    /// Start playback
+    #[inline(always)]
+    pub fn play(&mut self) {
+        self.is_playing = true;
+    }
+
+    /// Stop playback
+    #[inline(always)]
+    pub fn stop(&mut self) {
+        self.is_playing = false;
+    }
+
+    /// Pause playback (keeps position)
+    #[inline(always)]
+    pub fn pause(&mut self) {
+        self.is_playing = false;
+    }
+}
+
+impl Component for AudioActuatorComponent {
+    type Storage = VecStorage<AudioActuatorComponent>;
+}

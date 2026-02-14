@@ -10,6 +10,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 pub mod alignment;
+pub mod audio;
 pub mod batch_select;
 pub mod camera;
 pub mod clipboard;
@@ -26,6 +27,7 @@ pub mod swimlane;
 pub mod z_order;
 
 pub use alignment::{Alignment, AlignmentActuator, DistributionActuator, DistributionAxis};
+pub use audio::{AudioActuator, AudioCommand};
 pub use batch_select::{BatchSelectActuator, DeltaMask, SelectMode};
 pub use camera::{
     CameraActuator, CameraActuatorConfig, CameraConstraints, CameraTransform, Smoother,

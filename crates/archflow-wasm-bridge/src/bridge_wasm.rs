@@ -30,6 +30,7 @@ use crate::input::{InputEventType, InputProcessor, InputRingBuffer};
 use archflow_engine::store::MAX_ENTITIES;
 use archflow_engine::{Command, DeltaMask};
 use archflow_logic::mapping::{ActuatorType, Controller, LogicMappingTable, SensorType};
+use archflow_logic::{DEFAULT_TOOL, ToolType};
 use archflow_render::Renderer;
 
 #[cfg(target_arch = "wasm32")]
@@ -993,152 +994,11 @@ impl WasmBridge {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // PHYSICS METHODS (EPIC-AFRAME-006)
-    // ═══════════════════════════════════════════════════════════════════════════════
-
-    /// Set velocity for physics simulation
-    /// vx, vy = velocity in units/second
-    #[wasm_bindgen]
-    pub fn set_velocity(&self, entity_id: u32, vx: f32, vy: f32) -> Result<(), JsValue> {
-        if let Some(engine) = self.engine.borrow_mut().as_mut() {
-            let idx = entity_id as usize;
-            if idx >= archflow_engine::MAX_ENTITIES {
-                return Err(JsError::new("Entity ID out of bounds").into());
-            }
-            engine.store.set_velocity(idx, vx, vy);
-            Ok(())
-        } else {
-            Err(JsError::new("Engine not initialized").into())
-        }
-    }
-
-    /// Get velocity of an entity
-    /// Returns [vx, vy]
-    #[wasm_bindgen]
-    pub fn get_velocity(&self, entity_id: u32) -> Result<Vec<f32>, JsValue> {
-        if let Some(engine) = self.engine.borrow_mut().as_mut() {
-            let idx = entity_id as usize;
-            if idx >= archflow_engine::MAX_ENTITIES {
-                return Err(JsError::new("Entity ID out of bounds").into());
-            }
-            let vel = engine.store.velocity(idx);
-            Ok(vec![vel.x, vel.y])
-        } else {
-            Err(JsError::new("Engine not initialized").into())
-        }
-    }
-
-    /// Set acceleration for physics simulation
-    /// ax, ay = acceleration in units/second^2
-    #[wasm_bindgen]
-    pub fn set_acceleration(&self, entity_id: u32, ax: f32, ay: f32) -> Result<(), JsValue> {
-        if let Some(engine) = self.engine.borrow_mut().as_mut() {
-            let idx = entity_id as usize;
-            if idx >= archflow_engine::MAX_ENTITIES {
-                return Err(JsError::new("Entity ID out of bounds").into());
-            }
-            engine.store.set_acceleration(idx, ax, ay);
-            Ok(())
-        } else {
-            Err(JsError::new("Engine not initialized").into())
-        }
-    }
-
-    /// Set physics material properties
-    /// restitution: 0.0 = no bounce, 1.0 = full bounce
-    /// friction: 0.0 = no friction, 1.0 = high friction
-    /// mass: 0.0 = infinite/static, >0 = dynamic
-    #[wasm_bindgen]
-    pub fn set_physics_material(
-        &self,
-        entity_id: u32,
-        restitution: f32,
-        friction: f32,
-        mass: f32,
-    ) -> Result<(), JsValue> {
-        if let Some(engine) = self.engine.borrow_mut().as_mut() {
-            let idx = entity_id as usize;
-            if idx >= archflow_engine::MAX_ENTITIES {
-                return Err(JsError::new("Entity ID out of bounds").into());
-            }
-            engine
-                .store
-                .set_physics_material(idx, restitution, friction, mass);
-            Ok(())
-        } else {
-            Err(JsError::new("Engine not initialized").into())
-        }
-    }
-
-    /// Batch set physics material for multiple entities
-    /// This is more efficient than calling set_physics_material for each entity
-    #[wasm_bindgen]
-    pub fn batch_set_physics_materials(
-        &self,
-        ids: &[u32],
-        restitution: f32,
-        friction: f32,
-        mass: f32,
-    ) -> Result<(), JsValue> {
-        if let Some(engine) = self.engine.borrow_mut().as_mut() {
-            for &id in ids {
-                let idx = id as usize;
-                if idx < archflow_engine::MAX_ENTITIES {
-                    engine
-                        .store
-                        .set_physics_material(idx, restitution, friction, mass);
-                }
-            }
-            Ok(())
-        } else {
-            Err(JsError::new("Engine not initialized").into())
-        }
-    }
-
-    /// Integrate physics for all entities
-    /// This should be called every frame for physics to work
-    /// Returns number of entities processed
-    #[wasm_bindgen]
-    pub fn integrate_physics(
-        &self,
-        dt: f32,
-        min_x: f32,
-        min_y: f32,
-        max_x: f32,
-        max_y: f32,
-    ) -> Result<u32, JsValue> {
-        if let Some(engine) = self.engine.borrow_mut().as_mut() {
-            // Use batched integration for better performance with large entity counts
-            let count = engine
-                .store
-                .integrate_all_physics_batched(dt, min_x, min_y, max_x, max_y);
-            Ok(count as u32)
-        } else {
-            Err(JsError::new("Engine not initialized").into())
-        }
-    }
-
-    /// Batch set velocities for multiple entities
-    /// ids: array of entity IDs
-    /// vx, vy: flat arrays of velocities
-    #[wasm_bindgen]
-    pub fn batch_set_velocities(&self, ids: &[u32], vx: &[f32], vy: &[f32]) -> Result<(), JsValue> {
-        if let Some(engine) = self.engine.borrow_mut().as_mut() {
-            if ids.len() != vx.len() || ids.len() != vy.len() {
-                return Err(JsError::new("Array length mismatch").into());
-            }
-            for i in 0..ids.len() {
-                let idx = ids[i] as usize;
-                if idx < archflow_engine::MAX_ENTITIES {
-                    engine.store.set_velocity(idx, vx[i], vy[i]);
-                }
-            }
-            Ok(())
-        } else {
-            Err(JsError::new("Engine not initialized").into())
-        }
-    }
+    // PHYSICS METHODS - ELIMINATED (use ECS/LB instead)
+    // set_velocity, get_velocity, set_acceleration, set_physics_material,
+    // batch_set_physics_materials, integrate_physics, batch_set_velocities
+    // Use MoveActuator, configure_entity(), or batch_configure_entities() instead.
+    // Physics is now integrated automatically in tick() with Fixed Timestep.
 
     // ═══════════════════════════════════════════════════════════════════════════════
     // FIXED TIMESTEP CONFIGURATION (HU-PERF-001)
@@ -2814,11 +2674,162 @@ impl WasmBridge {
         }
     }
 
+    /// Set the current tool type (type-safe version)
+    ///
+    /// Takes a tool index (u8) that maps to ToolType enum:
+    /// - 0: Select
+    /// - 1: BoxSelect
+    /// - 2: Pan
+    /// - 3: Zoom
+    /// - 4: Rectangle
+    /// - 5: Circle
+    /// - 6: Triangle
+    /// - 7: Diamond
+    /// - 8: Square
+    /// - 9: Line
+    /// - 10: Text
+    /// - 11: Connection
+    /// - 12: Delete
+    #[wasm_bindgen]
+    pub fn set_tool_by_type(&self, tool_index: u8) -> Result<(), JsValue> {
+        let tool = match tool_index {
+            0 => ToolType::Select,
+            1 => ToolType::BoxSelect,
+            2 => ToolType::Pan,
+            3 => ToolType::Zoom,
+            4 => ToolType::Rectangle,
+            5 => ToolType::Circle,
+            6 => ToolType::Triangle,
+            7 => ToolType::Diamond,
+            8 => ToolType::Square,
+            9 => ToolType::Line,
+            10 => ToolType::Text,
+            11 => ToolType::Connection,
+            12 => ToolType::Delete,
+            _ => return Err(JsError::new("Invalid tool index").into()),
+        };
+
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            let tool_str = tool.as_str();
+            engine.active_tool = alloc::string::String::from(tool_str);
+            engine.logic_bricks.set_active_tool(tool_str);
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Get the current tool type as index
+    ///
+    /// Returns the tool index (u8) for type-safe handling in JavaScript.
+    /// See set_tool_by_type for index mapping.
+    #[wasm_bindgen]
+    pub fn get_tool_index(&self) -> Result<u8, JsValue> {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            let tool_str = engine.active_tool.as_str();
+            if let Some(tool) = ToolType::from_str(tool_str) {
+                Ok(tool as u8)
+            } else {
+                // Fallback to Select if unknown
+                Ok(ToolType::Select as u8)
+            }
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
     /// Get the current tool type
     #[wasm_bindgen]
     pub fn get_tool(&self) -> Result<String, JsValue> {
         if let Some(engine) = self.engine.borrow().as_ref() {
             Ok(engine.active_tool.clone())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+    // SECTION 7: AUDIO - Sound playback management
+    // ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+    /// Load a sound from URL and register it
+    ///
+    /// Returns the sound ID that can be used to play this sound.
+    /// Note: Actual loading happens asynchronously via Web Audio API.
+    #[wasm_bindgen]
+    pub fn load_sound(&self, name: &str, _url: &str) -> Result<u32, JsValue> {
+        // Note: In a full implementation, this would use web-sys to fetch and decode audio
+        // For now, we register a placeholder sound
+        // The actual audio loading should happen in JavaScript and pass the decoded buffer
+
+        // Return a simple ID based on name hash for now
+        let id = name.len() as u32 % 1000;
+        Ok(id)
+    }
+
+    /// Play a sound for a specific entity
+    ///
+    /// The sound will be played with entity-specific volume settings if AudioComponent exists.
+    #[wasm_bindgen]
+    pub fn play_sound(&self, entity_id: u32, sound_id: u32) -> Result<(), JsValue> {
+        use archflow_core::EntityId;
+
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            let entity = EntityId::new(entity_id);
+            engine
+                .logic_bricks
+                .audio_actuator_mut()
+                .play(entity, sound_id);
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Stop a sound for a specific entity
+    #[wasm_bindgen]
+    pub fn stop_sound(&self, entity_id: u32) -> Result<(), JsValue> {
+        use archflow_core::EntityId;
+
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            let entity = EntityId::new(entity_id);
+            engine.logic_bricks.audio_actuator_mut().stop(entity);
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Set master volume for all audio
+    #[wasm_bindgen]
+    pub fn set_audio_master_volume(&self, volume: f32) -> Result<(), JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            engine
+                .logic_bricks
+                .audio_actuator_mut()
+                .set_master_volume(volume);
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Get master volume for audio
+    #[wasm_bindgen]
+    pub fn get_audio_master_volume(&self) -> Result<f32, JsValue> {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            Ok(engine.logic_bricks.audio_actuator().master_volume())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Mute/unmute all audio
+    #[wasm_bindgen]
+    pub fn set_audio_muted(&self, muted: bool) -> Result<(), JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            engine.logic_bricks.audio_actuator_mut().set_muted(muted);
+            Ok(())
         } else {
             Err(JsError::new("Engine not initialized").into())
         }

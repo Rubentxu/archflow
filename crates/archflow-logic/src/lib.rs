@@ -25,6 +25,7 @@ extern crate alloc;
 
 pub mod actuators;
 pub mod api;
+pub mod audio;
 pub mod command;
 pub mod ecs;
 pub mod events;
@@ -39,12 +40,14 @@ pub mod signals;
 pub mod simd;
 pub mod snap;
 pub mod spatial;
+pub mod tool;
 pub mod tween;
 pub mod visibility;
 
 // NOTE: archflow_wasm_bridge::BehaviorEngine import removed to avoid circular dependency
 // The wasm-bridge crate depends on archflow-logic, not the other way around
 
+pub use audio::{AudioSystem, SoundInfo};
 pub use events::{EventData, EventRingBuffer, LogicEvent, LogicEventType};
 
 pub use actuators::{
@@ -53,6 +56,8 @@ pub use actuators::{
     AlignmentActuator,
     // Smart guides
     AlignmentType,
+    // Audio actuator
+    AudioActuator,
     // Batch selection (replaces legacy SelectActuator)
     BatchSelectActuator,
     // Camera types
@@ -153,6 +158,7 @@ pub use snap::{
     EntityEdge, SnapConfig, SnapPoint, SnapResult, SnapTarget, Snapper,
 };
 pub use spatial::{DEFAULT_GRID_SIZE, GridCoord, Rect, SpatialHashGrid};
+pub use tool::{DEFAULT_TOOL, ToolActuator, ToolConfig, ToolState, ToolType};
 pub use tween::{
     DEFAULT_DURATION_MS as TWEEN_DEFAULT_DURATION_MS,
     // Types
@@ -189,6 +195,8 @@ pub use ecs::{
     Archetype,
     ArchetypeId,
     ArchetypeStorage,
+    // Audio component for entities
+    AudioActuatorComponent,
     BatchIter,
     // Systems
     BgeLogicConfig,

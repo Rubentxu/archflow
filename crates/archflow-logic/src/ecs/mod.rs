@@ -89,8 +89,8 @@ mod integration_tests;
 pub use archetype::{Archetype, ArchetypeId, ArchetypeStorage, BatchIter, ComponentColumn};
 pub use component::{Component, ComponentId, ComponentStorage, VecStorage};
 pub use components::{
-    HighlightActuatorComponent, MouseSensorComponent, MoveActuatorComponent,
-    SelectActuatorComponent, SignalStateComponent,
+    AudioActuatorComponent, HighlightActuatorComponent, MouseSensorComponent,
+    MoveActuatorComponent, SelectActuatorComponent, SignalStateComponent,
 };
 pub use hybrid::{
     ActuatorComponent, BgeLogicConfig, BgeLogicStats, BgeLogicSystem, ClickType,
