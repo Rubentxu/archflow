@@ -49,7 +49,11 @@
                 position: absolute;
                 top: 80px;
                 left: 20px;
-                background: linear-gradient(135deg, rgba(15, 15, 25, 0.95), rgba(20, 20, 35, 0.95));
+                background: linear-gradient(
+                    135deg,
+                    rgba(15, 15, 25, 0.95),
+                    rgba(20, 20, 35, 0.95)
+                );
                 border: 1px solid rgba(0, 212, 255, 0.3);
                 border-radius: 12px;
                 padding: 20px;
@@ -191,7 +195,7 @@
             const { bridge, canvas, loop } = await createEngine("canvas", {
                 onFrame: (dt, fps) => {
                     document.getElementById("fps").textContent = fps;
-                }
+                },
             });
 
             // Physics state
@@ -205,7 +209,9 @@
                 l /= 100;
                 const k = (n) => (n + h / 30) % 12;
                 const a = s * Math.min(l, 1 - l);
-                const f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+                const f = (n) =>
+                    l -
+                    a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
                 return {
                     r: Math.round(255 * f(0)),
                     g: Math.round(255 * f(8)),
@@ -254,45 +260,32 @@
                 }
 
                 const spawnTime = (performance.now() - spawnStart).toFixed(2);
-                document.getElementById("entity-count").textContent = shapes.length;
-                document.getElementById("physics-time").textContent = `${spawnTime}ms`;
+                document.getElementById("entity-count").textContent =
+                    shapes.length;
+                document.getElementById("physics-time").textContent =
+                    `${spawnTime}ms`;
             }
 
-            // Physics update - simple Euler integration
+            // Physics update - using Rust integrate_physics for full physics simulation
             function updatePhysics() {
                 if (shapes.length === 0) return;
 
                 const physicsStart = performance.now();
 
-                const ids = [];
-                const xs = [];
-                const ys = [];
+                // Use Rust physics system - handles velocity integration, damping, and boundary collisions
+                const count = bridge.integrate_physics(
+                    1 / 60, // fixed dt
+                    0,
+                    0,
+                    canvas.width,
+                    canvas.height,
+                );
 
-                for (const shape of shapes) {
-                    // Update position
-                    shape.x += shape.vx;
-                    shape.y += shape.vy;
-
-                    // Boundary bounce
-                    if (shape.x < 0 || shape.x + shape.size > canvas.width) {
-                        shape.vx *= -1;
-                        shape.x = Math.max(0, Math.min(shape.x, canvas.width - shape.size));
-                    }
-                    if (shape.y < 0 || shape.y + shape.size > canvas.height) {
-                        shape.vy *= -1;
-                        shape.y = Math.max(0, Math.min(shape.y, canvas.height - shape.size));
-                    }
-
-                    ids.push(shape.id);
-                    xs.push(shape.x);
-                    ys.push(shape.y);
-                }
-
-                // Batch update positions
-                bridge.batch_set_positions(new Uint32Array(ids), new Float32Array(xs), new Float32Array(ys));
-
-                const physicsTime = (performance.now() - physicsStart).toFixed(2);
-                document.getElementById("physics-time").textContent = `${physicsTime}ms`;
+                const physicsTime = (performance.now() - physicsStart).toFixed(
+                    2,
+                );
+                document.getElementById("physics-time").textContent =
+                    `${physicsTime}ms`;
             }
 
             // Click handler
@@ -315,10 +308,11 @@
 
                     // Batch despawn
                     if (shapes.length > 0) {
-                        const ids = new Uint32Array(shapes.map(s => s.id));
+                        const ids = new Uint32Array(shapes.map((s) => s.id));
                         bridge.batch_despawn(ids);
                         shapes = [];
-                        document.getElementById("entity-count").textContent = "0";
+                        document.getElementById("entity-count").textContent =
+                            "0";
                     }
                 }
             });
