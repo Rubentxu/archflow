@@ -501,6 +501,143 @@
                 if (e.code === "KeyQ") demoQueryWithVelocity();
             });
 
+            // ═══════════════════════════════════════════════════════════════════════════════
+            // DECLARATIVE API HELPERS - High-level helpers for common operations
+            // ═══════════════════════════════════════════════════════════════════════════════
+
+            /**
+             * Spawn a complete scene with entities in one declarative call
+             * @param {Object} bridge - WASM bridge instance
+             * @param {Object} scene - Scene definition with entities array
+             * @returns {Uint32Array} - Array of spawned entity IDs
+             *
+             * @example
+             * const ids = spawnScene(bridge, {
+             *   count: 1000,
+             *   x: 100, y: 100,           // Center position
+             *   spread: 500,               // Spread radius
+             *   size: 20,                  // Entity size
+             *   velocity: 100,              // Initial velocity magnitude
+             *   color: { h: 200, s: 75, l: 55 }  // HSL color
+             * });
+             */
+            function spawnScene(bridge, scene) {
+                const count = scene.count || 100;
+                const centerX = scene.x || 100;
+                const centerY = scene.y || 100;
+                const spread = scene.spread || 500;
+                const size = scene.size || 20;
+                const velocity = scene.velocity || 0;
+                const color = scene.color || { h: 0, s: 75, l: 55 };
+
+                // Prepare arrays for bulk_spawn
+                const positions = new Float32Array(count * 2);
+                const sizes = new Float32Array(count * 2);
+                const colors = new Uint8Array(count * 4);
+
+                for (let i = 0; i < count; i++) {
+                    // Random position within spread
+                    const angle = Math.random() * Math.PI * 2;
+                    const radius = Math.random() * spread;
+                    positions[i * 2] = centerX + Math.cos(angle) * radius;
+                    positions[i * 2 + 1] = centerY + Math.sin(angle) * radius;
+
+                    // Size
+                    const sizeVar = size * (0.8 + Math.random() * 0.4);
+                    sizes[i * 2] = sizeVar;
+                    sizes[i * 2 + 1] = sizeVar;
+
+                    // Color with variation
+                    const hueVar = (color.h + Math.random() * 30 - 15) % 360;
+                    const rgb = hslToRgbBytes(hueVar, color.s, color.l);
+                    colors[i * 4] = rgb.r;
+                    colors[i * 4 + 1] = rgb.g;
+                    colors[i * 4 + 2] = rgb.b;
+                    colors[i * 4 + 3] = 255;
+                }
+
+                // Single call: bulk spawn
+                const ids = bridge.bulk_spawn(positions, sizes, colors);
+
+                // Set velocities if requested
+                if (velocity > 0) {
+                    const vxArray = new Float32Array(count);
+                    const vyArray = new Float32Array(count);
+                    for (let i = 0; i < count; i++) {
+                        const angle = Math.random() * Math.PI * 2;
+                        vxArray[i] = Math.cos(angle) * velocity;
+                        vyArray[i] = Math.sin(angle) * velocity;
+                    }
+                    bridge.batch_set_velocities(ids, vxArray, vyArray);
+
+                    // Set physics material for bounce
+                    bridge.batch_set_physics_materials(ids, 0.8, 0.0, 1.0);
+                }
+
+                return ids;
+            }
+
+            /**
+             * Update entity positions in bulk using TypedArrays
+             * @param {Object} bridge - WASM bridge instance
+             * @param {Uint32Array} ids - Entity IDs to update
+             * @param {Float32Array} xs - X positions
+             * @param {Float32Array} ys - Y positions
+             */
+            function updateEntityPositions(bridge, ids, xs, ys) {
+                bridge.batch_set_positions(ids, xs, ys);
+            }
+
+            /**
+             * Configure multiple entities with complete properties in one call
+             * Uses the new configure_entity API for maximum efficiency
+             * @param {Object} bridge - WASM bridge instance
+             * @param {Object[]} entities - Array of entity configs
+             */
+            function configureEntities(bridge, entities) {
+                const count = entities.length;
+                const ids = new Uint32Array(count);
+                const xs = new Float32Array(count);
+                const ys = new Float32Array(count);
+                const widths = new Float32Array(count);
+                const heights = new Float32Array(count);
+                const vxs = new Float32Array(count);
+                const vys = new Float32Array(count);
+                const axs = new Float32Array(count);
+                const ays = new Float32Array(count);
+                const colors = new Uint32Array(count);
+                const shapes = new Uint8Array(count);
+
+                for (let i = 0; i < count; i++) {
+                    const e = entities[i];
+                    ids[i] = e.id;
+                    xs[i] = e.x ?? NaN;
+                    ys[i] = e.y ?? NaN;
+                    widths[i] = e.width ?? NaN;
+                    heights[i] = e.height ?? NaN;
+                    vxs[i] = e.vx ?? NaN;
+                    vys[i] = e.vy ?? NaN;
+                    axs[i] = e.ax ?? NaN;
+                    ays[i] = e.ay ?? NaN;
+                    colors[i] = e.color ?? 0;
+                    shapes[i] = e.shape ?? 255;
+                }
+
+                return bridge.batch_configure_entities(
+                    ids,
+                    xs,
+                    ys,
+                    widths,
+                    heights,
+                    vxs,
+                    vys,
+                    axs,
+                    ays,
+                    colors,
+                    shapes,
+                );
+            }
+
             // Utility
             function hslToRgbBytes(h, s, l) {
                 s /= 100;

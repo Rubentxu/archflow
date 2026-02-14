@@ -524,6 +524,57 @@ impl WasmBridge {
         core::mem::size_of::<InputRingBuffer>()
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // DIRECT MEMORY ACCESS - Zero-copy data access (HU-PERF-002)
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    /// Get pointer to entity transforms data
+    ///
+    /// Returns a pointer to the transforms array [x, y, width, height] for all entities.
+    /// Use with get_transforms_count() to know the valid range.
+    #[wasm_bindgen]
+    pub fn get_transforms_ptr(&self) -> *const f32 {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            engine.store.transforms.as_ptr() as *const f32
+        } else {
+            core::ptr::null()
+        }
+    }
+
+    /// Get count of transforms (entities with valid data)
+    #[wasm_bindgen]
+    pub fn get_transforms_count(&self) -> usize {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            engine.store.alive_count()
+        } else {
+            0
+        }
+    }
+
+    /// Get pointer to entity colors data
+    ///
+    /// Returns a pointer to the colors array (RGBA packed u32) for all entities.
+    #[wasm_bindgen]
+    pub fn get_colors_ptr(&self) -> *const u32 {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            engine.store.colors.as_ptr()
+        } else {
+            core::ptr::null()
+        }
+    }
+
+    /// Get pointer to velocities data
+    ///
+    /// Returns a pointer to the velocities array [vx, vy] for all entities.
+    #[wasm_bindgen]
+    pub fn get_velocities_ptr(&self) -> *const f32 {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            engine.store.velocities.as_ptr() as *const f32
+        } else {
+            core::ptr::null()
+        }
+    }
+
     /// Push an input event from JavaScript
     ///
     /// This is a higher-level alternative to directly writing to SharedArrayBuffer.
@@ -1088,7 +1139,6 @@ impl WasmBridge {
             Err(JsError::new("Engine not initialized").into())
         }
     }
-
 
     // ═══════════════════════════════════════════════════════════════════════════════
     // FIXED TIMESTEP CONFIGURATION (HU-PERF-001)
@@ -2356,6 +2406,195 @@ impl WasmBridge {
                 };
                 engine.command_queue.push(cmd);
             }
+            Ok(count as u32)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // CHUNK API - Configure entity in one call (HU-PERF-003)
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    /// Configure a single entity with all properties in one call
+    ///
+    /// This reduces JS-WASM call overhead by setting multiple properties at once.
+    ///
+    /// # Arguments
+    ///
+    /// * `entity_id` - Entity index to configure
+    /// * `x`, `y` - Position (pass NaN to skip)
+    /// * `width`, `height` - Size (pass NaN to skip)
+    /// * `vx`, `vy` - Velocity (pass NaN to skip)
+    /// * `ax`, `ay` - Acceleration (pass NaN to skip)
+    /// * `color` - RGBA color packed (pass 0 to skip)
+    /// * `stroke_color` - Stroke color packed (pass 0 to skip)
+    /// * `stroke_width` - Stroke width (pass 0 to skip)
+    /// * `shape` - Shape type (pass 255 to skip)
+    /// * `visible` - Visibility (pass 2 to skip, 0=hidden, 1=visible, 2=skip)
+    #[wasm_bindgen]
+    pub fn configure_entity(
+        &self,
+        entity_id: u32,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+        vx: f32,
+        vy: f32,
+        ax: f32,
+        ay: f32,
+        color: u32,
+        stroke_color: u32,
+        stroke_width: f32,
+        shape: u8,
+        visible: u8,
+    ) -> Result<(), JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            let idx = entity_id as usize;
+            if idx >= MAX_ENTITIES {
+                return Err(JsError::new("Invalid entity index").into());
+            }
+
+            // Position (skip if NaN)
+            if x.is_finite() && y.is_finite() {
+                engine.store.set_pos(idx, archflow_core::Vec2::new(x, y));
+            }
+
+            // Size (skip if NaN)
+            if width.is_finite() && height.is_finite() {
+                engine
+                    .store
+                    .set_size(idx, archflow_core::Vec2::new(width, height));
+            }
+
+            // Velocity (skip if NaN)
+            if vx.is_finite() && vy.is_finite() {
+                engine.store.set_velocity(idx, vx, vy);
+            }
+
+            // Acceleration (skip if NaN)
+            if ax.is_finite() && ay.is_finite() {
+                engine.store.set_acceleration(idx, ax, ay);
+            }
+
+            // Color (skip if 0)
+            if color != 0 {
+                engine.store.set_color(idx, color);
+            }
+
+            // Stroke color (skip if 0)
+            if stroke_color != 0 {
+                engine.store.set_stroke_color(idx, stroke_color);
+            }
+
+            // Stroke width (skip if 0)
+            if stroke_width != 0.0 {
+                engine.store.set_stroke_width(idx, stroke_width);
+            }
+
+            // Shape (skip if 255)
+            if shape != 255 {
+                engine.store.set_shape_type(idx, shape);
+            }
+
+            // Visibility (0=hidden, 1=visible, 2=skip)
+            if visible != 2 {
+                engine.store.set_visible(idx, visible == 1);
+            }
+
+            Ok(())
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Batch configure multiple entities with all properties in one call
+    ///
+    /// Arrays must all have the same length. Use NaN/0/255 to skip individual fields.
+    ///
+    /// # Arguments
+    ///
+    /// * `ids` - Entity indices
+    /// * `xs`, `ys` - Positions (use NaN to skip)
+    /// * `widths`, `heights` - Sizes (use NaN to skip)
+    /// * `vxs`, `vys` - Velocities (use NaN to skip)
+    /// * `axs`, `ays` - Accelerations (use NaN to skip)
+    /// * `colors` - RGBA colors packed (use 0 to skip)
+    /// * `shapes` - Shape types (use 255 to skip)
+    #[wasm_bindgen]
+    pub fn batch_configure_entities(
+        &self,
+        ids: &[u32],
+        xs: &[f32],
+        ys: &[f32],
+        widths: &[f32],
+        heights: &[f32],
+        vxs: &[f32],
+        vys: &[f32],
+        axs: &[f32],
+        ays: &[f32],
+        colors: &[u32],
+        shapes: &[u8],
+    ) -> Result<u32, JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            let count = ids.len();
+
+            // Validate lengths
+            if ys.len() != count
+                || widths.len() != count
+                || heights.len() != count
+                || vxs.len() != count
+                || vys.len() != count
+                || axs.len() != count
+                || ays.len() != count
+                || colors.len() != count
+                || shapes.len() != count
+            {
+                return Err(JsError::new("Array length mismatch").into());
+            }
+
+            for i in 0..count {
+                let idx = ids[i] as usize;
+                if idx >= MAX_ENTITIES {
+                    continue;
+                }
+
+                // Position
+                if xs[i].is_finite() && ys[i].is_finite() {
+                    engine
+                        .store
+                        .set_pos(idx, archflow_core::Vec2::new(xs[i], ys[i]));
+                }
+
+                // Size
+                if widths[i].is_finite() && heights[i].is_finite() {
+                    engine
+                        .store
+                        .set_size(idx, archflow_core::Vec2::new(widths[i], heights[i]));
+                }
+
+                // Velocity
+                if vxs[i].is_finite() && vys[i].is_finite() {
+                    engine.store.set_velocity(idx, vxs[i], vys[i]);
+                }
+
+                // Acceleration
+                if axs[i].is_finite() && ays[i].is_finite() {
+                    engine.store.set_acceleration(idx, axs[i], ays[i]);
+                }
+
+                // Color
+                if colors[i] != 0 {
+                    engine.store.set_color(idx, colors[i]);
+                }
+
+                // Shape
+                if shapes[i] != 255 {
+                    engine.store.set_shape_type(idx, shapes[i]);
+                }
+            }
+
             Ok(count as u32)
         } else {
             Err(JsError::new("Engine not initialized").into())
