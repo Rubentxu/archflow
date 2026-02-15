@@ -49,7 +49,11 @@
                 position: absolute;
                 top: 80px;
                 left: 20px;
-                background: linear-gradient(135deg, rgba(15, 15, 25, 0.95), rgba(20, 20, 35, 0.95));
+                background: linear-gradient(
+                    135deg,
+                    rgba(15, 15, 25, 0.95),
+                    rgba(20, 20, 35, 0.95)
+                );
                 border: 1px solid rgba(0, 212, 255, 0.3);
                 border-radius: 12px;
                 padding: 20px;
@@ -136,7 +140,11 @@
                 position: absolute;
                 top: 80px;
                 right: 20px;
-                background: linear-gradient(135deg, rgba(15, 15, 25, 0.95), rgba(20, 20, 35, 0.95));
+                background: linear-gradient(
+                    135deg,
+                    rgba(15, 15, 25, 0.95),
+                    rgba(20, 20, 35, 0.95)
+                );
                 border: 1px solid rgba(155, 89, 182, 0.3);
                 border-radius: 12px;
                 padding: 20px;
@@ -200,19 +208,19 @@
         <div class="info">
             <h3>Controller Types</h3>
             <div style="margin: 8px 0">
-                <code>controller 0</code> = Direct<br/>
+                <code>controller 0</code> = Direct<br />
                 <span style="color: #666">Pass-through signal</span>
             </div>
             <div style="margin: 8px 0">
-                <code>controller 1</code> = AND<br/>
+                <code>controller 1</code> = AND<br />
                 <span style="color: #666">Requires ALL sensors true</span>
             </div>
             <div style="margin: 8px 0">
-                <code>controller 2</code> = OR<br/>
+                <code>controller 2</code> = OR<br />
                 <span style="color: #666">ANY sensor true triggers</span>
             </div>
             <div style="margin: 8px 0">
-                <code>controller 3</code> = NOT<br/>
+                <code>controller 3</code> = NOT<br />
                 <span style="color: #666">Inverts sensor signal</span>
             </div>
         </div>
@@ -262,54 +270,110 @@
 
             let toggleState = false;
 
-            // === AND Controller Entity ===
-            // Only highlights when BOTH hover AND space key pressed
-            // We'll simulate by checking for AND condition
-            const andEntity = bridge.spawn_entity(200, 250, 70, 70);
-            bridge.set_color(andEntity, 231, 76, 60, 255); // Red
-            bridge.set_shape(andEntity, 0); // rectangle
-            // Using Direct for demo - AND requires multiple sensors
-            bridge.add_sensor(andEntity, 0, 0, 0); // Hover -> Highlight
+            // Use bulk_spawn + batch_configure_entities for initial entity creation
+            const count = 4;
+            const positions = new Float32Array([
+                200,
+                250, // AND entity
+                400,
+                250, // OR entity
+                600,
+                250, // NOT entity
+                800,
+                250, // Toggle entity
+            ]);
+            const sizes = new Float32Array([70, 70, 70, 70]);
+            const colors = new Uint32Array([
+                0xffeb3b3c, // Red: 0xRRGGBBAA (231, 76, 60, 255)
+                0xff71cc2e, // Green: 0xRRGGBBAA (46, 204, 113, 255)
+                0xffd39834, // Blue: 0xRRGGBBAA (52, 152, 219, 255)
+                0xffb2599b, // Purple: 0xRRGGBBAA (155, 89, 182, 255)
+            ]);
+            const shapes = new Uint8Array([0, 0, 0, 1]); // rect, rect, rect, circle
 
-            // === OR Controller Entity ===
-            // Highlights on hover OR click
-            const orEntity = bridge.spawn_entity(400, 250, 70, 70);
-            bridge.set_color(orEntity, 46, 204, 113, 255); // Green
-            bridge.set_shape(orEntity, 0);
-            // OR requires two sensors - we'll use Direct for demo
+            const ids = bridge.bulk_spawn(positions, sizes, colors);
+
+            // Configure with shapes
+            const xs = new Float32Array([200, 400, 600, 800]);
+            const ys = new Float32Array([250, 250, 250, 250]);
+            const widths = new Float32Array([70, 70, 70, 70]);
+            const heights = new Float32Array([70, 70, 70, 70]);
+            const vxs = new Float32Array([0, 0, 0, 0]);
+            const vys = new Float32Array([0, 0, 0, 0]);
+            const axs = new Float32Array([0, 0, 0, 0]);
+            const ays = new Float32Array([0, 0, 0, 0]);
+
+            bridge.batch_configure_entities(
+                ids,
+                xs,
+                ys,
+                widths,
+                heights,
+                vxs,
+                vys,
+                axs,
+                ays,
+                colors,
+                shapes,
+            );
+
+            // Add sensors to each entity
+            const andEntity = ids[0];
+            const orEntity = ids[1];
+            const notEntity = ids[2];
+            const toggleEntity = ids[3];
+
+            bridge.add_sensor(andEntity, 0, 0, 0); // Hover -> Highlight
             bridge.add_sensor(orEntity, 0, 0, 0); // Hover -> Highlight
             bridge.add_sensor(orEntity, 1, 0, 0); // Click -> Highlight
-
-            // === NOT Controller Entity ===
-            // Acts when NOT hovered (simulated with click)
-            const notEntity = bridge.spawn_entity(600, 250, 70, 70);
-            bridge.set_color(notEntity, 52, 152, 219, 255); // Blue
-            bridge.set_shape(notEntity, 0);
-            // Using NOT via controller 3
             bridge.add_sensor(notEntity, 1, 0, 0); // Click triggers
-
-            // === Toggle Entity ===
-            // Click toggles between two states
-            const toggleEntity = bridge.spawn_entity(800, 250, 70, 70);
-            bridge.set_color(toggleEntity, 155, 89, 182, 255); // Purple
-            bridge.set_shape(toggleEntity, 1); // circle
             bridge.add_sensor(toggleEntity, 1, 0, 1); // Click -> Select
 
-            // UI update for toggle
+            // UI update for toggle - use configure_entity for color changes
             function updateToggleState() {
                 toggleState = !toggleState;
                 const stateEl = document.getElementById("state-toggle");
                 if (toggleState) {
                     stateEl.classList.add("active");
-                    bridge.set_color(toggleEntity, 241, 196, 15, 255); // Yellow when active
+                    // Use configure_entity to update color (packed RGBA)
+                    bridge.configure_entity(
+                        toggleEntity,
+                        800,
+                        250,
+                        70,
+                        70,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0xff15c4f1,
+                        0,
+                        0,
+                        1,
+                        1,
+                    ); // Yellow
                 } else {
                     stateEl.classList.remove("active");
-                    bridge.set_color(toggleEntity, 155, 89, 182, 255); // Back to purple
+                    bridge.configure_entity(
+                        toggleEntity,
+                        800,
+                        250,
+                        70,
+                        70,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0xffb2599b,
+                        0,
+                        0,
+                        1,
+                        1,
+                    ); // Purple
                 }
             }
 
             // Simulate controller states based on interaction
-            // In a full implementation, you'd query the actual logic system state
             bridge.set_selection(toggleEntity, toggleState);
 
             // Key handler for Space to toggle
@@ -319,13 +383,33 @@
                     toggleState = false;
                     const stateEl = document.getElementById("state-toggle");
                     stateEl.classList.remove("active");
-                    bridge.set_color(toggleEntity, 155, 89, 182, 255);
+                    // Use configure_entity for color update
+                    bridge.configure_entity(
+                        toggleEntity,
+                        800,
+                        250,
+                        70,
+                        70,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0xffb2599b,
+                        0,
+                        0,
+                        1,
+                        1,
+                    );
                     bridge.set_selection(toggleEntity, false);
 
                     // Also update AND visual
-                    document.getElementById("state-and").classList.add("active");
+                    document
+                        .getElementById("state-and")
+                        .classList.add("active");
                     setTimeout(() => {
-                        document.getElementById("state-and").classList.remove("active");
+                        document
+                            .getElementById("state-and")
+                            .classList.remove("active");
                     }, 300);
                 }
             });
@@ -334,7 +418,9 @@
             canvas.addEventListener("pointermove", () => {
                 document.getElementById("state-or").classList.add("active");
                 setTimeout(() => {
-                    document.getElementById("state-or").classList.remove("active");
+                    document
+                        .getElementById("state-or")
+                        .classList.remove("active");
                 }, 300);
             });
 
@@ -346,12 +432,16 @@
                 // Trigger NOT
                 document.getElementById("state-not").classList.add("active");
                 setTimeout(() => {
-                    document.getElementById("state-not").classList.remove("active");
+                    document
+                        .getElementById("state-not")
+                        .classList.remove("active");
                 }, 200);
             });
 
             console.log("08b-controllers: Logic Bricks controllers demo");
-            console.log("4 entities demonstrating AND, OR, NOT, Toggle patterns");
+            console.log(
+                "4 entities demonstrating AND, OR, NOT, Toggle patterns",
+            );
         </script>
     </body>
 </html>

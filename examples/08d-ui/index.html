@@ -49,7 +49,11 @@
                 position: absolute;
                 top: 80px;
                 left: 20px;
-                background: linear-gradient(135deg, rgba(15, 15, 25, 0.95), rgba(20, 20, 35, 0.95));
+                background: linear-gradient(
+                    135deg,
+                    rgba(15, 15, 25, 0.95),
+                    rgba(20, 20, 35, 0.95)
+                );
                 border: 1px solid rgba(0, 212, 255, 0.3);
                 border-radius: 12px;
                 padding: 20px;
@@ -88,13 +92,25 @@
             }
 
             .ui-icon.highlight {
-                background: linear-gradient(135deg, rgba(255, 217, 61, 0.3), rgba(255, 217, 61, 0.1));
+                background: linear-gradient(
+                    135deg,
+                    rgba(255, 217, 61, 0.3),
+                    rgba(255, 217, 61, 0.1)
+                );
             }
             .ui-icon.select {
-                background: linear-gradient(135deg, rgba(0, 212, 255, 0.3), rgba(0, 212, 255, 0.1));
+                background: linear-gradient(
+                    135deg,
+                    rgba(0, 212, 255, 0.3),
+                    rgba(0, 212, 255, 0.1)
+                );
             }
             .ui-icon.multi {
-                background: linear-gradient(135deg, rgba(155, 89, 182, 0.3), rgba(155, 89, 182, 0.1));
+                background: linear-gradient(
+                    135deg,
+                    rgba(155, 89, 182, 0.3),
+                    rgba(155, 89, 182, 0.1)
+                );
             }
 
             .ui-info {
@@ -116,7 +132,11 @@
                 position: absolute;
                 top: 80px;
                 right: 20px;
-                background: linear-gradient(135deg, rgba(15, 15, 25, 0.95), rgba(20, 20, 35, 0.95));
+                background: linear-gradient(
+                    135deg,
+                    rgba(15, 15, 25, 0.95),
+                    rgba(20, 20, 35, 0.95)
+                );
                 border: 1px solid rgba(0, 255, 136, 0.3);
                 border-radius: 12px;
                 padding: 20px;
@@ -256,39 +276,99 @@
             const rows = 3;
             const cols = 4;
             const entities = [];
-            const colors = [
-                [231, 76, 60],   // Red
-                [46, 204, 113],  // Green
-                [52, 152, 219],  // Blue
-                [241, 196, 15],  // Yellow
-                [155, 89, 182],  // Purple
-                [230, 126, 34],  // Orange
-                [26, 188, 156],  // Teal
-                [236, 240, 241],  // White
-                [149, 165, 166], // Gray
-                [231, 76, 60],   // Red
-                [46, 204, 113],  // Green
-                [52, 152, 219],  // Blue
+
+            // Packed RGBA colors (0xRRGGBBAA format)
+            const colorPalette = [
+                0xffeb3b3c, // Red
+                0xff71cc2e, // Green
+                0xffd39834, // Blue
+                0xff15c4f1, // Yellow
+                0xffb2599b, // Purple
+                0xff7ee226, // Orange
+                0xff9cbc9c, // Teal
+                0xfff1ecf2, // White
+                0xffa69949, // Gray
+                0xffeb3b3c, // Red
+                0xff71cc2e, // Green
+                0xffd39834, // Blue
             ];
 
-            // Create grid
+            // Create grid using bulk_spawn + batch_configure_entities
+            const count = rows * cols;
+
+            const positions = new Float32Array(count * 2);
+            const sizes = new Float32Array(count);
+            const colors = new Uint32Array(count);
+            const shapes = new Uint8Array(count);
+
+            let idx = 0;
             for (let row = 0; row < rows; row++) {
                 for (let col = 0; col < cols; col++) {
-                    const idx = row * cols + col;
                     const x = 180 + col * 140;
                     const y = 150 + row * 100;
 
-                    const id = bridge.spawn_entity(x, y, 50, 50);
-                    bridge.set_color(id, colors[idx][0], colors[idx][1], colors[idx][2], 255);
-                    bridge.set_shape(id, col % 2); // alternating shapes
+                    positions[idx * 2] = x;
+                    positions[idx * 2 + 1] = y;
+                    sizes[idx] = 50;
+                    colors[idx] = colorPalette[idx % colorPalette.length];
+                    shapes[idx] = col % 2; // alternating shapes
 
-                    // Add sensors
+                    idx++;
+                }
+            }
+
+            const ids = bridge.bulk_spawn(positions, sizes, colors);
+
+            // Separate arrays for batch_configure_entities
+            const xs = new Float32Array(count);
+            const ys = new Float32Array(count);
+            const widths = new Float32Array(count);
+            const heights = new Float32Array(count);
+            const vxs = new Float32Array(count);
+            const vys = new Float32Array(count);
+            const axs = new Float32Array(count);
+            const ays = new Float32Array(count);
+
+            for (let i = 0; i < count; i++) {
+                xs[i] = positions[i * 2];
+                ys[i] = positions[i * 2 + 1];
+                widths[i] = sizes[i];
+                heights[i] = sizes[i];
+                vxs[i] = 0;
+                vys[i] = 0;
+                axs[i] = 0;
+                ays[i] = 0;
+            }
+
+            bridge.batch_configure_entities(
+                ids,
+                xs,
+                ys,
+                widths,
+                heights,
+                vxs,
+                vys,
+                axs,
+                ays,
+                colors,
+                shapes,
+            );
+
+            // Add sensors to each entity
+            idx = 0;
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    const id = ids[idx];
+                    const x = 180 + col * 140;
+                    const y = 150 + row * 100;
+
                     // MouseOver -> Highlight (actuator 0)
                     bridge.add_sensor(id, 0, 0, 0);
                     // MouseClick -> Select (actuator 1)
                     bridge.add_sensor(id, 1, 0, 1);
 
                     entities.push({ id, x, y });
+                    idx++;
                 }
             }
 

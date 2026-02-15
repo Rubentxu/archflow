@@ -293,6 +293,7 @@
             let fpsAccum = 0;
             let fpsSamples = 0;
             let wasmCallsThisFrame = 0;
+            let frameCount = 0;
 
             // Click handler - spawn shapes con física
             canvas.addEventListener("click", (e) => {
@@ -329,30 +330,47 @@
                 const ids = bridge.bulk_spawn(positions, sizes, colors);
                 wasmCallsThisFrame++;
 
-                // ✅ NUEVO: Usar configureEntities para configurar velocidad y physics en una llamada
-                // En lugar de batch_set_velocities + batch_set_physics_materials
-                const entities = [];
-                for (let i = 0; i < ids.length; i++) {
-                    entities.push({
-                        id: ids[i],
-                        vx: (Math.random() - 0.5) * 300,
-                        vy: (Math.random() - 0.5) * 300,
-                        // Physics material se configura en el store internamente si se necesita
-                    });
+                // ✅ NUEVO: Usar batch_configure_entities directamente para configurar velocidad y shapes
+                // Similar a 08f-physics
+                const count = ENTITIES_PER_SPAWN;
+                const xs = new Float32Array(count);
+                const ys = new Float32Array(count);
+                const widths = new Float32Array(count);
+                const heights = new Float32Array(count);
+                const vxs = new Float32Array(count);
+                const vys = new Float32Array(count);
+                const axs = new Float32Array(count);
+                const ays = new Float32Array(count);
+                const colorsPacked = new Uint32Array(count);
+                const shapesArr = new Uint8Array(count);
+
+                for (let i = 0; i < count; i++) {
+                    // Get position from entity store
+                    xs[i] = positions[i * 2];
+                    ys[i] = positions[i * 2 + 1];
+                    widths[i] = sizes[i * 2];
+                    heights[i] = sizes[i * 2 + 1];
+                    vxs[i] = (Math.random() - 0.5) * 300;
+                    vys[i] = (Math.random() - 0.5) * 300;
+                    axs[i] = 0;
+                    ays[i] = 0;
+                    colorsPacked[i] = 0; // Keep existing color from bulk_spawn
+                    shapesArr[i] = Math.random() > 0.5 ? 0 : 1;
                 }
 
-                // Configure entities with velocities using new API
-                // Nota: configureEntities maneja position, size, velocity, acceleration, color, shape
-                // Para physics material, usaríamos MoveActuator en el futuro
-                const configResult = configureEntities(bridge, entities);
-                wasmCallsThisFrame++;
-
-                // ✅ OPTIMIZADO: batch_set_shapes - 1 llamada en lugar de 1000
-                const shapeArray = new Uint8Array(ids.length);
-                for (let i = 0; i < ids.length; i++) {
-                    shapeArray[i] = Math.random() > 0.5 ? 0 : 1;
-                }
-                bridge.batch_set_shapes(ids, shapeArray);
+                bridge.batch_configure_entities(
+                    ids,
+                    xs,
+                    ys,
+                    widths,
+                    heights,
+                    vxs,
+                    vys,
+                    axs,
+                    ays,
+                    colorsPacked,
+                    shapesArr,
+                );
                 wasmCallsThisFrame++;
 
                 shapeIds.push(...ids);
@@ -431,11 +449,10 @@
                 const now = performance.now();
                 const dt = Math.min((now - lastFrameTime) / 1000, 0.1); // cap at 100ms
 
-                // ✅tick() DELEGA a engine.tick() que incluye:
-                // - Logic Bricks (Sensors -> Controllers -> Actuators)
-                // - Fixed Timestep Physics (integrado en tick() - HU-PERF-001)
-                // Física se ejecuta automáticamente en tick()
+                // PERFORMANCE: Measure bridge.tick() time
+                const tickStart = performance.now();
                 bridge.tick(now);
+                const tickTime = performance.now() - tickStart;
                 wasmCallsThisFrame++;
 
                 updateFPS();
@@ -443,6 +460,14 @@
 
                 document.getElementById("wasm-calls").textContent =
                     wasmCallsThisFrame;
+
+                // Log performance every 60 frames
+                frameCount++;
+                if (frameCount % 60 === 0) {
+                    console.log(
+                        `[PERF] tick=${tickTime.toFixed(2)}ms, FPS=${fps}`,
+                    );
+                }
 
                 requestAnimationFrame(gameLoop);
             }
@@ -525,38 +550,52 @@
                 // Single call: bulk spawn
                 const ids = bridge.bulk_spawn(positions, sizes, colors);
 
-                // Set velocities if requested
+                // Set velocities using batch_configure_entities
                 if (velocity > 0) {
-                    const vxArray = new Float32Array(count);
-                    const vyArray = new Float32Array(count);
-                    for (let i = 0; i < count; i++) {
-                        const angle = Math.random() * Math.PI * 2;
-                        vxArray[i] = Math.cos(angle) * velocity;
-                        vyArray[i] = Math.sin(angle) * velocity;
-                    }
-                    bridge.batch_set_velocities(ids, vxArray, vyArray);
+                    const xs = new Float32Array(count);
+                    const ys = new Float32Array(count);
+                    const widths = new Float32Array(count);
+                    const heights = new Float32Array(count);
+                    const vxs = new Float32Array(count);
+                    const vys = new Float32Array(count);
+                    const axs = new Float32Array(count);
+                    const ays = new Float32Array(count);
+                    const colorsPacked = new Uint32Array(count);
+                    const shapes = new Uint8Array(count).fill(0);
 
-                    // Set physics material for bounce
-                    bridge.batch_set_physics_materials(ids, 0.8, 0.0, 1.0);
+                    for (let i = 0; i < count; i++) {
+                        xs[i] = positions[i * 2];
+                        ys[i] = positions[i * 2 + 1];
+                        widths[i] = sizes[i * 2];
+                        heights[i] = sizes[i * 2 + 1];
+                        const angle = Math.random() * Math.PI * 2;
+                        vxs[i] = Math.cos(angle) * velocity;
+                        vys[i] = Math.sin(angle) * velocity;
+                        axs[i] = 0;
+                        ays[i] = 0;
+                    }
+
+                    bridge.batch_configure_entities(
+                        ids,
+                        xs,
+                        ys,
+                        widths,
+                        heights,
+                        vxs,
+                        vys,
+                        axs,
+                        ays,
+                        colorsPacked,
+                        shapes,
+                    );
                 }
 
                 return ids;
             }
 
             /**
-             * Update entity positions in bulk using TypedArrays
-             * @param {Object} bridge - WASM bridge instance
-             * @param {Uint32Array} ids - Entity IDs to update
-             * @param {Float32Array} xs - X positions
-             * @param {Float32Array} ys - Y positions
-             */
-            function updateEntityPositions(bridge, ids, xs, ys) {
-                bridge.batch_set_positions(ids, xs, ys);
-            }
-
-            /**
              * Configure multiple entities with complete properties in one call
-             * Uses the new configure_entity API for maximum efficiency
+             * Uses the new batch_configure_entities API for maximum efficiency
              * @param {Object} bridge - WASM bridge instance
              * @param {Object[]} entities - Array of entity configs
              */

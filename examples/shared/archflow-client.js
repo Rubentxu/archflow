@@ -153,7 +153,9 @@ function createLoop(bridge, onFrame) {
     const dt = (currentTime - lastTime) / 1000;
     lastTime = currentTime;
 
-    bridge.tick(dt);
+    // IMPORTANT: bridge.tick() expects a millisecond timestamp (performance.now()),
+    // NOT a delta-time. It uses the timestamp internally to compute fixed-timestep physics.
+    bridge.tick(currentTime);
 
     // FPS calculation
     frameCount++;

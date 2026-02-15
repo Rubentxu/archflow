@@ -49,7 +49,11 @@
                 position: absolute;
                 top: 80px;
                 left: 20px;
-                background: linear-gradient(135deg, rgba(15, 15, 25, 0.95), rgba(20, 20, 35, 0.95));
+                background: linear-gradient(
+                    135deg,
+                    rgba(15, 15, 25, 0.95),
+                    rgba(20, 20, 35, 0.95)
+                );
                 border: 1px solid rgba(155, 89, 182, 0.3);
                 border-radius: 12px;
                 padding: 20px;
@@ -94,16 +98,28 @@
                 background: rgba(255, 255, 255, 0.05);
             }
 
-            .chain-element.sensor { color: #00d4ff; }
-            .chain-element.controller { color: #ffd93d; }
-            .chain-element.actuator { color: #00ff88; }
-            .chain-arrow { color: #666; }
+            .chain-element.sensor {
+                color: #00d4ff;
+            }
+            .chain-element.controller {
+                color: #ffd93d;
+            }
+            .chain-element.actuator {
+                color: #00ff88;
+            }
+            .chain-arrow {
+                color: #666;
+            }
 
             .event-log {
                 position: absolute;
                 top: 80px;
                 right: 20px;
-                background: linear-gradient(135deg, rgba(15, 15, 25, 0.95), rgba(20, 20, 35, 0.95));
+                background: linear-gradient(
+                    135deg,
+                    rgba(15, 15, 25, 0.95),
+                    rgba(20, 20, 35, 0.95)
+                );
                 border: 1px solid rgba(0, 212, 255, 0.3);
                 border-radius: 12px;
                 padding: 20px;
@@ -133,9 +149,15 @@
                 border-left: 2px solid #444;
             }
 
-            .log-entry.hover { border-left-color: #00d4ff; }
-            .log-entry.click { border-left-color: #00ff88; }
-            .log-entry.select { border-left-color: #ffd93d; }
+            .log-entry.hover {
+                border-left-color: #00d4ff;
+            }
+            .log-entry.click {
+                border-left-color: #00ff88;
+            }
+            .log-entry.select {
+                border-left-color: #ffd93d;
+            }
 
             .legend {
                 position: absolute;
@@ -263,12 +285,58 @@
 
             addLogEntry("Inicializando sistema BGE...");
 
-            // === MAIN ENTITY (Centro) ===
-            // Multiple sensors, complex logic
-            const mainEntity = bridge.spawn_entity(450, 250, 100, 100);
-            bridge.set_color(mainEntity, 155, 89, 182, 255); // Purple
-            bridge.set_shape(mainEntity, 1); // Circle
+            // Use bulk_spawn + batch_configure_entities for efficient entity creation
+            const count = 3;
+            const positions = new Float32Array([
+                450,
+                250, // Main entity (center)
+                750,
+                250, // Control entity (right)
+                150,
+                250, // Info entity (left)
+            ]);
+            const sizes = new Float32Array([100, 60, 60]);
+            const colors = new Uint32Array([
+                0xffb2599b, // Purple: 0xRRGGBBAA (155, 89, 182, 255)
+                0xff71cc2e, // Green: 0xRRGGBBAA (46, 204, 113, 255)
+                0xffd39834, // Blue: 0xRRGGBBAA (52, 152, 219, 255)
+            ]);
+            const shapes = new Uint8Array([1, 0, 1]); // circle, rect, circle
+
+            const ids = bridge.bulk_spawn(positions, sizes, colors);
+
+            // Configure with shapes
+            const xs = new Float32Array([450, 750, 150]);
+            const ys = new Float32Array([250, 250, 250]);
+            const widths = new Float32Array([100, 60, 60]);
+            const heights = new Float32Array([100, 60, 60]);
+            const vxs = new Float32Array([0, 0, 0]);
+            const vys = new Float32Array([0, 0, 0]);
+            const axs = new Float32Array([0, 0, 0]);
+            const ays = new Float32Array([0, 0, 0]);
+
+            bridge.batch_configure_entities(
+                ids,
+                xs,
+                ys,
+                widths,
+                heights,
+                vxs,
+                vys,
+                axs,
+                ays,
+                colors,
+                shapes,
+            );
+
+            const mainEntity = ids[0];
+            const controlEntity = ids[1];
+            const infoEntity = ids[2];
+
+            // Add labels
             bridge.set_label(mainEntity, "Main Entity");
+            bridge.set_label(controlEntity, "Control");
+            bridge.set_label(infoEntity, "Info");
 
             // Chain 1: MouseOver -> AND -> Highlight
             bridge.add_sensor(mainEntity, 0, 1, 0); // sensor=0 (MouseOver), controller=1 (AND), actuator=0 (Highlight)
@@ -281,24 +349,10 @@
 
             addLogEntry("Entidad principal creada", "hover");
 
-            // === CONTROL ENTITY (Derecha) ===
-            // Keyboard controlled
-            const controlEntity = bridge.spawn_entity(750, 250, 60, 60);
-            bridge.set_color(controlEntity, 46, 204, 113, 255); // Green
-            bridge.set_shape(controlEntity, 0); // Rectangle
-            bridge.set_label(controlEntity, "Control");
-
             // Key shortcut sensor (Space key)
             bridge.add_sensor(controlEntity, 3, 0, 0); // sensor=3 (KeyShortcut), actuator=0 (Highlight)
 
             addLogEntry("Entidad de control creada");
-
-            // === INFO ENTITY (Izquierda) ===
-            // Shows info on hover
-            const infoEntity = bridge.spawn_entity(150, 250, 60, 60);
-            bridge.set_color(infoEntity, 52, 152, 219, 255); // Blue
-            bridge.set_shape(infoEntity, 1);
-            bridge.set_label(infoEntity, "Info");
 
             // Hover to show info
             bridge.add_sensor(infoEntity, 0, 0, 0);
@@ -319,11 +373,20 @@
                     for (const id of allEntities) {
                         const pos = bridge.get_entity_position_screen(id);
                         const size = bridge.get_entity_size_screen(id);
-                        if (pos && size && pos.length >= 2 && size.length >= 2) {
+                        if (
+                            pos &&
+                            size &&
+                            pos.length >= 2 &&
+                            size.length >= 2
+                        ) {
                             const halfW = size[0] / 2;
                             const halfH = size[1] / 2;
-                            if (x >= pos[0] - halfW && x <= pos[0] + halfW &&
-                                y >= pos[1] - halfH && y <= pos[1] + halfH) {
+                            if (
+                                x >= pos[0] - halfW &&
+                                x <= pos[0] + halfW &&
+                                y >= pos[1] - halfH &&
+                                y <= pos[1] + halfH
+                            ) {
                                 if (hoveredEntity !== id) {
                                     hoveredEntity = id;
                                     const label = bridge.get_entity_label(id);
@@ -366,7 +429,9 @@
             });
 
             console.log("08e-complete: Full BGE-style Logic Bricks system");
-            console.log("Main entity + Control entity + Info entity with full sensor chains");
+            console.log(
+                "Main entity + Control entity + Info entity with full sensor chains",
+            );
         </script>
     </body>
 </html>

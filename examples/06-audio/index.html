@@ -65,10 +65,29 @@
 
             const { bridge } = await createEngine("canvas");
 
-            // Visual speaker entity - centered in viewport
-            const id = bridge.spawn_entity(200, 200, 80, 80);
-            bridge.set_shape(id, 1); // circle
-            bridge.set_color(id, 0, 212, 255, 255);
+            // Visual speaker entity - centered in viewport (using bulk_spawn)
+            const positions = new Float32Array([200, 200]); // [x, y]
+            const sizes = new Float32Array([80]);
+            const colors = new Uint32Array([0xffffd400]); // RGBA packed: 0xRRGGBBAA (0, 212, 255, 255)
+            const shapes = new Uint8Array([1]); // circle
+
+            bridge.bulk_spawn(positions, sizes, colors);
+
+            // Get IDs for batch_configure_entities to set shapes
+            const ids = bridge.get_alive_entities();
+            bridge.batch_configure_entities(
+                ids,
+                new Float32Array([200]),
+                new Float32Array([200]),
+                new Float32Array([80]),
+                new Float32Array([80]),
+                new Float32Array([0]),
+                new Float32Array([0]),
+                new Float32Array([0]),
+                new Float32Array([0]),
+                colors,
+                shapes,
+            );
 
             let audioReady = false;
 

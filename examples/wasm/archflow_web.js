@@ -1131,6 +1131,190 @@ export class HighlightConfig {
 if (Symbol.dispose) HighlightConfig.prototype[Symbol.dispose] = HighlightConfig.prototype.free;
 
 /**
+ * EntityCommandBuffer - Deferred command execution for JS-WASM
+ *
+ * Use this to batch multiple commands and execute them efficiently.
+ */
+export class JsEntityCommandBuffer {
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(JsEntityCommandBuffer.prototype);
+        obj.__wbg_ptr = ptr;
+        JsEntityCommandBufferFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        JsEntityCommandBufferFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_jsentitycommandbuffer_free(ptr, 0);
+    }
+    /**
+     * Get capacity
+     * @returns {number}
+     */
+    capacity() {
+        const ret = wasm.jsentitycommandbuffer_capacity(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Clear the buffer
+     */
+    clear() {
+        wasm.jsentitycommandbuffer_clear(this.__wbg_ptr);
+    }
+    /**
+     * Get command count
+     * @returns {number}
+     */
+    commands_count() {
+        const ret = wasm.jsentitycommandbuffer_commands_count(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Get commands pointer
+     * @returns {number}
+     */
+    commands_ptr() {
+        const ret = wasm.jsentitycommandbuffer_commands_ptr(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Despawn an entity
+     * @param {number} entity
+     */
+    despawn(entity) {
+        wasm.jsentitycommandbuffer_despawn(this.__wbg_ptr, entity);
+    }
+    /**
+     * Check if empty
+     * @returns {boolean}
+     */
+    is_empty() {
+        const ret = wasm.jsentitycommandbuffer_is_empty(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
+     * Get command count
+     * @returns {number}
+     */
+    len() {
+        const ret = wasm.jsentitycommandbuffer_commands_count(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Create a new ECB
+     * @param {number} capacity
+     */
+    constructor(capacity) {
+        const ret = wasm.jsentitycommandbuffer_new(capacity);
+        this.__wbg_ptr = ret >>> 0;
+        JsEntityCommandBufferFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * Resize entity
+     * @param {number} entity
+     * @param {number} width
+     * @param {number} height
+     */
+    resize(entity, width, height) {
+        wasm.jsentitycommandbuffer_resize(this.__wbg_ptr, entity, width, height);
+    }
+    /**
+     * Set entity color
+     * @param {number} entity
+     * @param {number} color
+     */
+    set_color(entity, color) {
+        wasm.jsentitycommandbuffer_set_color(this.__wbg_ptr, entity, color);
+    }
+    /**
+     * Set entity layer
+     * @param {number} entity
+     * @param {number} layer
+     */
+    set_layer(entity, layer) {
+        wasm.jsentitycommandbuffer_set_layer(this.__wbg_ptr, entity, layer);
+    }
+    /**
+     * Set selection state
+     * @param {number} entity
+     * @param {boolean} selected
+     */
+    set_selection(entity, selected) {
+        wasm.jsentitycommandbuffer_set_selection(this.__wbg_ptr, entity, selected);
+    }
+    /**
+     * Set entity shape (0 = rect, 1 = circle)
+     * @param {number} entity
+     * @param {number} shape
+     */
+    set_shape(entity, shape) {
+        wasm.jsentitycommandbuffer_set_shape(this.__wbg_ptr, entity, shape);
+    }
+    /**
+     * Set entity velocity
+     * @param {number} entity
+     * @param {number} vx
+     * @param {number} vy
+     */
+    set_velocity(entity, vx, vy) {
+        wasm.jsentitycommandbuffer_set_velocity(this.__wbg_ptr, entity, vx, vy);
+    }
+    /**
+     * Set entity visibility
+     * @param {number} entity
+     * @param {boolean} visible
+     */
+    set_visible(entity, visible) {
+        wasm.jsentitycommandbuffer_set_visible(this.__wbg_ptr, entity, visible);
+    }
+    /**
+     * Spawn a new entity (returns temp ID for use within ECB)
+     * @param {number} x
+     * @param {number} y
+     * @param {number} width
+     * @param {number} height
+     * @returns {number}
+     */
+    spawn(x, y, width, height) {
+        const ret = wasm.jsentitycommandbuffer_spawn(this.__wbg_ptr, x, y, width, height);
+        return ret >>> 0;
+    }
+    /**
+     * Get spawned count
+     * @returns {number}
+     */
+    spawned_count() {
+        const ret = wasm.jsentitycommandbuffer_spawned_count(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Get spawned entity IDs
+     * @returns {number}
+     */
+    spawned_ids_ptr() {
+        const ret = wasm.jsentitycommandbuffer_spawned_ids_ptr(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Teleport entity to position
+     * @param {number} entity
+     * @param {number} x
+     * @param {number} y
+     */
+    teleport(entity, x, y) {
+        wasm.jsentitycommandbuffer_teleport(this.__wbg_ptr, entity, x, y);
+    }
+}
+if (Symbol.dispose) JsEntityCommandBuffer.prototype[Symbol.dispose] = JsEntityCommandBuffer.prototype.free;
+
+/**
  * Custom error type for JavaScript
  */
 export class JsError {
@@ -2093,7 +2277,7 @@ export class PropertyValue {
     static from_string(value) {
         const ptr0 = passStringToWasm0(value, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.brickhandle_new(ptr0, len0);
+        const ret = wasm.propertyvalue_from_string(ptr0, len0);
         return PropertyValue.__wrap(ret);
     }
     /**
@@ -2834,6 +3018,8 @@ export class WasmBridge {
     }
     /**
      * Clear all selections (deselect all entities)
+     *
+     * DEPRECATED: Use SelectActuator or query system instead
      */
     clear_selection() {
         const ret = wasm.wasmbridge_clear_selection(this.__wbg_ptr);
@@ -2908,6 +3094,38 @@ export class WasmBridge {
         return ret[0] >>> 0;
     }
     /**
+     * Create a new EntityCommandBuffer for batched operations
+     *
+     * Use this to register multiple commands and execute them in a single
+     * batch, minimizing JS↔WASM overhead.
+     *
+     * # Example
+     * ```javascript
+     * const ecb = bridge.create_ecb(1024);
+     *
+     * // Register commands (deferred, not executed yet)
+     * ecb.spawn(100, 200, 50, 50);
+     * ecb.spawn(150, 250, 50, 50);
+     * ecb.set_color(0, 0xFF00FF00);
+     * ecb.teleport(1, 300, 400);
+     * ecb.despawn(2);
+     *
+     * // Execute all commands at once
+     * const result = ecb.playback();
+     * // result.spawned = [0, 1]
+     * // result.despawned = [2]
+     * ```
+     * @param {number} capacity
+     * @returns {JsEntityCommandBuffer}
+     */
+    create_ecb(capacity) {
+        const ret = wasm.wasmbridge_create_ecb(this.__wbg_ptr, capacity);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return JsEntityCommandBuffer.__wrap(ret[0]);
+    }
+    /**
      * Delete all selected entities
      *
      * DEPRECATED: Use SelectActuator + DeleteActuator via Logic Bricks instead
@@ -2953,6 +3171,21 @@ export class WasmBridge {
             throw takeFromExternrefTable0(ret[1]);
         }
         return ret[0] >>> 0;
+    }
+    /**
+     * Execute all pending commands in an EntityCommandBuffer
+     *
+     * This executes all commands in the ECB buffer on the ECS
+     * @param {JsEntityCommandBuffer} ecb
+     * @returns {object}
+     */
+    execute_ecb(ecb) {
+        _assertClass(ecb, JsEntityCommandBuffer);
+        const ret = wasm.wasmbridge_execute_ecb(this.__wbg_ptr, ecb.__wbg_ptr);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return takeFromExternrefTable0(ret[0]);
     }
     /**
      * Get the current accumulator value (for debugging)
@@ -4397,6 +4630,55 @@ export class WasmBridge {
 if (Symbol.dispose) WasmBridge.prototype[Symbol.dispose] = WasmBridge.prototype.free;
 
 /**
+ * Zero-copy buffer for direct memory access
+ */
+export class ZeroCopyCommandBuffer {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        ZeroCopyCommandBufferFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_zerocopycommandbuffer_free(ptr, 0);
+    }
+    clear() {
+        wasm.zerocopycommandbuffer_clear(this.__wbg_ptr);
+    }
+    /**
+     * @returns {number}
+     */
+    count() {
+        const ret = wasm.zerocopycommandbuffer_count(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    data_ptr() {
+        const ret = wasm.zerocopycommandbuffer_data_ptr(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @param {number} capacity
+     */
+    constructor(capacity) {
+        const ret = wasm.zerocopycommandbuffer_new(capacity);
+        this.__wbg_ptr = ret >>> 0;
+        ZeroCopyCommandBufferFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * @param {number} count
+     */
+    set_count(count) {
+        wasm.zerocopycommandbuffer_set_count(this.__wbg_ptr, count);
+    }
+}
+if (Symbol.dispose) ZeroCopyCommandBuffer.prototype[Symbol.dispose] = ZeroCopyCommandBuffer.prototype.free;
+
+/**
  * Create a delete actuator
  *
  * # Returns
@@ -5148,17 +5430,6 @@ function __wbg_get_imports() {
         __wbg_enable_d1ac04dfdd2fb3ae: function(arg0, arg1) {
             arg0.enable(arg1 >>> 0);
         },
-        __wbg_error_7534b8e9a36f1ab4: function(arg0, arg1) {
-            let deferred0_0;
-            let deferred0_1;
-            try {
-                deferred0_0 = arg0;
-                deferred0_1 = arg1;
-                console.error(getStringFromWasm0(arg0, arg1));
-            } finally {
-                wasm.__wbindgen_free(deferred0_0, deferred0_1, 1);
-            }
-        },
         __wbg_error_9a7fe3f932034cde: function(arg0) {
             console.error(arg0);
         },
@@ -5170,10 +5441,6 @@ function __wbg_get_imports() {
             const ret = arg0.getContext(getStringFromWasm0(arg1, arg2));
             return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
         }, arguments); },
-        __wbg_getError_bba8594facbfd5e1: function(arg0) {
-            const ret = arg0.getError();
-            return ret;
-        },
         __wbg_getProgramInfoLog_2ffa30e3abb8b5c2: function(arg0, arg1, arg2) {
             const ret = arg1.getProgramInfoLog(arg2);
             var ptr1 = isLikeNone(ret) ? 0 : passStringToWasm0(ret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
@@ -5260,57 +5527,12 @@ function __wbg_get_imports() {
         __wbg_log_6b5ca2e6124b2808: function(arg0) {
             console.log(arg0);
         },
-        __wbg_log_98ea330cbdc64a56: function(arg0, arg1) {
-            let deferred0_0;
-            let deferred0_1;
-            try {
-                deferred0_0 = arg0;
-                deferred0_1 = arg1;
-                console.log(getStringFromWasm0(arg0, arg1));
-            } finally {
-                wasm.__wbindgen_free(deferred0_0, deferred0_1, 1);
-            }
-        },
-        __wbg_log_f996de40931ab7d1: function(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
-            let deferred0_0;
-            let deferred0_1;
-            try {
-                deferred0_0 = arg0;
-                deferred0_1 = arg1;
-                console.log(getStringFromWasm0(arg0, arg1), getStringFromWasm0(arg2, arg3), getStringFromWasm0(arg4, arg5), getStringFromWasm0(arg6, arg7));
-            } finally {
-                wasm.__wbindgen_free(deferred0_0, deferred0_1, 1);
-            }
-        },
-        __wbg_mark_49688daf5a319979: function(arg0, arg1) {
-            performance.mark(getStringFromWasm0(arg0, arg1));
-        },
-        __wbg_measure_52555d98d3c0f41a: function() { return handleError(function (arg0, arg1, arg2, arg3) {
-            let deferred0_0;
-            let deferred0_1;
-            let deferred1_0;
-            let deferred1_1;
-            try {
-                deferred0_0 = arg0;
-                deferred0_1 = arg1;
-                deferred1_0 = arg2;
-                deferred1_1 = arg3;
-                performance.measure(getStringFromWasm0(arg0, arg1), getStringFromWasm0(arg2, arg3));
-            } finally {
-                wasm.__wbindgen_free(deferred0_0, deferred0_1, 1);
-                wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
-            }
-        }, arguments); },
         __wbg_new_361308b2356cecd0: function() {
             const ret = new Object();
             return ret;
         },
         __wbg_new_3eb36ae241fe6f44: function() {
             const ret = new Array();
-            return ret;
-        },
-        __wbg_new_8a6f238a6ece86ea: function() {
-            const ret = new Error();
             return ret;
         },
         __wbg_new_no_args_1c7c842f08d00ebb: function(arg0, arg1) {
@@ -5338,13 +5560,6 @@ function __wbg_get_imports() {
         }, arguments); },
         __wbg_shaderSource_32425cfe6e5a1e52: function(arg0, arg1, arg2, arg3) {
             arg0.shaderSource(arg1, getStringFromWasm0(arg2, arg3));
-        },
-        __wbg_stack_0ed75d68575b0f3c: function(arg0, arg1) {
-            const ret = arg1.stack;
-            const ptr1 = passStringToWasm0(ret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-            const len1 = WASM_VECTOR_LEN;
-            getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
-            getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
         },
         __wbg_static_accessor_GLOBAL_12837167ad935116: function() {
             const ret = typeof global === 'undefined' ? null : global;
@@ -5388,13 +5603,13 @@ function __wbg_get_imports() {
             return ret;
         },
         __wbindgen_cast_0000000000000001: function(arg0, arg1) {
-            // Cast intrinsic for `Closure(Closure { dtor_idx: 62, function: Function { arguments: [NamedExternref("Event")], shim_idx: 65, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
-            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h0fff7f8f8086545d, wasm_bindgen__convert__closures_____invoke__hb95fef9f40988300);
+            // Cast intrinsic for `Closure(Closure { dtor_idx: 40, function: Function { arguments: [NamedExternref("Event")], shim_idx: 41, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
+            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h28f129b2221d1ce6, wasm_bindgen__convert__closures_____invoke__h691066a67746a488);
             return ret;
         },
         __wbindgen_cast_0000000000000002: function(arg0, arg1) {
-            // Cast intrinsic for `Closure(Closure { dtor_idx: 62, function: Function { arguments: [], shim_idx: 63, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
-            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h0fff7f8f8086545d, wasm_bindgen__convert__closures_____invoke__h5e346efc58a509bb);
+            // Cast intrinsic for `Closure(Closure { dtor_idx: 40, function: Function { arguments: [], shim_idx: 43, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
+            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h28f129b2221d1ce6, wasm_bindgen__convert__closures_____invoke__hcb20bf1da18456cb);
             return ret;
         },
         __wbindgen_cast_0000000000000003: function(arg0) {
@@ -5433,12 +5648,12 @@ function __wbg_get_imports() {
     };
 }
 
-function wasm_bindgen__convert__closures_____invoke__h5e346efc58a509bb(arg0, arg1) {
-    wasm.wasm_bindgen__convert__closures_____invoke__h5e346efc58a509bb(arg0, arg1);
+function wasm_bindgen__convert__closures_____invoke__hcb20bf1da18456cb(arg0, arg1) {
+    wasm.wasm_bindgen__convert__closures_____invoke__hcb20bf1da18456cb(arg0, arg1);
 }
 
-function wasm_bindgen__convert__closures_____invoke__hb95fef9f40988300(arg0, arg1, arg2) {
-    wasm.wasm_bindgen__convert__closures_____invoke__hb95fef9f40988300(arg0, arg1, arg2);
+function wasm_bindgen__convert__closures_____invoke__h691066a67746a488(arg0, arg1, arg2) {
+    wasm.wasm_bindgen__convert__closures_____invoke__h691066a67746a488(arg0, arg1, arg2);
 }
 
 const BrickChainBuilderFinalization = (typeof FinalizationRegistry === 'undefined')
@@ -5468,6 +5683,9 @@ const EventTypeFinalization = (typeof FinalizationRegistry === 'undefined')
 const HighlightConfigFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_highlightconfig_free(ptr >>> 0, 1));
+const JsEntityCommandBufferFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_jsentitycommandbuffer_free(ptr >>> 0, 1));
 const JsErrorFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_jserror_free(ptr >>> 0, 1));
@@ -5504,6 +5722,9 @@ const SignalByteWasmFinalization = (typeof FinalizationRegistry === 'undefined')
 const WasmBridgeFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_wasmbridge_free(ptr >>> 0, 1));
+const ZeroCopyCommandBufferFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_zerocopycommandbuffer_free(ptr >>> 0, 1));
 
 function addToExternrefTable0(obj) {
     const idx = wasm.__externref_table_alloc();
@@ -5863,7 +6084,7 @@ async function __wbg_init(module_or_path) {
     }
 
     if (module_or_path === undefined) {
-        module_or_path = new URL('archflow_wasm_bridge_bg.wasm', import.meta.url);
+        module_or_path = new URL('archflow_web_bg.wasm', import.meta.url);
     }
     const imports = __wbg_get_imports();
 

@@ -49,7 +49,11 @@
                 position: absolute;
                 top: 80px;
                 left: 20px;
-                background: linear-gradient(135deg, rgba(15, 15, 25, 0.95), rgba(20, 20, 35, 0.95));
+                background: linear-gradient(
+                    135deg,
+                    rgba(15, 15, 25, 0.95),
+                    rgba(20, 20, 35, 0.95)
+                );
                 border: 1px solid rgba(0, 212, 255, 0.3);
                 border-radius: 12px;
                 padding: 20px;
@@ -213,43 +217,83 @@
             const { bridge, canvas } = await createEngine("canvas", {
                 onFrame: (dt, fps) => {
                     // UI updates can go here
-                }
+                },
             });
 
             // Create interactive entities
             const entities = [];
-            const colors = [
-                [231, 76, 60],   // Red
-                [46, 204, 113],  // Green
-                [52, 152, 219],  // Blue
-                [155, 89, 182],  // Purple
-                [241, 196, 15],  // Yellow
+            const colorValues = [
+                0xffeb3b3c, // Red: 0xRRGGBBAA (231, 76, 60, 255)
+                0xff71cc2e, // Green: 0xRRGGBBAA (46, 204, 113, 255)
+                0xffd39834, // Blue: 0xRRGGBBAA (52, 152, 219, 255)
+                0xffb2599b, // Purple: 0xRRGGBBAA (155, 89, 182, 255)
+                0xff15c4f1, // Yellow: 0xRRGGBBAA (241, 196, 15, 255)
             ];
 
-            // Create 5 entities in a row
-            for (let i = 0; i < 5; i++) {
-                const id = bridge.spawn_entity(
-                    150 + i * 140,
-                    250,
-                    60,
-                    60
-                );
-                bridge.set_color(id, colors[i][0], colors[i][1], colors[i][2], 255);
-                bridge.set_shape(id, 1); // circle
+            // Use bulk_spawn + batch_configure_entities for efficient creation
+            const count = 5;
+            const positions = new Float32Array(count * 2);
+            const sizes = new Float32Array(count);
+            const colors = new Uint32Array(count);
+            const shapes = new Uint8Array(count);
 
-                // Add MouseOver + Highlight
-                // sensor=0, controller=0 (Direct), actuator=0 (Highlight)
+            for (let i = 0; i < count; i++) {
+                positions[i * 2] = 150 + i * 140;
+                positions[i * 2 + 1] = 250;
+                sizes[i] = 60;
+                colors[i] = colorValues[i];
+                shapes[i] = 1; // circle
+            }
+
+            // Spawn all entities
+            const ids = bridge.bulk_spawn(positions, sizes, colors);
+
+            // Configure with shapes
+            const xs = new Float32Array(count);
+            const ys = new Float32Array(count);
+            const widths = new Float32Array(count);
+            const heights = new Float32Array(count);
+            const vxs = new Float32Array(count);
+            const vys = new Float32Array(count);
+            const axs = new Float32Array(count);
+            const ays = new Float32Array(count);
+
+            for (let i = 0; i < count; i++) {
+                xs[i] = positions[i * 2];
+                ys[i] = positions[i * 2 + 1];
+                widths[i] = sizes[i];
+                heights[i] = sizes[i];
+                vxs[i] = 0;
+                vys[i] = 0;
+                axs[i] = 0;
+                ays[i] = 0;
+            }
+
+            bridge.batch_configure_entities(
+                ids,
+                xs,
+                ys,
+                widths,
+                heights,
+                vxs,
+                vys,
+                axs,
+                ays,
+                colors,
+                shapes,
+            );
+
+            // Add sensors to each entity
+            for (let i = 0; i < count; i++) {
+                const id = ids[i];
+                // Add MouseOver + Highlight: sensor=0, controller=0, actuator=0
                 bridge.add_sensor(id, 0, 0, 0);
-
-                // Add MouseClick + Select
-                // sensor=1, controller=0, actuator=1 (Select)
+                // Add MouseClick + Select: sensor=1, controller=0, actuator=1
                 bridge.add_sensor(id, 1, 0, 1);
-
-                // Add RightClick + Delete
-                // sensor=8, controller=0, actuator=3 (Delete)
+                // Add RightClick + Delete: sensor=8, controller=0, actuator=3
                 bridge.add_sensor(id, 8, 0, 3);
 
-                entities.push({ id, originalColor: colors[i] });
+                entities.push({ id, originalColor: colorValues[i] });
             }
 
             // Add keyboard shortcut for reset (Space)
@@ -257,20 +301,69 @@
             window.addEventListener("keydown", (e) => {
                 if (e.code === "Space") {
                     e.preventDefault();
-                    // Respawn all deleted entities
-                    for (let i = 0; i < 5; i++) {
-                        if (!bridge.is_alive(i)) {
-                            const id = bridge.spawn_entity(
-                                150 + i * 140,
-                                250,
-                                60,
-                                60
-                            );
-                            bridge.set_color(id, colors[i][0], colors[i][1], colors[i][2], 255);
-                            bridge.set_shape(id, 1);
-                            bridge.add_sensor(id, 0, 0, 0); // MouseOver -> Highlight
-                            bridge.add_sensor(id, 1, 0, 1);  // MouseClick -> Select
-                            bridge.add_sensor(id, 8, 0, 3);  // RightClick -> Delete
+                    // Respawn all deleted entities using bulk_spawn
+                    const deletedCount = entities.filter(
+                        (e) => !bridge.is_alive(e.id),
+                    ).length;
+                    if (deletedCount > 0) {
+                        const newPositions = new Float32Array(deletedCount * 2);
+                        const newSizes = new Float32Array(deletedCount);
+                        const newColors = new Uint32Array(deletedCount);
+                        let idx = 0;
+                        for (let i = 0; i < count; i++) {
+                            if (!bridge.is_alive(entities[i].id)) {
+                                newPositions[idx * 2] = 150 + i * 140;
+                                newPositions[idx * 2 + 1] = 250;
+                                newSizes[idx] = 60;
+                                newColors[idx] = colorValues[i];
+                                idx++;
+                            }
+                        }
+                        const newIds = bridge.bulk_spawn(
+                            newPositions,
+                            newSizes,
+                            newColors,
+                        );
+
+                        // Configure and add sensors to new entities
+                        const newXs = new Float32Array(deletedCount);
+                        const newYs = new Float32Array(deletedCount);
+                        const newWidths = new Float32Array(deletedCount);
+                        const newHeights = new Float32Array(deletedCount);
+                        const zeroArr = new Float32Array(deletedCount);
+
+                        for (let j = 0; j < deletedCount; j++) {
+                            newXs[j] = newPositions[j * 2];
+                            newYs[j] = newPositions[j * 2 + 1];
+                            newWidths[j] = newSizes[j];
+                            newHeights[j] = newSizes[j];
+                        }
+
+                        const newShapes = new Uint8Array(deletedCount).fill(1);
+                        bridge.batch_configure_entities(
+                            newIds,
+                            newXs,
+                            newYs,
+                            newWidths,
+                            newHeights,
+                            zeroArr,
+                            zeroArr,
+                            zeroArr,
+                            zeroArr,
+                            newColors,
+                            newShapes,
+                        );
+
+                        // Track new IDs and add sensors
+                        idx = 0;
+                        for (let i = 0; i < count; i++) {
+                            if (!bridge.is_alive(entities[i].id)) {
+                                const newId = newIds[idx++];
+                                entities[i].id = newId;
+                                bridge.add_sensor(newId, 0, 0, 0);
+                                bridge.add_sensor(newId, 1, 0, 1);
+                                bridge.add_sensor(newId, 8, 0, 3);
+                            }
                         }
                     }
                     updateSensorUI(0, true);
@@ -279,7 +372,12 @@
 
             // Manual sensor status UI update (since we can't easily get sensor state)
             function updateSensorUI(sensorType, active) {
-                const ids = ["sensor-hover", "sensor-click", "sensor-key", "sensor-right"];
+                const ids = [
+                    "sensor-hover",
+                    "sensor-click",
+                    "sensor-key",
+                    "sensor-right",
+                ];
                 if (sensorType < ids.length) {
                     const el = document.getElementById(ids[sensorType]);
                     if (active) {
@@ -291,7 +389,9 @@
 
             // Listen for engine events (if available)
             console.log("08a-sensors: Logic Bricks initialized");
-            console.log("5 entities with MouseOver, MouseClick, RightClick sensors");
+            console.log(
+                "5 entities with MouseOver, MouseClick, RightClick sensors",
+            );
         </script>
     </body>
 </html>

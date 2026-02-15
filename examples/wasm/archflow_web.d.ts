@@ -631,6 +631,92 @@ export class HighlightConfig {
 }
 
 /**
+ * EntityCommandBuffer - Deferred command execution for JS-WASM
+ *
+ * Use this to batch multiple commands and execute them efficiently.
+ */
+export class JsEntityCommandBuffer {
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Get capacity
+     */
+    capacity(): number;
+    /**
+     * Clear the buffer
+     */
+    clear(): void;
+    /**
+     * Get command count
+     */
+    commands_count(): number;
+    /**
+     * Get commands pointer
+     */
+    commands_ptr(): number;
+    /**
+     * Despawn an entity
+     */
+    despawn(entity: number): void;
+    /**
+     * Check if empty
+     */
+    is_empty(): boolean;
+    /**
+     * Get command count
+     */
+    len(): number;
+    /**
+     * Create a new ECB
+     */
+    constructor(capacity: number);
+    /**
+     * Resize entity
+     */
+    resize(entity: number, width: number, height: number): void;
+    /**
+     * Set entity color
+     */
+    set_color(entity: number, color: number): void;
+    /**
+     * Set entity layer
+     */
+    set_layer(entity: number, layer: number): void;
+    /**
+     * Set selection state
+     */
+    set_selection(entity: number, selected: boolean): void;
+    /**
+     * Set entity shape (0 = rect, 1 = circle)
+     */
+    set_shape(entity: number, shape: number): void;
+    /**
+     * Set entity velocity
+     */
+    set_velocity(entity: number, vx: number, vy: number): void;
+    /**
+     * Set entity visibility
+     */
+    set_visible(entity: number, visible: boolean): void;
+    /**
+     * Spawn a new entity (returns temp ID for use within ECB)
+     */
+    spawn(x: number, y: number, width: number, height: number): number;
+    /**
+     * Get spawned count
+     */
+    spawned_count(): number;
+    /**
+     * Get spawned entity IDs
+     */
+    spawned_ids_ptr(): number;
+    /**
+     * Teleport entity to position
+     */
+    teleport(entity: number, x: number, y: number): void;
+}
+
+/**
  * Custom error type for JavaScript
  */
 export class JsError {
@@ -1535,6 +1621,8 @@ export class WasmBridge {
     clear_entity_logic(entity_id: number): void;
     /**
      * Clear all selections (deselect all entities)
+     *
+     * DEPRECATED: Use SelectActuator or query system instead
      */
     clear_selection(): void;
     /**
@@ -1570,6 +1658,30 @@ export class WasmBridge {
      */
     connection_count(entity_id: number): number;
     /**
+     * Create a new EntityCommandBuffer for batched operations
+     *
+     * Use this to register multiple commands and execute them in a single
+     * batch, minimizing JS↔WASM overhead.
+     *
+     * # Example
+     * ```javascript
+     * const ecb = bridge.create_ecb(1024);
+     *
+     * // Register commands (deferred, not executed yet)
+     * ecb.spawn(100, 200, 50, 50);
+     * ecb.spawn(150, 250, 50, 50);
+     * ecb.set_color(0, 0xFF00FF00);
+     * ecb.teleport(1, 300, 400);
+     * ecb.despawn(2);
+     *
+     * // Execute all commands at once
+     * const result = ecb.playback();
+     * // result.spawned = [0, 1]
+     * // result.despawned = [2]
+     * ```
+     */
+    create_ecb(capacity: number): JsEntityCommandBuffer;
+    /**
      * Delete all selected entities
      *
      * DEPRECATED: Use SelectActuator + DeleteActuator via Logic Bricks instead
@@ -1589,6 +1701,12 @@ export class WasmBridge {
      * Get the number of alive entities
      */
     entity_count(): number;
+    /**
+     * Execute all pending commands in an EntityCommandBuffer
+     *
+     * This executes all commands in the ECB buffer on the ECS
+     */
+    execute_ecb(ecb: JsEntityCommandBuffer): object;
     /**
      * Get the current accumulator value (for debugging)
      */
@@ -2190,6 +2308,19 @@ export class WasmBridge {
 }
 
 /**
+ * Zero-copy buffer for direct memory access
+ */
+export class ZeroCopyCommandBuffer {
+    free(): void;
+    [Symbol.dispose](): void;
+    clear(): void;
+    count(): number;
+    data_ptr(): number;
+    constructor(capacity: number);
+    set_count(count: number): void;
+}
+
+/**
  * Create a delete actuator
  *
  * # Returns
@@ -2699,10 +2830,12 @@ export interface InitOutput {
     readonly wasmbridge_configure_entity: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number) => [number, number];
     readonly wasmbridge_configure_mouse_sensor: (a: number, b: number, c: number) => [number, number];
     readonly wasmbridge_connection_count: (a: number, b: number) => [number, number, number];
+    readonly wasmbridge_create_ecb: (a: number, b: number) => [number, number, number];
     readonly wasmbridge_delete_selected: (a: number) => [number, number];
     readonly wasmbridge_detect_available_backends: (a: number) => [number, number, number];
     readonly wasmbridge_duplicate_entity: (a: number, b: number) => [number, number, number];
     readonly wasmbridge_entity_count: (a: number) => [number, number, number];
+    readonly wasmbridge_execute_ecb: (a: number, b: number) => [number, number, number];
     readonly wasmbridge_get_accumulator: (a: number) => number;
     readonly wasmbridge_get_active_color: (a: number) => [number, number, number, number];
     readonly wasmbridge_get_active_stroke_color: (a: number) => [number, number, number, number];
@@ -2806,51 +2939,22 @@ export interface InitOutput {
     readonly wasmbridge_stop_sound: (a: number, b: number) => [number, number];
     readonly wasmbridge_tick: (a: number, b: number) => [number, number];
     readonly wasmbridge_undo: (a: number) => [number, number];
-    readonly __wbg_controller_free: (a: number, b: number) => void;
-    readonly controller_and: (a: number) => number;
-    readonly controller_and_any: () => number;
-    readonly controller_blinky: (a: number) => number;
-    readonly controller_controller_type: (a: number) => number;
-    readonly controller_custom: (a: number, b: number, c: number, d: number) => number;
-    readonly controller_custom_code: (a: number) => [number, number];
-    readonly controller_custom_name: (a: number) => [number, number];
-    readonly controller_debounce: (a: number) => number;
-    readonly controller_direct: () => number;
-    readonly controller_float_param1: (a: number) => number;
-    readonly controller_float_param2: (a: number) => number;
-    readonly controller_has_secondary_sensor: (a: number) => number;
-    readonly controller_hysteresis: (a: number, b: number) => number;
-    readonly controller_is_custom: (a: number) => number;
-    readonly controller_not: () => number;
-    readonly controller_numeric_param: (a: number) => number;
-    readonly controller_or: (a: number) => number;
-    readonly controller_or_any: () => number;
-    readonly controller_pattern: (a: number) => number;
-    readonly controller_secondary_sensor: (a: number) => number;
-    readonly controller_threshold: (a: number) => number;
-    readonly __wbg_brickhandle_free: (a: number, b: number) => void;
-    readonly __wbg_cameraconfig_free: (a: number, b: number) => void;
-    readonly __wbg_highlightconfig_free: (a: number, b: number) => void;
-    readonly __wbg_moveconfig_free: (a: number, b: number) => void;
-    readonly __wbg_propertyconfig_free: (a: number, b: number) => void;
-    readonly __wbg_propertyvalue_free: (a: number, b: number) => void;
+    readonly __wbg_callbackid_free: (a: number, b: number) => void;
+    readonly __wbg_callbackregistry_free: (a: number, b: number) => void;
     readonly actuator_delete: () => number;
     readonly actuator_emit_event: (a: number, b: number, c: number, d: number) => number;
     readonly actuator_highlight: (a: number, b: number) => number;
     readonly actuator_move: (a: number, b: number, c: number) => number;
     readonly actuator_select_clear: () => number;
-    readonly brickhandle_disable: (a: number) => void;
-    readonly brickhandle_id: (a: number) => [number, number];
-    readonly brickhandle_is_enabled: (a: number) => number;
-    readonly brickhandle_new: (a: number, b: number) => number;
-    readonly brickhandle_remove: (a: number) => void;
-    readonly brickhandle_toggle: (a: number) => number;
-    readonly cameraconfig_duration_ms: (a: number) => number;
-    readonly cameraconfig_new: (a: number, b: number, c: number, d: number, e: number) => number;
-    readonly cameraconfig_smooth: (a: number) => number;
-    readonly cameraconfig_target_x: (a: number) => number;
-    readonly cameraconfig_target_y: (a: number) => number;
-    readonly cameraconfig_zoom: (a: number) => number;
+    readonly callbackid_value: (a: number) => number;
+    readonly callbackregistry_clear: (a: number) => void;
+    readonly callbackregistry_event_callback_count: (a: number, b: number, c: number) => number;
+    readonly callbackregistry_invoke: (a: number, b: number, c: number, d: any) => number;
+    readonly callbackregistry_new: () => number;
+    readonly callbackregistry_register: (a: number, b: any, c: number, d: number, e: number) => number;
+    readonly callbackregistry_total_count: (a: number) => number;
+    readonly callbackregistry_unregister: (a: number, b: number) => number;
+    readonly callbackregistry_unregister_all: (a: number, b: number, c: number) => number;
     readonly factory_and: (a: number) => number;
     readonly factory_blinky: (a: number) => number;
     readonly factory_custom: (a: number, b: number, c: number, d: number) => number;
@@ -2864,18 +2968,6 @@ export interface InitOutput {
     readonly factory_pattern: (a: number) => number;
     readonly factory_threshold: (a: number) => number;
     readonly factory_xor: () => number;
-    readonly highlightconfig_color: (a: number) => number;
-    readonly highlightconfig_new: (a: number, b: number, c: number) => number;
-    readonly highlightconfig_restore_color: (a: number) => number;
-    readonly moveconfig_constrain_x: (a: number) => number;
-    readonly moveconfig_constrain_y: (a: number) => number;
-    readonly moveconfig_new: (a: number, b: number, c: number) => number;
-    readonly propertyconfig_new: (a: number, b: number, c: number) => number;
-    readonly propertyconfig_property_name: (a: number) => [number, number];
-    readonly propertyconfig_value: (a: number) => number;
-    readonly propertyvalue_from_bool: (a: number) => number;
-    readonly propertyvalue_from_number: (a: number) => number;
-    readonly propertyvalue_value: (a: number) => [number, number];
     readonly sensor_collision_detect: (a: number) => number;
     readonly sensor_double_tap: () => number;
     readonly sensor_keyboard_key: (a: number, b: number) => number;
@@ -2890,10 +2982,63 @@ export interface InitOutput {
     readonly actuator_select_multi: () => number;
     readonly actuator_select_single: () => number;
     readonly actuator_select_toggle: () => number;
-    readonly propertyvalue_from_string: (a: number, b: number) => number;
+    readonly get_global_callback_registry: () => number;
+    readonly __wbg_brickhandle_free: (a: number, b: number) => void;
+    readonly brickhandle_disable: (a: number) => void;
+    readonly brickhandle_id: (a: number) => [number, number];
+    readonly brickhandle_is_enabled: (a: number) => number;
+    readonly brickhandle_new: (a: number, b: number) => number;
+    readonly brickhandle_remove: (a: number) => void;
+    readonly brickhandle_toggle: (a: number) => number;
     readonly brickhandle_enable: (a: number) => void;
-    readonly highlightconfig_opacity: (a: number) => number;
-    readonly moveconfig_snap: (a: number) => number;
+    readonly __wbg_logicbrickssystem_free: (a: number, b: number) => void;
+    readonly logicbrickssystem_clear_creation: (a: number) => void;
+    readonly logicbrickssystem_clear_drag_state: (a: number) => void;
+    readonly logicbrickssystem_drag_count: (a: number) => number;
+    readonly logicbrickssystem_event_buffer_len: (a: number) => number;
+    readonly logicbrickssystem_get_active_tool: (a: number) => [number, number];
+    readonly logicbrickssystem_get_creation_start_pos: (a: number) => number;
+    readonly logicbrickssystem_get_selected_entities: (a: number) => any;
+    readonly logicbrickssystem_is_creating: (a: number) => number;
+    readonly logicbrickssystem_is_dragging: (a: number) => number;
+    readonly logicbrickssystem_new: () => number;
+    readonly logicbrickssystem_pending_command_count: (a: number) => number;
+    readonly logicbrickssystem_poll_events: (a: number) => number;
+    readonly logicbrickssystem_sample_input: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => void;
+    readonly logicbrickssystem_selection_count: (a: number) => number;
+    readonly logicbrickssystem_set_active_tool: (a: number, b: number, c: number) => void;
+    readonly logicbrickssystem_set_creation_start: (a: number, b: number, c: number) => void;
+    readonly logicbrickssystem_has_events: (a: number) => number;
+    readonly __wbg_brickchainbuilder_free: (a: number, b: number) => void;
+    readonly __wbg_signalbytewasm_free: (a: number, b: number) => void;
+    readonly brickchainbuilder_actuator_count: (a: number) => number;
+    readonly brickchainbuilder_actuator_highlight: (a: number, b: number, c: number) => number;
+    readonly brickchainbuilder_actuator_move: (a: number, b: number, c: number, d: number) => number;
+    readonly brickchainbuilder_actuator_select: (a: number, b: number) => number;
+    readonly brickchainbuilder_connect: (a: number) => number;
+    readonly brickchainbuilder_controller: (a: number, b: number) => number;
+    readonly brickchainbuilder_controller_count: (a: number) => number;
+    readonly brickchainbuilder_entity_id: (a: number) => number;
+    readonly brickchainbuilder_new: (a: number) => number;
+    readonly brickchainbuilder_sensor: (a: number, b: number) => number;
+    readonly brickchainbuilder_sensor_count: (a: number) => number;
+    readonly brickchainbuilder_sensor_key: (a: number, b: number) => number;
+    readonly brickchainbuilder_with_mapping_table: (a: number, b: number) => number;
+    readonly signalbytewasm_any_edge: (a: number) => number;
+    readonly signalbytewasm_as_u8: (a: number) => number;
+    readonly signalbytewasm_count_ones: (a: number) => number;
+    readonly signalbytewasm_count_zeros: (a: number) => number;
+    readonly signalbytewasm_from: (a: number) => number;
+    readonly signalbytewasm_get_current: (a: number) => number;
+    readonly signalbytewasm_get_history: (a: number) => number;
+    readonly signalbytewasm_is_falling_edge: (a: number) => number;
+    readonly signalbytewasm_is_rising_edge: (a: number) => number;
+    readonly signalbytewasm_is_steady: (a: number, b: number) => number;
+    readonly signalbytewasm_is_steady_low: (a: number, b: number) => number;
+    readonly signalbytewasm_new: () => number;
+    readonly signalbytewasm_push: (a: number, b: number) => void;
+    readonly signalbytewasm_size: (a: number) => number;
+    readonly signalbytewasm_is_steady_high: (a: number, b: number) => number;
     readonly __wbg_eventringbufferwasm_free: (a: number, b: number) => void;
     readonly __wbg_eventtype_free: (a: number, b: number) => void;
     readonly __wbg_get_jslogiceventdata_data_1: (a: number) => number;
@@ -2945,39 +3090,75 @@ export interface InitOutput {
     readonly pulsewasm_timestamp: (a: number) => number;
     readonly logicsystemwasm_set_behavior_enabled: (a: number, b: number, c: number) => void;
     readonly eventringbufferwasm_new: () => number;
-    readonly __wbg_logicbrickssystem_free: (a: number, b: number) => void;
-    readonly logicbrickssystem_clear_creation: (a: number) => void;
-    readonly logicbrickssystem_clear_drag_state: (a: number) => void;
-    readonly logicbrickssystem_drag_count: (a: number) => number;
-    readonly logicbrickssystem_event_buffer_len: (a: number) => number;
-    readonly logicbrickssystem_get_active_tool: (a: number) => [number, number];
-    readonly logicbrickssystem_get_creation_start_pos: (a: number) => number;
-    readonly logicbrickssystem_get_selected_entities: (a: number) => any;
-    readonly logicbrickssystem_is_creating: (a: number) => number;
-    readonly logicbrickssystem_is_dragging: (a: number) => number;
-    readonly logicbrickssystem_new: () => number;
-    readonly logicbrickssystem_pending_command_count: (a: number) => number;
-    readonly logicbrickssystem_poll_events: (a: number) => number;
-    readonly logicbrickssystem_sample_input: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => void;
-    readonly logicbrickssystem_selection_count: (a: number) => number;
-    readonly logicbrickssystem_set_active_tool: (a: number, b: number, c: number) => void;
-    readonly logicbrickssystem_set_creation_start: (a: number, b: number, c: number) => void;
-    readonly logicbrickssystem_has_events: (a: number) => number;
-    readonly __wbg_brickchainbuilder_free: (a: number, b: number) => void;
+    readonly __wbg_cameraconfig_free: (a: number, b: number) => void;
+    readonly __wbg_controller_free: (a: number, b: number) => void;
+    readonly __wbg_highlightconfig_free: (a: number, b: number) => void;
+    readonly __wbg_moveconfig_free: (a: number, b: number) => void;
+    readonly __wbg_propertyconfig_free: (a: number, b: number) => void;
+    readonly __wbg_propertyvalue_free: (a: number, b: number) => void;
+    readonly cameraconfig_duration_ms: (a: number) => number;
+    readonly cameraconfig_new: (a: number, b: number, c: number, d: number, e: number) => number;
+    readonly cameraconfig_smooth: (a: number) => number;
+    readonly cameraconfig_target_x: (a: number) => number;
+    readonly cameraconfig_target_y: (a: number) => number;
+    readonly cameraconfig_zoom: (a: number) => number;
+    readonly controller_and: (a: number) => number;
+    readonly controller_and_any: () => number;
+    readonly controller_blinky: (a: number) => number;
+    readonly controller_controller_type: (a: number) => number;
+    readonly controller_custom: (a: number, b: number, c: number, d: number) => number;
+    readonly controller_custom_code: (a: number) => [number, number];
+    readonly controller_custom_name: (a: number) => [number, number];
+    readonly controller_debounce: (a: number) => number;
+    readonly controller_direct: () => number;
+    readonly controller_float_param1: (a: number) => number;
+    readonly controller_float_param2: (a: number) => number;
+    readonly controller_has_secondary_sensor: (a: number) => number;
+    readonly controller_hysteresis: (a: number, b: number) => number;
+    readonly controller_is_custom: (a: number) => number;
+    readonly controller_not: () => number;
+    readonly controller_numeric_param: (a: number) => number;
+    readonly controller_or: (a: number) => number;
+    readonly controller_or_any: () => number;
+    readonly controller_pattern: (a: number) => number;
+    readonly controller_secondary_sensor: (a: number) => number;
+    readonly controller_threshold: (a: number) => number;
+    readonly highlightconfig_color: (a: number) => number;
+    readonly highlightconfig_new: (a: number, b: number, c: number) => number;
+    readonly highlightconfig_restore_color: (a: number) => number;
+    readonly moveconfig_constrain_x: (a: number) => number;
+    readonly moveconfig_constrain_y: (a: number) => number;
+    readonly moveconfig_new: (a: number, b: number, c: number) => number;
+    readonly propertyconfig_new: (a: number, b: number, c: number) => number;
+    readonly propertyconfig_property_name: (a: number) => [number, number];
+    readonly propertyconfig_value: (a: number) => number;
+    readonly propertyvalue_from_bool: (a: number) => number;
+    readonly propertyvalue_from_number: (a: number) => number;
+    readonly propertyvalue_from_string: (a: number, b: number) => number;
+    readonly propertyvalue_value: (a: number) => [number, number];
+    readonly highlightconfig_opacity: (a: number) => number;
+    readonly moveconfig_snap: (a: number) => number;
+    readonly __wbg_jsentitycommandbuffer_free: (a: number, b: number) => void;
     readonly __wbg_logicmappingtablewasm_free: (a: number, b: number) => void;
-    readonly brickchainbuilder_actuator_count: (a: number) => number;
-    readonly brickchainbuilder_actuator_highlight: (a: number, b: number, c: number) => number;
-    readonly brickchainbuilder_actuator_move: (a: number, b: number, c: number, d: number) => number;
-    readonly brickchainbuilder_actuator_select: (a: number, b: number) => number;
-    readonly brickchainbuilder_connect: (a: number) => number;
-    readonly brickchainbuilder_controller: (a: number, b: number) => number;
-    readonly brickchainbuilder_controller_count: (a: number) => number;
-    readonly brickchainbuilder_entity_id: (a: number) => number;
-    readonly brickchainbuilder_new: (a: number) => number;
-    readonly brickchainbuilder_sensor: (a: number, b: number) => number;
-    readonly brickchainbuilder_sensor_count: (a: number) => number;
-    readonly brickchainbuilder_sensor_key: (a: number, b: number) => number;
-    readonly brickchainbuilder_with_mapping_table: (a: number, b: number) => number;
+    readonly __wbg_zerocopycommandbuffer_free: (a: number, b: number) => void;
+    readonly jsentitycommandbuffer_capacity: (a: number) => number;
+    readonly jsentitycommandbuffer_clear: (a: number) => void;
+    readonly jsentitycommandbuffer_commands_count: (a: number) => number;
+    readonly jsentitycommandbuffer_commands_ptr: (a: number) => number;
+    readonly jsentitycommandbuffer_despawn: (a: number, b: number) => void;
+    readonly jsentitycommandbuffer_is_empty: (a: number) => number;
+    readonly jsentitycommandbuffer_new: (a: number) => number;
+    readonly jsentitycommandbuffer_resize: (a: number, b: number, c: number, d: number) => void;
+    readonly jsentitycommandbuffer_set_color: (a: number, b: number, c: number) => void;
+    readonly jsentitycommandbuffer_set_layer: (a: number, b: number, c: number) => void;
+    readonly jsentitycommandbuffer_set_selection: (a: number, b: number, c: number) => void;
+    readonly jsentitycommandbuffer_set_shape: (a: number, b: number, c: number) => void;
+    readonly jsentitycommandbuffer_set_velocity: (a: number, b: number, c: number, d: number) => void;
+    readonly jsentitycommandbuffer_set_visible: (a: number, b: number, c: number) => void;
+    readonly jsentitycommandbuffer_spawn: (a: number, b: number, c: number, d: number, e: number) => number;
+    readonly jsentitycommandbuffer_spawned_count: (a: number) => number;
+    readonly jsentitycommandbuffer_spawned_ids_ptr: (a: number) => number;
+    readonly jsentitycommandbuffer_teleport: (a: number, b: number, c: number, d: number) => void;
     readonly logicmappingtablewasm_add_highlight: (a: number, b: number, c: number, d: number) => void;
     readonly logicmappingtablewasm_add_move: (a: number, b: number, c: number, d: number) => void;
     readonly logicmappingtablewasm_add_select: (a: number, b: number, c: number, d: number) => void;
@@ -2989,37 +3170,15 @@ export interface InitOutput {
     readonly logicmappingtablewasm_is_empty: (a: number) => number;
     readonly logicmappingtablewasm_new: () => number;
     readonly logicmappingtablewasm_remove_connection: (a: number, b: number, c: number) => void;
-    readonly __wbg_callbackid_free: (a: number, b: number) => void;
-    readonly __wbg_callbackregistry_free: (a: number, b: number) => void;
-    readonly __wbg_signalbytewasm_free: (a: number, b: number) => void;
-    readonly callbackid_value: (a: number) => number;
-    readonly callbackregistry_clear: (a: number) => void;
-    readonly callbackregistry_event_callback_count: (a: number, b: number, c: number) => number;
-    readonly callbackregistry_invoke: (a: number, b: number, c: number, d: any) => number;
-    readonly callbackregistry_new: () => number;
-    readonly callbackregistry_register: (a: number, b: any, c: number, d: number, e: number) => number;
-    readonly callbackregistry_total_count: (a: number) => number;
-    readonly callbackregistry_unregister: (a: number, b: number) => number;
-    readonly callbackregistry_unregister_all: (a: number, b: number, c: number) => number;
-    readonly signalbytewasm_any_edge: (a: number) => number;
-    readonly signalbytewasm_as_u8: (a: number) => number;
-    readonly signalbytewasm_count_ones: (a: number) => number;
-    readonly signalbytewasm_count_zeros: (a: number) => number;
-    readonly signalbytewasm_from: (a: number) => number;
-    readonly signalbytewasm_get_current: (a: number) => number;
-    readonly signalbytewasm_get_history: (a: number) => number;
-    readonly signalbytewasm_is_falling_edge: (a: number) => number;
-    readonly signalbytewasm_is_rising_edge: (a: number) => number;
-    readonly signalbytewasm_is_steady: (a: number, b: number) => number;
-    readonly signalbytewasm_is_steady_low: (a: number, b: number) => number;
-    readonly signalbytewasm_new: () => number;
-    readonly signalbytewasm_push: (a: number, b: number) => void;
-    readonly signalbytewasm_size: (a: number) => number;
-    readonly signalbytewasm_is_steady_high: (a: number, b: number) => number;
-    readonly get_global_callback_registry: () => number;
-    readonly wasm_bindgen__closure__destroy__h0fff7f8f8086545d: (a: number, b: number) => void;
-    readonly wasm_bindgen__convert__closures_____invoke__hb95fef9f40988300: (a: number, b: number, c: any) => void;
-    readonly wasm_bindgen__convert__closures_____invoke__h5e346efc58a509bb: (a: number, b: number) => void;
+    readonly zerocopycommandbuffer_clear: (a: number) => void;
+    readonly zerocopycommandbuffer_count: (a: number) => number;
+    readonly zerocopycommandbuffer_data_ptr: (a: number) => number;
+    readonly zerocopycommandbuffer_new: (a: number) => number;
+    readonly zerocopycommandbuffer_set_count: (a: number, b: number) => void;
+    readonly jsentitycommandbuffer_len: (a: number) => number;
+    readonly wasm_bindgen__closure__destroy__h28f129b2221d1ce6: (a: number, b: number) => void;
+    readonly wasm_bindgen__convert__closures_____invoke__h691066a67746a488: (a: number, b: number, c: any) => void;
+    readonly wasm_bindgen__convert__closures_____invoke__hcb20bf1da18456cb: (a: number, b: number) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_exn_store: (a: number) => void;

@@ -49,7 +49,11 @@
                 position: absolute;
                 top: 80px;
                 left: 20px;
-                background: linear-gradient(135deg, rgba(15, 15, 25, 0.95), rgba(20, 20, 35, 0.95));
+                background: linear-gradient(
+                    135deg,
+                    rgba(15, 15, 25, 0.95),
+                    rgba(20, 20, 35, 0.95)
+                );
                 border: 1px solid rgba(0, 212, 255, 0.3);
                 border-radius: 12px;
                 padding: 20px;
@@ -216,26 +220,58 @@
 
             const { bridge, canvas } = await createEngine("canvas");
 
-            // === MOVE Entity ===
-            // Move actuator - set velocity on hover
-            const moveEntity = bridge.spawn_entity(200, 250, 60, 60);
-            bridge.set_color(moveEntity, 231, 76, 60, 255); // Red
-            bridge.set_shape(moveEntity, 0); // rectangle
+            // Use bulk_spawn + batch_configure_entities for initial entity creation
+            const count = 3;
+            const positions = new Float32Array([
+                200,
+                250, // Move entity
+                450,
+                250, // Rotate entity
+                700,
+                250, // Scale entity
+            ]);
+            const sizes = new Float32Array([60, 60, 60]);
+            const colors = new Uint32Array([
+                0xffeb3b3c, // Red: 0xRRGGBBAA (231, 76, 60, 255)
+                0xff71cc2e, // Green: 0xRRGGBBAA (46, 204, 113, 255)
+                0xffd39834, // Blue: 0xRRGGBBAA (52, 152, 219, 255)
+            ]);
+            const shapes = new Uint8Array([0, 1, 0]); // rect, circle, rect
+
+            const ids = bridge.bulk_spawn(positions, sizes, colors);
+
+            // Configure with shapes
+            const xs = new Float32Array([200, 450, 700]);
+            const ys = new Float32Array([250, 250, 250]);
+            const widths = new Float32Array([60, 60, 60]);
+            const heights = new Float32Array([60, 60, 60]);
+            const vxs = new Float32Array([0, 0, 0]);
+            const vys = new Float32Array([0, 0, 0]);
+            const axs = new Float32Array([0, 0, 0]);
+            const ays = new Float32Array([0, 0, 0]);
+
+            bridge.batch_configure_entities(
+                ids,
+                xs,
+                ys,
+                widths,
+                heights,
+                vxs,
+                vys,
+                axs,
+                ays,
+                colors,
+                shapes,
+            );
+
+            // Add sensors to each entity
+            const moveEntity = ids[0];
+            const rotateEntity = ids[1];
+            const scaleEntity = ids[2];
+
             // Add sensor with Move actuator
             bridge.add_sensor(moveEntity, 0, 0, 2); // Hover -> Move
-
-            // === ROTATE Entity ===
-            // Click to rotate (would need rotation actuator)
-            const rotateEntity = bridge.spawn_entity(450, 250, 60, 60);
-            bridge.set_color(rotateEntity, 46, 204, 113, 255); // Green
-            bridge.set_shape(rotateEntity, 1); // circle
             bridge.add_sensor(rotateEntity, 1, 0, 0); // Click -> Highlight
-
-            // === SCALE Entity ===
-            // Double-click to scale
-            const scaleEntity = bridge.spawn_entity(700, 250, 60, 60);
-            bridge.set_color(scaleEntity, 52, 152, 219, 255); // Blue
-            bridge.set_shape(scaleEntity, 0); // rectangle
             bridge.add_sensor(scaleEntity, 6, 0, 0); // DoubleTap -> Highlight
 
             // Animation state for move entity
@@ -266,15 +302,47 @@
                 if (pos && pos.length >= 2) {
                     const entityX = pos[0];
                     const entityY = pos[1];
-                    const dist = Math.sqrt((x - entityX) ** 2 + (y - entityY) ** 2);
+                    const dist = Math.sqrt(
+                        (x - entityX) ** 2 + (y - entityY) ** 2,
+                    );
 
                     if (dist < 50) {
                         rotateAngle += 45;
                         console.log("Rotated to:", rotateAngle, "°");
-                        // Flash effect
-                        bridge.set_color(rotateEntity, 255, 255, 255, 255);
+                        // Flash effect using configure_entity
+                        bridge.configure_entity(
+                            rotateEntity,
+                            450,
+                            250,
+                            60,
+                            60,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0xffffffff,
+                            0,
+                            0,
+                            1,
+                            1,
+                        ); // White flash
                         setTimeout(() => {
-                            bridge.set_color(rotateEntity, 46, 204, 113, 255);
+                            bridge.configure_entity(
+                                rotateEntity,
+                                450,
+                                250,
+                                60,
+                                60,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0xff71cc2e,
+                                0,
+                                0,
+                                1,
+                                1,
+                            ); // Back to green
                         }, 100);
                     }
                 }
@@ -284,16 +352,38 @@
                 if (pos2 && pos2.length >= 2) {
                     const entityX = pos2[0];
                     const entityY = pos2[1];
-                    const dist = Math.sqrt((x - entityX) ** 2 + (y - entityY) ** 2);
+                    const dist = Math.sqrt(
+                        (x - entityX) ** 2 + (y - entityY) ** 2,
+                    );
 
                     if (dist < 50) {
                         // Toggle scale
-                        const currentSize = bridge.get_entity_size_screen(scaleEntity);
+                        const currentSize =
+                            bridge.get_entity_size_screen(scaleEntity);
                         if (currentSize && currentSize.length >= 2) {
                             const newScale = currentSize[0] > 70 ? 0.7 : 1.5;
-                            bridge.set_size(scaleEntity,
-                                60 * newScale,
-                                60 * newScale
+                            const newWidth = 60 * newScale;
+                            const newHeight = 60 * newScale;
+                            // Get current position for configure_entity
+                            const pos =
+                                bridge.get_entity_position_screen(scaleEntity);
+                            const px = pos ? pos[0] : 700;
+                            const py = pos ? pos[1] : 250;
+                            bridge.configure_entity(
+                                scaleEntity,
+                                px,
+                                py,
+                                newWidth,
+                                newHeight,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0xffd39834,
+                                0,
+                                0,
+                                0,
+                                1,
                             );
                         }
                     }

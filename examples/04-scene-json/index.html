@@ -67,22 +67,32 @@
 
             const { bridge } = await createEngine("canvas");
 
-            const colors = [0xff6b6b, 0x4ecdc4, 0xffe66d, 0x95e1d3, 0xf38181];
+            // Color palette for entities
+            const colorPalette = [
+                0xff6b6b, 0x4ecdc4, 0xffe66d, 0x95e1d3, 0xf38181,
+            ];
 
             document.getElementById("btn-spawn").onclick = () => {
+                // Use bulk_spawn with positions and colors for efficient entity creation
+                const positions = new Float32Array(5 * 2); // [x0, y0, x1, y1, ...]
+                const sizes = new Float32Array(5);
+                const colors = new Uint8Array(5 * 4); // [r0, g0, b0, a0, r1, g1, b1, a1, ...]
+
                 for (let i = 0; i < 5; i++) {
-                    const x = 100 + i * 120;
-                    const y = 200 + Math.sin(i) * 50;
-                    const id = bridge.spawn_entity(x, y, 50, 50);
-                    const c = colors[i];
-                    bridge.set_color(
-                        id,
-                        (c >> 16) & 0xff,
-                        (c >> 8) & 0xff,
-                        c & 0xff,
-                        255,
-                    );
+                    positions[i * 2] = 100 + i * 120;
+                    positions[i * 2 + 1] = 200 + Math.sin(i) * 50;
+                    sizes[i] = 50;
+
+                    const c = [
+                        0xff6b6b, 0x4ecdc4, 0xffe66d, 0x95e1d3, 0xf38181,
+                    ][i];
+                    colors[i * 4] = (c >> 16) & 0xff;
+                    colors[i * 4 + 1] = (c >> 8) & 0xff;
+                    colors[i * 4 + 2] = c & 0xff;
+                    colors[i * 4 + 3] = 255;
                 }
+
+                bridge.bulk_spawn(positions, sizes, colors);
                 document.getElementById("status").textContent =
                     `Spawned 5 entities (total: ${bridge.entity_count()})`;
             };
