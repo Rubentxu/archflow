@@ -32,8 +32,8 @@
 
 use alloc::{vec, vec::Vec};
 
-use archflow_core::Vec2;
-use archflow_engine::EntityStore;
+use archflow_core::{EntityId, Generation, Index, Vec2};
+use archflow_engine::{EntityStore, SpatialHash};
 
 use crate::signals::{SignalByte, SignalState};
 
@@ -360,7 +360,15 @@ impl MouseSensor {
     /// * `buttons` - Button state (bit 0 = left, bit 1 = right, bit 2 = middle)
     /// * `wheel` - Wheel position (delta from last frame)
     /// * `store` - Entity store for AABB testing
-    pub fn evaluate(&mut self, mouse_pos: Vec2, buttons: u8, wheel: i8, store: &EntityStore) {
+    /// * `spatial` - Optional spatial hash for O(1) queries (for movement mode)
+    pub fn evaluate(
+        &mut self,
+        mouse_pos: Vec2,
+        buttons: u8,
+        wheel: i8,
+        store: &EntityStore,
+        spatial: Option<&SpatialHash>,
+    ) {
         // Get button states
         let left_pressed = (buttons & 0x01) != 0;
         let right_pressed = (buttons & 0x02) != 0;
@@ -373,7 +381,7 @@ impl MouseSensor {
         // Evaluate each entity based on mode
         match self.config.mode {
             MouseMode::Movement => {
-                self.evaluate_movement(mouse_pos, store);
+                self.evaluate_movement(mouse_pos, store, spatial);
             }
             MouseMode::LeftButton => {
                 self.evaluate_button(mouse_pos, left_pressed, store);
@@ -394,12 +402,43 @@ impl MouseSensor {
     }
 
     /// Evaluate movement mode (mouse over detection)
-    fn evaluate_movement(&mut self, mouse_pos: Vec2, store: &EntityStore) {
-        for (i, transform) in store.transforms.iter().enumerate() {
-            if i >= self.signals.len() {
-                break;
+    /// Uses SpatialHash for O(1) lookup when available, falls back to O(n) iteration
+    fn evaluate_movement(
+        &mut self,
+        mouse_pos: Vec2,
+        store: &EntityStore,
+        spatial: Option<&SpatialHash>,
+    ) {
+        // First, clear all signals (we'll only set positive for hovered entities)
+        for signal in &mut self.signals {
+            signal.push(false);
+        }
+
+        // Get candidate entities from spatial hash (O(1) broad phase)
+        let candidates: alloc::collections::BTreeSet<EntityId> = if let Some(spatial) = spatial {
+            // Use spatial hash for broad phase - query point at mouse position
+            // This returns only entities in the cell containing the mouse
+            let hits = spatial.query_point(mouse_pos);
+            hits.into_iter().collect()
+        } else {
+            // Fallback: iterate all entities (legacy behavior)
+            let mut all = alloc::collections::BTreeSet::new();
+            for i in 0..store.alive_count() {
+                let idx = store.draw_order[i] as u32;
+                let generation_val = store.generation(i);
+                all.insert(EntityId::from_parts(Index(idx), Generation(generation_val)));
+            }
+            all
+        };
+
+        // Narrow phase: exact AABB test only for candidates
+        for entity_id in candidates {
+            let idx = entity_id.index().0 as usize;
+            if idx >= self.signals.len() {
+                continue;
             }
 
+            let transform = store.transforms[idx];
             let center_x = transform[0];
             let center_y = transform[1];
             let width = transform[2];
@@ -424,7 +463,7 @@ impl MouseSensor {
             } else {
                 is_over
             };
-            self.signals[i].push(signal);
+            self.signals[idx].push(signal);
         }
     }
 

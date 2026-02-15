@@ -538,6 +538,20 @@ impl LogicMappingTable {
 
         executed_count
     }
+
+    /// Returns an iterator over entities that have connections defined
+    /// This enables lazy evaluation - only process entities with active logic bricks
+    #[inline(always)]
+    pub fn entities_with_connections(&self) -> impl Iterator<Item = &EntityId> {
+        self.connections.keys()
+    }
+
+    /// Returns the total number of entities that have at least one connection
+    /// Useful for optimization metrics
+    #[inline(always)]
+    pub fn connected_entity_count(&self) -> usize {
+        self.connections.len()
+    }
 }
 
 impl Default for LogicMappingTable {

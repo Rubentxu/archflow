@@ -507,9 +507,23 @@ impl LogicSystem {
 
         let mut pulses = Vec::new();
 
-        // Evaluate mouse sensor - CRITICAL: mouse_sensor is PERSISTENT
-        // The 6-tick history is preserved across frames
-        self.mouse_sensor.evaluate(mouse_pos, buttons, wheel, store);
+        // CRITICAL: Update spatial hash FIRST, before any sensor evaluation
+        // This ensures spatial queries (mouse hover, touch, proximity) work correctly
+        self.spatial_hash.clear();
+        for &entity_idx in &store.draw_order {
+            let idx = entity_idx as usize;
+            let transform = store.transforms[idx];
+            let pos = Vec2::new(transform[0], transform[1]);
+            let size = Vec2::new(transform[2], transform[3]);
+            let generation = store.generation(idx);
+            let entity_id = EntityId::from_parts(Index(entity_idx), Generation(generation));
+            let bounds = archflow_core::Rect::from_origin_size(pos, size);
+            self.spatial_hash.insert(entity_id, bounds);
+        }
+
+        // Evaluate mouse sensor - now spatial_hash is populated
+        self.mouse_sensor
+            .evaluate(mouse_pos, buttons, wheel, store, Some(&self.spatial_hash));
 
         // Generate pulses using BGE-style pulse generation
         for (entity_idx, is_positive) in self.mouse_sensor.generate_pulses() {
@@ -544,20 +558,7 @@ impl LogicSystem {
         store: &EntityStore,
         mut pulses: Vec<Pulse>,
     ) -> Vec<Pulse> {
-        // Update spatial hash with current entity positions
-        for &entity_idx in &store.draw_order {
-            let idx = entity_idx as usize;
-            let transform = store.transforms[idx];
-            let pos = Vec2::new(transform[0], transform[1]);
-            let size = Vec2::new(transform[2], transform[3]);
-            let generation = store.generation(idx);
-            let entity_id = EntityId::from_parts(Index(entity_idx), Generation(generation));
-            let bounds = archflow_core::Rect::from_origin_size(pos, size);
-
-            self.spatial_hash.remove(entity_id);
-            self.spatial_hash.insert(entity_id, bounds);
-        }
-
+        // Spatial hash is already populated in evaluate_sensors() before this call
         let spatial = &self.spatial_hash;
 
         // Evaluate TouchSensor
