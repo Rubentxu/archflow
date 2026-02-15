@@ -37,7 +37,9 @@ tracing-subscriber = { workspace = true }
 wasm-tracing = { version = "2.1", optional = true }
 
 [features]
-default = ["tracing-logging"]
+# Disable tracing-logging in production for better performance
+# Enable with RUSTFLAGS="--features tracing-logging" for debugging
+default = []
 tracing = [
 ] # Enable tracing instrumentation (always available, non-optional dependency)
 tracing-logging = ["dep:wasm-tracing", "tracing"]

@@ -198,7 +198,6 @@ impl ArchFlowEngine {
         // 2. LOGIC: Controllers filter pulses
         // 3. ACTUATE: Actuators write commands to CommandQueue
         // 4. COMMIT: Commands will be executed in Phase 1 below
-        // 4. COMMIT: Commands will be executed in Phase 1 below
 
         // VERSION STAMP: Confirm WASM is loaded
         // VERSION STAMP: Only log on first tick
@@ -214,6 +213,7 @@ impl ArchFlowEngine {
         }
 
         let timestamp_ms = (timestamp * 100.0) as u32;
+
         self.logic_bricks.tick(
             &mut self.store,
             timestamp_ms,
@@ -228,10 +228,10 @@ impl ArchFlowEngine {
 
         // Transfer commands from creation/logic logic to main queue
         let logic_cmds = self.logic_bricks.drain_commands();
+
         for cmd in logic_cmds {
             self.command_queue.push(cmd);
         }
-
         self.execute_commands();
 
         // ═════════════════════════════════════════════════════════════════════
@@ -246,11 +246,6 @@ impl ArchFlowEngine {
 
         // Execute the draw calls
         if let Err(e) = self.renderer.render() {
-            // We can't use tracing/log easily here without checking features/imports,
-            // but we should at least not panic.
-            // In a real engine, we might want to log this once or flag it.
-            // For now, GpuRenderer (default) returns error, so we expect this to fail
-            // until WebGL2Renderer is injected.
             let _ = e;
         }
     }
@@ -286,6 +281,9 @@ impl ArchFlowEngine {
     }
 
     fn prepare_render(&mut self) {
+        // ═════════════════════════════════════════════════════════════════════
+        // PERFORMANCE TRACING - Render sync timing
+        // ═════════════════════════════════════════════════════════════════════
         // Sync renderer with entity store using trait
         self.renderer.sync_from_store(&self.store, &self.camera);
     }

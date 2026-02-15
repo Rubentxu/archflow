@@ -505,6 +505,14 @@ impl Renderer for WebGL2Renderer {
         self.camera_uniforms = CameraUniforms::from_camera(camera, self.height as f32);
 
         let viewport = camera.viewport_bounds(self.height as f32);
+
+        // OPTIMIZATION: Early exit if no entities
+        let alive = store.alive_count();
+        if alive == 0 {
+            self.draw_calls = 0;
+            return 0;
+        }
+
         let mut visible_count = 0;
 
         // Iterate phases to group instances contiguously in the buffer
@@ -516,6 +524,14 @@ impl Renderer for WebGL2Renderer {
             RenderPhase::Images,
             RenderPhase::Text,
         ];
+
+        let draw_order_len = store.draw_order.len();
+
+        // OPTIMIZATION: Pre-compute viewport bounds for faster intersection tests
+        let vp_min_x = viewport.min.x;
+        let vp_max_x = viewport.max.x;
+        let vp_min_y = viewport.min.y;
+        let vp_max_y = viewport.max.y;
 
         for phase in phases {
             for &idx in &store.draw_order {
@@ -538,23 +554,33 @@ impl Renderer for WebGL2Renderer {
                     continue;
                 }
 
-                let pos = store.pos(idx);
-                let size = store.size(idx);
-                let entity_min = pos - size / 2.0;
-                let entity_max = pos + size / 2.0;
+                // OPTIMIZATION: Inline position/size access and viewport test
+                let transform = store.transforms[idx];
+                let pos_x = transform[0];
+                let pos_y = transform[1];
+                let size_x = transform[2];
+                let size_y = transform[3];
 
-                if !viewport.intersects(&Rect::new(
-                    entity_min.x,
-                    entity_min.y,
-                    entity_max.x,
-                    entity_max.y,
-                )) {
+                // Fast viewport culling without creating Rect objects
+                let half_size_x = size_x / 2.0;
+                let half_size_y = size_y / 2.0;
+                let entity_min_x = pos_x - half_size_x;
+                let entity_max_x = pos_x + half_size_x;
+                let entity_min_y = pos_y - half_size_y;
+                let entity_max_y = pos_y + half_size_y;
+
+                // AABB intersection test (faster than Rect::intersects)
+                if entity_max_x < vp_min_x
+                    || entity_min_x > vp_max_x
+                    || entity_max_y < vp_min_y
+                    || entity_min_y > vp_max_y
+                {
                     continue;
                 }
 
                 let instance = GpuInstance {
-                    pos: [pos.x as f32, pos.y as f32],
-                    size: [size.x as f32, size.y as f32],
+                    pos: [pos_x as f32, pos_y as f32],
+                    size: [size_x as f32, size_y as f32],
                     color: store.colors[idx],
                     shape_type_or_texture_index: if texture_idx == 0 {
                         store.shape_type(idx) as u32
@@ -574,14 +600,6 @@ impl Renderer for WebGL2Renderer {
         }
 
         self.draw_calls = self.batches.total_draw_calls();
-
-        // Only warn if entities exist but none are visible (potential issue)
-        if visible_count == 0 && store.alive_count() > 0 {
-            web_sys::console::warn_1(&JsValue::from_str(&format!(
-                "Sync warning: Store has {} entities but 0 visible. Check viewport culling or visibility flags.",
-                store.alive_count()
-            )));
-        }
 
         visible_count
     }
@@ -690,18 +708,10 @@ impl Renderer for WebGL2Renderer {
                 4,
                 shapes_count,
             );
-
-            // Check for errors
-            let err = gl.get_error();
-            if err != web_sys::WebGl2RenderingContext::NO_ERROR {
-                web_sys::console::error_1(&JsValue::from_str(&format!(
-                    "WebGL Error after draw: {}",
-                    err
-                )));
-            }
         }
 
         gl.bind_vertex_array(None);
+
         Ok(())
     }
 }

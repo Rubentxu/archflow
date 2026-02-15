@@ -313,32 +313,47 @@ impl LogicBricksSystem {
         active_stroke_color: u32,
         active_stroke_width: f32,
     ) {
+        #[cfg(debug_assertions)]
+        web_sys::console::time_with_label("lb_tick_total");
+
         self.timestamp = timestamp_ms;
         self.logic_system.set_timestamp(timestamp_ms);
         self.pending_commands.clear();
 
+        #[cfg(debug_assertions)]
+        web_sys::console::time_with_label("lb_resize");
         // Resize components to match entity store capacity
         // This prevents panics when new entities are created beyond initial capacity
         let capacity = store.transforms.capacity();
         self.mouse_sensor.resize(capacity);
         self.hover_sensor.resize(capacity);
         self.batch_select.resize(capacity);
+        #[cfg(debug_assertions)]
+        web_sys::console::time_end_with_label("lb_resize");
 
         let world_pos = Vec2::new(self.input_state.world_x, self.input_state.world_y);
 
         // Evaluate sensors
+        #[cfg(debug_assertions)]
+        web_sys::console::time_with_label("lb_evaluate_sensors");
+        // Get spatial hash reference for O(1) mouse hover queries
+        let spatial = &self.logic_system.spatial_hash;
         self.mouse_sensor.evaluate(
             world_pos,
             self.input_state.buttons,
             self.input_state.wheel,
             store,
+            Some(spatial),
         );
         self.hover_sensor.evaluate(
             world_pos,
             self.input_state.buttons,
             self.input_state.wheel,
             store,
+            Some(spatial),
         );
+        #[cfg(debug_assertions)]
+        web_sys::console::time_end_with_label("lb_evaluate_sensors");
 
         // Process tool operations
         self.process_tool_operations(
@@ -350,16 +365,43 @@ impl LogicBricksSystem {
         );
 
         // Create a local copy of draw order to avoid borrowing store during the loop
+        #[cfg(debug_assertions)]
+        web_sys::console::time_with_label("lb_copy_draw_order");
         let draw_order: Vec<u32> = store.draw_order[..store.alive_count()].to_vec();
+        #[cfg(debug_assertions)]
+        web_sys::console::time_end_with_label("lb_copy_draw_order");
+
+        #[cfg(debug_assertions)]
+        web_sys::console::time_with_label("lb_entity_loop");
+        let alive_count = store.alive_count();
+
+        // DEBUG: Only log when entity count changes
+        #[cfg(debug_assertions)]
+        web_sys::console::log_1(&JsValue::from_str(&format!(
+            "LB: entities={}, draw_order_len={}",
+            alive_count,
+            draw_order.len()
+        )));
 
         let mut any_entity_hit = false;
 
-        // LOGIC BRICKS EVALUATION
-        // Evaluate logic bricks for all visible entities (selection, etc.)
-        for idx_u32 in draw_order {
+        // OPTIMIZATION: Get entities with connections for lazy evaluation
+        // Only process entities that have logic bricks defined
+        #[cfg(debug_assertions)]
+        web_sys::console::time_with_label("lb_get_connection_entities");
+        let connected_entities: Vec<EntityId> = self
+            .mapping_table
+            .entities_with_connections()
+            .copied()
+            .collect();
+        #[cfg(debug_assertions)]
+        web_sys::console::time_end_with_label("lb_get_connection_entities");
+
+        // LOGIC BRICKS EVALUATION - Lazy: only evaluate entities with connections
+        // This dramatically reduces iterations when most entities don't have logic bricks
+        for &entity_id in &connected_entities {
+            let idx_u32 = entity_id.index().0;
             let idx = idx_u32 as usize;
-            let generation_val = store.generation(idx);
-            let entity_id = EntityId::from_parts(Index(idx_u32), Generation(generation_val));
 
             // Track if mouse is over this entity (hit testing)
             if self.mouse_sensor.is_positive(idx) {
@@ -421,6 +463,11 @@ impl LogicBricksSystem {
 
         // Poll for events from logic system
         self.logic_system.poll_events();
+
+        #[cfg(debug_assertions)]
+        web_sys::console::time_end_with_label("lb_entity_loop");
+        #[cfg(debug_assertions)]
+        web_sys::console::time_end_with_label("lb_tick_total");
     }
 
     /// Region selection using SpatialHash

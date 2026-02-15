@@ -25,6 +25,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
 use crate::engine::ArchFlowEngine;
+use crate::entity_command_buffer::{EcbCommand, JsEntityCommandBuffer};
 use crate::input::{InputEventType, InputProcessor, InputRingBuffer};
 
 use archflow_engine::store::MAX_ENTITIES;
@@ -989,6 +990,197 @@ impl WasmBridge {
                 );
             }
             Ok(count)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // ENTITY COMMAND BUFFER (ECB) - Deferred execution for maximum performance
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    /// Create a new EntityCommandBuffer for batched operations
+    ///
+    /// Use this to register multiple commands and execute them in a single
+    /// batch, minimizing JS↔WASM overhead.
+    ///
+    /// # Example
+    /// ```javascript
+    /// const ecb = bridge.create_ecb(1024);
+    ///
+    /// // Register commands (deferred, not executed yet)
+    /// ecb.spawn(100, 200, 50, 50);
+    /// ecb.spawn(150, 250, 50, 50);
+    /// ecb.set_color(0, 0xFF00FF00);
+    /// ecb.teleport(1, 300, 400);
+    /// ecb.despawn(2);
+    ///
+    /// // Execute all commands at once
+    /// const result = ecb.playback();
+    /// // result.spawned = [0, 1]
+    /// // result.despawned = [2]
+    /// ```
+    #[wasm_bindgen]
+    pub fn create_ecb(&self, capacity: usize) -> Result<JsEntityCommandBuffer, JsValue> {
+        Ok(JsEntityCommandBuffer::new(capacity))
+    }
+
+    /// Execute all pending commands in an EntityCommandBuffer
+    ///
+    /// This executes all commands in the ECB buffer on the ECS
+    #[wasm_bindgen]
+    pub fn execute_ecb(&self, ecb: &mut JsEntityCommandBuffer) -> Result<js_sys::Object, JsValue> {
+        if let Some(engine) = self.engine.borrow_mut().as_mut() {
+            // Get commands from ECB
+            let commands_ptr = ecb.commands_ptr();
+            let cmd_count = ecb.commands_count();
+
+            let mut spawned_ids: Vec<u32> = Vec::new();
+            let mut despawned_ids: Vec<u32> = Vec::new();
+
+            // Track entity ID mappings
+            let mut entity_map: Vec<Option<archflow_core::EntityId>> = Vec::new();
+
+            unsafe {
+                let commands = core::slice::from_raw_parts(commands_ptr, cmd_count);
+
+                for cmd in commands.iter() {
+                    match cmd.cmd_type {
+                        0 => {} // Nop
+
+                        1 => {
+                            // Spawn
+                            let pos = archflow_core::Vec2::new(cmd.param1, cmd.param2);
+                            let size = archflow_core::Vec2::new(cmd.param3, cmd.param4);
+                            let real_id = engine.store.spawn(pos, size);
+
+                            while entity_map.len() <= cmd.entity as usize {
+                                entity_map.push(None);
+                            }
+                            entity_map[cmd.entity as usize] = Some(real_id);
+                            spawned_ids.push(real_id.index().0);
+                        }
+
+                        2 => {
+                            // Despawn
+                            if (cmd.entity as usize) < entity_map.len() {
+                                if let Some(real_id) = entity_map[cmd.entity as usize] {
+                                    engine.store.despawn(real_id);
+                                    despawned_ids.push(real_id.index().0);
+                                }
+                            }
+                        }
+
+                        3 => {
+                            // Teleport
+                            if (cmd.entity as usize) < entity_map.len() {
+                                if let Some(real_id) = entity_map[cmd.entity as usize] {
+                                    let pos = archflow_core::Vec2::new(cmd.param1, cmd.param2);
+                                    let idx = real_id.index().0 as usize;
+                                    engine.store.set_pos(idx, pos);
+                                }
+                            }
+                        }
+
+                        4 => {
+                            // Resize
+                            if (cmd.entity as usize) < entity_map.len() {
+                                if let Some(real_id) = entity_map[cmd.entity as usize] {
+                                    let size = archflow_core::Vec2::new(cmd.param1, cmd.param2);
+                                    let idx = real_id.index().0 as usize;
+                                    engine.store.set_size(idx, size);
+                                }
+                            }
+                        }
+
+                        5 => {
+                            // SetColor
+                            if (cmd.entity as usize) < entity_map.len() {
+                                if let Some(real_id) = entity_map[cmd.entity as usize] {
+                                    let color_bits = cmd.param1.to_bits();
+                                    let idx = real_id.index().0 as usize;
+                                    engine.store.set_color(idx, color_bits);
+                                }
+                            }
+                        }
+
+                        6 => {
+                            // SetShape
+                            if (cmd.entity as usize) < entity_map.len() {
+                                if let Some(real_id) = entity_map[cmd.entity as usize] {
+                                    let idx = real_id.index().0 as usize;
+                                    engine.store.set_shape_type(idx, cmd.param1 as u8);
+                                }
+                            }
+                        }
+
+                        7 => {
+                            // SetVisible
+                            if (cmd.entity as usize) < entity_map.len() {
+                                if let Some(real_id) = entity_map[cmd.entity as usize] {
+                                    let visible = cmd.param1 > 0.5;
+                                    let idx = real_id.index().0 as usize;
+                                    engine.store.set_visible(idx, visible);
+                                }
+                            }
+                        }
+
+                        8 => {
+                            // SetVelocity
+                            if (cmd.entity as usize) < entity_map.len() {
+                                if let Some(real_id) = entity_map[cmd.entity as usize] {
+                                    let idx = real_id.index().0 as usize;
+                                    engine.store.set_velocity(idx, cmd.param1, cmd.param2);
+                                }
+                            }
+                        }
+
+                        9 => {
+                            // SetLayer
+                            if (cmd.entity as usize) < entity_map.len() {
+                                if let Some(real_id) = entity_map[cmd.entity as usize] {
+                                    let layer = cmd.param1 as u8;
+                                    let idx = real_id.index().0 as usize;
+                                    engine.store.set_layer(idx, layer);
+                                }
+                            }
+                        }
+
+                        10 => {
+                            // SetSelection
+                            if (cmd.entity as usize) < entity_map.len() {
+                                if let Some(real_id) = entity_map[cmd.entity as usize] {
+                                    let selected = cmd.param1 > 0.5;
+                                    let idx = real_id.index().0 as usize;
+                                    engine.store.set_selected(idx, selected);
+                                }
+                            }
+                        }
+
+                        _ => {}
+                    }
+                }
+            }
+
+            // Clear ECB buffer
+            ecb.clear();
+
+            // Convert to JS object
+            let js_result = js_sys::Object::new();
+
+            let spawned = js_sys::Array::new();
+            for id in spawned_ids {
+                spawned.push(&JsValue::from(id));
+            }
+            js_sys::Reflect::set(&js_result, &JsValue::from("spawned"), &spawned)?;
+
+            let despawned = js_sys::Array::new();
+            for id in despawned_ids {
+                despawned.push(&JsValue::from(id));
+            }
+            js_sys::Reflect::set(&js_result, &JsValue::from("despawned"), &despawned)?;
+
+            Ok(js_result)
         } else {
             Err(JsError::new("Engine not initialized").into())
         }

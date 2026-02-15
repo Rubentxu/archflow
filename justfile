@@ -145,7 +145,7 @@ build-release:
 [doc("Build WASM module only")]
 build-wasm:
     @echo "Building WASM..."
-    @cd crates/archflow-wasm-bridge && wasm-pack build --target web --debug
+    @cd crates/archflow-wasm-bridge && wasm-pack build --target web --release
     @just sync-wasm-types
     @mkdir -p examples/wasm
     @cp crates/archflow-web-ui/src/wasm/archflow_web.js examples/wasm/
@@ -192,7 +192,7 @@ frontend:
 [doc("Watch WASM changes and rebuild automatically")]
 wasm-watch:
     @echo Starting WASM watch mode...
-    @cd {{SDK_DIR}} && wasm-pack build --target web --debug --watch
+    @cd {{SDK_DIR}} && wasm-pack build --target web --release --watch
 
 # Start Rust watch mode with cargo-watch
 [doc("Watch Rust changes and rebuild automatically")]
