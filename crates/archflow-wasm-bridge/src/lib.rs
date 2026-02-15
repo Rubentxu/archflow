@@ -32,6 +32,7 @@ extern crate alloc;
 pub mod bridge;
 pub mod bridge_wasm;
 pub mod engine;
+pub mod entity_command_buffer;
 pub mod input;
 pub mod logic;
 pub mod logic_bricks_setup;
