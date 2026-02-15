@@ -26,6 +26,8 @@ use crate::command::Command;
 use tracing::{debug, error, info, trace, warn};
 
 /// Maximum number of entities supported in the store
+/// Initial entity capacity (pre-allocated at startup)
+/// The store will grow dynamically beyond this if needed
 pub const MAX_ENTITIES: usize = 100_000;
 
 /// Maximum number of glyphs across all text entities
@@ -168,6 +170,11 @@ impl StringPool {
     pub fn clear_offsets(&mut self) {
         self.offsets.fill((0, 0));
     }
+
+    /// Grow the offsets table to accommodate more entities
+    pub fn grow(&mut self, new_capacity: usize) {
+        self.offsets.resize(new_capacity, (0, 0));
+    }
 }
 
 /// EntityStore with Structure of Arrays (SoA) layout
@@ -306,6 +313,9 @@ pub struct EntityStore {
 
     /// Command queue pre-allocated, reused
     pub command_queue: HeaplessVec<Command, 1024>,
+
+    /// Current capacity of entity arrays (can grow dynamically)
+    capacity: usize,
 }
 
 impl EntityStore {
@@ -359,7 +369,60 @@ impl EntityStore {
             draw_order: Vec::with_capacity(capacity),
             dirty_z_order: false,
             command_queue: HeaplessVec::new(),
+            capacity,
         }
+    }
+
+    /// Get current entity capacity
+    #[inline]
+    pub fn capacity(&self) -> usize {
+        self.capacity
+    }
+
+    /// Grow all entity arrays to accommodate more entities
+    ///
+    /// Doubles the current capacity. Called automatically by spawn() when
+    /// the store is full, so the entity limit is only bounded by available memory.
+    fn grow_capacity(&mut self) {
+        let old_capacity = self.capacity;
+        let new_capacity = old_capacity * 2;
+
+        // Hot data
+        self.transforms
+            .resize(new_capacity, [0.0, 0.0, 100.0, 60.0]);
+        self.velocities.resize(new_capacity, [0.0, 0.0, 0.0, 0.0]);
+        self.physics_materials
+            .resize(new_capacity, [0.3, 0.5, 1.0, 0.0]);
+        self.metadata.resize(new_capacity, 0);
+        self.colors.resize(new_capacity, 0xFFCCDDEE);
+        self.stroke_colors.resize(new_capacity, 0x000000FF);
+        self.stroke_widths.resize(new_capacity, 0.0);
+        self.texture_index.resize(new_capacity, 0);
+        self.uv_rects.resize(new_capacity, [0.0, 0.0, 1.0, 1.0]);
+        self.color_tints.resize(new_capacity, [1.0, 1.0, 1.0, 1.0]);
+        self.text_glyph_start.resize(new_capacity, 0);
+        self.text_glyph_count.resize(new_capacity, 0);
+        self.text_scale.resize(new_capacity, 16.0);
+
+        // Transform hierarchy
+        self.parent_id.resize(new_capacity, None);
+        self.local_transform
+            .resize(new_capacity, [0.0, 0.0, 100.0, 60.0]);
+        self.world_transform
+            .resize(new_capacity, [0.0, 0.0, 100.0, 60.0]);
+        self.dirty_hierarchy.grow(new_capacity);
+
+        // Cold data
+        self.arch_data.resize(new_capacity, None);
+        self.string_pool.grow(new_capacity);
+
+        // Management
+        self.generations.resize(new_capacity, 0);
+        self.dirty_transform.grow(new_capacity);
+        self.dirty_render.grow(new_capacity);
+        self.dirty_text.grow(new_capacity);
+
+        self.capacity = new_capacity;
     }
 
     /// Spawn a new entity at the given position with size
@@ -381,15 +444,9 @@ impl EntityStore {
 
             idx_usize
         } else {
-            if self.alive_count >= MAX_ENTITIES {
-                #[cfg(feature = "tracing")]
-                error!(
-                    target: "archflow::engine::store",
-                    alive_count = self.alive_count,
-                    max = MAX_ENTITIES,
-                    "EntityStore at maximum capacity"
-                );
-                panic!("EntityStore at maximum capacity (MAX_ENTITIES)");
+            if self.alive_count >= self.capacity {
+                // Grow all arrays dynamically instead of panicking
+                self.grow_capacity();
             }
             self.alive_count
         };

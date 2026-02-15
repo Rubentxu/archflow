@@ -1409,10 +1409,14 @@ impl WasmBridge {
         }
     }
 
-    /// Get the maximum entity capacity
+    /// Get the current entity capacity (grows dynamically)
     #[wasm_bindgen]
     pub fn get_max_entities(&self) -> u32 {
-        archflow_engine::MAX_ENTITIES as u32
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            engine.store.capacity() as u32
+        } else {
+            MAX_ENTITIES as u32
+        }
     }
 
     /// Move an entity by the given delta
@@ -1471,7 +1475,7 @@ impl WasmBridge {
     ) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
             let idx = entity_index as usize;
-            if idx >= MAX_ENTITIES {
+            if idx >= engine.store.capacity() {
                 return Err(JsError::new("Entity index out of bounds").into());
             }
             engine.store.set_color_tint(idx, [r, g, b, a]);
@@ -1489,7 +1493,7 @@ impl WasmBridge {
     pub fn clear_color_tint(&self, entity_index: u32) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
             let idx = entity_index as usize;
-            if idx >= MAX_ENTITIES {
+            if idx >= engine.store.capacity() {
                 return Err(JsError::new("Entity index out of bounds").into());
             }
             engine.store.set_color_tint(idx, [0.0, 0.0, 0.0, 0.0]);
@@ -1504,7 +1508,7 @@ impl WasmBridge {
     pub fn set_selected(&self, entity_index: u32, selected: bool) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
             let idx = entity_index as usize;
-            if idx >= MAX_ENTITIES {
+            if idx >= engine.store.capacity() {
                 return Err(JsError::new("Entity index out of bounds").into());
             }
             engine.store.set_selected(idx, selected);
@@ -1519,7 +1523,7 @@ impl WasmBridge {
     pub fn is_selected(&self, entity_index: u32) -> Result<bool, JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
             let idx = entity_index as usize;
-            if idx >= MAX_ENTITIES {
+            if idx >= engine.store.capacity() {
                 return Err(JsError::new("Entity index out of bounds").into());
             }
             Ok(engine.store.is_selected(idx))
@@ -1536,7 +1540,7 @@ impl WasmBridge {
     pub fn move_entity_by(&self, entity_index: u32, dx: f32, dy: f32) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
             let idx = entity_index as usize;
-            if idx >= MAX_ENTITIES {
+            if idx >= engine.store.capacity() {
                 return Err(JsError::new("Entity index out of bounds").into());
             }
             // Direct position update - moves entity immediately
@@ -1559,7 +1563,7 @@ impl WasmBridge {
     pub fn set_entity_velocity(&self, entity_index: u32, vx: f32, vy: f32) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
             let idx = entity_index as usize;
-            if idx >= MAX_ENTITIES {
+            if idx >= engine.store.capacity() {
                 return Err(JsError::new("Entity index out of bounds").into());
             }
             engine.store.set_velocity(idx, vx, vy);
@@ -1577,7 +1581,7 @@ impl WasmBridge {
     pub fn get_entity_velocity(&self, entity_index: u32) -> Result<Vec<f32>, JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
             let idx = entity_index as usize;
-            if idx >= MAX_ENTITIES {
+            if idx >= engine.store.capacity() {
                 return Err(JsError::new("Entity index out of bounds").into());
             }
             let vel = engine.store.velocity(idx);
@@ -2556,7 +2560,7 @@ impl WasmBridge {
     ) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
             let idx = entity_id as usize;
-            if idx >= MAX_ENTITIES {
+            if idx >= engine.store.capacity() {
                 return Err(JsError::new("Invalid entity index").into());
             }
 
@@ -2660,7 +2664,7 @@ impl WasmBridge {
 
             for i in 0..count {
                 let idx = ids[i] as usize;
-                if idx >= MAX_ENTITIES {
+                if idx >= engine.store.capacity() {
                     continue;
                 }
 
@@ -2713,7 +2717,7 @@ impl WasmBridge {
     pub fn set_label(&self, entity_index: u32, label: &str) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
             let idx = entity_index as usize;
-            if idx >= MAX_ENTITIES {
+            if idx >= engine.store.capacity() {
                 return Err(JsError::new("Invalid entity index").into());
             }
             engine.store.string_pool.set(idx, label);
@@ -2738,7 +2742,7 @@ impl WasmBridge {
     pub fn get_entity_position_screen(&self, entity_index: u32) -> Result<js_sys::Array, JsValue> {
         if let Some(engine) = self.engine.borrow().as_ref() {
             let idx = entity_index as usize;
-            if idx >= MAX_ENTITIES || !engine.store.is_alive_index(idx) {
+            if idx >= engine.store.capacity() || !engine.store.is_alive_index(idx) {
                 return Err(JsError::new("Invalid entity index").into());
             }
             let world_pos = engine.store.pos(idx);
@@ -2757,7 +2761,7 @@ impl WasmBridge {
     pub fn get_entity_position_world(&self, entity_index: u32) -> Result<js_sys::Array, JsValue> {
         if let Some(engine) = self.engine.borrow().as_ref() {
             let idx = entity_index as usize;
-            if idx >= MAX_ENTITIES || !engine.store.is_alive_index(idx) {
+            if idx >= engine.store.capacity() || !engine.store.is_alive_index(idx) {
                 return Err(JsError::new("Invalid entity index").into());
             }
             let world_pos = engine.store.pos(idx);
@@ -2775,7 +2779,7 @@ impl WasmBridge {
     pub fn get_entity_size_screen(&self, entity_index: u32) -> Result<js_sys::Array, JsValue> {
         if let Some(engine) = self.engine.borrow().as_ref() {
             let idx = entity_index as usize;
-            if idx >= MAX_ENTITIES || !engine.store.is_alive_index(idx) {
+            if idx >= engine.store.capacity() || !engine.store.is_alive_index(idx) {
                 return Err(JsError::new("Invalid entity index").into());
             }
             let size = engine.store.size(idx);
@@ -2795,7 +2799,7 @@ impl WasmBridge {
     pub fn get_entity_size_world(&self, entity_index: u32) -> Result<js_sys::Array, JsValue> {
         if let Some(engine) = self.engine.borrow().as_ref() {
             let idx = entity_index as usize;
-            if idx >= MAX_ENTITIES || !engine.store.is_alive_index(idx) {
+            if idx >= engine.store.capacity() || !engine.store.is_alive_index(idx) {
                 return Err(JsError::new("Invalid entity index").into());
             }
             let size = engine.store.size(idx);
@@ -2813,7 +2817,7 @@ impl WasmBridge {
     pub fn get_entity_color_hex(&self, entity_index: u32) -> Result<String, JsValue> {
         if let Some(engine) = self.engine.borrow().as_ref() {
             let idx = entity_index as usize;
-            if idx >= MAX_ENTITIES || !engine.store.is_alive_index(idx) {
+            if idx >= engine.store.capacity() || !engine.store.is_alive_index(idx) {
                 return Err(JsError::new("Invalid entity index").into());
             }
             let raw_color = engine.store.colors[idx];
@@ -2835,7 +2839,7 @@ impl WasmBridge {
     pub fn get_entity_shape(&self, entity_index: u32) -> Result<u8, JsValue> {
         if let Some(engine) = self.engine.borrow().as_ref() {
             let idx = entity_index as usize;
-            if idx >= MAX_ENTITIES || !engine.store.is_alive_index(idx) {
+            if idx >= engine.store.capacity() || !engine.store.is_alive_index(idx) {
                 return Err(JsError::new("Invalid entity index").into());
             }
             Ok(engine.store.shape_type(idx))
@@ -2852,7 +2856,7 @@ impl WasmBridge {
     pub fn get_entity_label(&self, entity_index: u32) -> Result<String, JsValue> {
         if let Some(engine) = self.engine.borrow().as_ref() {
             let idx = entity_index as usize;
-            if idx >= MAX_ENTITIES || !engine.store.is_alive_index(idx) {
+            if idx >= engine.store.capacity() || !engine.store.is_alive_index(idx) {
                 return Err(JsError::new("Invalid entity index").into());
             }
             Ok(engine.store.string_pool.get(idx).to_string())
@@ -2869,7 +2873,7 @@ impl WasmBridge {
     pub fn is_entity_visible(&self, entity_index: u32) -> Result<bool, JsValue> {
         if let Some(engine) = self.engine.borrow().as_ref() {
             let idx = entity_index as usize;
-            if idx >= MAX_ENTITIES || !engine.store.is_alive_index(idx) {
+            if idx >= engine.store.capacity() || !engine.store.is_alive_index(idx) {
                 return Err(JsError::new("Invalid entity index").into());
             }
             Ok(engine.store.is_visible(idx))
@@ -2883,7 +2887,7 @@ impl WasmBridge {
     pub fn is_entity_selected(&self, entity_index: u32) -> Result<bool, JsValue> {
         if let Some(engine) = self.engine.borrow().as_ref() {
             let idx = entity_index as usize;
-            if idx >= MAX_ENTITIES || !engine.store.is_alive_index(idx) {
+            if idx >= engine.store.capacity() || !engine.store.is_alive_index(idx) {
                 return Err(JsError::new("Invalid entity index").into());
             }
             Ok(engine.store.is_selected(idx))
@@ -2900,7 +2904,7 @@ impl WasmBridge {
     pub fn set_entity_visible(&self, entity_index: u32, visible: bool) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
             let idx = entity_index as usize;
-            if idx >= MAX_ENTITIES || !engine.store.is_alive_index(idx) {
+            if idx >= engine.store.capacity() || !engine.store.is_alive_index(idx) {
                 return Err(JsError::new("Invalid entity index").into());
             }
             engine.store.set_visible(idx, visible);
@@ -3143,7 +3147,7 @@ impl WasmBridge {
     pub fn set_entity_selected(&self, entity_index: u32, selected: bool) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
             let idx = entity_index as usize;
-            if idx >= MAX_ENTITIES {
+            if idx >= engine.store.capacity() {
                 return Err(JsError::new("Invalid entity index").into());
             }
 
@@ -3219,7 +3223,7 @@ impl WasmBridge {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
             use archflow_core::Vec2;
             let idx = entity_index as usize;
-            if idx >= MAX_ENTITIES || !engine.store.is_alive_index(idx) {
+            if idx >= engine.store.capacity() || !engine.store.is_alive_index(idx) {
                 return Err(JsError::new("Invalid entity index").into());
             }
             let pos = engine.store.pos(idx);
