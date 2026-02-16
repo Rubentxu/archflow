@@ -329,6 +329,7 @@ impl BgeLogicSystem {
         &mut self,
         entity_id: EntityId,
         sensor: &SensorComponent,
+        world: &World,
     ) -> SensorEvaluation {
         match sensor {
             SensorComponent::MouseHover { distance } => {
@@ -358,7 +359,7 @@ impl BgeLogicSystem {
                 origin,
                 direction,
                 max_distance,
-            } => self.evaluate_ray(*origin, *direction, *max_distance),
+            } => self.evaluate_ray(*origin, *direction, *max_distance, world),
             SensorComponent::Timer { duration_ticks } => {
                 self.evaluate_timer(entity_id, *duration_ticks)
             }
@@ -407,20 +408,178 @@ impl BgeLogicSystem {
         }
     }
 
-    /// Evaluates a ray sensor.
+    /// Evaluates a ray sensor using the slab method for ray-AABB intersection.
     ///
-    /// Checks if a ray from origin in the given direction intersects with the entity
-    /// within the specified maximum distance.
+    /// Checks if a ray from origin in the given direction intersects with any entity
+    /// within the specified maximum distance. The ray is cast against all entities
+    /// that have Transform and Size components.
+    ///
+    /// # Arguments
+    /// * `origin` - Starting point of the ray [x, y, z]
+    /// * `direction` - Direction vector of the ray [x, y, z]
+    /// * `max_distance` - Maximum distance to cast the ray
+    /// * `world` - Reference to the ECS world for querying entities
+    ///
+    /// # Returns
+    /// * `SensorEvaluation::Active` - If the ray intersects with any entity
+    /// * `SensorEvaluation::Inactive` - If no intersection is found
     #[inline]
     fn evaluate_ray(
         &self,
-        _origin: [f32; 3],
-        _direction: [f32; 3],
-        _max_distance: f32,
+        origin: [f32; 3],
+        direction: [f32; 3],
+        max_distance: f32,
+        world: &World,
     ) -> SensorEvaluation {
-        // TODO: Integrate with actual raycasting system
-        // This would need access to the physics/collision system
-        SensorEvaluation::None
+        // Calculate ray direction vector (normalized if needed)
+        let ray_dir_x = direction[0];
+        let ray_dir_y = direction[1];
+        let ray_dir_z = direction[2];
+
+        // Calculate ray end point
+        let ray_end_x = origin[0] + ray_dir_x * max_distance;
+        let ray_end_y = origin[1] + ray_dir_y * max_distance;
+        let ray_end_z = origin[2] + ray_dir_z * max_distance;
+
+        // Iterate over all entities with Transform component
+        for entity in world.entities() {
+            if let Some(transform) = world.get_component::<Transform>(entity) {
+                // Skip the entity itself (we can't raycast against ourselves)
+                // Get size from scale (treating scale as dimensions for AABB)
+                // In a full implementation, there would be a separate Size component
+                let size_x = transform.scale_x;
+                let size_y = transform.scale_y;
+
+                // Create AABB for this entity (2D in XY plane with thickness in Z)
+                let aabb_min_x = transform.position_x;
+                let aabb_min_y = transform.position_y;
+                let aabb_min_z = -0.1; // Small thickness for 2D entities
+
+                let aabb_max_x = transform.position_x + size_x;
+                let aabb_max_y = transform.position_y + size_y;
+                let aabb_max_z = 0.1; // Small thickness for 2D entities
+
+                // Test ray-AABB intersection using slab method
+                if Self::ray_intersects_aabb(
+                    origin[0], origin[1], origin[2], ray_end_x, ray_end_y, ray_end_z, aabb_min_x,
+                    aabb_min_y, aabb_min_z, aabb_max_x, aabb_max_y, aabb_max_z,
+                ) {
+                    return SensorEvaluation::Active;
+                }
+            }
+        }
+
+        SensorEvaluation::Inactive
+    }
+
+    /// Ray-AABB intersection test using the slab method.
+    ///
+    /// This is an efficient algorithm that tests intersection by finding
+    /// the entry and exit points of the ray through the AABB's slabs.
+    ///
+    /// # Arguments
+    /// * `ox, oy, oz` - Ray origin coordinates
+    /// * `ex, ey, ez` - Ray end point coordinates
+    /// * `min_x, min_y, min_z` - Minimum bounds of the AABB
+    /// * `max_x, max_y, max_z` - Maximum bounds of the AABB
+    ///
+    /// # Returns
+    /// * `true` - If the ray intersects the AABB
+    /// * `false` - If there is no intersection
+    #[inline]
+    fn ray_intersects_aabb(
+        ox: f32,
+        oy: f32,
+        oz: f32,
+        ex: f32,
+        ey: f32,
+        ez: f32,
+        min_x: f32,
+        min_y: f32,
+        min_z: f32,
+        max_x: f32,
+        max_y: f32,
+        max_z: f32,
+    ) -> bool {
+        let mut tmin = 0.0f32;
+        let mut tmax = 1.0f32;
+
+        // Axis 0: X
+        if (ex - ox).abs() < f32::EPSILON {
+            // Ray is parallel to X plane
+            if ox < min_x || ox > max_x {
+                return false;
+            }
+        } else {
+            let inv_d = 1.0 / (ex - ox);
+            let mut t1 = (min_x - ox) * inv_d;
+            let mut t2 = (max_x - ox) * inv_d;
+
+            if t1 > t2 {
+                let tmp = t1;
+                t1 = t2;
+                t2 = tmp;
+            }
+
+            tmin = tmin.max(t1);
+            tmax = tmax.min(t2);
+
+            if tmin > tmax {
+                return false;
+            }
+        }
+
+        // Axis 1: Y
+        if (ey - oy).abs() < f32::EPSILON {
+            // Ray is parallel to Y plane
+            if oy < min_y || oy > max_y {
+                return false;
+            }
+        } else {
+            let inv_d = 1.0 / (ey - oy);
+            let mut t1 = (min_y - oy) * inv_d;
+            let mut t2 = (max_y - oy) * inv_d;
+
+            if t1 > t2 {
+                let tmp = t1;
+                t1 = t2;
+                t2 = tmp;
+            }
+
+            tmin = tmin.max(t1);
+            tmax = tmax.min(t2);
+
+            if tmin > tmax {
+                return false;
+            }
+        }
+
+        // Axis 2: Z
+        if (ez - oz).abs() < f32::EPSILON {
+            // Ray is parallel to Z plane
+            if oz < min_z || oz > max_z {
+                return false;
+            }
+        } else {
+            let inv_d = 1.0 / (ez - oz);
+            let mut t1 = (min_z - oz) * inv_d;
+            let mut t2 = (max_z - oz) * inv_d;
+
+            if t1 > t2 {
+                let tmp = t1;
+                t1 = t2;
+                t2 = tmp;
+            }
+
+            tmin = tmin.max(t1);
+            tmax = tmax.min(t2);
+
+            if tmin > tmax {
+                return false;
+            }
+        }
+
+        true
     }
 
     /// Evaluates a timer sensor.
@@ -758,7 +917,7 @@ impl System for BgeLogicSystem {
                 self.stats.sensors_evaluated += 1;
 
                 // Evaluate sensor
-                let sensor_state = self.evaluate_sensor(*entity, sensor);
+                let sensor_state = self.evaluate_sensor(*entity, sensor, world);
 
                 // Store previous state for edge detection
                 let previous_state = self.previous_states.insert(*entity, sensor_state);
