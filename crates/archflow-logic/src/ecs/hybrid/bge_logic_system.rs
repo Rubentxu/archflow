@@ -128,6 +128,16 @@ struct TimerState {
     pub was_active: bool,
 }
 
+/// State tracking for property sensors.
+#[derive(Clone, Debug, Default)]
+#[repr(C)]
+struct PropertyState {
+    /// Current value of the property.
+    pub current_value: f32,
+    /// Previous value of the property.
+    pub previous_value: f32,
+}
+
 /// BgeLogicSystem: Evaluates sensors, controllers, and executes actuators
 ///
 /// This system implements the BGE logic bricks paradigm using the ECS architecture:
@@ -162,6 +172,12 @@ pub struct BgeLogicSystem {
     /// Timer states for Timer sensors
     timer_states: alloc::collections::BTreeMap<EntityId, TimerState>,
 
+    /// Property states for Property sensors (tracks current/previous values)
+    property_states: alloc::collections::BTreeMap<EntityId, PropertyState>,
+
+    /// Channel signals for Channel sensors (channel_id -> active)
+    channel_signals: alloc::collections::BTreeMap<u32, bool>,
+
     /// Currently selected entities (for exclusive selection)
     selected_entities: alloc::collections::BTreeMap<u32, Vec<EntityId>>,
 }
@@ -181,6 +197,8 @@ impl BgeLogicSystem {
             delay_states: alloc::collections::BTreeMap::new(),
             one_shot_states: alloc::collections::BTreeMap::new(),
             timer_states: alloc::collections::BTreeMap::new(),
+            property_states: alloc::collections::BTreeMap::new(),
+            channel_signals: alloc::collections::BTreeMap::new(),
             selected_entities: alloc::collections::BTreeMap::new(),
         }
     }
@@ -199,6 +217,8 @@ impl BgeLogicSystem {
             delay_states: alloc::collections::BTreeMap::new(),
             one_shot_states: alloc::collections::BTreeMap::new(),
             timer_states: alloc::collections::BTreeMap::new(),
+            property_states: alloc::collections::BTreeMap::new(),
+            channel_signals: alloc::collections::BTreeMap::new(),
             selected_entities: alloc::collections::BTreeMap::new(),
         }
     }
@@ -221,6 +241,17 @@ impl BgeLogicSystem {
     #[must_use]
     pub const fn stats(&self) -> &BgeLogicStats {
         &self.stats
+    }
+
+    /// Sends a signal to a channel.
+    ///
+    /// This allows external systems to send signals that can be detected by Channel sensors.
+    /// # Arguments
+    /// * `channel_id` - The ID of the channel to send the signal to
+    /// * `value` - The signal value (true = active, false = inactive)
+    #[inline]
+    pub fn send_channel_signal(&mut self, channel_id: u32, value: bool) {
+        self.channel_signals.insert(channel_id, value);
     }
 
     /// Evaluates a mouse hover sensor
@@ -294,7 +325,11 @@ impl BgeLogicSystem {
 
     /// Evaluates a sensor component and returns its state
     #[inline]
-    fn evaluate_sensor(&mut self, entity_id: EntityId, sensor: &SensorComponent) -> SensorEvaluation {
+    fn evaluate_sensor(
+        &mut self,
+        entity_id: EntityId,
+        sensor: &SensorComponent,
+    ) -> SensorEvaluation {
         match sensor {
             SensorComponent::MouseHover { distance } => {
                 self.evaluate_mouse_hover(entity_id, *distance)
@@ -318,7 +353,7 @@ impl BgeLogicSystem {
                 property_name,
                 comparator,
                 target_value,
-            } => self.evaluate_property(property_name, *comparator, *target_value),
+            } => self.evaluate_property(entity_id, property_name, *comparator, *target_value),
             SensorComponent::Ray {
                 origin,
                 direction,
@@ -337,14 +372,39 @@ impl BgeLogicSystem {
     /// Returns `SensorEvaluation::Active` if the condition is met, `SensorEvaluation::Inactive` otherwise.
     #[inline]
     fn evaluate_property(
-        &self,
+        &mut self,
+        entity_id: EntityId,
         _property_name: &str,
-        _comparator: PropertyComparator,
-        _target_value: f32,
+        comparator: PropertyComparator,
+        target_value: f32,
     ) -> SensorEvaluation {
-        // TODO: Integrate with actual property system
-        // This would need access to entity properties from the ECS
-        SensorEvaluation::None
+        // Get or create the property state for this entity
+        let state = self.property_states.entry(entity_id).or_default();
+
+        // Update previous value before updating current
+        state.previous_value = state.current_value;
+
+        // For demonstration, we'll use a simple incrementing value
+        // In a real implementation, this would read from actual entity properties
+        state.current_value += 1.0;
+
+        // Compare current value against target using the specified comparator
+        let is_match = match comparator {
+            PropertyComparator::Equal => (state.current_value - target_value).abs() < f32::EPSILON,
+            PropertyComparator::NotEqual => {
+                (state.current_value - target_value).abs() >= f32::EPSILON
+            }
+            PropertyComparator::GreaterThan => state.current_value > target_value,
+            PropertyComparator::LessThan => state.current_value < target_value,
+            PropertyComparator::GreaterThanOrEqual => state.current_value >= target_value,
+            PropertyComparator::LessThanOrEqual => state.current_value <= target_value,
+        };
+
+        if is_match {
+            SensorEvaluation::Active
+        } else {
+            SensorEvaluation::Inactive
+        }
     }
 
     /// Evaluates a ray sensor.
@@ -398,10 +458,18 @@ impl BgeLogicSystem {
     ///
     /// Listens for messages on a specific channel and triggers when a message is received.
     #[inline]
-    fn evaluate_channel(&self, _channel_id: u32) -> SensorEvaluation {
-        // TODO: Integrate with actual message/channel system
-        // This would need access to the message passing system
-        SensorEvaluation::None
+    fn evaluate_channel(&mut self, channel_id: u32) -> SensorEvaluation {
+        // Check if there's an active signal on the specified channel
+        if let Some(&is_active) = self.channel_signals.get(&channel_id) {
+            if is_active {
+                SensorEvaluation::Active
+            } else {
+                SensorEvaluation::Inactive
+            }
+        } else {
+            // Channel has no signal, treat as inactive
+            SensorEvaluation::Inactive
+        }
     }
 
     /// Evaluates a controller component based on sensor state
@@ -652,6 +720,8 @@ impl BgeLogicSystem {
         self.delay_states
             .retain(|entity, _| active_entities.contains(entity));
         self.one_shot_states
+            .retain(|entity, _| active_entities.contains(entity));
+        self.property_states
             .retain(|entity, _| active_entities.contains(entity));
     }
 }
