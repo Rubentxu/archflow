@@ -118,11 +118,86 @@ pub enum SensorComponent {
     /// This is a convenience variant for right-click detection.
     /// Equivalent to `MouseClick { button: 1, click_type: Single }`.
     RightClick,
+    /// Always triggers (always active).
+    ///
+    /// Configuration:
+    /// - No configuration needed - this sensor is always active
+    Always,
+    /// Triggers when an entity property matches a target value.
+    ///
+    /// Configuration:
+    /// - `property_name`: Name of the property to check
+    /// - `comparator`: Comparison operator to use
+    /// - `target_value`: Value to compare against
+    Property {
+        /// Name of the property to evaluate.
+        property_name: String,
+        /// Comparison operator.
+        comparator: PropertyComparator,
+        /// Target value to compare against.
+        target_value: f32,
+    },
+    /// Triggers when a ray intersects with the entity.
+    ///
+    /// Configuration:
+    /// - `origin`: Ray origin point in world coordinates
+    /// - `direction`: Ray direction vector (normalized)
+    /// - `max_distance`: Maximum ray distance for detection
+    Ray {
+        /// Ray origin point [x, y, z].
+        origin: [f32; 3],
+        /// Ray direction vector [x, y, z] (should be normalized).
+        direction: [f32; 3],
+        /// Maximum detection distance.
+        max_distance: f32,
+    },
+    /// Triggers after a specified duration in ticks.
+    ///
+    /// Configuration:
+    /// - `duration_ticks`: Number of ticks to wait before triggering
+    Timer {
+        /// Number of ticks to wait before activating.
+        duration_ticks: u32,
+    },
+    /// Triggers when a specific channel receives a message.
+    ///
+    /// Configuration:
+    /// - `channel_id`: Channel identifier to listen on
+    Channel {
+        /// Channel identifier to listen for messages.
+        channel_id: u32,
+    },
 }
 
 impl Default for SensorComponent {
     fn default() -> Self {
         Self::MouseHover { distance: 100.0 }
+    }
+}
+
+/// Comparison operators for property-based sensors.
+///
+/// Used by Property sensors to compare entity properties against target values.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
+pub enum PropertyComparator {
+    /// Equal to target value.
+    Equal = 0,
+    /// Not equal to target value.
+    NotEqual = 1,
+    /// Greater than target value.
+    GreaterThan = 2,
+    /// Less than target value.
+    LessThan = 3,
+    /// Greater than or equal to target value.
+    GreaterThanOrEqual = 4,
+    /// Less than or equal to target value.
+    LessThanOrEqual = 5,
+}
+
+impl Default for PropertyComparator {
+    fn default() -> Self {
+        Self::Equal
     }
 }
 
@@ -364,6 +439,11 @@ pub enum SensorComponentType {
     DoubleTap = 4,
     LongPress = 5,
     RightClick = 6,
+    Always = 7,
+    Property = 8,
+    Ray = 9,
+    Timer = 10,
+    Channel = 11,
 }
 
 impl From<&SensorComponent> for SensorComponentType {
@@ -376,6 +456,11 @@ impl From<&SensorComponent> for SensorComponentType {
             SensorComponent::DoubleTap { .. } => Self::DoubleTap,
             SensorComponent::LongPress { .. } => Self::LongPress,
             SensorComponent::RightClick => Self::RightClick,
+            SensorComponent::Always => Self::Always,
+            SensorComponent::Property { .. } => Self::Property,
+            SensorComponent::Ray { .. } => Self::Ray,
+            SensorComponent::Timer { .. } => Self::Timer,
+            SensorComponent::Channel { .. } => Self::Channel,
         }
     }
 }

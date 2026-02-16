@@ -17,7 +17,9 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 
-use crate::ecs::hybrid::{ActuatorComponent, ClickType, ControllerComponent, SensorComponent};
+use crate::ecs::hybrid::{
+    ActuatorComponent, ClickType, ControllerComponent, PropertyComparator, SensorComponent,
+};
 use crate::ecs::physics_components::{
     Acceleration, AnimationState, HighlightState, PhysicsMaterial, SelectionState, Transform,
     Velocity,
@@ -114,6 +116,18 @@ struct OneShotState {
     pub has_fired: bool,
 }
 
+/// State tracking for timer sensors.
+#[derive(Clone, Debug, Default)]
+#[repr(C)]
+struct TimerState {
+    /// Remaining ticks until activation.
+    pub remaining_ticks: u32,
+    /// Whether the timer has already fired.
+    pub has_fired: bool,
+    /// Whether the timer was active in the previous tick.
+    pub was_active: bool,
+}
+
 /// BgeLogicSystem: Evaluates sensors, controllers, and executes actuators
 ///
 /// This system implements the BGE logic bricks paradigm using the ECS architecture:
@@ -145,6 +159,9 @@ pub struct BgeLogicSystem {
     /// One-shot states
     one_shot_states: alloc::collections::BTreeMap<EntityId, OneShotState>,
 
+    /// Timer states for Timer sensors
+    timer_states: alloc::collections::BTreeMap<EntityId, TimerState>,
+
     /// Currently selected entities (for exclusive selection)
     selected_entities: alloc::collections::BTreeMap<u32, Vec<EntityId>>,
 }
@@ -163,6 +180,7 @@ impl BgeLogicSystem {
             pulse_states: alloc::collections::BTreeMap::new(),
             delay_states: alloc::collections::BTreeMap::new(),
             one_shot_states: alloc::collections::BTreeMap::new(),
+            timer_states: alloc::collections::BTreeMap::new(),
             selected_entities: alloc::collections::BTreeMap::new(),
         }
     }
@@ -180,6 +198,7 @@ impl BgeLogicSystem {
             pulse_states: alloc::collections::BTreeMap::new(),
             delay_states: alloc::collections::BTreeMap::new(),
             one_shot_states: alloc::collections::BTreeMap::new(),
+            timer_states: alloc::collections::BTreeMap::new(),
             selected_entities: alloc::collections::BTreeMap::new(),
         }
     }
@@ -275,7 +294,7 @@ impl BgeLogicSystem {
 
     /// Evaluates a sensor component and returns its state
     #[inline]
-    fn evaluate_sensor(&self, entity_id: EntityId, sensor: &SensorComponent) -> SensorEvaluation {
+    fn evaluate_sensor(&mut self, entity_id: EntityId, sensor: &SensorComponent) -> SensorEvaluation {
         match sensor {
             SensorComponent::MouseHover { distance } => {
                 self.evaluate_mouse_hover(entity_id, *distance)
@@ -294,7 +313,95 @@ impl BgeLogicSystem {
             SensorComponent::RightClick => {
                 self.evaluate_mouse_click(entity_id, 1, ClickType::Single)
             }
+            SensorComponent::Always => SensorEvaluation::Active,
+            SensorComponent::Property {
+                property_name,
+                comparator,
+                target_value,
+            } => self.evaluate_property(property_name, *comparator, *target_value),
+            SensorComponent::Ray {
+                origin,
+                direction,
+                max_distance,
+            } => self.evaluate_ray(*origin, *direction, *max_distance),
+            SensorComponent::Timer { duration_ticks } => {
+                self.evaluate_timer(entity_id, *duration_ticks)
+            }
+            SensorComponent::Channel { channel_id } => self.evaluate_channel(*channel_id),
         }
+    }
+
+    /// Evaluates a property sensor.
+    ///
+    /// Compares an entity property against a target value using the specified comparator.
+    /// Returns `SensorEvaluation::Active` if the condition is met, `SensorEvaluation::Inactive` otherwise.
+    #[inline]
+    fn evaluate_property(
+        &self,
+        _property_name: &str,
+        _comparator: PropertyComparator,
+        _target_value: f32,
+    ) -> SensorEvaluation {
+        // TODO: Integrate with actual property system
+        // This would need access to entity properties from the ECS
+        SensorEvaluation::None
+    }
+
+    /// Evaluates a ray sensor.
+    ///
+    /// Checks if a ray from origin in the given direction intersects with the entity
+    /// within the specified maximum distance.
+    #[inline]
+    fn evaluate_ray(
+        &self,
+        _origin: [f32; 3],
+        _direction: [f32; 3],
+        _max_distance: f32,
+    ) -> SensorEvaluation {
+        // TODO: Integrate with actual raycasting system
+        // This would need access to the physics/collision system
+        SensorEvaluation::None
+    }
+
+    /// Evaluates a timer sensor.
+    ///
+    /// Tracks elapsed ticks for each entity and triggers when the duration is reached.
+    /// The timer resets after triggering unless configured otherwise.
+    #[inline]
+    fn evaluate_timer(&mut self, entity_id: EntityId, duration_ticks: u32) -> SensorEvaluation {
+        let state = self.timer_states.entry(entity_id).or_default();
+
+        if state.remaining_ticks == 0 && !state.was_active {
+            // Timer not started yet, initialize it
+            state.remaining_ticks = duration_ticks;
+            state.was_active = true;
+            state.has_fired = false;
+        }
+
+        if state.remaining_ticks > 0 {
+            state.remaining_ticks -= 1;
+            if state.remaining_ticks == 0 && !state.has_fired {
+                state.has_fired = true;
+                return SensorEvaluation::Active;
+            }
+        }
+
+        // Reset timer if it has fired and was inactive
+        if state.remaining_ticks == 0 && state.was_active && state.has_fired {
+            state.was_active = false;
+        }
+
+        SensorEvaluation::Inactive
+    }
+
+    /// Evaluates a channel sensor.
+    ///
+    /// Listens for messages on a specific channel and triggers when a message is received.
+    #[inline]
+    fn evaluate_channel(&self, _channel_id: u32) -> SensorEvaluation {
+        // TODO: Integrate with actual message/channel system
+        // This would need access to the message passing system
+        SensorEvaluation::None
     }
 
     /// Evaluates a controller component based on sensor state
