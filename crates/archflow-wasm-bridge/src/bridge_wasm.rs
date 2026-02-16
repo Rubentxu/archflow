@@ -1294,6 +1294,7 @@ impl WasmBridge {
                 5 => ActuatorType::Redo,
                 6 => ActuatorType::Camera,
                 7 => ActuatorType::Property,
+                8 => ActuatorType::Animation,
                 _ => ActuatorType::Highlight,
             };
 

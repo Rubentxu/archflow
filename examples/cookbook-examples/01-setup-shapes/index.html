@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cookbook Example 1 - Setup & Shapes</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #0f0f1a;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        canvas {
+            display: block;
+        }
+        #info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #00ff88;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 13px;
+            max-width: 400px;
+            z-index: 100;
+        }
+        .controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+        .controls button {
+            background: #4488ff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .controls button:hover {
+            background: #5599ff;
+            transform: scale(1.05);
+        }
+        .controls button:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div id="info">Initializing...</div>
+
+    <div class="controls">
+        <button onclick="createShapes()">✨ Create Shapes</button>
+        <button onclick="clearScene()">🗑️ Clear</button>
+    </div>
+
+    <script type="module">
+        import { createEngine, createRectangle, createCircle, createTriangle, hexToRgba } from '../../cookbook-shared/cookbook-utils.js';
+
+        let bridge = null;
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // EJEMPLO 1: SETUP & SHAPES
+        // ═══════════════════════════════════════════════════════════════════════════════
+
+        // Función principal de inicialización
+        async function init() {
+            try {
+                // Crear el engine con callbacks
+                const { bridge: b } = await createEngine("canvas", {
+                    onFrame: (dt, fps) => {
+                        updateInfo(`FPS: ${fps} | Entities: ${b.get_entity_count ? b.get_entity_count() : 0}`);
+                    },
+                    onPointerDown: (x, y, button) => {
+                        console.log(`Pointer down at: ${x.toFixed(0)}, ${y.toFixed(0)}`);
+                    },
+                    onKey: (keyCode, isDown) => {
+                        if (isDown && keyCode === 68) { // D key
+                            console.log('D key pressed - doubling shapes!');
+                            doubleAllShapes();
+                        }
+                    }
+                });
+
+                bridge = b;
+
+                // Crear canvas wrapper para contexto de lona
+                setupCanvasContext();
+
+                updateInfo('✓ Ready! Click "Create Shapes" to begin');
+                console.log('Example 1: Setup & Shapes initialized');
+
+            } catch (error) {
+                console.error('Initialization failed:', error);
+                updateInfo('✗ Error: ' + error.message, true);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // FUNCIONES DEL EJEMPLO
+        // ═══════════════════════════════════════════════════════════════════════════════
+
+        async function createShapes() {
+            updateInfo('Creating shapes...');
+
+            // 1. Rectángulo rojo con borde azul
+            const rect1 = await createRectangle(bridge, 500, 300, 150, 100, '#ff4444', '#4444ff', 3);
+            console.log('✓ Created rectangle:', rect1);
+
+            // 2. Rectángulo verde
+            const rect2 = await createRectangle(bridge, 700, 300, 120, 80, '#44ff44', '#44aa44', 2);
+            console.log('✓ Created rectangle:', rect2);
+
+            // 3. Círculo amarillo
+            const circle1 = await createCircle(bridge, 950, 400, 60, '#ffff44');
+            console.log('✓ Created circle:', circle1);
+
+            // 4. Círculo púrpura
+            const circle2 = await createCircle(bridge, 1100, 400, 45, '#ff44ff');
+            console.log('✓ Created circle:', circle2);
+
+            // 5. Triángulo cyan
+            const triangle1 = await createTriangle(bridge, 800, 550, 100, '#44ffff');
+            console.log('✓ Created triangle:', triangle1);
+
+            // 6. Triángulo naranja
+            const triangle2 = await createTriangle(bridge, 1000, 550, 80, '#ff8844');
+            console.log('✓ Created triangle:', triangle2);
+
+            // 7. Rectángulo con gradiente simulado (variación)
+            for (let i = 0; i < 5; i++) {
+                const hue = (i * 30) % 360;
+                const color = hslToHex(hue, 70, 50);
+                await createRectangle(bridge, 400 + i * 80, 650 + i * 30, 60, 60, color, '#000000', 1);
+            }
+            console.log('✓ Created gradient rectangles');
+
+            updateInfo(`✓ Created 13 shapes! Press D to double them all`);
+        }
+
+        async function doubleAllShapes() {
+            const count = bridge.get_entity_count();
+            updateInfo(`Doubling ${count} entities...`);
+
+            const currentCount = count;
+            for (let i = 0; i < currentCount; i++) {
+                // Clonar cada entidad con offset
+                const transforms = getTransforms();
+                const idx = i;
+
+                const x = transforms[idx * 4 + 0];
+                const y = transforms[idx * 4 + 1];
+                const w = transforms[idx * 4 + 2];
+                const h = transforms[idx * 4 + 3];
+
+                // Crear clon con offset
+                await createRectangle(bridge, x + w + 10, y + 10, w, h, '#888888', '#aaaaaa', 1);
+            }
+
+            updateInfo(`✓ Doubled to ${bridge.get_entity_count()} entities!`);
+        }
+
+        function clearScene() {
+            // Despawn todas las entidades
+            const count = bridge.get_entity_count();
+
+            const ecb = bridge.create_ecb(count);
+            for (let i = 0; i < count; i++) {
+                ecb.despawn(i);
+            }
+            bridge.execute_ecb(ecb);
+
+            updateInfo(`✓ Cleared ${count} entities`);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // UTILIDADES
+        // ═══════════════════════════════════════════════════════════════════════════════
+
+        function getTransforms() {
+            const ptr = bridge.get_transforms_ptr();
+            const count = bridge.get_transforms_count();
+            return new Float32Array(wasmMemory.buffer, ptr, count * 4);
+        }
+
+        function setupCanvasContext() {
+            // Setup inicial con instrucciones
+            updateInfo('✓ Ready! Press "Create Shapes" to begin');
+            console.log(`
+════════════════════════════════════════════════════════════════════════════════
+📖 COOKBOOK EXAMPLE 1 - Setup & Shapes
+════════════════════════════════════════════════════════════════════════════════
+
+This example demonstrates:
+  ✓ Engine initialization with createEngine()
+  ✓ Canvas setup and fullscreen handling
+  ✓ Creating rectangles, circles, and triangles
+  ✓ Custom colors with fill and stroke
+  ✓ Batch operations (doubling all entities)
+
+CONTROLS:
+  ✓ "Create Shapes" - Creates various shapes
+  ✓ "Clear" - Remove all entities
+  ✓ Press 'D' - Double all entities
+  ✓ Click canvas to log pointer position
+
+════════════════════════════════════════════════════════════════════════════════
+            `);
+        }
+
+        function updateInfo(message) {
+            const info = document.getElementById('info');
+            if (info) {
+                info.textContent = message;
+            }
+        }
+
+        // Utilidades de color
+        function hslToHex(h, s, l) {
+            // HSL a RGB (simplificado)
+            s /= 100;
+            l /= 100;
+            const a = s * Math.min(l, 1);
+            const f = (n, k) => (n + k) % 12;
+            const u = l < 0.5 ? 2 * n * l : l + n - 0.5;
+            const v = 2 * a * f - f - 1;
+
+            const r = Math.round(255 * (l * (1 - s) * (1 - v)));
+            const g = Math.round(255 * (l * (1 - s) * (1 - v) * (v + 1)));
+            const b = Math.round(255 * (l * (1 - s) * (1 - v) * (v - 1)));
+
+            return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+        }
+
+        // Inicializar al cargar
+        init();
+        
+        // Expose functions to window for onclick handlers
+        window.createShapes = createShapes;
+        window.clearScene = clearScene;
+        window.doubleAllShapes = doubleAllShapes;
+    </script>
+</body>
+</html>

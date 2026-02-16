@@ -1,0 +1,738 @@
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Cookbook Example 3 - Direct Manipulation</title>
+        <style>
+            body {
+                margin: 0;
+                overflow: hidden;
+                background: #0f0f1a;
+                font-family: system-ui;
+            }
+            canvas {
+                display: block;
+            }
+            #info {
+                position: fixed;
+                top: 20px;
+                left: 20px;
+                background: rgba(0, 0, 0, 0.85);
+                color: #00ff88;
+                padding: 15px;
+                border-radius: 8px;
+                font-family: "Monaco", monospace;
+                font-size: 13px;
+                z-index: 100;
+                max-width: 380px;
+            }
+            .controls {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                z-index: 100;
+                max-width: 200px;
+            }
+            .controls h3 {
+                color: #4488ff;
+                margin: 0 0 10px 0;
+                font-size: 12px;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+            .control-group {
+                background: rgba(0, 0, 0, 0.5);
+                padding: 10px;
+                border-radius: 6px;
+                margin-bottom: 8px;
+            }
+            .control-group label {
+                color: #888;
+                font-size: 11px;
+                display: block;
+                margin-bottom: 5px;
+            }
+            .control-row {
+                display: flex;
+                gap: 5px;
+                flex-wrap: wrap;
+            }
+            .controls button {
+                background: #334455;
+                color: white;
+                border: none;
+                padding: 8px 12px;
+                border-radius: 4px;
+                font-size: 11px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.15s;
+                flex: 1;
+                min-width: 60px;
+            }
+            .controls button:hover {
+                background: #445566;
+                transform: scale(1.02);
+            }
+            .controls button.primary {
+                background: #4488ff;
+            }
+            .controls button.primary:hover {
+                background: #5599ff;
+            }
+            .controls button.danger {
+                background: #ff4466;
+            }
+            .controls button.danger:hover {
+                background: #ff5577;
+            }
+            .controls button.success {
+                background: #44ff88;
+                color: #000;
+            }
+            .controls button.success:hover {
+                background: #55ff99;
+            }
+            .controls button:active {
+                transform: scale(0.98);
+            }
+            .selected-info {
+                background: rgba(68, 136, 255, 0.2);
+                border: 1px solid #4488ff;
+                padding: 10px;
+                border-radius: 6px;
+                margin-top: 10px;
+                font-size: 11px;
+                color: #4488ff;
+            }
+            .selected-info div {
+                margin: 3px 0;
+            }
+            .selected-info span {
+                color: #fff;
+                font-weight: bold;
+            }
+            .keyboard-hint {
+                position: fixed;
+                bottom: 20px;
+                left: 20px;
+                background: rgba(0, 0, 0, 0.8);
+                color: #888;
+                padding: 12px;
+                border-radius: 6px;
+                font-family: "Monaco", monospace;
+                font-size: 11px;
+                z-index: 100;
+            }
+            .keyboard-hint kbd {
+                background: #333;
+                color: #fff;
+                padding: 2px 6px;
+                border-radius: 3px;
+                margin-right: 5px;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="canvas"></canvas>
+        <div id="info">Initializing...</div>
+        <div class="keyboard-hint" id="keyboardHint">
+            <kbd>1-5</kbd> Select Entity &nbsp; <kbd>WASD</kbd> Move &nbsp;
+            <kbd>Q/E</kbd> Scale &nbsp; <kbd>R</kbd> Rotate &nbsp;
+            <kbd>C</kbd> Color &nbsp; <kbd>X</kbd> Delete
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <h3>🎯 Selection</h3>
+                <div class="control-row">
+                    <button onclick="selectEntity(0)">Select #0</button>
+                    <button onclick="selectEntity(1)">Select #1</button>
+                    <button onclick="selectEntity(2)">Select #2</button>
+                    <button onclick="selectEntity(3)">Select #3</button>
+                    <button onclick="selectEntity(4)">Select #4</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>📍 Position</h3>
+                <label>Move Entity</label>
+                <div class="control-row">
+                    <button onclick="moveSelection(-50, 0)">← Left</button>
+                    <button onclick="moveSelection(50, 0)">Right →</button>
+                    <button onclick="moveSelection(0, -50)">↑ Up</button>
+                    <button onclick="moveSelection(0, 50)">↓ Down</button>
+                </div>
+                <div class="control-row">
+                    <button class="primary" onclick="moveToCenter()">
+                        Center
+                    </button>
+                    <button onclick="moveRandom()">Random</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>📐 Scale</h3>
+                <label>Resize Entity</label>
+                <div class="control-row">
+                    <button onclick="scaleSelection(1.2)">+20%</button>
+                    <button onclick="scaleSelection(0.8)">-20%</button>
+                    <button onclick="scaleSelection(2.0)">2x</button>
+                    <button onclick="scaleSelection(0.5)">½x</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>🔄 Rotation</h3>
+                <label>Rotate Entity</label>
+                <div class="control-row">
+                    <button onclick="rotateSelection(-15)">↺ -15°</button>
+                    <button onclick="rotateSelection(15)">+15° ↻</button>
+                    <button onclick="rotateSelection(-45)">↺ -45°</button>
+                    <button onclick="rotateSelection(45)">+45° ↻</button>
+                </div>
+                <div class="control-row">
+                    <button class="primary" onclick="rotateSelection(0)">
+                        Reset 0°
+                    </button>
+                    <button onclick="rotateSelection(180)">Flip 180°</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>🎨 Color</h3>
+                <label>Change Color</label>
+                <div class="control-row">
+                    <button
+                        onclick="setColor('#ff4466')"
+                        style="background: #ff4466"
+                    >
+                        Red
+                    </button>
+                    <button
+                        onclick="setColor('#44ff88')"
+                        style="background: #44ff88"
+                    >
+                        Green
+                    </button>
+                    <button
+                        onclick="setColor('#4488ff')"
+                        style="background: #4488ff"
+                    >
+                        Blue
+                    </button>
+                    <button
+                        onclick="setColor('#ffff44')"
+                        style="background: #ffff44; color: #000"
+                    >
+                        Yel
+                    </button>
+                    <button
+                        onclick="setColor('#ff44ff')"
+                        style="background: #ff44ff"
+                    >
+                        Pink
+                    </button>
+                    <button
+                        onclick="setColor('#44ffff')"
+                        style="background: #44ffff; color: #000"
+                    >
+                        Cyan
+                    </button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>⚡ Actions</h3>
+                <label>Entity Operations</label>
+                <div class="control-row">
+                    <button class="success" onclick="cloneSelection()">
+                        Clone
+                    </button>
+                    <button class="danger" onclick="deleteSelection()">
+                        Delete
+                    </button>
+                </div>
+                <div class="control-row">
+                    <button onclick="spawnNew()">+ New</button>
+                    <button class="danger" onclick="clearAll()">
+                        Clear All
+                    </button>
+                </div>
+            </div>
+
+            <div class="selected-info" id="selectedInfo">
+                <div>No entity selected</div>
+            </div>
+        </div>
+
+        <script type="module">
+            import {
+                createEngine,
+                createRectangle,
+                createCircle,
+                createTriangle,
+                moveEntityTo,
+                scaleEntity,
+                setEntityColor,
+                deleteEntity as deleteEntityUtil,
+                hexToRgba,
+                getTransforms,
+                makeSelectable,
+                makeDraggable,
+            } from "../../cookbook-shared/cookbook-utils.js";
+
+            let bridge = null;
+            let selectedEntityId = null;
+            const entityColors = [];
+
+            // ═══════════════════════════════════════════════════════════════════════════════
+            // EJEMPLO 3: DIRECT MANIPULATION
+            // ═══════════════════════════════════════════════════════════════════════════════
+
+            async function init() {
+                try {
+                    const startTime = performance.now();
+
+                    const { bridge: b, canvas } = await createEngine("canvas", {
+                        onFrame: (dt, fps) => {
+                            const count = bridge.get_entity_count
+                                ? bridge.get_entity_count()
+                                : 0;
+                            updateSelectedInfo();
+                        },
+                    });
+
+                    bridge = b;
+
+                    // Setup keyboard input
+                    setupKeyboardInput(canvas);
+
+                    // Spawn initial entities
+                    await spawnInitialEntities();
+
+                    const endTime = performance.now();
+                    console.log(
+                        `Initialization time: ${(endTime - startTime).toFixed(2)}ms`,
+                    );
+                    updateInfo("✓ Ready! Select an entity to manipulate");
+                } catch (error) {
+                    console.error("Initialization failed:", error);
+                    updateInfo("✗ Error: " + error.message, true);
+                }
+            }
+
+            // ═══════════════════════════════════════════════════════════════════════════════
+            // SPAWN INITIAL ENTITIES
+            // ═══════════════════════════════════════════════════════════════════════════════
+
+            async function spawnInitialEntities() {
+                const colors = [
+                    "#ff4466",
+                    "#44ff88",
+                    "#4488ff",
+                    "#ffff44",
+                    "#ff44ff",
+                ];
+                const positions = [
+                    { x: 500, y: 400 },
+                    { x: 960, y: 400 },
+                    { x: 1420, y: 400 },
+                    { x: 730, y: 680 },
+                    { x: 1190, y: 680 },
+                ];
+
+                for (let i = 0; i < 5; i++) {
+                    const id = await createRectangle(
+                        bridge,
+                        positions[i].x,
+                        positions[i].y,
+                        120,
+                        120,
+                        colors[i],
+                        "#000000",
+                        2,
+                    );
+
+                    // Add WASM Logic Bricks: Click → Select
+                    makeSelectable(bridge, id);
+
+                    entityColors[i] = colors[i];
+                    console.log(
+                        `Created entity #${i} with ID ${id} (Selectable)`,
+                    );
+                }
+
+                // Auto-select first entity
+                selectEntityById(0);
+            }
+
+            // ═══════════════════════════════════════════════════════════════════════════════
+            // SELECTION
+            // ═══════════════════════════════════════════════════════════════════════════════
+
+            function selectEntity(index) {
+                if (index >= 0 && index < 5) {
+                    selectEntityById(index);
+                    updateInfo(`✓ Selected entity #${index}`);
+                }
+            }
+
+            function selectEntityById(index) {
+                // Deselect previous
+                if (selectedEntityId !== null) {
+                    bridge.set_selected(selectedEntityId, false);
+                }
+
+                selectedEntityId = index;
+
+                // Select new
+                if (selectedEntityId !== null) {
+                    bridge.set_selected(selectedEntityId, true);
+                }
+
+                updateSelectedInfo();
+            }
+
+            function getSelectedEntity() {
+                return selectedEntityId;
+            }
+
+            // ═══════════════════════════════════════════════════════════════════════════════
+            // POSITION MANIPULATION
+            // ═══════════════════════════════════════════════════════════════════════════════
+
+            function moveSelection(dx, dy) {
+                const id = getSelectedEntity();
+                if (id === null) return;
+
+                const transforms = getTransforms(bridge);
+                const idx = id;
+
+                const currentX = transforms[idx * 4 + 0];
+                const currentY = transforms[idx * 4 + 1];
+
+                moveEntityTo(bridge, id, currentX + dx, currentY + dy);
+                updateInfo(`✓ Moved entity #${id} by (${dx}, ${dy})`);
+            }
+
+            function moveToCenter() {
+                const id = getSelectedEntity();
+                if (id === null) return;
+
+                moveEntityTo(bridge, id, 960, 540);
+                updateInfo(`✓ Moved entity #${id} to center`);
+            }
+
+            function moveRandom() {
+                const id = getSelectedEntity();
+                if (id === null) return;
+
+                const x = 200 + Math.random() * 1520;
+                const y = 150 + Math.random() * 780;
+
+                moveEntityTo(bridge, id, x, y);
+                updateInfo(`✓ Moved entity #${id} to random position`);
+            }
+
+            // ═══════════════════════════════════════════════════════════════════════════════
+            // SCALE MANIPULATION
+            // ═══════════════════════════════════════════════════════════════════════════════
+
+            function scaleSelection(factor) {
+                const id = getSelectedEntity();
+                if (id === null) return;
+
+                scaleEntity(bridge, id, factor, factor);
+                updateInfo(`✓ Scaled entity #${id} by ${factor}x`);
+            }
+
+            // ═══════════════════════════════════════════════════════════════════════════════
+            // ROTATION MANIPULATION
+            // ═══════════════════════════════════════════════════════════════════════════════
+
+            function rotateSelection(angle) {
+                const id = getSelectedEntity();
+                if (id === null) return;
+
+                bridge.configure_entity(
+                    id,
+                    NaN,
+                    NaN,
+                    NaN,
+                    NaN, // skip position, size
+                    NaN,
+                    NaN, // skip velocity
+                    NaN, // skip color
+                    0, // skip stroke_color
+                    0, // skip stroke_width
+                    angle, // rotation in degrees
+                    255, // skip shape_type
+                    2, // visible
+                );
+                updateInfo(`✓ Rotated entity #${id} by ${angle}°`);
+            }
+
+            // ═══════════════════════════════════════════════════════════════════════════════
+            // COLOR MANIPULATION
+            // ═══════════════════════════════════════════════════════════════════════════════
+
+            function setColor(color) {
+                const id = getSelectedEntity();
+                if (id === null) return;
+
+                setEntityColor(bridge, id, color);
+                entityColors[id] = color;
+                updateInfo(`✓ Changed entity #${id} color to ${color}`);
+            }
+
+            // ═══════════════════════════════════════════════════════════════════════════════
+            // ENTITY OPERATIONS
+            // ═══════════════════════════════════════════════════════════════════════════════
+
+            async function cloneSelection() {
+                const id = getSelectedEntity();
+                if (id === null) return;
+
+                const transforms = getTransforms(bridge);
+                const idx = id;
+
+                const x = transforms[idx * 4 + 0] + 150;
+                const y = transforms[idx * 4 + 1] + 150;
+                const width = transforms[idx * 4 + 2];
+                const height = transforms[idx * 4 + 3];
+                const color = entityColors[id] || "#4488ff";
+
+                const newId = await createRectangle(
+                    bridge,
+                    x,
+                    y,
+                    width,
+                    height,
+                    color,
+                    "#000",
+                    2,
+                );
+                entityColors.push(color);
+
+                updateInfo(`✓ Cloned entity #${id} → #${newId}`);
+            }
+
+            async function deleteSelection() {
+                const id = getSelectedEntity();
+                if (id === null) return;
+
+                await deleteEntityUtil(bridge, id);
+                entityColors[id] = null;
+                selectedEntityId = null;
+
+                updateInfo(`✓ Deleted entity #${id}`);
+            }
+
+            async function spawnNew() {
+                const x = 400 + Math.random() * 1120;
+                const y = 200 + Math.random() * 680;
+                const colors = [
+                    "#ff4466",
+                    "#44ff88",
+                    "#4488ff",
+                    "#ffff44",
+                    "#ff44ff",
+                    "#44ffff",
+                ];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+
+                const id = await createRectangle(
+                    bridge,
+                    x,
+                    y,
+                    100,
+                    100,
+                    color,
+                    "#000",
+                    2,
+                );
+                entityColors.push(color);
+
+                selectEntityById(id);
+                updateInfo(`✓ Spawned new entity #${id}`);
+            }
+
+            async function clearAll() {
+                const count = bridge.get_entity_count();
+                const ecb = bridge.create_ecb(count);
+
+                for (let i = 0; i < count; i++) {
+                    ecb.despawn(i);
+                }
+
+                await bridge.execute_ecb(ecb);
+                selectedEntityId = null;
+                entityColors.length = 0;
+
+                updateInfo(`✓ Cleared all entities`);
+            }
+
+            // ═══════════════════════════════════════════════════════════════════════════════
+            // KEYBOARD INPUT
+            // ═══════════════════════════════════════════════════════════════════════════════
+
+            function setupKeyboardInput(canvas) {
+                canvas.addEventListener("keydown", (e) => {
+                    const key = e.key.toLowerCase();
+
+                    // Number keys for selection
+                    if (key >= "1" && key <= "5") {
+                        const index = parseInt(key) - 1;
+                        selectEntity(index);
+                        return;
+                    }
+
+                    switch (key) {
+                        case "w":
+                            moveSelection(0, -20);
+                            break;
+                        case "s":
+                            moveSelection(0, 20);
+                            break;
+                        case "a":
+                            moveSelection(-20, 0);
+                            break;
+                        case "d":
+                            moveSelection(20, 0);
+                            break;
+                        case "q":
+                            scaleSelection(1.1);
+                            break;
+                        case "e":
+                            scaleSelection(0.9);
+                            break;
+                        case "r":
+                            rotateSelection(15);
+                            break;
+                        case "c": {
+                            const colors = [
+                                "#ff4466",
+                                "#44ff88",
+                                "#4488ff",
+                                "#ffff44",
+                                "#ff44ff",
+                                "#44ffff",
+                            ];
+                            const randomColor =
+                                colors[
+                                    Math.floor(Math.random() * colors.length)
+                                ];
+                            setColor(randomColor);
+                            break;
+                        }
+                        case "x":
+                            deleteSelection();
+                            break;
+                    }
+                });
+
+                canvas.tabIndex = 0; // Make canvas focusable
+                canvas.focus();
+            }
+
+            // ═══════════════════════════════════════════════════════════════════════════════
+            // UI UPDATES
+            // ═══════════════════════════════════════════════════════════════════════════════
+
+            function updateInfo(message) {
+                const info = document.getElementById("info");
+                if (info) info.textContent = message;
+            }
+
+            function updateSelectedInfo() {
+                const info = document.getElementById("selectedInfo");
+                if (!info) return;
+
+                const id = getSelectedEntity();
+                if (id === null) {
+                    info.innerHTML = "<div>No entity selected</div>";
+                    return;
+                }
+
+                const transforms = getTransforms(bridge);
+                const idx = id;
+
+                const x = transforms[idx * 4 + 0].toFixed(0);
+                const y = transforms[idx * 4 + 1].toFixed(0);
+                const w = transforms[idx * 4 + 2].toFixed(0);
+                const h = transforms[idx * 4 + 3].toFixed(0);
+                const color = entityColors[id] || "#4488ff";
+
+                info.innerHTML = `
+                <div>Entity: <span>#${id}</span></div>
+                <div>Pos: <span>(${x}, ${y})</span></div>
+                <div>Size: <span>${w}×${h}</span></div>
+                <div>Color: <span style="color:${color}">${color}</span></div>
+            `;
+            }
+
+            // ═══════════════════════════════════════════════════════════════════════════════
+            // STARTUP
+            // ═══════════════════════════════════════════════════════════════════════════════
+
+            console.log(`
+════════════════════════════════════════════════════════════════════════════════
+📖 COOKBOOK EXAMPLE 3 - Direct Manipulation
+════════════════════════════════════════════════════════════════════════════════
+
+This example demonstrates:
+  ✓ moveEntityTo() - Move entities to absolute positions
+  ✓ scaleEntity() - Resize entities by scale factor
+  ✓ configure_entity() - Update rotation and other properties
+  ✓ setEntityColor() - Change entity colors
+  ✓ cloneSelection() - Duplicate entities
+  ✓ deleteEntity() - Remove entities
+
+MANIPULATION OPERATIONS:
+  ├─ Position: Move to absolute coordinates or relative offsets
+  ├─ Scale: Resize by multiplying current size
+  ├─ Rotation: Set rotation angle in degrees
+  ├─ Color: Change fill color using hex values
+  ├─ Clone: Create a copy with offset position
+  └─ Delete: Remove entity from scene
+
+KEYBOARD CONTROLS:
+  ├─ 1-5: Select entity by index
+  ├─ WASD: Move selected entity
+  ├─ Q/E: Scale up/down
+  ├─ R: Rotate 15°
+  ├─ C: Random color
+  └─ X: Delete selected
+
+ZERO-COPY PATTERN:
+  configure_entity() uses NaN to skip properties:
+  → Only specified properties are updated
+  → No need to read current values first
+  → Efficient partial updates
+
+════════════════════════════════════════════════════════════════════════════════
+        `);
+
+            // Start
+            init();
+
+            // Expose functions to window for onclick handlers
+            window.selectEntity = selectEntity;
+            window.moveSelection = moveSelection;
+            window.moveToCenter = moveToCenter;
+            window.moveRandom = moveRandom;
+            window.scaleSelection = scaleSelection;
+            window.rotateSelection = rotateSelection;
+            window.setColor = setColor;
+            window.cloneSelection = cloneSelection;
+            window.deleteSelection = deleteSelection;
+            window.spawnNew = spawnNew;
+            window.clearAll = clearAll;
+        </script>
+    </body>
+</html>

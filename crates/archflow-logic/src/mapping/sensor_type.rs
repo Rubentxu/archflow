@@ -47,6 +47,16 @@ pub enum SensorType {
 
     /// RightClick sensor - detects right mouse button click
     RightClick = 8,
+    /// Always sensor - constantly active every frame
+    Always = 9,
+    /// Property sensor - detects changes in entity properties
+    Property = 10,
+    /// Ray sensor - line of sight detection
+    Ray = 11,
+    /// Timer sensor - activates after a delay
+    Timer = 12,
+    /// Channel sensor - listens for messages on a channel
+    Channel = 13,
 }
 
 impl SensorType {
@@ -71,6 +81,11 @@ impl SensorType {
             6 => Some(Self::DoubleTap),
             7 => Some(Self::LongPress),
             8 => Some(Self::RightClick),
+            9 => Some(Self::Always),
+            10 => Some(Self::Property),
+            11 => Some(Self::Ray),
+            12 => Some(Self::Timer),
+            13 => Some(Self::Channel),
             _ => None,
         }
     }

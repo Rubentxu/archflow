@@ -12,6 +12,7 @@ archflow-engine = { path = "../archflow-engine" }
 
 # Collections optimized for WASM - will be needed for LogicMappingTable (Epic 4)
 hashbrown = { workspace = true }
+fixedbitset = { workspace = true }
 
 # Serialization for declarative JSON API
 serde = { workspace = true }

@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cookbook Example 11 - Logic Bricks WASM</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #0f0f1a; font-family: system-ui; }
+        canvas { display: block; }
+        #info {
+            position: fixed; top: 20px; left: 20px;
+            background: rgba(0, 0, 0, 0.85); color: #00ff88;
+            padding: 15px; border-radius: 8px;
+            font-family: 'Monaco', monospace; font-size: 13px;
+            z-index: 100;
+        }
+        .controls {
+            position: fixed; top: 20px; right: 20px;
+            display: flex; flex-direction: column; gap: 10px; z-index: 100;
+            max-width: 280px;
+        }
+        .controls h3 {
+            color: #4488ff; margin: 0 0 8px 0;
+            font-size: 12px; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .control-group {
+            background: rgba(0, 0, 0, 0.5); padding: 12px;
+            border-radius: 6px;
+        }
+        .control-row { display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+        .control-row:last-child { margin-bottom: 0; }
+        .controls button {
+            background: #334455; color: white; border: none;
+            padding: 8px 12px; border-radius: 5px;
+            font-size: 11px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; flex: 1; min-width: 70px;
+        }
+        .controls button:hover { background: #445566; transform: scale(1.02); }
+        .controls button:active { transform: scale(0.98); }
+        .controls button.primary { background: #4488ff; }
+        .controls button.primary:hover { background: #5599ff; }
+        .controls button.success { background: #44ff88; color: #000; }
+        .controls button.danger { background: #ff4466; }
+        .controls button.danger:hover { background: #ff5577; }
+        .status {
+            position: fixed; bottom: 20px; left: 20px;
+            background: rgba(0, 0, 0, 0.8); color: #4488ff;
+            padding: 12px; border-radius: 6px;
+            font-family: 'Monaco', monospace; font-size: 11px;
+            z-index: 100;
+        }
+        .api-info {
+            position: fixed; bottom: 20px; right: 20px;
+            background: rgba(0, 0, 0, 0.8); color: #888;
+            padding: 12px; border-radius: 6px;
+            font-family: 'Monaco', monospace; font-size: 10px;
+            z-index: 100; max-width: 300px;
+        }
+        .api-info code { color: #44ff88; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div id="info">Initializing WASM...</div>
+
+    <div class="controls">
+        <div class="control-group">
+            <h3>🎯 Sensor Types</h3>
+            <div class="control-row">
+                <button class="primary" onclick="spawnHoverHighlight()">Hover</button>
+                <button class="primary" onclick="spawnClickSelect()">Click Select</button>
+            </div>
+            <div class="control-row">
+                <button onclick="spawnRightClickDelete()">Right Click</button>
+                <button onclick="spawnDoubleTap()">Double Tap</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>🔗 Controller Types</h3>
+            <div class="control-row">
+                <button onclick="spawnDirect()">Direct</button>
+                <button onclick="spawnAND()">AND</button>
+            </div>
+            <div class="control-row">
+                <button onclick="spawnOR()">OR</button>
+                <button onclick="spawnBlinky()">Blinky</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>⚡ Actuator Types</h3>
+            <div class="control-row">
+                <button onclick="spawnHighlightActuator()">Highlight</button>
+                <button onclick="spawnSelectActuator()">Select</button>
+            </div>
+            <div class="control-row">
+                <button onclick="spawnMoveActuator()">Move</button>
+                <button class="danger" onclick="spawnDeleteActuator()">Delete</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>🎭 Complete Behaviors</h3>
+            <div class="control-row">
+                <button class="success" onclick="spawnDemoScene()">Demo Scene</button>
+                <button class="danger" onclick="clearAll()">Clear All</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="status" id="status">
+        <div>Engine: <span id="engineStatus">Initializing...</span></div>
+        <div>Entities: <span id="entityCount">0</span></div>
+        <div>Behaviors: <span id="behaviorCount">0</span></div>
+        <div>Events: <span id="eventCount">0</span></div>
+    </div>
+
+    <div class="api-info">
+        <div><strong>WASM API Usage:</strong></div>
+        <div><code>bridge.add_sensor(entityId, sensor, controller, actuator)</code></div>
+        <div style="margin-top:5px;color:#666">Sensor: 0=MOUSE_OVER, 1=MOUSE_CLICK, 8=RIGHT_CLICK</div>
+        <div style="color:#666">Controller: 0=DIRECT, 1=AND, 2=OR, 4=BLINKY</div>
+        <div style="color:#666">Actuator: 0=HIGHLIGHT, 1=SELECT, 2=MOVE, 3=DELETE</div>
+    </div>
+
+    <script type="module">
+        import { createEngine, SensorType, ControllerType, ActuatorType } from '../../cookbook-shared/cookbook-utils.js';
+
+        let bridge = null;
+        let behaviorCount = 0;
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // EJEMPLO 11: LOGIC BRICKS WASM (THIN CLIENT)
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // Este ejemplo demuestra el patrón correcto de thin client:
+        // - JavaScript solo configura declarativamente los behaviors
+        // - El motor WASM ejecuta los sensors, controllers, y actuators automáticamente
+        // - No hay lógica de aplicación en JavaScript
+        // ═══════════════════════════════════════════════════════════════════════════════
+
+        async function init() {
+            try {
+                const startTime = performance.now();
+
+                const { bridge: b } = await createEngine("canvas", {
+                    onFrame: (dt, fps) => {
+                        // Poll events generated by Logic Bricks
+                        const events = bridge.poll_events();
+
+                        const count = bridge.get_entity_count ? bridge.get_entity_count() : 0;
+                        updateInfo(`FPS: ${fps} | Entities: ${count} | Behaviors: ${behaviorCount}`);
+                        updateStatus(count, events);
+                    }
+                });
+
+                bridge = b;
+
+                const endTime = performance.now();
+                console.log(`Initialization time: ${(endTime - startTime).toFixed(2)}ms`);
+                updateInfo('✓ Ready! WASM Logic Bricks active');
+                document.getElementById('engineStatus').textContent = 'Running';
+                document.getElementById('engineStatus').style.color = '#44ff88';
+
+            } catch (error) {
+                console.error('Initialization failed:', error);
+                updateInfo('✗ Error: ' + error.message, true);
+                document.getElementById('engineStatus').textContent = 'Error';
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // LOGIC BRICKS API (WASM DELEGATION)
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // Todas estas funciones delegan 100% al motor WASM
+        // No hay lógica de aplicación en JavaScript
+        // ═══════════════════════════════════════════════════════════════════════════════
+
+        /**
+         * Add a behavior to an entity using WASM Logic Bricks
+         *
+         * @param {number} entityId - Entity ID
+         * @param {number} sensor - SensorType enum value
+         * @param {number} controller - ControllerType enum value
+         * @param {number} actuator - ActuatorType enum value
+         */
+        function addLogicBrick(entityId, sensor, controller, actuator) {
+            // Delegate 100% to WASM - no JavaScript logic
+            const result = bridge.add_sensor(entityId, sensor, controller, actuator);
+            if (result) {
+                behaviorCount++;
+                updateInfo(`✓ Added Logic Brick to entity #${entityId}`);
+            }
+            return result;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // SENSOR SPAWNERS - Hover behaviors
+        // ═══════════════════════════════════════════════════════════════════════════════
+
+        async function spawnHoverHighlight() {
+            const x = 300 + Math.random() * 1320;
+            const y = 200 + Math.random() * 680;
+
+            // Spawn entity
+            bridge.set_active_color(255, 100, 100, 255);
+            const id = await bridge.spawn_entity(x, y, 100, 100);
+
+            // Configure: rectangle, visible
+            bridge.configure_entity(id, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, 0, 0, 0, 0, 2);
+
+            // Add WASM Logic Brick: Hover → Direct → Highlight
+            addLogicBrick(id, SensorType.MOUSE_OVER, ControllerType.DIRECT, ActuatorType.HIGHLIGHT);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // SENSOR SPAWNERS - Click behaviors
+        // ═══════════════════════════════════════════════════════════════════════════════
+
+        async function spawnClickSelect() {
+            const x = 300 + Math.random() * 1320;
+            const y = 200 + Math.random() * 680;
+
+            bridge.set_active_color(100, 255, 100, 255);
+            const id = await bridge.spawn_entity(x, y, 100, 100);
+            bridge.configure_entity(id, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, 0, 0, 0, 0, 2);
+
+            // Add WASM Logic Brick: Click → Direct → Select
+            addLogicBrick(id, SensorType.MOUSE_CLICK, ControllerType.DIRECT, ActuatorType.SELECT);
+        }
+
+        async function spawnRightClickDelete() {
+            const x = 300 + Math.random() * 1320;
+            const y = 200 + Math.random() * 680;
+
+            bridge.set_active_color(255, 100, 255, 255);
+            const id = await bridge.spawn_entity(x, y, 100, 100);
+            bridge.configure_entity(id, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, 0, 0, 0, 0, 2);
+
+            // Add WASM Logic Brick: RightClick → Direct → Delete
+            addLogicBrick(id, SensorType.RIGHT_CLICK, ControllerType.DIRECT, ActuatorType.DELETE);
+        }
+
+        async function spawnDoubleTap() {
+            const x = 300 + Math.random() * 1320;
+            const y = 200 + Math.random() * 680;
+
+            bridge.set_active_color(255, 255, 100, 255);
+            const id = await bridge.spawn_entity(x, y, 100, 100);
+            bridge.configure_entity(id, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, 0, 0, 0, 0, 2);
+
+            // Add WASM Logic Brick: DoubleTap → Direct → Highlight
+            addLogicBrick(id, SensorType.DOUBLE_TAP, ControllerType.DIRECT, ActuatorType.HIGHLIGHT);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // CONTROLLER SPAWNERS
+        // ═══════════════════════════════════════════════════════════════════════════════
+
+        async function spawnDirect() {
+            const x = 300 + Math.random() * 1320;
+            const y = 200 + Math.random() * 680;
+
+            bridge.set_active_color(100, 150, 255, 255);
+            const id = await bridge.spawn_entity(x, y, 100, 100);
+            bridge.configure_entity(id, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, 0, 0, 0, 0, 2);
+
+            // Direct: sensor triggers actuator immediately
+            addLogicBrick(id, SensorType.MOUSE_OVER, ControllerType.DIRECT, ActuatorType.HIGHLIGHT);
+        }
+
+        async function spawnAND() {
+            const x = 300 + Math.random() * 1320;
+            const y = 200 + Math.random() * 680;
+
+            bridge.set_active_color(255, 150, 50, 255);
+            const id = await bridge.spawn_entity(x, y, 100, 100);
+            bridge.configure_entity(id, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, 0, 0, 0, 0, 2);
+
+            // AND: requires sensor AND condition to be true
+            addLogicBrick(id, SensorType.MOUSE_OVER, ControllerType.AND, ActuatorType.SELECT);
+        }
+
+        async function spawnOR() {
+            const x = 300 + Math.random() * 1320;
+            const y = 200 + Math.random() * 680;
+
+            bridge.set_active_color(50, 200, 200, 255);
+            const id = await bridge.spawn_entity(x, y, 100, 100);
+            bridge.configure_entity(id, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, 0, 0, 0, 0, 2);
+
+            // OR: triggers if either condition is true
+            addLogicBrick(id, SensorType.MOUSE_CLICK, ControllerType.OR, ActuatorType.HIGHLIGHT);
+        }
+
+        async function spawnBlinky() {
+            const x = 300 + Math.random() * 1320;
+            const y = 200 + Math.random() * 680;
+
+            bridge.set_active_color(200, 100, 200, 255);
+            const id = await bridge.spawn_entity(x, y, 100, 100);
+            bridge.configure_entity(id, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, 0, 0, 0, 0, 2);
+
+            // Blinky: periodic toggle
+            addLogicBrick(id, SensorType.MOUSE_OVER, ControllerType.BLINKY, ActuatorType.HIGHLIGHT);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // ACTUATOR SPAWNERS
+        // ═══════════════════════════════════════════════════════════════════════════════
+
+        async function spawnHighlightActuator() {
+            const x = 300 + Math.random() * 1320;
+            const y = 200 + Math.random() * 680;
+
+            bridge.set_active_color(255, 50, 50, 255);
+            const id = await bridge.spawn_entity(x, y, 100, 100);
+            bridge.configure_entity(id, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, 0, 0, 0, 0, 2);
+
+            addLogicBrick(id, SensorType.MOUSE_OVER, ControllerType.DIRECT, ActuatorType.HIGHLIGHT);
+        }
+
+        async function spawnSelectActuator() {
+            const x = 300 + Math.random() * 1320;
+            const y = 200 + Math.random() * 680;
+
+            bridge.set_active_color(50, 255, 50, 255);
+            const id = await bridge.spawn_entity(x, y, 100, 100);
+            bridge.configure_entity(id, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, 0, 0, 0, 0, 2);
+
+            addLogicBrick(id, SensorType.MOUSE_CLICK, ControllerType.DIRECT, ActuatorType.SELECT);
+        }
+
+        async function spawnMoveActuator() {
+            const x = 300 + Math.random() * 1320;
+            const y = 200 + Math.random() * 680;
+
+            bridge.set_active_color(50, 50, 255, 255);
+            const id = await bridge.spawn_entity(x, y, 100, 100);
+            bridge.configure_entity(id, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, 0, 0, 0, 0, 2);
+
+            // Move actuator (requires additional config)
+            addLogicBrick(id, SensorType.MOUSE_OVER, ControllerType.DIRECT, ActuatorType.MOVE);
+        }
+
+        async function spawnDeleteActuator() {
+            const x = 300 + Math.random() * 1320;
+            const y = 200 + Math.random() * 680;
+
+            bridge.set_active_color(150, 150, 150, 255);
+            const id = await bridge.spawn_entity(x, y, 100, 100);
+            bridge.configure_entity(id, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, 0, 0, 0, 0, 2);
+
+            addLogicBrick(id, SensorType.RIGHT_CLICK, ControllerType.DIRECT, ActuatorType.DELETE);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // DEMO SCENE - Multiple behaviors
+        // ═══════════════════════════════════════════════════════════════════════════════
+
+        async function spawnDemoScene() {
+            const colors = [
+                [255, 100, 100],  // Red
+                [100, 255, 100],  // Green
+                [100, 100, 255],  // Blue
+                [255, 255, 100],  // Yellow
+                [255, 100, 255],  // Magenta
+                [100, 255, 255],  // Cyan
+            ];
+
+            const behaviors = [
+                { sensor: SensorType.MOUSE_OVER, controller: ControllerType.DIRECT, actuator: ActuatorType.HIGHLIGHT },
+                { sensor: SensorType.MOUSE_CLICK, controller: ControllerType.DIRECT, actuator: ActuatorType.SELECT },
+                { sensor: SensorType.MOUSE_OVER, controller: ControllerType.BLINKY, actuator: ActuatorType.HIGHLIGHT },
+                { sensor: SensorType.DOUBLE_TAP, controller: ControllerType.DIRECT, actuator: ActuatorType.HIGHLIGHT },
+            ];
+
+            // Create 4x3 grid of entities with different behaviors
+            for (let row = 0; row < 3; row++) {
+                for (let col = 0; col < 4; col++) {
+                    const x = 200 + col * 400;
+                    const y = 150 + row * 250;
+                    const [r, g, b] = colors[(row + col) % colors.length];
+
+                    bridge.set_active_color(r, g, b, 255);
+                    const id = await bridge.spawn_entity(x, y, 120, 120);
+                    bridge.configure_entity(id, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, 0, 0, 0, 0, 2);
+
+                    // Add behavior based on position
+                    const behavior = behaviors[(row + col) % behaviors.length];
+                    addLogicBrick(id, behavior.sensor, behavior.controller, behavior.actuator);
+                }
+            }
+
+            updateInfo(`✓ Spawned demo scene with multiple Logic Bricks`);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // UTILITIES
+        // ═══════════════════════════════════════════════════════════════════════════════
+
+        async function clearAll() {
+            const count = bridge.get_entity_count();
+            const ecb = bridge.create_ecb(count);
+
+            for (let i = 0; i < count; i++) {
+                ecb.despawn(i);
+            }
+
+            await bridge.execute_ecb(ecb);
+            behaviorCount = 0;
+
+            updateInfo('✓ Cleared all entities');
+        }
+
+        function updateInfo(message) {
+            const info = document.getElementById('info');
+            if (info) info.textContent = message;
+        }
+
+        function updateStatus(entityCount, events) {
+            document.getElementById('entityCount').textContent = entityCount;
+            document.getElementById('behaviorCount').textContent = behaviorCount;
+            document.getElementById('eventCount').textContent = events;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // STARTUP
+        // ═══════════════════════════════════════════════════════════════════════════════
+
+        console.log(`
+════════════════════════════════════════════════════════════════════════════════════════
+📖 COOKBOOK EXAMPLE 11 - Logic Bricks WASM (Thin Client)
+════════════════════════════════════════════════════════════════════════════════════════
+
+This example demonstrates the CORRECT thin client pattern:
+  ✓ JavaScript only configures behaviors declaratively
+  ✓ WASM engine executes all logic (sensors, controllers, actuators)
+  ✓ No application logic in JavaScript
+
+ARCHITECTURE:
+  ┌──────────────────────────────────────────────────────────────┐
+  │  JavaScript (Thin Client)                                   │
+  │  └── bridge.add_sensor(entityId, sensor, controller, actuator) │
+  └──────────────────────────────────────────────────────────────┘
+                              │
+                              │ add_sensor() call
+                              ▼
+  ┌──────────────────────────────────────────────────────────────┐
+  │  WASM Engine (Full Delegation)                              │
+  │  ├── Sensors: Detect events (hover, click, timer, etc.)    │
+  │  ├── Controllers: Boolean logic (AND, OR, NOT, BLINKY)     │
+  │  └── Actuators: Execute actions (highlight, select, move)  │
+  └──────────────────────────────────────────────────────────────┘
+                              │
+                              │ tick() loop (automatic)
+                              ▼
+  ┌──────────────────────────────────────────────────────────────┐
+  │  Result: 60fps behavior execution in WASM                   │
+  └──────────────────────────────────────────────────────────────┘
+
+SENSOR TYPES:
+  ├─ 0: MOUSE_OVER    - Mouse hover detection
+  ├─ 1: MOUSE_CLICK   - Mouse click
+  ├─ 2: PROXIMITY     - Nearby entities
+  ├─ 3: KEY_SHORTCUT  - Keyboard shortcuts
+  ├─ 6: DOUBLE_TAP    - Double click/tap
+  ├─ 7: LONG_PRESS    - Long press
+  └─ 8: RIGHT_CLICK   - Right mouse button
+
+CONTROLLER TYPES:
+  ├─ 0: DIRECT   - Immediate execution
+  ├─ 1: AND      - All conditions must be true
+  ├─ 2: OR       - Any condition triggers
+  ├─ 3: NOT      - Invert condition
+  └─ 4: BLINKY   - Periodic toggle
+
+ACTUATOR TYPES:
+  ├─ 0: HIGHLIGHT - Visual highlight effect
+  ├─ 1: SELECT    - Select entity
+  ├─ 2: MOVE      - Move entity
+  └─ 3: DELETE    - Remove entity
+
+PERFORMANCE:
+  ├─ Logic runs in WASM at 60fps
+  ├─ No JavaScript overhead for behavior evaluation
+  ├─ Batch processing for multiple entities
+  └─ Zero-copy memory access
+
+════════════════════════════════════════════════════════════════════════════════════════
+        `);
+
+        // Start
+        init();
+
+        // Expose functions to window for onclick handlers
+        window.spawnHoverHighlight = spawnHoverHighlight;
+        window.spawnClickSelect = spawnClickSelect;
+        window.spawnRightClickDelete = spawnRightClickDelete;
+        window.spawnDoubleTap = spawnDoubleTap;
+        window.spawnDirect = spawnDirect;
+        window.spawnAND = spawnAND;
+        window.spawnOR = spawnOR;
+        window.spawnBlinky = spawnBlinky;
+        window.spawnHighlightActuator = spawnHighlightActuator;
+        window.spawnSelectActuator = spawnSelectActuator;
+        window.spawnMoveActuator = spawnMoveActuator;
+        window.spawnDeleteActuator = spawnDeleteActuator;
+        window.spawnDemoScene = spawnDemoScene;
+        window.clearAll = clearAll;
+    </script>
+</body>
+</html>

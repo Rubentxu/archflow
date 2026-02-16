@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cookbook Example 6 - Selection</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #0f0f1a; font-family: system-ui; }
+        canvas { display: block; cursor: default; }
+        #info {
+            position: fixed; top: 20px; left: 20px;
+            background: rgba(0, 0, 0, 0.85); color: #00ff88;
+            padding: 15px; border-radius: 8px;
+            font-family: 'Monaco', monospace; font-size: 13px;
+            z-index: 100; max-width: 400px;
+        }
+        .controls {
+            position: fixed; top: 20px; right: 20px;
+            display: flex; flex-direction: column; gap: 10px; z-index: 100;
+            max-width: 260px;
+        }
+        .controls h3 {
+            color: #4488ff; margin: 0 0 8px 0;
+            font-size: 12px; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .control-group {
+            background: rgba(0, 0, 0, 0.5); padding: 12px;
+            border-radius: 6px; margin-bottom: 8px;
+        }
+        .control-row {
+            display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap;
+        }
+        .control-row:last-child { margin-bottom: 0; }
+        .controls button {
+            background: #334455; color: white; border: none;
+            padding: 8px 12px; border-radius: 5px;
+            font-size: 11px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; flex: 1; min-width: 60px;
+        }
+        .controls button:hover { background: #445566; transform: scale(1.02); }
+        .controls button:active { transform: scale(0.98); }
+        .controls button.primary { background: #4488ff; }
+        .controls button.primary:hover { background: #5599ff; }
+        .controls button.success { background: #44ff88; color: #000; }
+        .controls button.success:hover { background: #55ff99; }
+        .controls button.danger { background: #ff4466; }
+        .controls button.danger:hover { background: #ff5577; }
+        .selection-info {
+            position: fixed; bottom: 20px; left: 20px;
+            background: rgba(0, 0, 0, 0.8); color: #4488ff;
+            padding: 12px; border-radius: 6px;
+            font-family: 'Monaco', monospace; font-size: 11px;
+            z-index: 100; min-width: 280px;
+        }
+        .selection-info .label { color: #888; margin-right: 8px; }
+        .selection-info .value { color: #fff; font-weight: bold; }
+        .selected-list {
+            margin-top: 8px; padding-top: 8px;
+            border-top: 1px solid #333;
+            max-height: 100px; overflow-y: auto;
+        }
+        .selected-item {
+            display: inline-block; background: #4488ff;
+            color: #fff; padding: 2px 6px; border-radius: 3px;
+            margin: 2px; font-size: 10px;
+        }
+        .mode-indicator {
+            position: fixed; top: 20px; left: 50%;
+            transform: translateX(-50%);
+            background: rgba(68, 136, 255, 0.2);
+            border: 1px solid #4488ff;
+            padding: 8px 16px; border-radius: 20px;
+            font-family: 'Monaco', monospace; font-size: 12px;
+            color: #4488ff; z-index: 100;
+        }
+        .instructions {
+            position: fixed; bottom: 20px; right: 20px;
+            background: rgba(0, 0, 0, 0.8); color: #888;
+            padding: 12px; border-radius: 6px;
+            font-family: 'Monaco', monospace; font-size: 11px;
+            z-index: 100; max-width: 280px;
+        }
+        .instructions kbd {
+            background: #333; color: #fff; padding: 2px 6px;
+            border-radius: 3px; margin-right: 4px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div id="info">Initializing...</div>
+    <div class="mode-indicator" id="modeIndicator">Mode: Single Select</div>
+
+    <div class="selection-info" id="selectionInfo">
+        <div><span class="label">Selected:</span><span class="value" id="selectedCount">0</span> entities</div>
+        <div><span class="label">Last:</span><span class="value" id="lastSelected">None</span></div>
+        <div class="selected-list" id="selectedList"></div>
+    </div>
+
+    <div class="instructions">
+        <kbd>Click</kbd> Select entity<br>
+        <kbd>Shift+Click</kbd> Add to selection<br>
+        <kbd>Ctrl+Click</kbd> Toggle selection<br>
+        <kbd>Drag</kbd> Box selection<br>
+        <kbd>Escape</kbd> Clear selection
+    </div>
+
+    <div class="controls">
+        <div class="control-group">
+            <h3>🎯 Selection Mode</h3>
+            <div class="control-row">
+                <button class="primary" onclick="setSelectionMode('single')">Single</button>
+                <button onclick="setSelectionMode('multiple')">Multiple</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>📦 Spawn Patterns</h3>
+            <div class="control-row">
+                <button onclick="spawnGrid()">Grid</button>
+                <button onclick="spawnCircle()">Circle</button>
+            </div>
+            <div class="control-row">
+                <button onclick="spawnRandom()">Random</button>
+                <button onclick="spawnRows()">Rows</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>⚡ Quick Select</h3>
+            <div class="control-row">
+                <button onclick="selectAll()">Select All</button>
+                <button onclick="selectNone()">Clear</button>
+            </div>
+            <div class="control-row">
+                <button onclick="selectInvert()">Invert</button>
+                <button onclick="selectOddEven()">Odd/Even</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>🎨 Selection Actions</h3>
+            <div class="control-row">
+                <button onclick="colorSelected('#ff4466')" style="background:#ff4466">Red</button>
+                <button onclick="colorSelected('#44ff88')" style="background:#44ff88">Grn</button>
+            </div>
+            <div class="control-row">
+                <button onclick="colorSelected('#4488ff')" style="background:#4488ff">Blue</button>
+                <button onclick="colorSelected('#ffff44')" style="background:#ffff44;color:#000">Yel</button>
+            </div>
+            <div class="control-row">
+                <button onclick="moveSelected(-50, 0)">←</button>
+                <button onclick="moveSelected(50, 0)">→</button>
+                <button onclick="moveSelected(0, -50)">↑</button>
+                <button onclick="moveSelected(0, 50)">↓</button>
+            </div>
+            <div class="control-row">
+                <button class="success" onclick="cloneSelected()">Clone</button>
+                <button class="danger" onclick="deleteSelected()">Delete</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3🔧 Tools</h3>
+            <div class="control-row">
+                <button onclick="toggleSelectionBox()">
+                    <span id="boxBtn">Box: OFF</span>
+                </button>
+                <button onclick="clearScene()" class="danger">Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { createEngine, createRectangle, createCircle,
+                hexToRgba, hexToPacked, getTransforms,
+                makeSelectable } from '../../cookbook-shared/cookbook-utils.js';
+
+        let bridge = null;
+        let canvas = null;
+
+        // Selection state
+        let selectedEntities = new Set();
+        let selectionMode = 'single'; // 'single' or 'multiple'
+        let boxSelectionActive = false;
+        let boxStart = null;
+        let boxEnd = null;
+
+        // Track entity positions for hit testing
+        const entityColors = new Map();
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // EJEMPLO 6: SELECTION
+        // ═══════════════════════════════════════════════════════════════════════════════
+
+        async function init() {
+            try {
+                const startTime = performance.now();
+
+                const { bridge: b, canvas: c } = await createEngine("canvas", {
+                    onFrame: (dt, fps) => {
+                        const count = bridge.get_entity_count ? bridge.get_entity_count() : 0;
+                        updateInfo(`FPS: ${fps} | Entities: ${count} | Selected: ${selectedEntities.size}`);
+                    }
+                });
+
+                bridge = b;
+                canvas = c;
+
+                // Setup input handling
+                setupSelectionInput(canvas);
+
+                // Spawn initial entities
+                await spawnInitialEntities();
+
+                const endTime = performance.now();
+                console.log(`Initialization time: ${(endTime - startTime).toFixed(2)}ms`);
+                updateInfo('✓ Ready! Click entities to select them');
+
+            } catch (error) {
+                console.error('Initialization failed:', error);
+                updateInfo('✗ Error: ' + error.message, true);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // SPAWN ENTITIES
+        // ═══════════════════════════════════════════════════════════════════════════════
+
+        async function spawnInitialEntities() {
+            const colors = ['#ff4466', '#44ff88', '#4488ff', '#ffff44', '#ff44ff', '#44ffff'];
+
+            // Spawn a 3x2 grid
+            for (let row = 0; row < 2; row++) {
+                for (let col = 0; col < 3; col++) {
+                    const x = 730 + col * 230;
+                    const y = 400 + row * 280;
+                    const color = colors[row * 3 + col];
+
+                    const id = await createRectangle(bridge, x, y, 120, 120, color, '#000', 2);
+                    entityColors.set(id, color);
+                }
+            }
+        }
+
+        async function spawnGrid() {
+            const colors = ['#ff4466', '#44ff88', '#4488ff'];
+            const cols = 4;
+            const rows = 3;
+            const spacing = 100;
+            const startX = (1920 - (cols - 1) * spacing) / 2;
+            const startY = (1080 - (rows - 1) * spacing) / 2;
+
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    const x = startX + col * spacing;
+                    const y = startY + row * spacing;
+                    const color = colors[row % colors.length];
+
+                    const id = await createRectangle(bridge, x, y, 70, 70, color, '#000', 2);
+
+                    // Add WASM Logic Brick: Click → Select
+                    makeSelectable(bridge, id);
+
+                    entityColors.set(id, color);
+                }
+            }
+            updateInfo(`✓ Spawned ${cols * rows} entities in grid`);
+        }
+
+        async function spawnCircle() {
+            const count = 12;
+            const radius = 200;
+            const centerX = 960;
+            const centerY = 540;
+            const colors = ['#ff4466', '#44ff88', '#4488ff', '#ffff44', '#ff44ff', '#44ffff'];
+
+            for (let i = 0; i < count; i++) {
+                const angle = (i / count) * Math.PI * 2;
+                const x = centerX + Math.cos(angle) * radius;
+                const y = centerY + Math.sin(angle) * radius;
+                const color = colors[i % colors.length];
+
+                const id = await createCircle(bridge, x, y, 35, color);
+
+                // Add WASM Logic Brick: Click → Select
+                makeSelectable(bridge, id);
+
+                entityColors.set(id, color);
+            }
+            updateInfo(`✓ Spawned ${count} entities in circle`);
+        }
+
+        async function spawnRandom() {
+            const colors = ['#ff4466', '#44ff88', '#4488ff', '#ffff44', '#ff44ff', '#44ffff'];
+
+            for (let i = 0; i < 15; i++) {
+                const x = 200 + Math.random() * 1520;
+                const y = 150 + Math.random() * 780;
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                const size = 50 + Math.random() * 50;
+
+                const id = await createRectangle(bridge, x, y, size, size, color, '#000', 2);
+
+                // Add WASM Logic Brick: Click → Select
+                makeSelectable(bridge, id);
+
+                entityColors.set(id, color);
+            }
+            updateInfo('✓ Spawned 15 random entities');
+        }
+
+        async function spawnRows() {
+            const colors = ['#ff4466', '#44ff88', '#4488ff', '#ffff44'];
+
+            for (let row = 0; row < 4; row++) {
+                const y = 250 + row * 150;
+                const countInRow = 5 + row;
+                const rowWidth = (countInRow - 1) * 120;
+                const startX = (1920 - rowWidth) / 2;
+
+                for (let i = 0; i < countInRow; i++) {
+                    const x = startX + i * 120;
+                    const color = colors[row % colors.length];
+
+                    const id = await createRectangle(bridge, x, y, 80, 80, color, '#000', 2);
+                    entityColors.set(id, color);
+                }
+            }
+            updateInfo('✓ Spawned rows pattern');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // SELECTION INPUT
+        // ═══════════════════════════════════════════════════════════════════════════════
+
+        function setupSelectionInput(canvas) {
+            function getPointerPos(e) {
+                const rect = canvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return {
+                    x: (clientX - rect.left) * (canvas.width / rect.width),
+                    y: (clientY - rect.top) * (canvas.height / rect.height)
+                };
+            }
+
+            function findEntityAt(pos) {
+                const transforms = getTransforms(bridge);
+                const count = bridge.get_entity_count();
+
+                for (let i = count - 1; i >= 0; i--) {
+                    const x = transforms[i * 4 + 0];
+                    const y = transforms[i * 4 + 1];
+                    const width = transforms[i * 4 + 2];
+                    const height = transforms[i * 4 + 3];
+
+                    const halfWidth = width / 2;
+                    const halfHeight = height / 2;
+
+                    if (pos.x >= x - halfWidth && pos.x <= x + halfWidth &&
+                        pos.y >= y - halfHeight && pos.y <= y + halfHeight) {
+                        return i;
+                    }
+                }
+                return null;
+            }
+
+            function selectEntity(entityId, additive, toggle) {
+                if (entityId === null) return;
+
+                if (selectionMode === 'single' && !additive && !toggle) {
+                    // Single selection: clear previous
+                    selectedEntities.forEach(id => bridge.set_selected(id, false));
+                    selectedEntities.clear();
+                    selectedEntities.add(entityId);
+                    bridge.set_selected(entityId, true);
+                } else if (toggle) {
+                    // Toggle selection
+                    if (selectedEntities.has(entityId)) {
+                        selectedEntities.delete(entityId);
+                        bridge.set_selected(entityId, false);
+                    } else {
+                        selectedEntities.add(entityId);
+                        bridge.set_selected(entityId, true);
+                    }
+                } else {
+                    // Additive selection
+                    selectedEntities.add(entityId);
+                    bridge.set_selected(entityId, true);
+                }
+
+                updateSelectionInfo();
+            }
+
+            // Mouse/Touch handlers
+            canvas.addEventListener('mousedown', (e) => {
+                const pos = getPointerPos(e);
+                const entity = findEntityAt(pos);
+
+                if (entity !== null) {
+                    selectEntity(entity, e.shiftKey, e.ctrlKey || e.metaKey);
+                } else if (boxSelectionActive) {
+                    // Start box selection
+                    boxStart = pos;
+                    boxEnd = pos;
+                }
+            });
+
+            canvas.addEventListener('mousemove', (e) => {
+                if (boxSelectionActive && boxStart) {
+                    boxEnd = getPointerPos(e);
+                }
+            });
+
+            canvas.addEventListener('mouseup', (e) => {
+                if (boxSelectionActive && boxStart && boxEnd) {
+                    // Complete box selection
+                    performBoxSelection();
+                    boxStart = null;
+                    boxEnd = null;
+                }
+            });
+
+            // Keyboard
+            canvas.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    selectNone();
+                }
+            });
+
+            canvas.tabIndex = 0;
+            canvas.focus();
+        }
+
+        function performBoxSelection() {
+            if (!boxStart || !boxEnd) return;
+
+            const minX = Math.min(boxStart.x, boxEnd.x);
+            const maxX = Math.max(boxStart.x, boxEnd.x);
+            const minY = Math.min(boxStart.y, boxEnd.y);
+            const maxY = Math.max(boxStart.y, boxEnd.y);
+
+            const transforms = getTransforms(bridge);
+            const count = bridge.get_entity_count();
+
+            for (let i = 0; i < count; i++) {
+                const x = transforms[i * 4 + 0];
+                const y = transforms[i * 4 + 1];
+
+                if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
+                    selectedEntities.add(i);
+                    bridge.set_selected(i, true);
+                }
+            }
+
+            updateSelectionInfo();
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // SELECTION MODE
+        // ═══════════════════════════════════════════════════════════════════════════════
+
+        function setSelectionMode(mode) {
+            selectionMode = mode;
+            document.getElementById('modeIndicator').textContent = `Mode: ${mode === 'single' ? 'Single Select' : 'Multiple Select'}`;
+            updateInfo(`✓ Selection mode: ${mode}`);
+        }
+
+        function toggleSelectionBox() {
+            boxSelectionActive = !boxSelectionActive;
+            document.getElementById('boxBtn').textContent = `Box: ${boxSelectionActive ? 'ON' : 'OFF'}`;
+            updateInfo(`✓ Box selection ${boxSelectionActive ? 'enabled' : 'disabled'}`);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // QUICK SELECT
+        // ═══════════════════════════════════════════════════════════════════════════════
+
+        function selectAll() {
+            const count = bridge.get_entity_count();
+            for (let i = 0; i < count; i++) {
+                selectedEntities.add(i);
+                bridge.set_selected(i, true);
+            }
+            updateSelectionInfo();
+            updateInfo(`✓ Selected all ${count} entities`);
+        }
+
+        function selectNone() {
+            selectedEntities.forEach(id => bridge.set_selected(id, false));
+            selectedEntities.clear();
+            updateSelectionInfo();
+            updateInfo('✓ Cleared selection');
+        }
+
+        function selectInvert() {
+            const count = bridge.get_entity_count();
+            for (let i = 0; i < count; i++) {
+                if (selectedEntities.has(i)) {
+                    selectedEntities.delete(i);
+                    bridge.set_selected(i, false);
+                } else {
+                    selectedEntities.add(i);
+                    bridge.set_selected(i, true);
+                }
+            }
+            updateSelectionInfo();
+            updateInfo('✓ Inverted selection');
+        }
+
+        function selectOddEven() {
+            const count = bridge.get_entity_count();
+            for (let i = 0; i < count; i++) {
+                if (i % 2 === 0) {
+                    selectedEntities.add(i);
+                    bridge.set_selected(i, true);
+                } else {
+                    selectedEntities.delete(i);
+                    bridge.set_selected(i, false);
+                }
+            }
+            updateSelectionInfo();
+            updateInfo('✓ Selected even-numbered entities');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // SELECTION ACTIONS
+        // ═══════════════════════════════════════════════════════════════════════════════
+
+        function colorSelected(color) {
+            if (selectedEntities.size === 0) {
+                updateInfo('⚠ No entities selected');
+                return;
+            }
+
+            const packed = hexToPacked(color);
+            selectedEntities.forEach(id => {
+                bridge.configure_entity(
+                    id,
+                    NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN,
+                    packed, 0, 0, 255, 2
+                );
+                entityColors.set(id, color);
+            });
+
+            updateInfo(`✓ Colored ${selectedEntities.size} entities ${color}`);
+        }
+
+        function moveSelected(dx, dy) {
+            if (selectedEntities.size === 0) {
+                updateInfo('⚠ No entities selected');
+                return;
+            }
+
+            const transforms = getTransforms(bridge);
+            selectedEntities.forEach(id => {
+                const currentX = transforms[id * 4 + 0];
+                const currentY = transforms[id * 4 + 1];
+
+                bridge.configure_entity(
+                    id,
+                    currentX + dx, currentY + dy,
+                    NaN, NaN, NaN, NaN, NaN, NaN, 0, 0, 0, 255, 2
+                );
+            });
+
+            updateInfo(`✓ Moved ${selectedEntities.size} entities`);
+        }
+
+        async function cloneSelected() {
+            if (selectedEntities.size === 0) {
+                updateInfo('⚠ No entities selected');
+                return;
+            }
+
+            const transforms = getTransforms(bridge);
+            const colorsPtr = bridge.get_colors_ptr();
+            const colors = new Uint32Array(wasmMemory.buffer, colorsPtr, bridge.get_transforms_count());
+
+            const newIds = [];
+
+            for (const id of selectedEntities) {
+                const x = transforms[id * 4 + 0] + 50;
+                const y = transforms[id * 4 + 1] + 50;
+                const width = transforms[id * 4 + 2];
+                const height = transforms[id * 4 + 3];
+                const color = colors[id];
+
+                const rgba = {
+                    r: color & 0xFF,
+                    g: (color >> 8) & 0xFF,
+                    b: (color >> 16) & 0xFF,
+                    a: (color >> 24) & 0xFF
+                };
+
+                bridge.set_active_color(rgba.r, rgba.g, rgba.b, rgba.a);
+                const newId = await bridge.spawn_entity(x, y, width, height);
+                newIds.push(newId);
+            }
+
+            updateInfo(`✓ Cloned ${selectedEntities.size} entities`);
+        }
+
+        function deleteSelected() {
+            if (selectedEntities.size === 0) {
+                updateInfo('⚠ No entities selected');
+                return;
+            }
+
+            const ecb = bridge.create_ecb(selectedEntities.size);
+            selectedEntities.forEach(id => ecb.despawn(id));
+            bridge.execute_ecb(ecb);
+
+            const count = selectedEntities.size;
+            selectedEntities.clear();
+            updateSelectionInfo();
+
+            updateInfo(`✓ Deleted ${count} entities`);
+        }
+
+        async function clearScene() {
+            const count = bridge.get_entity_count();
+            const ecb = bridge.create_ecb(count);
+
+            for (let i = 0; i < count; i++) {
+                ecb.despawn(i);
+            }
+
+            await bridge.execute_ecb(ecb);
+            selectedEntities.clear();
+            entityColors.clear();
+            updateSelectionInfo();
+
+            updateInfo('✓ Cleared scene');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // UI UPDATES
+        // ═══════════════════════════════════════════════════════════════════════════════
+
+        function updateInfo(message) {
+            const info = document.getElementById('info');
+            if (info) info.textContent = message;
+        }
+
+        function updateSelectionInfo() {
+            document.getElementById('selectedCount').textContent = selectedEntities.size;
+
+            const lastSelected = selectedEntities.size > 0
+                ? `#${Array.from(selectedEntities).pop()}`
+                : 'None';
+            document.getElementById('lastSelected').textContent = lastSelected;
+
+            const list = document.getElementById('selectedList');
+            if (selectedEntities.size > 0) {
+                list.innerHTML = Array.from(selectedEntities)
+                    .slice(0, 20)
+                    .map(id => `<span class="selected-item">#${id}</span>`)
+                    .join('');
+                if (selectedEntities.size > 20) {
+                    list.innerHTML += `<span class="selected-item">+${selectedEntities.size - 20} more</span>`;
+                }
+            } else {
+                list.innerHTML = '';
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // STARTUP
+        // ═══════════════════════════════════════════════════════════════════════════════
+
+        console.log(`
+════════════════════════════════════════════════════════════════════════════════
+📖 COOKBOOK EXAMPLE 6 - Selection
+════════════════════════════════════════════════════════════════════════════════
+
+This example demonstrates:
+  ✓ Single selection mode - Click to select one entity
+  ✓ Multiple selection mode - Select multiple entities
+  ✓ Additive selection - Shift+Click to add to selection
+  ✓ Toggle selection - Ctrl+Click to toggle individual entities
+  ✓ Box selection - Drag to select entities in rectangle
+  ✓ Quick select - Select all, invert, odd/even
+  ✓ Selection actions - Color, move, clone, delete selected entities
+
+SELECTION PATTERNS:
+  ├─ Single: Click replaces current selection
+  ├─ Multiple: Click adds to selection
+  ├─ Additive: Shift+Click adds without clearing
+  ├─ Toggle: Ctrl+Click flips selection state
+  └─ Box: Drag rectangle to select all within
+
+SELECTION STATE:
+  ├─ selectedEntities Set tracks selected IDs
+  ├─ bridge.set_selected(id, true) visualizes selection
+  ├─ Query with get_entity_count() for iteration
+  └─ Clear selection with set_selected(id, false)
+
+SELECTION OPERATIONS:
+  ├─ Select All: Add all entities to selection
+  ├─ Invert: Flip selection state of all entities
+  ├─ Odd/Even: Select entities with even IDs
+  ├─ Color: Change color of all selected
+  ├─ Move: Translate all selected by offset
+  ├─ Clone: Duplicate all selected entities
+  └─ Delete: Remove all selected entities
+
+INPUT HANDLING:
+  ├─ Mouse click → Entity hit testing
+  ├─ Shift+Click → Additive selection
+  ├─ Ctrl+Click → Toggle selection
+  ├─ Drag → Box selection (if enabled)
+  └─ Escape → Clear selection
+
+HIT TESTING:
+  1. Get pointer position relative to canvas
+  2. Iterate entities in reverse order (top first)
+  3. Check bounding box collision
+  4. Return first matching entity
+
+CONTROLS:
+  ├─ Mode buttons - Switch single/multiple
+  ├─ Box button - Enable box selection
+  ├─ Spawn buttons - Create test patterns
+  ├─ Quick Select - Select all, invert, odd/even
+  ├─ Color buttons - Change selected color
+  ├─ Arrow buttons - Move selected entities
+  ├─ Clone/Delete - Batch operations
+  └─ Clear - Remove all entities
+
+════════════════════════════════════════════════════════════════════════════════
+        `);
+
+        // Start
+        init();
+
+        // Expose functions to window for onclick handlers
+        window.spawnGrid = spawnGrid;
+        window.spawnCircle = spawnCircle;
+        window.spawnRandom = spawnRandom;
+        window.spawnRows = spawnRows;
+        window.setSelectionMode = setSelectionMode;
+        window.toggleSelectionBox = toggleSelectionBox;
+        window.selectAll = selectAll;
+        window.selectNone = selectNone;
+        window.selectInvert = selectInvert;
+        window.selectOddEven = selectOddEven;
+        window.colorSelected = colorSelected;
+        window.moveSelected = moveSelected;
+        window.cloneSelected = cloneSelected;
+        window.deleteSelected = deleteSelected;
+        window.clearScene = clearScene;
+    </script>
+</body>
+</html>

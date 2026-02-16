@@ -42,6 +42,8 @@ pub enum ActuatorType {
     Camera = 6,
     /// Property actuator for modifying entity properties (position, size, color, etc.)
     Property = 7,
+    /// Animation/Tween actuator for smooth property transitions
+    Animation = 8,
 }
 
 /// A single connection from sensor to actuator with optional controller
@@ -529,6 +531,13 @@ impl LogicMappingTable {
                     ActuatorType::Property => {
                         // Property actuator - modifies entity properties
                         // This requires PropertyActuator to be passed to evaluate
+                        // For now, we'll mark it as executed
+                        executed_count += 1;
+                    }
+
+                    ActuatorType::Animation => {
+                        // Animation actuator - handles tween animations
+                        // This requires AnimationActuator to be passed to evaluate
                         // For now, we'll mark it as executed
                         executed_count += 1;
                     }

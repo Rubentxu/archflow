@@ -152,7 +152,7 @@ pub use logic_driver::LogicDriver;
 pub use logic_system::LogicSystem;
 pub use mapping::{ActuatorType, Controller, LogicMappingTable, SensorType};
 pub use pulse::Pulse;
-pub use signals::{SensorOutput, SignalByte, SignalState};
+pub use signals::{SignalChannelBuffer, SensorOutput, SignalByte, SignalState};
 pub use snap::{
     DEFAULT_GRID_SIZE as SNAP_DEFAULT_GRID_SIZE, DEFAULT_THRESHOLD as SNAP_DEFAULT_THRESHOLD,
     EntityEdge, SnapConfig, SnapPoint, SnapResult, SnapTarget, Snapper,
