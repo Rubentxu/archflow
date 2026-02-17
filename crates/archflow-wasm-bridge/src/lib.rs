@@ -37,6 +37,7 @@ pub mod input;
 pub mod js_entity_builder;
 pub mod logic;
 pub mod logic_bricks_setup;
+pub mod wasm_components;
 
 // Re-export bridge facade from bridge/ directory
 pub use self::bridge::ArchFlowBridge;
@@ -50,6 +51,12 @@ pub use engine::ArchFlowEngine;
 // Updated: EPIC-ECS-009 - Added ShapeTypes for ECS migration
 pub use js_entity_builder::{
     ActuatorTypes, ControllerTypes, JsBehaviorBlock, JsEntityBuilder, SensorTypes, ShapeTypes,
+};
+
+// ECS Components WASM Bindings (EPIC-ECS-014, 015, 016, 017)
+pub use wasm_components::{
+    AnimationClip, AnimationComponent, BlendMode, Effect, MaterialComponent, MaterialConfig,
+    PostEffect, PostProcessPipeline, TextureAtlasComponent,
 };
 
 pub use input::{

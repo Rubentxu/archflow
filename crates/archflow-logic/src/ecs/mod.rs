@@ -65,6 +65,7 @@
 #![no_std]
 
 // Re-export all public types
+pub mod animation_system;
 pub mod archetype;
 pub mod archetype_query;
 pub mod behavior_block;
@@ -73,9 +74,11 @@ pub mod component;
 pub mod components;
 pub mod entity_builder;
 pub mod hybrid;
+pub mod material_system;
 pub mod physics_components;
 pub mod physics_system;
 pub mod pool;
+pub mod post_process_system;
 pub mod query;
 pub mod registry;
 pub mod scheduler;
@@ -85,6 +88,7 @@ pub mod simd;
 pub mod simd_integration;
 pub mod sparse_set;
 pub mod system;
+pub mod texture_atlas_system;
 pub mod world;
 
 #[cfg(test)]
@@ -94,25 +98,29 @@ mod entity_builder_tests;
 mod integration_tests;
 
 // Core types
+pub use animation_system::{AnimationStats, AnimationSystem};
 pub use archetype::{Archetype, ArchetypeId, ArchetypeStorage, BatchIter, ComponentColumn};
 pub use component::{Component, ComponentId, ComponentStorage, VecStorage};
 pub use components::{
-    AudioActuatorComponent, Color, ColorComponent, HighlightActuatorComponent,
-    MouseSensorComponent, MoveActuatorComponent, NamedComponent, RenderProperties,
-    SelectActuatorComponent, ShapeComponent, ShapeType, SignalStateComponent, Visibility,
-    VisibilityComponent,
+    AnimationClip, AnimationComponent, AudioActuatorComponent, BlendMode, Color, ColorComponent,
+    GpuMaterialInstance, HighlightActuatorComponent, MaterialComponent, MouseSensorComponent,
+    MoveActuatorComponent, NamedComponent, PostEffect, PostProcessPipeline, RenderProperties,
+    SelectActuatorComponent, ShapeComponent, ShapeType, SignalStateComponent,
+    TextureAtlasComponent, Visibility, VisibilityComponent,
 };
 pub use hybrid::{
     ActuatorComponent, BgeLogicConfig, BgeLogicStats, BgeLogicSystem, ClickType,
     ControllerComponent, SensorComponent, SensorComponentType, SensorConfig, SensorEvaluation,
     SensorRef,
 };
+pub use material_system::{MaterialStats, MaterialSystem};
 pub use physics_components::{
     Acceleration, AnimationState, HighlightState, PhysicsMaterial, SelectionState, Transform,
     Velocity,
 };
 pub use physics_system::{PhysicsConfig, PhysicsStats, PhysicsSystem};
 pub use pool::{ColumnPool, PoolStats};
+pub use post_process_system::{GpuPostProcessData, PostProcessStats, PostProcessSystem};
 pub use query::{
     EntityId, Query, QueryIter, QueryIterExt, QueryMut, QueryParameter, With, Without,
 };
@@ -129,4 +137,5 @@ pub use simd_integration::{
 };
 pub use sparse_set::SparseSet;
 pub use system::{System, SystemInfo};
+pub use texture_atlas_system::{GpuSpriteInstance, TextureAtlasStats, TextureAtlasSystem};
 pub use world::World;

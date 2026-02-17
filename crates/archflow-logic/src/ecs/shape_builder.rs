@@ -335,8 +335,7 @@ impl<'a> ShapeBuilder<'a> {
         let _ = self.world.add_component(entity, transform);
 
         // Add RenderProperties
-        let mut render_props = RenderProperties::new(self.width, self.height);
-        render_props.layer = self.layer;
+        let render_props = RenderProperties::new(self.width, self.height).with_layer(self.layer);
         let _ = self.world.add_component(entity, render_props);
 
         // Add VisibilityComponent

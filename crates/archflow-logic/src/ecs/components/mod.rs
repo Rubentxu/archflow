@@ -24,7 +24,7 @@ use alloc::vec::Vec;
 use archflow_core::EntityId;
 use archflow_core::Vec2;
 
-use crate::ecs::{Component, ComponentRegistry, VecStorage};
+use crate::ecs::{Component, ComponentRegistry, ComponentStorage, VecStorage};
 use crate::signals::SignalByte;
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1835,6 +1835,1258 @@ fn test_render_properties_in_registry() {
     let mut registry = ComponentRegistry::new();
     registry.register::<RenderProperties>();
     assert!(registry.is_registered::<RenderProperties>());
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// TextureAtlasComponent - EPIC-ECS-010
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/// Component that manages sprite regions in a texture atlas
+///
+/// This component allows entities to render sprites from a spritesheet
+/// by specifying which region (by index) to render.
+///
+/// # Example
+///
+/// ```
+/// use archflow_logic::ecs::components::TextureAtlasComponent;
+///
+/// let atlas = TextureAtlasComponent::new(0, 32, 32, 4, 4);
+/// let uv = atlas.get_uv(0);  // Get UV for first sprite
+/// ```
+#[derive(Clone, Debug, PartialEq)]
+pub struct TextureAtlasComponent {
+    /// Index into the texture array
+    pub texture_index: u16,
+    /// Width of each sprite in pixels
+    pub sprite_width: u32,
+    /// Height of each sprite in pixels
+    pub sprite_height: u32,
+    /// Number of columns in the atlas
+    pub columns: u32,
+    /// Number of rows in the atlas
+    pub rows: u32,
+    /// Current sprite index (for animation)
+    pub current_sprite: u32,
+    /// Whether to flip horizontally
+    pub flip_x: bool,
+    /// Whether to flip vertically
+    pub flip_y: bool,
+}
+
+impl TextureAtlasComponent {
+    /// Creates a new texture atlas component
+    #[inline]
+    #[must_use]
+    pub fn new(
+        texture_index: u16,
+        sprite_width: u32,
+        sprite_height: u32,
+        columns: u32,
+        rows: u32,
+    ) -> Self {
+        Self {
+            texture_index,
+            sprite_width,
+            sprite_height,
+            columns,
+            rows,
+            current_sprite: 0,
+            flip_x: false,
+            flip_y: false,
+        }
+    }
+
+    /// Creates from an atlas ID with sprite index
+    #[inline]
+    #[must_use]
+    pub fn from_atlas(atlas_id: u16, sprite_index: u32, columns: u32, rows: u32) -> Self {
+        Self {
+            texture_index: atlas_id,
+            sprite_width: 0, // Unknown at this point
+            sprite_height: 0,
+            columns,
+            rows,
+            current_sprite: sprite_index,
+            flip_x: false,
+            flip_y: false,
+        }
+    }
+
+    /// Get UV coordinates for a sprite by index
+    /// Returns [u0, v0, u1, v1]
+    #[inline]
+    #[must_use]
+    pub fn get_uv(&self, index: u32) -> [f32; 4] {
+        if self.columns == 0 || self.rows == 0 {
+            return [0.0, 0.0, 1.0, 1.0];
+        }
+
+        let col = index % self.columns;
+        let row = index / self.columns;
+
+        let mut u0 = col as f32 / self.columns as f32;
+        let mut v0 = row as f32 / self.rows as f32;
+        let mut u1 = (col + 1) as f32 / self.columns as f32;
+        let mut v1 = (row + 1) as f32 / self.rows as f32;
+
+        // Apply flip if needed
+        if self.flip_x {
+            core::mem::swap(&mut u0, &mut u1);
+        }
+        if self.flip_y {
+            core::mem::swap(&mut v0, &mut v1);
+        }
+
+        [u0, v0, u1, v1]
+    }
+
+    /// Get UV coordinates for current sprite
+    #[inline]
+    #[must_use]
+    pub fn current_uv(&self) -> [f32; 4] {
+        self.get_uv(self.current_sprite)
+    }
+
+    /// Set sprite index
+    #[inline]
+    pub fn set_sprite(&mut self, index: u32) {
+        self.current_sprite = index.min(self.columns.saturating_mul(self.rows).saturating_sub(1));
+    }
+
+    /// Flip horizontally
+    #[inline]
+    pub fn set_flip_x(&mut self, flip: bool) {
+        self.flip_x = flip;
+    }
+
+    /// Flip vertically
+    #[inline]
+    pub fn set_flip_y(&mut self, flip: bool) {
+        self.flip_y = flip;
+    }
+}
+
+impl Component for TextureAtlasComponent {
+    type Storage = VecStorage<TextureAtlasComponent>;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// AnimationClip - Single Animation Sequence
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/// A single animation sequence (clip)
+///
+/// Represents a named animation sequence like "idle", "walk", "run".
+#[derive(Clone, Debug, PartialEq)]
+pub struct AnimationClip {
+    /// Name of the clip (e.g., "idle", "walk", "run")
+    name: alloc::string::String,
+    /// Starting frame index
+    start_frame: u32,
+    /// Ending frame index (inclusive)
+    end_frame: u32,
+    /// Frames per second
+    fps: u32,
+    /// Whether the clip loops
+    loop_clip: bool,
+}
+
+impl AnimationClip {
+    /// Creates a new animation clip
+    #[inline]
+    #[must_use]
+    pub fn new(
+        name: impl Into<alloc::string::String>,
+        start_frame: u32,
+        end_frame: u32,
+        fps: u32,
+        loop_clip: bool,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            start_frame,
+            end_frame,
+            fps,
+            loop_clip,
+        }
+    }
+
+    /// Get the clip name
+    #[inline]
+    #[must_use]
+    pub fn name(&self) -> &alloc::string::String {
+        &self.name
+    }
+
+    /// Get start frame
+    #[inline]
+    #[must_use]
+    pub fn start_frame(&self) -> u32 {
+        self.start_frame
+    }
+
+    /// Get end frame
+    #[inline]
+    #[must_use]
+    pub fn end_frame(&self) -> u32 {
+        self.end_frame
+    }
+
+    /// Get fps
+    #[inline]
+    #[must_use]
+    pub fn fps(&self) -> u32 {
+        self.fps
+    }
+
+    /// Get if clip loops
+    #[inline]
+    #[must_use]
+    pub fn loop_clip(&self) -> bool {
+        self.loop_clip
+    }
+
+    /// Get frame count
+    #[inline]
+    #[must_use]
+    pub fn frame_count(&self) -> u32 {
+        self.end_frame.saturating_sub(self.start_frame) + 1
+    }
+
+    /// Get frame duration in milliseconds
+    #[inline]
+    #[must_use]
+    pub fn frame_duration_ms(&self) -> u32 {
+        if self.fps > 0 { 1000 / self.fps } else { 100 }
+    }
+
+    /// Check if a frame is within this clip
+    #[inline]
+    #[must_use]
+    pub fn contains_frame(&self, frame: u32) -> bool {
+        frame >= self.start_frame && frame <= self.end_frame
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// AnimationComponent - EPIC-ECS-011
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/// Component that manages frame-based sprite animation
+///
+/// This component handles playback of sprite animations with
+/// configurable frame duration and looping.
+///
+/// # Example
+///
+/// ```
+/// use archflow_logic::ecs::components::AnimationComponent;
+///
+/// let mut anim = AnimationComponent::new(8, 100); // 8 frames, 100ms each
+/// anim.play();
+/// ```
+#[derive(Clone, Debug, PartialEq)]
+pub struct AnimationComponent {
+    /// Total number of frames in the animation
+    pub frame_count: u32,
+    /// Duration of each frame in milliseconds
+    pub frame_duration_ms: u32,
+    /// Current frame index (0-based)
+    pub current_frame: u32,
+    /// Whether the animation is currently playing
+    pub is_playing: bool,
+    /// Whether the animation loops
+    pub loop_animation: bool,
+    /// Elapsed time since last frame change
+    elapsed_ms: u64,
+    /// Animation clips (for multi-clip animations)
+    clips: alloc::vec::Vec<AnimationClip>,
+    /// Current clip index (if using clips)
+    current_clip_index: Option<usize>,
+}
+
+impl AnimationComponent {
+    /// Creates a new animation component
+    #[inline]
+    #[must_use]
+    pub fn new(frame_count: u32, frame_duration_ms: u32) -> Self {
+        Self {
+            frame_count,
+            frame_duration_ms,
+            current_frame: 0,
+            is_playing: false,
+            loop_animation: true,
+            elapsed_ms: 0,
+            clips: alloc::vec::Vec::new(),
+            current_clip_index: None,
+        }
+    }
+
+    /// Creates with looping disabled (single-shot)
+    #[inline]
+    #[must_use]
+    pub fn new_single_shot(frame_count: u32, frame_duration_ms: u32) -> Self {
+        Self {
+            frame_count,
+            frame_duration_ms,
+            current_frame: 0,
+            is_playing: false,
+            loop_animation: false,
+            elapsed_ms: 0,
+            clips: alloc::vec::Vec::new(),
+            current_clip_index: None,
+        }
+    }
+
+    /// Creates with multiple animation clips
+    #[inline]
+    #[must_use]
+    pub fn with_clips(clips: alloc::vec::Vec<AnimationClip>) -> Self {
+        let first_clip = clips.first();
+        let frame_count = first_clip.map(|c| c.frame_count()).unwrap_or(1);
+        let frame_duration_ms = first_clip.map(|c| c.frame_duration_ms()).unwrap_or(100);
+
+        Self {
+            frame_count,
+            frame_duration_ms,
+            current_frame: 0,
+            is_playing: false,
+            loop_animation: first_clip.map(|c| c.loop_clip).unwrap_or(true),
+            elapsed_ms: 0,
+            clips,
+            current_clip_index: Some(0),
+        }
+    }
+
+    /// Start playing
+    #[inline]
+    pub fn play(&mut self) {
+        self.is_playing = true;
+    }
+
+    /// Pause playback
+    #[inline]
+    pub fn pause(&mut self) {
+        self.is_playing = false;
+    }
+
+    /// Reset to first frame
+    #[inline]
+    pub fn reset(&mut self) {
+        // Reset to start of current clip or frame 0
+        if let Some(index) = self.current_clip_index {
+            if let Some(clip) = self.clips.get(index) {
+                self.current_frame = clip.start_frame;
+            } else {
+                self.current_frame = 0;
+            }
+        } else {
+            self.current_frame = 0;
+        }
+        self.elapsed_ms = 0;
+    }
+
+    /// Set a specific frame
+    #[inline]
+    pub fn set_frame(&mut self, frame: u32) {
+        // If using clips, clamp to current clip range
+        if let Some(index) = self.current_clip_index {
+            if let Some(clip) = self.clips.get(index) {
+                self.current_frame = frame.clamp(clip.start_frame, clip.end_frame);
+                return;
+            }
+        }
+        self.current_frame = frame.min(self.frame_count.saturating_sub(1));
+    }
+
+    /// Update animation, returns new frame if changed
+    /// Returns Some(new_frame) if frame changed, None otherwise
+    #[inline]
+    pub fn tick(&mut self, delta_ms: u64) -> Option<u32> {
+        if !self.is_playing || self.frame_count == 0 || self.frame_duration_ms == 0 {
+            return None;
+        }
+
+        self.elapsed_ms += delta_ms;
+        let frame_duration = self.frame_duration_ms as u64;
+
+        if self.elapsed_ms >= frame_duration {
+            self.elapsed_ms %= frame_duration;
+            self.current_frame += 1;
+
+            // Handle clip-based animation
+            if let Some(index) = self.current_clip_index {
+                if let Some(clip) = self.clips.get(index) {
+                    if self.current_frame > clip.end_frame {
+                        if self.loop_animation {
+                            self.current_frame = clip.start_frame;
+                        } else {
+                            self.current_frame = clip.end_frame;
+                            self.is_playing = false;
+                            return Some(self.current_frame);
+                        }
+                    }
+                    return Some(self.current_frame);
+                }
+            }
+
+            // Default animation handling
+            if self.current_frame >= self.frame_count {
+                if self.loop_animation {
+                    self.current_frame = 0;
+                } else {
+                    self.current_frame = self.frame_count - 1;
+                    self.is_playing = false;
+                    return Some(self.current_frame);
+                }
+            }
+            return Some(self.current_frame);
+        }
+
+        None
+    }
+
+    /// Get current frame index
+    #[inline]
+    #[must_use]
+    pub fn current(&self) -> u32 {
+        self.current_frame
+    }
+
+    /// Get number of clips
+    #[inline]
+    #[must_use]
+    pub fn clip_count(&self) -> usize {
+        self.clips.len()
+    }
+
+    /// Get current clip name
+    #[inline]
+    #[must_use]
+    pub fn current_clip_name(&self) -> Option<&alloc::string::String> {
+        self.current_clip_index
+            .and_then(|i| self.clips.get(i).map(|c| c.name()))
+    }
+
+    /// Play a specific clip by index
+    #[inline]
+    pub fn play_clip_by_index(&mut self, index: usize) -> bool {
+        if let Some(clip) = self.clips.get(index) {
+            self.current_clip_index = Some(index);
+            self.current_frame = clip.start_frame;
+            self.frame_duration_ms = clip.frame_duration_ms();
+            self.loop_animation = clip.loop_clip;
+            self.is_playing = true;
+            self.elapsed_ms = 0;
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Play a specific clip by name
+    #[inline]
+    pub fn play_clip(&mut self, name: &str) -> bool {
+        if let Some(index) = self.clips.iter().position(|c| c.name() == name) {
+            self.play_clip_by_index(index)
+        } else {
+            false
+        }
+    }
+
+    /// Get clip by index
+    #[inline]
+    #[must_use]
+    pub fn get_clip(&self, index: usize) -> Option<&AnimationClip> {
+        self.clips.get(index)
+    }
+
+    /// Get all clips
+    #[inline]
+    #[must_use]
+    pub fn clips(&self) -> &[AnimationClip] {
+        &self.clips
+    }
+}
+
+impl Default for AnimationComponent {
+    fn default() -> Self {
+        Self::new(1, 100)
+    }
+}
+
+impl Component for AnimationComponent {
+    type Storage = VecStorage<AnimationComponent>;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// BlendMode - EPIC-ECS-012
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/// Blend mode for rendering
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BlendMode {
+    /// No blending - opaque
+    Opaque,
+    /// Alpha blending - standard transparency
+    AlphaBlend,
+    /// Additive blending - glow effect
+    Add,
+    /// Multiply blend - darkening
+    Multiply,
+}
+
+impl Default for BlendMode {
+    fn default() -> Self {
+        BlendMode::Opaque
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// MaterialComponent - EPIC-ECS-012
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/// Component that defines material properties for rendering
+///
+/// This component controls how an entity is rendered including
+/// color multiplication, emission, and blend modes.
+///
+/// # Example
+///
+/// ```
+/// use archflow_logic::ecs::components::{MaterialComponent, BlendMode};
+///
+/// let material = MaterialComponent::new(
+///     [1.0, 0.5, 0.5, 1.0],  // RGBA tint
+///     [0.2, 0.1, 0.0],       // RGB emission
+///     BlendMode::AlphaBlend,
+/// );
+/// ```
+#[derive(Clone, Debug, PartialEq)]
+pub struct MaterialComponent {
+    /// Color multiply (applied after texture) [r, g, b, a]
+    pub color_multiply: [f32; 4],
+    /// Emission color (for glow effects) [r, g, b]
+    pub emission: [f32; 3],
+    /// Alpha cutoff for alpha testing
+    pub alpha_cutoff: f32,
+    /// Blend mode
+    pub blend_mode: BlendMode,
+    /// Custom shader ID (0 = default)
+    pub shader_id: u32,
+}
+
+impl MaterialComponent {
+    /// Creates a new material component
+    #[inline]
+    #[must_use]
+    pub fn new(color_multiply: [f32; 4], emission: [f32; 3], blend_mode: BlendMode) -> Self {
+        Self {
+            color_multiply,
+            emission,
+            alpha_cutoff: 0.0,
+            blend_mode,
+            shader_id: 0,
+        }
+    }
+
+    /// Creates with default values
+    #[inline]
+    #[must_use]
+    pub fn default_material() -> Self {
+        Self {
+            color_multiply: [1.0, 1.0, 1.0, 1.0],
+            emission: [0.0, 0.0, 0.0],
+            alpha_cutoff: 0.0,
+            blend_mode: BlendMode::Opaque,
+            shader_id: 0,
+        }
+    }
+
+    /// Create with custom shader
+    #[inline]
+    #[must_use]
+    pub fn with_shader(mut self, shader_id: u32) -> Self {
+        self.shader_id = shader_id;
+        self
+    }
+
+    /// Create with specific blend mode
+    #[inline]
+    #[must_use]
+    pub fn with_blend_mode(mut self, mode: BlendMode) -> Self {
+        self.blend_mode = mode;
+        self
+    }
+
+    /// Create with color multiply
+    #[inline]
+    #[must_use]
+    pub fn with_color_multiply(mut self, color: [f32; 4]) -> Self {
+        self.color_multiply = color;
+        self
+    }
+}
+
+impl Default for MaterialComponent {
+    fn default() -> Self {
+        Self::default_material()
+    }
+}
+
+impl Component for MaterialComponent {
+    type Storage = VecStorage<MaterialComponent>;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// GpuMaterialInstance - EPIC-ECS-012
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/// GPU-friendly material instance data
+/// Layout optimized for WebGPU/WebGL2 (16-byte aligned)
+#[derive(Clone, Copy, Debug)]
+#[repr(C)]
+pub struct GpuMaterialInstance {
+    /// Color multiply [r, g, b, a]
+    pub color_multiply: [f32; 4],
+    /// Emission color [r, g, b]
+    pub emission: [f32; 3],
+    /// Padding for alignment
+    pub _padding: f32,
+    /// Blend mode as u32
+    pub blend_mode: u32,
+    /// Custom shader ID
+    pub shader_id: u32,
+    /// Reserved for future use
+    pub _reserved: [u32; 2],
+}
+
+impl From<&MaterialComponent> for GpuMaterialInstance {
+    fn from(material: &MaterialComponent) -> Self {
+        let blend_mode = match material.blend_mode {
+            BlendMode::Opaque => 0,
+            BlendMode::AlphaBlend => 1,
+            BlendMode::Add => 2,
+            BlendMode::Multiply => 3,
+        };
+
+        Self {
+            color_multiply: material.color_multiply,
+            emission: material.emission,
+            _padding: 0.0,
+            blend_mode,
+            shader_id: material.shader_id,
+            _reserved: [0, 0],
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// PostEffect - EPIC-ECS-013
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/// Post-processing effect types
+#[derive(Clone, Debug, PartialEq)]
+pub enum PostEffect {
+    /// Bloom glow effect
+    Bloom {
+        /// Minimum brightness to trigger bloom (0.0-1.0)
+        threshold: f32,
+        /// Bloom strength (0.0-2.0)
+        intensity: f32,
+        /// Blur radius (0.0-1.0)
+        radius: f32,
+    },
+    /// Color grading adjustment
+    ColorGrading {
+        /// Brightness adjustment (-1.0 to 1.0)
+        brightness: f32,
+        /// Contrast adjustment (0.0 to 2.0)
+        contrast: f32,
+        /// Saturation adjustment (0.0 to 2.0)
+        saturation: f32,
+        /// Color temperature (-1.0 to 1.0)
+        temperature: f32,
+    },
+    /// Grayscale conversion
+    Grayscale {
+        /// Grayscale intensity (0.0 to 1.0)
+        intensity: f32,
+    },
+}
+
+impl PostEffect {
+    /// Create a bloom effect with defaults
+    #[inline]
+    #[must_use]
+    pub fn bloom(threshold: f32, intensity: f32, radius: f32) -> Self {
+        Self::Bloom {
+            threshold: threshold.clamp(0.0, 1.0),
+            intensity: intensity.clamp(0.0, 2.0),
+            radius: radius.clamp(0.0, 1.0),
+        }
+    }
+
+    /// Create a color grading effect with defaults
+    #[inline]
+    #[must_use]
+    pub fn color_grading(
+        brightness: f32,
+        contrast: f32,
+        saturation: f32,
+        temperature: f32,
+    ) -> Self {
+        Self::ColorGrading {
+            brightness: brightness.clamp(-1.0, 1.0),
+            contrast: contrast.clamp(0.0, 2.0),
+            saturation: saturation.clamp(0.0, 2.0),
+            temperature: temperature.clamp(-1.0, 1.0),
+        }
+    }
+
+    /// Create a grayscale effect
+    #[inline]
+    #[must_use]
+    pub fn grayscale(intensity: f32) -> Self {
+        Self::Grayscale {
+            intensity: intensity.clamp(0.0, 1.0),
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// PostProcessPipeline - EPIC-ECS-013
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/// Post-processing pipeline for screen-wide effects
+///
+/// This is typically a resource, not attached to entities.
+///
+/// # Example
+///
+/// ```
+/// use archflow_logic::ecs::components::{PostProcessPipeline, PostEffect};
+///
+/// let mut pipeline = PostProcessPipeline::new();
+/// pipeline.add_effect(PostEffect::bloom(0.8, 0.5, 0.5));
+/// pipeline.add_effect(PostEffect::color_grading(0.0, 1.0, 1.0, 0.0));
+/// ```
+#[derive(Clone, Debug, Default)]
+pub struct PostProcessPipeline {
+    /// Active effects in order
+    effects: alloc::vec::Vec<PostEffect>,
+    /// Enable/disable entire pipeline
+    enabled: bool,
+}
+
+impl PostProcessPipeline {
+    /// Creates a new post-process pipeline
+    #[inline]
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            effects: alloc::vec::Vec::new(),
+            enabled: true,
+        }
+    }
+
+    /// Add an effect to the pipeline
+    #[inline]
+    pub fn add_effect(&mut self, effect: PostEffect) {
+        self.effects.push(effect);
+    }
+
+    /// Remove an effect by index
+    #[inline]
+    pub fn remove_effect(&mut self, index: usize) {
+        if index < self.effects.len() {
+            self.effects.remove(index);
+        }
+    }
+
+    /// Clear all effects
+    #[inline]
+    pub fn clear(&mut self) {
+        self.effects.clear();
+    }
+
+    /// Get all effects
+    #[inline]
+    #[must_use]
+    pub fn effects(&self) -> &[PostEffect] {
+        &self.effects
+    }
+
+    /// Enable/disable pipeline
+    #[inline]
+    pub fn set_enabled(&mut self, enabled: bool) {
+        self.enabled = enabled;
+    }
+
+    /// Check if enabled
+    #[inline]
+    #[must_use]
+    pub fn is_enabled(&self) -> bool {
+        self.enabled
+    }
+
+    /// Get number of effects
+    #[inline]
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.effects.len()
+    }
+
+    /// Check if empty
+    #[inline]
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.effects.is_empty()
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// TextureAtlasComponent Tests
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_texture_atlas_component_new() {
+    let atlas = TextureAtlasComponent::new(0, 32, 32, 4, 4);
+    assert_eq!(atlas.texture_index, 0);
+    assert_eq!(atlas.sprite_width, 32);
+    assert_eq!(atlas.sprite_height, 32);
+    assert_eq!(atlas.columns, 4);
+    assert_eq!(atlas.rows, 4);
+    assert_eq!(atlas.current_sprite, 0);
+    assert!(!atlas.flip_x);
+    assert!(!atlas.flip_y);
+}
+
+#[test]
+fn test_texture_atlas_component_from_atlas() {
+    let atlas = TextureAtlasComponent::from_atlas(5, 10, 8, 8);
+    assert_eq!(atlas.texture_index, 5);
+    assert_eq!(atlas.current_sprite, 10);
+    assert_eq!(atlas.columns, 8);
+    assert_eq!(atlas.rows, 8);
+}
+
+#[test]
+fn test_texture_atlas_get_uv() {
+    let atlas = TextureAtlasComponent::new(0, 32, 32, 4, 4);
+
+    // First sprite (index 0) at top-left
+    let uv = atlas.get_uv(0);
+    assert!((uv[0] - 0.0).abs() < f32::EPSILON);
+    assert!((uv[1] - 0.0).abs() < f32::EPSILON);
+    assert!((uv[2] - 0.25).abs() < f32::EPSILON);
+    assert!((uv[3] - 0.25).abs() < f32::EPSILON);
+
+    // Second sprite (index 1) at second column
+    let uv = atlas.get_uv(1);
+    assert!((uv[0] - 0.25).abs() < f32::EPSILON);
+    assert!((uv[1] - 0.0).abs() < f32::EPSILON);
+    assert!((uv[2] - 0.5).abs() < f32::EPSILON);
+    assert!((uv[3] - 0.25).abs() < f32::EPSILON);
+
+    // Fifth sprite (index 4) at second row
+    let uv = atlas.get_uv(4);
+    assert!((uv[0] - 0.0).abs() < f32::EPSILON);
+    assert!((uv[1] - 0.25).abs() < f32::EPSILON);
+    assert!((uv[2] - 0.25).abs() < f32::EPSILON);
+    assert!((uv[3] - 0.5).abs() < f32::EPSILON);
+}
+
+#[test]
+fn test_texture_atlas_current_uv() {
+    let mut atlas = TextureAtlasComponent::new(0, 32, 32, 4, 4);
+    atlas.current_sprite = 5;
+
+    let uv = atlas.current_uv();
+    // Sprite 5 should be at column 1, row 1
+    assert!((uv[0] - 0.25).abs() < f32::EPSILON);
+    assert!((uv[1] - 0.25).abs() < f32::EPSILON);
+}
+
+#[test]
+fn test_texture_atlas_set_sprite() {
+    let mut atlas = TextureAtlasComponent::new(0, 32, 32, 4, 4);
+
+    atlas.set_sprite(10);
+    assert_eq!(atlas.current_sprite, 10);
+
+    // Setting sprite beyond max should clamp
+    atlas.set_sprite(100);
+    assert_eq!(atlas.current_sprite, 15); // 4 * 4 - 1 = 15
+}
+
+#[test]
+fn test_texture_atlas_flip() {
+    let mut atlas = TextureAtlasComponent::new(0, 32, 32, 4, 4);
+
+    // Test flip X
+    let uv_normal = atlas.get_uv(0);
+    atlas.set_flip_x(true);
+    let uv_flipped_x = atlas.get_uv(0);
+    assert!((uv_flipped_x[0] - uv_normal[2]).abs() < f32::EPSILON);
+    assert!((uv_flipped_x[2] - uv_normal[0]).abs() < f32::EPSILON);
+
+    // Test flip Y
+    atlas.set_flip_x(false);
+    atlas.set_flip_y(true);
+    let uv_flipped_y = atlas.get_uv(0);
+    assert!((uv_flipped_y[1] - uv_normal[3]).abs() < f32::EPSILON);
+    assert!((uv_flipped_y[3] - uv_normal[1]).abs() < f32::EPSILON);
+}
+
+#[test]
+fn test_texture_atlas_in_registry() {
+    let mut registry = ComponentRegistry::new();
+    registry.register::<TextureAtlasComponent>();
+
+    let mut storage = registry.get_storage_mut::<TextureAtlasComponent>().unwrap();
+    storage.insert(0, TextureAtlasComponent::new(0, 32, 32, 4, 4));
+
+    let storage = registry.get_storage::<TextureAtlasComponent>().unwrap();
+    assert!(storage.contains(0));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// AnimationComponent Tests
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_animation_component_new() {
+    let anim = AnimationComponent::new(8, 100);
+    assert_eq!(anim.frame_count, 8);
+    assert_eq!(anim.frame_duration_ms, 100);
+    assert_eq!(anim.current_frame, 0);
+    assert!(!anim.is_playing);
+    assert!(anim.loop_animation);
+}
+
+#[test]
+fn test_animation_component_play_pause() {
+    let mut anim = AnimationComponent::new(8, 100);
+
+    assert!(!anim.is_playing);
+
+    anim.play();
+    assert!(anim.is_playing);
+
+    anim.pause();
+    assert!(!anim.is_playing);
+}
+
+#[test]
+fn test_animation_component_tick() {
+    let mut anim = AnimationComponent::new(4, 100);
+    anim.play();
+
+    // First tick with 50ms - no frame change
+    let result = anim.tick(50);
+    assert!(result.is_none());
+    assert_eq!(anim.current_frame, 0);
+
+    // Second tick with 50ms - total 100ms, frame changes
+    let result = anim.tick(50);
+    assert!(result.is_some());
+    assert_eq!(result.unwrap(), 1);
+    assert_eq!(anim.current_frame, 1);
+}
+
+#[test]
+fn test_animation_component_loop() {
+    let mut anim = AnimationComponent::new(2, 50);
+    anim.loop_animation = true;
+    anim.play();
+
+    // Tick through first frame
+    let _ = anim.tick(50);
+    assert_eq!(anim.current_frame, 1);
+
+    // Tick to end - should loop back to 0
+    let _ = anim.tick(50);
+    assert_eq!(anim.current_frame, 0);
+    assert!(anim.is_playing); // Still playing when looping
+}
+
+#[test]
+fn test_animation_component_single_shot() {
+    let mut anim = AnimationComponent::new_single_shot(2, 50);
+    anim.play();
+
+    // Tick through first frame
+    let _ = anim.tick(50);
+    assert_eq!(anim.current_frame, 1);
+
+    // Tick to end - should stop at last frame
+    let _ = anim.tick(50);
+    assert_eq!(anim.current_frame, 1);
+    assert!(!anim.is_playing); // Stops playing
+}
+
+#[test]
+fn test_animation_component_set_frame() {
+    let mut anim = AnimationComponent::new(8, 100);
+
+    anim.set_frame(5);
+    assert_eq!(anim.current_frame, 5);
+
+    // Clamping
+    anim.set_frame(100);
+    assert_eq!(anim.current_frame, 7); // Clamped to frame_count - 1
+}
+
+#[test]
+fn test_animation_component_in_registry() {
+    let mut registry = ComponentRegistry::new();
+    registry.register::<AnimationComponent>();
+
+    let mut storage = registry.get_storage_mut::<AnimationComponent>().unwrap();
+    storage.insert(0, AnimationComponent::new(8, 100));
+
+    let storage = registry.get_storage::<AnimationComponent>().unwrap();
+    assert!(storage.contains(0));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// AnimationClip Tests
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_animation_clip_new() {
+    let clip = AnimationClip::new("idle", 0, 7, 12, true);
+    assert_eq!(clip.name(), "idle");
+    assert_eq!(clip.start_frame(), 0);
+    assert_eq!(clip.end_frame(), 7);
+    assert_eq!(clip.fps(), 12);
+    assert!(clip.loop_clip());
+}
+
+#[test]
+fn test_animation_clip_frame_count() {
+    let clip = AnimationClip::new("test", 5, 9, 10, false);
+    assert_eq!(clip.frame_count(), 5); // 9 - 5 + 1 = 5
+}
+
+#[test]
+fn test_animation_clip_frame_duration_ms() {
+    let clip = AnimationClip::new("test", 0, 7, 10, true);
+    assert_eq!(clip.frame_duration_ms(), 100); // 1000 / 10 = 100ms
+}
+
+#[test]
+fn test_animation_clip_contains_frame() {
+    let clip = AnimationClip::new("test", 5, 9, 10, false);
+    assert!(!clip.contains_frame(4));
+    assert!(clip.contains_frame(5));
+    assert!(clip.contains_frame(7));
+    assert!(clip.contains_frame(9));
+    assert!(!clip.contains_frame(10));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// BlendMode Tests
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_blend_mode_variants() {
+    let _ = BlendMode::Opaque;
+    let _ = BlendMode::AlphaBlend;
+    let _ = BlendMode::Add;
+    let _ = BlendMode::Multiply;
+}
+
+#[test]
+fn test_blend_mode_default() {
+    let mode = BlendMode::default();
+    assert!(matches!(mode, BlendMode::Opaque));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// MaterialComponent Tests
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_material_component_new() {
+    let material =
+        MaterialComponent::new([1.0, 0.5, 0.5, 1.0], [0.2, 0.1, 0.0], BlendMode::AlphaBlend);
+    assert_eq!(material.color_multiply, [1.0, 0.5, 0.5, 1.0]);
+    assert_eq!(material.emission, [0.2, 0.1, 0.0]);
+    assert!(matches!(material.blend_mode, BlendMode::AlphaBlend));
+    assert_eq!(material.alpha_cutoff, 0.0);
+    assert_eq!(material.shader_id, 0);
+}
+
+#[test]
+fn test_material_component_default() {
+    let material = MaterialComponent::default();
+    assert_eq!(material.color_multiply, [1.0, 1.0, 1.0, 1.0]);
+    assert_eq!(material.emission, [0.0, 0.0, 0.0]);
+    assert!(matches!(material.blend_mode, BlendMode::Opaque));
+}
+
+#[test]
+fn test_material_component_with_shader() {
+    let material = MaterialComponent::default().with_shader(42);
+    assert_eq!(material.shader_id, 42);
+}
+
+#[test]
+fn test_material_component_with_blend_mode() {
+    let material = MaterialComponent::default().with_blend_mode(BlendMode::Add);
+    assert!(matches!(material.blend_mode, BlendMode::Add));
+}
+
+#[test]
+fn test_material_component_in_registry() {
+    let mut registry = ComponentRegistry::new();
+    registry.register::<MaterialComponent>();
+
+    let mut storage = registry.get_storage_mut::<MaterialComponent>().unwrap();
+    storage.insert(0, MaterialComponent::default());
+
+    let storage = registry.get_storage::<MaterialComponent>().unwrap();
+    assert!(storage.contains(0));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// GpuMaterialInstance Tests
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_gpu_material_instance_from_material() {
+    let material =
+        MaterialComponent::new([0.5, 0.5, 0.5, 0.8], [0.1, 0.2, 0.3], BlendMode::AlphaBlend)
+            .with_shader(5);
+
+    let gpu = GpuMaterialInstance::from(&material);
+    assert_eq!(gpu.color_multiply, [0.5, 0.5, 0.5, 0.8]);
+    assert_eq!(gpu.emission, [0.1, 0.2, 0.3]);
+    assert_eq!(gpu.blend_mode, 1); // AlphaBlend = 1
+    assert_eq!(gpu.shader_id, 5);
+}
+
+#[test]
+fn test_gpu_material_instance_blend_modes() {
+    let opaque = MaterialComponent::default().with_blend_mode(BlendMode::Opaque);
+    assert_eq!(GpuMaterialInstance::from(&opaque).blend_mode, 0);
+
+    let alpha = MaterialComponent::default().with_blend_mode(BlendMode::AlphaBlend);
+    assert_eq!(GpuMaterialInstance::from(&alpha).blend_mode, 1);
+
+    let add = MaterialComponent::default().with_blend_mode(BlendMode::Add);
+    assert_eq!(GpuMaterialInstance::from(&add).blend_mode, 2);
+
+    let multiply = MaterialComponent::default().with_blend_mode(BlendMode::Multiply);
+    assert_eq!(GpuMaterialInstance::from(&multiply).blend_mode, 3);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// PostEffect Tests
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_post_effect_bloom() {
+    let bloom = PostEffect::bloom(0.8, 0.5, 0.3);
+    match bloom {
+        PostEffect::Bloom {
+            threshold,
+            intensity,
+            radius,
+        } => {
+            assert!((threshold - 0.8).abs() < f32::EPSILON);
+            assert!((intensity - 0.5).abs() < f32::EPSILON);
+            assert!((radius - 0.3).abs() < f32::EPSILON);
+        }
+        _ => panic!("Expected Bloom variant"),
+    }
+}
+
+#[test]
+fn test_post_effect_color_grading() {
+    let grading = PostEffect::color_grading(0.1, 1.2, 0.8, -0.2);
+    match grading {
+        PostEffect::ColorGrading {
+            brightness,
+            contrast,
+            saturation,
+            temperature,
+        } => {
+            assert!((brightness - 0.1).abs() < f32::EPSILON);
+            assert!((contrast - 1.2).abs() < f32::EPSILON);
+            assert!((saturation - 0.8).abs() < f32::EPSILON);
+            assert!((temperature - (-0.2)).abs() < f32::EPSILON);
+        }
+        _ => panic!("Expected ColorGrading variant"),
+    }
+}
+
+#[test]
+fn test_post_effect_grayscale() {
+    let gray = PostEffect::grayscale(0.75);
+    match gray {
+        PostEffect::Grayscale { intensity } => {
+            assert!((intensity - 0.75).abs() < f32::EPSILON);
+        }
+        _ => panic!("Expected Grayscale variant"),
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// PostProcessPipeline Tests
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_post_process_pipeline_new() {
+    let pipeline = PostProcessPipeline::new();
+    assert!(pipeline.is_empty());
+    assert_eq!(pipeline.len(), 0);
+    assert!(pipeline.is_enabled());
+}
+
+#[test]
+fn test_post_process_pipeline_add_effect() {
+    let mut pipeline = PostProcessPipeline::new();
+
+    pipeline.add_effect(PostEffect::bloom(0.8, 0.5, 0.5));
+    assert_eq!(pipeline.len(), 1);
+
+    pipeline.add_effect(PostEffect::grayscale(0.5));
+    assert_eq!(pipeline.len(), 2);
+}
+
+#[test]
+fn test_post_process_pipeline_remove_effect() {
+    let mut pipeline = PostProcessPipeline::new();
+    pipeline.add_effect(PostEffect::bloom(0.8, 0.5, 0.5));
+    pipeline.add_effect(PostEffect::grayscale(0.5));
+    pipeline.add_effect(PostEffect::color_grading(0.0, 1.0, 1.0, 0.0));
+
+    assert_eq!(pipeline.len(), 3);
+
+    // Remove middle effect
+    pipeline.remove_effect(1);
+    assert_eq!(pipeline.len(), 2);
+
+    // Verify correct effect was removed
+    let effects = pipeline.effects();
+    assert!(matches!(effects[0], PostEffect::Bloom { .. }));
+    assert!(matches!(effects[1], PostEffect::ColorGrading { .. }));
+}
+
+#[test]
+fn test_post_process_pipeline_enabled() {
+    let mut pipeline = PostProcessPipeline::new();
+    assert!(pipeline.is_enabled());
+
+    pipeline.set_enabled(false);
+    assert!(!pipeline.is_enabled());
+
+    pipeline.set_enabled(true);
+    assert!(pipeline.is_enabled());
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
