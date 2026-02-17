@@ -31,6 +31,7 @@ pub mod ecs;
 pub mod events;
 pub mod expression;
 pub mod input;
+pub mod logic_bricks;
 pub mod logic_driver;
 pub mod logic_system;
 pub mod mapping;
@@ -153,6 +154,7 @@ pub use expression::{
     compile_expression, evaluate_expression,
 };
 pub use input::{InputEvent, InputSampler, InputSnapshotSAB, MAX_KEYS, MouseButton};
+pub use logic_bricks::{Actuator, Axis, KeyCode, MoveMode, Sensor};
 pub use logic_driver::LogicDriver;
 pub use logic_system::LogicSystem;
 pub use mapping::{ActuatorType, Controller, LogicMappingTable, SensorType};

@@ -72,6 +72,9 @@ pub mod proximity;
 pub mod radar;
 pub mod touch;
 
+// Re-exports
+pub use key_shortcut::KeyCode;
+
 pub use box_select::{BoxSelectSensor, BoxSelection};
 pub use collision::CollisionSensor;
 pub use key_shortcut::KeyShortcutSensor;
