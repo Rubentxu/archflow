@@ -79,6 +79,7 @@ pub mod pool;
 pub mod query;
 pub mod registry;
 pub mod scheduler;
+pub mod shape_render_system;
 pub mod simd;
 pub mod simd_integration;
 pub mod sparse_set;
@@ -95,8 +96,10 @@ mod integration_tests;
 pub use archetype::{Archetype, ArchetypeId, ArchetypeStorage, BatchIter, ComponentColumn};
 pub use component::{Component, ComponentId, ComponentStorage, VecStorage};
 pub use components::{
-    AudioActuatorComponent, HighlightActuatorComponent, MouseSensorComponent,
-    MoveActuatorComponent, NamedComponent, SelectActuatorComponent, SignalStateComponent,
+    AudioActuatorComponent, Color, ColorComponent, HighlightActuatorComponent,
+    MouseSensorComponent, MoveActuatorComponent, NamedComponent, RenderProperties,
+    SelectActuatorComponent, ShapeComponent, ShapeType, SignalStateComponent, Visibility,
+    VisibilityComponent,
 };
 pub use hybrid::{
     ActuatorComponent, BgeLogicConfig, BgeLogicStats, BgeLogicSystem, ClickType,
@@ -114,6 +117,7 @@ pub use query::{
 };
 pub use registry::ComponentRegistry;
 pub use scheduler::SystemScheduler;
+pub use shape_render_system::{GpuShapeInstance, ShapeRenderStats, ShapeRenderSystem};
 pub use simd::{
     BatchPhysicsConfig, BatchPhysicsProcessor, BatchStats, MortonEncoder, SimdBatchIterator,
     SimdPhysicsConfig, SimdPhysicsProcessor, SimdStats,

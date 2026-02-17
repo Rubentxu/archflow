@@ -24,7 +24,7 @@ use alloc::vec::Vec;
 use archflow_core::EntityId;
 use archflow_core::Vec2;
 
-use crate::ecs::{Component, VecStorage};
+use crate::ecs::{Component, ComponentRegistry, VecStorage};
 use crate::signals::SignalByte;
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -361,6 +361,571 @@ impl MoveActuatorComponent {
 
 impl Component for MoveActuatorComponent {
     type Storage = VecStorage<MoveActuatorComponent>;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ShapeType Enum - Type-safe shape types
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Type-safe shape types for rendering
+///
+/// This replaces the u8 arbitrary values in EntityStore.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
+pub enum ShapeType {
+    /// Standard rectangle shape
+    Rectangle = 0,
+    /// Circle shape
+    Circle = 1,
+    /// Ellipse shape (different aspect ratio)
+    Ellipse = 2,
+    /// Triangle shape
+    Triangle = 3,
+    /// Diamond/rhombus shape
+    Diamond = 4,
+    /// Cylinder shape (typically for databases)
+    Cylinder = 5,
+    /// Line shape
+    Line = 6,
+    /// Arc shape
+    Arc = 7,
+}
+
+impl ShapeType {
+    /// Convert from u8 (for compatibility with EntityStore)
+    #[inline(always)]
+    #[must_use]
+    pub fn from_u8(value: u8) -> Self {
+        match value {
+            0 => ShapeType::Rectangle,
+            1 => ShapeType::Circle,
+            2 => ShapeType::Ellipse,
+            3 => ShapeType::Triangle,
+            4 => ShapeType::Diamond,
+            5 => ShapeType::Cylinder,
+            6 => ShapeType::Line,
+            7 => ShapeType::Arc,
+            _ => ShapeType::Rectangle,
+        }
+    }
+
+    /// Convert to u8 (for compatibility with rendering)
+    #[inline(always)]
+    pub fn to_u8(self) -> u8 {
+        self as u8
+    }
+}
+
+impl Default for ShapeType {
+    fn default() -> Self {
+        ShapeType::Rectangle
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ShapeComponent
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Component that stores shape type for an entity
+///
+/// This component provides type-safe shape rendering properties.
+/// Use together with Transform (for position/rotation/scale) and RenderProperties (for size/layer).
+///
+/// # Examples
+///
+/// ```
+/// use archflow_logic::ecs::components::{ShapeComponent, ShapeType};
+///
+/// let component = ShapeComponent::circle();
+/// assert_eq!(component.shape_type, ShapeType::Circle);
+/// ```
+#[derive(Clone, Debug, PartialEq)]
+pub struct ShapeComponent {
+    /// The shape type
+    pub shape_type: ShapeType,
+    /// Radius for circle/ellipse (0 = use default/auto)
+    pub radius: f32,
+    /// Corner radius for rounded rectangles
+    pub corner_radius: f32,
+}
+
+impl ShapeComponent {
+    /// Creates a rectangle shape (default)
+    #[inline(always)]
+    #[must_use]
+    pub fn rectangle() -> Self {
+        Self {
+            shape_type: ShapeType::Rectangle,
+            radius: 0.0,
+            corner_radius: 0.0,
+        }
+    }
+
+    /// Creates a circle shape
+    #[inline(always)]
+    #[must_use]
+    pub fn circle() -> Self {
+        Self {
+            shape_type: ShapeType::Circle,
+            radius: 0.5,
+            corner_radius: 0.0,
+        }
+    }
+
+    /// Creates an ellipse shape
+    #[inline(always)]
+    #[must_use]
+    pub fn ellipse() -> Self {
+        Self {
+            shape_type: ShapeType::Ellipse,
+            radius: 0.5,
+            corner_radius: 0.0,
+        }
+    }
+
+    /// Creates a triangle shape
+    #[inline(always)]
+    #[must_use]
+    pub fn triangle() -> Self {
+        Self {
+            shape_type: ShapeType::Triangle,
+            radius: 0.0,
+            corner_radius: 0.0,
+        }
+    }
+
+    /// Creates a diamond shape
+    #[inline(always)]
+    #[must_use]
+    pub fn diamond() -> Self {
+        Self {
+            shape_type: ShapeType::Diamond,
+            radius: 0.0,
+            corner_radius: 0.0,
+        }
+    }
+
+    /// Creates a cylinder shape
+    #[inline(always)]
+    #[must_use]
+    pub fn cylinder() -> Self {
+        Self {
+            shape_type: ShapeType::Cylinder,
+            radius: 0.5,
+            corner_radius: 0.0,
+        }
+    }
+
+    /// Creates a line shape
+    #[inline(always)]
+    #[must_use]
+    pub fn line() -> Self {
+        Self {
+            shape_type: ShapeType::Line,
+            radius: 0.0,
+            corner_radius: 0.0,
+        }
+    }
+
+    /// Creates an arc shape
+    #[inline(always)]
+    #[must_use]
+    pub fn arc() -> Self {
+        Self {
+            shape_type: ShapeType::Arc,
+            radius: 0.5,
+            corner_radius: 0.0,
+        }
+    }
+
+    /// Set custom radius
+    #[inline(always)]
+    #[must_use]
+    pub fn with_radius(mut self, radius: f32) -> Self {
+        self.radius = radius;
+        self
+    }
+
+    /// Set corner radius for rounded shapes
+    #[inline(always)]
+    #[must_use]
+    pub fn with_corner_radius(mut self, radius: f32) -> Self {
+        self.corner_radius = radius;
+        self
+    }
+}
+
+impl Default for ShapeComponent {
+    fn default() -> Self {
+        Self::rectangle()
+    }
+}
+
+impl Component for ShapeComponent {
+    type Storage = VecStorage<ShapeComponent>;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Color Helper
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Color in ARGB format
+///
+/// Provides helper methods for color manipulation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Color {
+    /// Alpha component (0-255)
+    pub a: u8,
+    /// Red component (0-255)
+    pub r: u8,
+    /// Green component (0-255)
+    pub g: u8,
+    /// Blue component (0-255)
+    pub b: u8,
+}
+
+impl Color {
+    /// Creates a new color from ARGB components
+    #[inline(always)]
+    #[must_use]
+    pub const fn argb(a: u8, r: u8, g: u8, b: u8) -> Self {
+        Self { a, r, g, b }
+    }
+
+    /// Creates a new color from RGB (alpha = 255)
+    #[inline(always)]
+    #[must_use]
+    pub const fn rgb(r: u8, g: u8, b: u8) -> Self {
+        Self { a: 255, r, g, b }
+    }
+
+    /// Creates a transparent color
+    #[inline(always)]
+    #[must_use]
+    pub const fn transparent() -> Self {
+        Self {
+            a: 0,
+            r: 0,
+            g: 0,
+            b: 0,
+        }
+    }
+
+    /// Creates a white color
+    #[inline(always)]
+    #[must_use]
+    pub const fn white() -> Self {
+        Self {
+            a: 255,
+            r: 255,
+            g: 255,
+            b: 255,
+        }
+    }
+
+    /// Creates a black color
+    #[inline(always)]
+    #[must_use]
+    pub const fn black() -> Self {
+        Self {
+            a: 255,
+            r: 0,
+            g: 0,
+            b: 0,
+        }
+    }
+
+    /// Creates a red color
+    #[inline(always)]
+    #[must_use]
+    pub const fn red() -> Self {
+        Self {
+            a: 255,
+            r: 255,
+            g: 0,
+            b: 0,
+        }
+    }
+
+    /// Creates a green color
+    #[inline(always)]
+    #[must_use]
+    pub const fn green() -> Self {
+        Self {
+            a: 255,
+            r: 0,
+            g: 255,
+            b: 0,
+        }
+    }
+
+    /// Creates a blue color
+    #[inline(always)]
+    #[must_use]
+    pub const fn blue() -> Self {
+        Self {
+            a: 255,
+            r: 0,
+            g: 0,
+            b: 255,
+        }
+    }
+
+    /// Converts to u32 (ARGB little-endian for WebGL)
+    #[inline(always)]
+    pub fn to_u32(self) -> u32 {
+        (self.a as u32) << 24 | (self.r as u32) << 16 | (self.g as u32) << 8 | (self.b as u32)
+    }
+
+    /// Creates from u32
+    #[inline(always)]
+    #[must_use]
+    pub fn from_u32(color: u32) -> Self {
+        Self {
+            a: ((color >> 24) & 0xFF) as u8,
+            r: ((color >> 16) & 0xFF) as u8,
+            g: ((color >> 8) & 0xFF) as u8,
+            b: (color & 0xFF) as u8,
+        }
+    }
+}
+
+impl Default for Color {
+    fn default() -> Self {
+        Self::white()
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ColorComponent
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Component that stores color properties for an entity
+///
+/// Provides fill, stroke, and tint for rendering.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ColorComponent {
+    /// Fill color
+    pub fill: Color,
+    /// Stroke/border color
+    pub stroke: Color,
+    /// Stroke width in pixels
+    pub stroke_width: f32,
+    /// Tint factor [r, g, b, a] multipliers
+    pub tint: [f32; 4],
+}
+
+impl ColorComponent {
+    /// Creates a new ColorComponent with fill color
+    #[inline(always)]
+    #[must_use]
+    pub fn new(fill: Color) -> Self {
+        Self {
+            fill,
+            stroke: Color::black(),
+            stroke_width: 1.0,
+            tint: [1.0, 1.0, 1.0, 1.0],
+        }
+    }
+
+    /// Creates with RGB values
+    #[inline(always)]
+    #[must_use]
+    pub fn from_rgb(r: u8, g: u8, b: u8) -> Self {
+        Self::new(Color::rgb(r, g, b))
+    }
+
+    /// Set stroke color and width
+    #[inline(always)]
+    #[must_use]
+    pub fn with_stroke(mut self, stroke: Color, width: f32) -> Self {
+        self.stroke = stroke;
+        self.stroke_width = width;
+        self
+    }
+
+    /// Set tint multipliers
+    #[inline(always)]
+    #[must_use]
+    pub fn with_tint(mut self, r: f32, g: f32, b: f32, a: f32) -> Self {
+        self.tint = [r, g, b, a];
+        self
+    }
+
+    /// Get combined fill color with tint applied
+    #[inline(always)]
+    pub fn combined_fill(&self) -> u32 {
+        let r = (self.fill.r as f32 * self.tint[0]).min(255.0) as u8;
+        let g = (self.fill.g as f32 * self.tint[1]).min(255.0) as u8;
+        let b = (self.fill.b as f32 * self.tint[2]).min(255.0) as u8;
+        let a = (self.fill.a as f32 * self.tint[3]).min(255.0) as u8;
+        Color::argb(a, r, g, b).to_u32()
+    }
+}
+
+impl Default for ColorComponent {
+    fn default() -> Self {
+        // Default light blue
+        Self::new(Color::rgb(204, 221, 238))
+    }
+}
+
+impl Component for ColorComponent {
+    type Storage = VecStorage<ColorComponent>;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Visibility Enum
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Visibility state for rendering
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Visibility {
+    /// Entity is visible and interactive
+    Visible,
+    /// Entity is hidden (not rendered)
+    Hidden,
+    /// Entity is visible but not interactive
+    PassThrough,
+}
+
+impl Default for Visibility {
+    fn default() -> Self {
+        Visibility::Visible
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VisibilityComponent
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Component that controls visibility of an entity
+///
+/// Use to hide/show entities without removing them.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct VisibilityComponent {
+    /// Current visibility state
+    pub visibility: Visibility,
+}
+
+impl VisibilityComponent {
+    /// Creates a visible component
+    #[inline(always)]
+    #[must_use]
+    pub fn visible() -> Self {
+        Self {
+            visibility: Visibility::Visible,
+        }
+    }
+
+    /// Creates a hidden component
+    #[inline(always)]
+    #[must_use]
+    pub fn hidden() -> Self {
+        Self {
+            visibility: Visibility::Hidden,
+        }
+    }
+
+    /// Creates a pass-through component (visible but not interactive)
+    #[inline(always)]
+    #[must_use]
+    pub fn pass_through() -> Self {
+        Self {
+            visibility: Visibility::PassThrough,
+        }
+    }
+
+    /// Set visibility
+    #[inline(always)]
+    pub fn set_visibility(&mut self, visibility: Visibility) {
+        self.visibility = visibility;
+    }
+
+    /// Check if entity is visible
+    #[inline(always)]
+    #[must_use]
+    pub fn is_visible(&self) -> bool {
+        self.visibility == Visibility::Visible
+    }
+}
+
+impl Default for VisibilityComponent {
+    fn default() -> Self {
+        Self::visible()
+    }
+}
+
+impl Component for VisibilityComponent {
+    type Storage = VecStorage<VisibilityComponent>;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RenderProperties
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Component for rendering properties (size and layer)
+///
+/// Use together with Transform (for position/rotation/scale).
+/// This component provides size (width/height) and layer (z-order).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct RenderProperties {
+    /// Width in world units
+    pub width: f32,
+    /// Height in world units
+    pub height: f32,
+    /// Z-layer for rendering order
+    pub layer: i32,
+}
+
+impl RenderProperties {
+    /// Creates new render properties
+    #[inline(always)]
+    #[must_use]
+    pub fn new(width: f32, height: f32) -> Self {
+        Self {
+            width,
+            height,
+            layer: 0,
+        }
+    }
+
+    /// Creates a square
+    #[inline(always)]
+    #[must_use]
+    pub fn square(size: f32) -> Self {
+        Self::new(size, size)
+    }
+
+    /// Set layer
+    #[inline(always)]
+    #[must_use]
+    pub fn with_layer(mut self, layer: i32) -> Self {
+        self.layer = layer;
+        self
+    }
+
+    /// Set width
+    #[inline(always)]
+    pub fn set_width(&mut self, width: f32) {
+        self.width = width;
+    }
+
+    /// Set height
+    #[inline(always)]
+    pub fn set_height(&mut self, height: f32) {
+        self.height = height;
+    }
+}
+
+impl Default for RenderProperties {
+    fn default() -> Self {
+        Self::new(100.0, 100.0)
+    }
+}
+
+impl Component for RenderProperties {
+    type Storage = VecStorage<RenderProperties>;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -989,4 +1554,303 @@ impl Default for NamedComponent {
 
 impl Component for NamedComponent {
     type Storage = VecStorage<NamedComponent>;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ShapeType and ShapeComponent Tests
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_shape_type_variants() {
+    // All shape types should be constructible
+    let _ = ShapeType::Rectangle;
+    let _ = ShapeType::Circle;
+    let _ = ShapeType::Ellipse;
+    let _ = ShapeType::Triangle;
+    let _ = ShapeType::Diamond;
+    let _ = ShapeType::Cylinder;
+    let _ = ShapeType::Line;
+    let _ = ShapeType::Arc;
+}
+
+#[test]
+fn test_shape_component_circle() {
+    let shape = ShapeComponent::circle();
+    assert!(matches!(shape.shape_type, ShapeType::Circle));
+    assert_eq!(shape.radius, 0.5);
+}
+
+#[test]
+fn test_shape_component_rectangle() {
+    let shape = ShapeComponent::rectangle();
+    assert!(matches!(shape.shape_type, ShapeType::Rectangle));
+}
+
+#[test]
+fn test_shape_component_ellipse() {
+    let shape = ShapeComponent::ellipse();
+    assert!(matches!(shape.shape_type, ShapeType::Ellipse));
+}
+
+#[test]
+fn test_shape_component_triangle() {
+    let shape = ShapeComponent::triangle();
+    assert!(matches!(shape.shape_type, ShapeType::Triangle));
+}
+
+#[test]
+fn test_shape_component_diamond() {
+    let shape = ShapeComponent::diamond();
+    assert!(matches!(shape.shape_type, ShapeType::Diamond));
+}
+
+#[test]
+fn test_shape_component_cylinder() {
+    let shape = ShapeComponent::cylinder();
+    assert!(matches!(shape.shape_type, ShapeType::Cylinder));
+}
+
+#[test]
+fn test_shape_component_line() {
+    let shape = ShapeComponent::line();
+    assert!(matches!(shape.shape_type, ShapeType::Line));
+}
+
+#[test]
+fn test_shape_component_arc() {
+    let shape = ShapeComponent::arc();
+    assert!(matches!(shape.shape_type, ShapeType::Arc));
+}
+
+#[test]
+fn test_shape_component_default() {
+    let shape = ShapeComponent::default();
+    assert!(matches!(shape.shape_type, ShapeType::Rectangle));
+}
+
+#[test]
+fn test_shape_component_in_registry() {
+    let mut registry = ComponentRegistry::new();
+    registry.register::<ShapeComponent>();
+    assert!(registry.is_registered::<ShapeComponent>());
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Color and ColorComponent Tests
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_color_argb() {
+    let color = Color::argb(255, 128, 64, 32);
+    assert_eq!(color.a, 255);
+    assert_eq!(color.r, 128);
+    assert_eq!(color.g, 64);
+    assert_eq!(color.b, 32);
+}
+
+#[test]
+fn test_color_rgb() {
+    let color = Color::rgb(128, 64, 32);
+    assert_eq!(color.a, 255);
+    assert_eq!(color.r, 128);
+    assert_eq!(color.g, 64);
+    assert_eq!(color.b, 32);
+}
+
+#[test]
+fn test_color_red() {
+    let red = Color::rgb(255, 0, 0);
+    assert_eq!(red.r, 255);
+    assert_eq!(red.g, 0);
+    assert_eq!(red.b, 0);
+    assert_eq!(red.a, 255);
+}
+
+#[test]
+fn test_color_green() {
+    let green = Color::rgb(0, 255, 0);
+    assert_eq!(green.r, 0);
+    assert_eq!(green.g, 255);
+    assert_eq!(green.b, 0);
+    assert_eq!(green.a, 255);
+}
+
+#[test]
+fn test_color_blue() {
+    let blue = Color::rgb(0, 0, 255);
+    assert_eq!(blue.r, 0);
+    assert_eq!(blue.g, 0);
+    assert_eq!(blue.b, 255);
+    assert_eq!(blue.a, 255);
+}
+
+#[test]
+fn test_color_white() {
+    let white = Color::rgb(255, 255, 255);
+    assert_eq!(white.r, 255);
+    assert_eq!(white.g, 255);
+    assert_eq!(white.b, 255);
+    assert_eq!(white.a, 255);
+}
+
+#[test]
+fn test_color_black() {
+    let black = Color::rgb(0, 0, 0);
+    assert_eq!(black.r, 0);
+    assert_eq!(black.g, 0);
+    assert_eq!(black.b, 0);
+    assert_eq!(black.a, 255);
+}
+
+#[test]
+fn test_color_transparent() {
+    let transparent = Color::transparent();
+    assert_eq!(transparent.a, 0);
+}
+
+#[test]
+fn test_color_component_default() {
+    let cc = ColorComponent::default();
+    assert_eq!(cc.fill, Color::rgb(204, 221, 238));
+    assert_eq!(cc.stroke, Color::rgb(0, 0, 0));
+    assert_eq!(cc.stroke_width, 1.0);
+    assert_eq!(cc.tint, [1.0, 1.0, 1.0, 1.0]);
+}
+
+#[test]
+fn test_color_component_new() {
+    let fill = Color::rgb(0, 0, 255);
+    let cc = ColorComponent::new(fill);
+    assert_eq!(cc.fill, Color::rgb(0, 0, 255));
+    assert_eq!(cc.stroke, Color::rgb(0, 0, 0));
+    assert_eq!(cc.stroke_width, 1.0);
+}
+
+#[test]
+fn test_color_component_from_rgb() {
+    let cc = ColorComponent::from_rgb(255, 0, 0);
+    assert_eq!(cc.fill, Color::rgb(255, 0, 0));
+}
+
+#[test]
+fn test_color_component_in_registry() {
+    let mut registry = ComponentRegistry::new();
+    registry.register::<ColorComponent>();
+    assert!(registry.is_registered::<ColorComponent>());
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Visibility and VisibilityComponent Tests
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_visibility_variants() {
+    let _ = Visibility::Visible;
+    let _ = Visibility::Hidden;
+    let _ = Visibility::PassThrough;
+}
+
+#[test]
+fn test_visibility_component_default() {
+    let vc = VisibilityComponent::default();
+    assert!(matches!(vc.visibility, Visibility::Visible));
+}
+
+#[test]
+fn test_visibility_component_hidden() {
+    let vc = VisibilityComponent::hidden();
+    assert!(matches!(vc.visibility, Visibility::Hidden));
+}
+
+#[test]
+fn test_visibility_component_pass_through() {
+    let vc = VisibilityComponent::pass_through();
+    assert!(matches!(vc.visibility, Visibility::PassThrough));
+}
+
+#[test]
+fn test_visibility_component_set_visibility() {
+    let mut vc = VisibilityComponent::visible();
+    vc.set_visibility(Visibility::Hidden);
+    assert!(matches!(vc.visibility, Visibility::Hidden));
+}
+
+#[test]
+fn test_visibility_component_is_visible() {
+    let mut vc = VisibilityComponent::visible();
+    assert!(vc.is_visible());
+    vc.set_visibility(Visibility::Hidden);
+    assert!(!vc.is_visible());
+}
+
+#[test]
+fn test_visibility_component_in_registry() {
+    let mut registry = ComponentRegistry::new();
+    registry.register::<VisibilityComponent>();
+    assert!(registry.is_registered::<VisibilityComponent>());
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RenderProperties Tests
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_render_properties_default() {
+    let rp = RenderProperties::default();
+    assert_eq!(rp.width, 100.0);
+    assert_eq!(rp.height, 100.0);
+    assert_eq!(rp.layer, 0);
+}
+
+#[test]
+fn test_render_properties_new() {
+    let rp = RenderProperties::new(200.0, 150.0);
+    assert_eq!(rp.width, 200.0);
+    assert_eq!(rp.height, 150.0);
+    assert_eq!(rp.layer, 0);
+}
+
+#[test]
+fn test_render_properties_square() {
+    let rp = RenderProperties::square(50.0);
+    assert_eq!(rp.width, 50.0);
+    assert_eq!(rp.height, 50.0);
+}
+
+#[test]
+fn test_render_properties_set_layer() {
+    let mut rp = RenderProperties::default();
+    rp.layer = 10;
+    assert_eq!(rp.layer, 10);
+}
+
+#[test]
+fn test_render_properties_with_layer() {
+    let rp = RenderProperties::default().with_layer(5);
+    assert_eq!(rp.layer, 5);
+}
+
+#[test]
+fn test_render_properties_in_registry() {
+    let mut registry = ComponentRegistry::new();
+    registry.register::<RenderProperties>();
+    assert!(registry.is_registered::<RenderProperties>());
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Integration Tests
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_all_components_register() {
+    let mut registry = ComponentRegistry::new();
+    registry.register::<ShapeComponent>();
+    registry.register::<ColorComponent>();
+    registry.register::<VisibilityComponent>();
+    registry.register::<RenderProperties>();
+
+    assert!(registry.is_registered::<ShapeComponent>());
+    assert!(registry.is_registered::<ColorComponent>());
+    assert!(registry.is_registered::<VisibilityComponent>());
+    assert!(registry.is_registered::<RenderProperties>());
 }
