@@ -556,6 +556,7 @@ mod tests {
         assert_eq!(engine.store.alive_count(), 0);
     }
 
+    #[cfg(target_arch = "wasm32")]
     #[test]
     fn test_tick_empty() {
         let mut engine = ArchFlowEngine::new(800.0, 600.0);

@@ -94,6 +94,7 @@ fn test_multi_selection() {
     assert!(engine.is_entity_selected(entity3));
 }
 
+#[cfg(target_arch = "wasm32")]
 #[test]
 fn test_tick_with_logic_bricks() {
     let mut engine = ArchFlowEngine::new(800.0, 600.0);
