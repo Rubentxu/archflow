@@ -20,7 +20,7 @@ use alloc::boxed::Box;
 use archflow_core::{EntityId, Vec2, Vec2f64};
 use archflow_engine::{Command, CommandQueue, ConnectionStore, EntityStore, MAX_ENTITIES};
 use archflow_interaction::HistoryManager;
-use archflow_logic::{EventRingBuffer, LogicSystem, SelectMode};
+use archflow_logic::{EventRingBuffer, LogicSystem, SelectMode, ecs};
 use archflow_render::{Camera, GpuRenderer, Renderer};
 use wasm_bindgen::JsValue;
 
@@ -118,6 +118,10 @@ pub struct ArchFlowEngine {
 
     /// Event output buffer for JavaScript (HU-LOGIC-EVENTS-002)
     pub events: EventRingBuffer,
+
+    /// ECS World for type-safe component queries
+    /// This provides a modern ECS alternative to the legacy EntityStore arrays
+    pub ecs_world: ecs::World,
 }
 
 impl ArchFlowEngine {
@@ -153,6 +157,7 @@ impl ArchFlowEngine {
             active_stroke_color: archflow_core::Color::rgba(0x00, 0x00, 0x00, 0xff).0,
             active_stroke_width: 2.0,
             events: EventRingBuffer::new(1024),
+            ecs_world: ecs::World::new(),
         }
     }
 

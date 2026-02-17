@@ -47,8 +47,9 @@ pub use self::bridge_wasm::WasmBridge;
 pub use engine::ArchFlowEngine;
 
 // JS Entity Builder exports (Epic 5 - WASM Integration)
+// Updated: EPIC-ECS-009 - Added ShapeTypes for ECS migration
 pub use js_entity_builder::{
-    ActuatorTypes, ControllerTypes, JsBehaviorBlock, JsEntityBuilder, SensorTypes,
+    ActuatorTypes, ControllerTypes, JsBehaviorBlock, JsEntityBuilder, SensorTypes, ShapeTypes,
 };
 
 pub use input::{

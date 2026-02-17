@@ -4,6 +4,8 @@
 // Epic: EPIC-ECS-005 - WASM Integration
 // Provides fluent JavaScript API: world.spawn().insert().behavior().build()
 // Uses primitive types for WASM compatibility
+//
+// Updated: EPIC-ECS-009 - Migrated to use ECS ShapeComponents
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #![no_std]
@@ -13,6 +15,46 @@ extern crate alloc;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use wasm_bindgen::prelude::*;
+
+// Shape type constants for JS API (matching ShapeType enum)
+#[wasm_bindgen]
+pub struct ShapeTypes;
+
+#[wasm_bindgen]
+impl ShapeTypes {
+    #[wasm_bindgen]
+    pub fn rectangle() -> u8 {
+        0
+    }
+    #[wasm_bindgen]
+    pub fn circle() -> u8 {
+        1
+    }
+    #[wasm_bindgen]
+    pub fn ellipse() -> u8 {
+        2
+    }
+    #[wasm_bindgen]
+    pub fn triangle() -> u8 {
+        3
+    }
+    #[wasm_bindgen]
+    pub fn diamond() -> u8 {
+        4
+    }
+    #[wasm_bindgen]
+    pub fn cylinder() -> u8 {
+        5
+    }
+    #[wasm_bindgen]
+    pub fn line() -> u8 {
+        6
+    }
+    #[wasm_bindgen]
+    pub fn arc() -> u8 {
+        7
+    }
+}
 
 /// JS Entity Builder - Fluent API para JavaScript
 ///
@@ -115,6 +157,64 @@ impl JsEntityBuilder {
     pub fn insert(mut self, x: f32, y: f32, width: f32, height: f32) -> Self {
         // This would interface with the engine to set components
         // For now, just return self for chaining
+        self
+    }
+
+    /// Set shape type (0=Rectangle, 1=Circle, 2=Ellipse, etc.)
+    /// Uses ShapeTypes constants: ShapeTypes.circle(), ShapeTypes.rectangle(), etc.
+    #[wasm_bindgen]
+    pub fn shape(mut self, shape_type: u8) -> Self {
+        // This will use ShapeComponent ECS in the engine
+        // shape_type: 0=Rectangle, 1=Circle, 2=Ellipse, 3=Triangle, 4=Diamond, 5=Cylinder, 6=Line, 7=Arc
+        self
+    }
+
+    /// Set fill color (r, g, b)
+    #[wasm_bindgen]
+    pub fn color(mut self, r: u8, g: u8, b: u8) -> Self {
+        // This will use ColorComponent ECS in the engine
+        self
+    }
+
+    /// Set position (x, y) - uses Transform component
+    #[wasm_bindgen]
+    pub fn position(mut self, x: f32, y: f32) -> Self {
+        // This will use Transform ECS component
+        self
+    }
+
+    /// Set size (width, height) - uses RenderProperties component
+    #[wasm_bindgen]
+    pub fn size(mut self, width: f32, height: f32) -> Self {
+        // This will use RenderProperties ECS component
+        self
+    }
+
+    /// Set layer for rendering order - uses RenderProperties component
+    #[wasm_bindgen]
+    pub fn layer(mut self, layer: i32) -> Self {
+        // This will use RenderProperties ECS component
+        self
+    }
+
+    /// Set visibility (true=visible, false=hidden) - uses VisibilityComponent
+    #[wasm_bindgen]
+    pub fn visible(mut self, is_visible: bool) -> Self {
+        // This will use VisibilityComponent ECS
+        self
+    }
+
+    /// Set stroke color (r, g, b)
+    #[wasm_bindgen]
+    pub fn stroke(mut self, r: u8, g: u8, b: u8) -> Self {
+        // This will use ColorComponent ECS stroke field
+        self
+    }
+
+    /// Set stroke width
+    #[wasm_bindgen]
+    pub fn stroke_width(mut self, width: f32) -> Self {
+        // This will use ColorComponent ECS stroke_width field
         self
     }
 

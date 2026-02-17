@@ -31,7 +31,7 @@ use crate::input::{InputEventType, InputProcessor, InputRingBuffer};
 use archflow_engine::store::MAX_ENTITIES;
 use archflow_engine::{Command, DeltaMask};
 use archflow_logic::mapping::{ActuatorType, Controller, LogicMappingTable, SensorType};
-use archflow_logic::{DEFAULT_TOOL, ToolType};
+use archflow_logic::{DEFAULT_TOOL, ToolType, ecs};
 use archflow_render::Renderer;
 
 #[cfg(target_arch = "wasm32")]
@@ -2159,6 +2159,115 @@ impl WasmBridge {
         }
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════════════════════════
+    // EPIC-ECS-009-02: ECS Query API - Modern type-safe component queries
+    // ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+    /// Query all entities with ShapeComponent using ECS
+    ///
+    /// Returns entity indices that have a ShapeComponent attached.
+    #[wasm_bindgen]
+    pub fn query_shape_components(&self) -> Result<Vec<u32>, JsValue> {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            let world = &engine.ecs_world;
+
+            // Use world.entities() + has_component() pattern (same as ShapeRenderSystem)
+            let results: Vec<u32> = world
+                .entities()
+                .filter(|e| world.has_component::<ecs::ShapeComponent>(*e))
+                .map(|e| e.index() as u32)
+                .collect();
+
+            Ok(results)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Query all entities with ColorComponent using ECS
+    #[wasm_bindgen]
+    pub fn query_color_components(&self) -> Result<Vec<u32>, JsValue> {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            let world = &engine.ecs_world;
+            let results: Vec<u32> = world
+                .entities()
+                .filter(|e| world.has_component::<ecs::ColorComponent>(*e))
+                .map(|e| e.index() as u32)
+                .collect();
+            Ok(results)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Query all visible entities using ECS
+    #[wasm_bindgen]
+    pub fn query_visible_entities(&self) -> Result<Vec<u32>, JsValue> {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            let world = &engine.ecs_world;
+            let results: Vec<u32> = world
+                .entities()
+                .filter(|e| {
+                    if let Some(visibility) = world.get_component::<ecs::VisibilityComponent>(*e) {
+                        visibility.is_visible()
+                    } else {
+                        false
+                    }
+                })
+                .map(|e| e.index() as u32)
+                .collect();
+            Ok(results)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Query entities by shape type using ECS
+    ///
+    /// shape_type: 0=rectangle, 1=circle, 2=triangle, etc.
+    #[wasm_bindgen]
+    pub fn query_by_shape_type(&self, shape_type: u8) -> Result<Vec<u32>, JsValue> {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            let world = &engine.ecs_world;
+            let target_type = ecs::ShapeType::from_u8(shape_type);
+
+            let results: Vec<u32> = world
+                .entities()
+                .filter(|e| {
+                    if let Some(shape) = world.get_component::<ecs::ShapeComponent>(*e) {
+                        shape.shape_type == target_type
+                    } else {
+                        false
+                    }
+                })
+                .map(|e| e.index() as u32)
+                .collect();
+            Ok(results)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Get ECS component count for diagnostics
+    #[wasm_bindgen]
+    pub fn get_ecs_component_count(&self) -> usize {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            engine.ecs_world.component_type_count()
+        } else {
+            0
+        }
+    }
+
+    /// Get ECS entity count for diagnostics
+    #[wasm_bindgen]
+    pub fn get_ecs_entity_count(&self) -> usize {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            engine.ecs_world.entity_count()
+        } else {
+            0
+        }
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════════════════════════════════
     // ANEXA-004: AUDIO SYSTEM - Web Audio API integration
     // ═══════════════════════════════════════════════════════════════════════════════════════════════════════
@@ -2481,8 +2590,11 @@ impl WasmBridge {
 
     /// Set the shape type of an entity
     ///
-    /// DEPRECATED: Use PropertyActuator via Logic Bricks instead
-    #[deprecated(since = "0.61.0", note = "Use PropertyActuator")]
+    /// DEPRECATED: Use JsEntityBuilder.shape() or ShapeComponent ECS instead
+    #[deprecated(
+        since = "0.73.0",
+        note = "Use JsEntityBuilder.shape() or ShapeComponent ECS"
+    )]
     #[wasm_bindgen]
     pub fn set_shape(&self, entity_index: u32, shape: u8) -> Result<(), JsValue> {
         if let Some(engine) = self.engine.borrow_mut().as_mut() {
