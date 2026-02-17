@@ -934,3 +934,59 @@ impl AudioActuatorComponent {
 impl Component for AudioActuatorComponent {
     type Storage = VecStorage<AudioActuatorComponent>;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// NamedComponent - For entity naming and debugging
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Component for storing entity name for debugging purposes.
+///
+/// This component allows entities to have a name that can be used
+/// for logging, debugging, and identification.
+///
+/// # Examples
+///
+/// ```
+/// use archflow_logic::ecs::components::NamedComponent;
+///
+/// let component = NamedComponent::new("Player");
+/// assert_eq!(component.name(), "Player");
+/// ```
+#[derive(Clone, Debug, PartialEq)]
+pub struct NamedComponent {
+    name: alloc::string::String,
+}
+
+impl NamedComponent {
+    /// Creates a new NamedComponent with the given name.
+    #[inline]
+    #[must_use]
+    pub fn new(name: impl Into<alloc::string::String>) -> Self {
+        Self { name: name.into() }
+    }
+
+    /// Returns the name of the entity.
+    #[inline]
+    #[must_use]
+    pub fn name(&self) -> &alloc::string::String {
+        &self.name
+    }
+
+    /// Sets a new name for the entity.
+    #[inline]
+    pub fn set_name(&mut self, name: impl Into<alloc::string::String>) {
+        self.name = name.into();
+    }
+}
+
+impl Default for NamedComponent {
+    fn default() -> Self {
+        Self {
+            name: alloc::string::String::new(),
+        }
+    }
+}
+
+impl Component for NamedComponent {
+    type Storage = VecStorage<NamedComponent>;
+}

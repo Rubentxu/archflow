@@ -67,8 +67,10 @@
 // Re-export all public types
 pub mod archetype;
 pub mod archetype_query;
+pub mod behavior_block;
 pub mod component;
 pub mod components;
+pub mod entity_builder;
 pub mod hybrid;
 pub mod physics_components;
 pub mod physics_system;
@@ -83,6 +85,9 @@ pub mod system;
 pub mod world;
 
 #[cfg(test)]
+mod entity_builder_tests;
+
+#[cfg(test)]
 mod integration_tests;
 
 // Core types
@@ -90,7 +95,7 @@ pub use archetype::{Archetype, ArchetypeId, ArchetypeStorage, BatchIter, Compone
 pub use component::{Component, ComponentId, ComponentStorage, VecStorage};
 pub use components::{
     AudioActuatorComponent, HighlightActuatorComponent, MouseSensorComponent,
-    MoveActuatorComponent, SelectActuatorComponent, SignalStateComponent,
+    MoveActuatorComponent, NamedComponent, SelectActuatorComponent, SignalStateComponent,
 };
 pub use hybrid::{
     ActuatorComponent, BgeLogicConfig, BgeLogicStats, BgeLogicSystem, ClickType,

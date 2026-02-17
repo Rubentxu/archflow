@@ -85,3 +85,5 @@ docs/
 repomix_output.txt
 rust_files.txt
 *.png
+CLAUDE.md
+AGENTS.md

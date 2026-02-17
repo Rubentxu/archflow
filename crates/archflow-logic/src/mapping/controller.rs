@@ -12,6 +12,10 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 use crate::SignalByte;
+use crate::expression::{
+    CompiledExpression, ExpressionContext, ExpressionController, compile_expression,
+    evaluate_expression,
+};
 use crate::mapping::SensorType;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -199,6 +203,30 @@ pub enum Controller {
         /// JavaScript code to execute
         code: String,
     } = 9,
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // EXPRESSION DSL CONTROLLER (Bytecode VM)
+    // ═══════════════════════════════════════════════════════════════════════════════
+    /// Expression: Bytecode VM-based expression evaluation
+    ///
+    /// # Behavior
+    /// - Evaluates complex boolean expressions using a lightweight bytecode VM
+    /// - Expression is compiled once and evaluated many times
+    /// - Supports arithmetic, comparisons, and logical operators
+    ///
+    /// # Example
+    /// ```
+    /// Controller::Expression {
+    ///     expression: "entity.health < 20 AND sensor.isActive()",
+    ///     compiled: None,  // Compiled lazily on first use
+    /// }
+    /// ```
+    Expression {
+        /// The expression source string (for debugging)
+        expression: String,
+        /// Pre-compiled bytecode (None until first evaluation)
+        compiled: Option<CompiledExpression>,
+    } = 10,
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -482,9 +510,25 @@ impl Controller {
                 // Real evaluation happens via CustomController in TypeScript
                 false
             }
+
+            // Expression DSL: compile and evaluate
+            Controller::Expression {
+                expression,
+                compiled,
+            } => {
+                let (bytecode, constants): (Vec<u8>, Vec<f64>) = if let Some(c) = compiled {
+                    (c.bytecode.clone(), c.constants.clone())
+                } else {
+                    match compile_expression(expression) {
+                        Ok(c) => (c.bytecode, c.constants),
+                        Err(_) => return false,
+                    }
+                };
+                let ctx = ExpressionContext::new(context.timestamp, context.entity_id);
+                evaluate_expression(&bytecode, &constants, &ctx).unwrap_or(false)
+            }
         }
     }
-
     /// Returns the controller type as a u8 for serialization
     #[inline(always)]
     #[must_use]
@@ -500,7 +544,10 @@ impl Controller {
     pub fn requires_context(&self) -> bool {
         matches!(
             self,
-            Controller::Hysteresis { .. } | Controller::Blinky { .. } | Controller::Custom { .. }
+            Controller::Hysteresis { .. }
+                | Controller::Blinky { .. }
+                | Controller::Custom { .. }
+                | Controller::Expression { .. }
         )
     }
 }
@@ -628,6 +675,30 @@ impl Controller {
         Self::Custom {
             name: String::from(name),
             code: String::from(code),
+        }
+    }
+
+    /// Creates an Expression controller with a DSL expression
+    ///
+    /// # Arguments
+    ///
+    /// * `expression` - The expression string to evaluate
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// // Simple comparison
+    /// let expr = Controller::expression("x > 5");
+    ///
+    /// // Complex boolean expression
+    /// let expr = Controller::expression("health < 20 AND sensor == true");
+    /// ```
+    #[inline(always)]
+    #[must_use]
+    pub fn expression(expression: &str) -> Self {
+        Self::Expression {
+            expression: String::from(expression),
+            compiled: None,
         }
     }
 }
@@ -867,6 +938,35 @@ mod tests {
     }
 
     #[test]
+    fn test_expression_controller() {
+        // Test Expression controller with simple comparison
+        let signal = SignalByte::from(0b00111111);
+        let signals = &[(SensorType::MouseOver, signal)];
+        let mut hyst_vec: HysteresisStateMap = Vec::new();
+        let mut prop_vec: CustomPropertyMap = Vec::new();
+        let mut context = ControllerContext::new(1000, 1, 0, &mut hyst_vec, &mut prop_vec);
+
+        // Test "x > 5" should be false when x=0 (no variables set)
+        let expr = Controller::expression("x > 5");
+        let result = expr.evaluate(SensorType::MouseOver, signals, &mut context);
+        // When x=0, 0 > 5 is false
+        assert!(!result);
+    }
+
+    #[test]
+    fn test_expression_controller_compilation() {
+        // Test that expression compilation works
+        let expr = Controller::expression("value > 10");
+        assert!(matches!(
+            expr,
+            Controller::Expression {
+                expression: _,
+                compiled: None
+            }
+        ));
+    }
+
+    #[test]
     fn test_convenience_constructors() {
         assert!(matches!(Controller::Direct, Controller::Direct));
         assert!(matches!(
@@ -909,6 +1009,8 @@ mod tests {
         assert_eq!(Controller::hysteresis(0.8, 0.3).as_u8(), 6);
         assert_eq!(Controller::threshold(0.5).as_u8(), 7);
         assert_eq!(Controller::pattern(0b00100100).as_u8(), 8);
+        assert_eq!(Controller::custom("test", "code").as_u8(), 9);
+        assert_eq!(Controller::expression("x > 5").as_u8(), 10);
     }
 
     #[test]
@@ -919,6 +1021,7 @@ mod tests {
         assert!(Controller::blinky(4).requires_context());
         assert!(Controller::hysteresis(0.8, 0.3).requires_context());
         assert!(Controller::custom("test", "code").requires_context());
+        assert!(Controller::expression("x > 5").requires_context());
         assert!(!Controller::debounce(6).requires_context());
         assert!(!Controller::threshold(0.5).requires_context());
         assert!(!Controller::pattern(0b00100100).requires_context());

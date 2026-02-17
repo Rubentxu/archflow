@@ -29,6 +29,7 @@ pub mod audio;
 pub mod command;
 pub mod ecs;
 pub mod events;
+pub mod expression;
 pub mod input;
 pub mod logic_driver;
 pub mod logic_system;
@@ -147,12 +148,16 @@ pub use actuators::{
 };
 
 pub use command::{Command, CommandHistory, DEFAULT_MAX_HISTORY};
+pub use expression::{
+    CompiledExpression, ExpressionContext, ExpressionError, ExpressionVM, OpCode, Value,
+    compile_expression, evaluate_expression,
+};
 pub use input::{InputEvent, InputSampler, InputSnapshotSAB, MAX_KEYS, MouseButton};
 pub use logic_driver::LogicDriver;
 pub use logic_system::LogicSystem;
 pub use mapping::{ActuatorType, Controller, LogicMappingTable, SensorType};
 pub use pulse::Pulse;
-pub use signals::{SignalChannelBuffer, SensorOutput, SignalByte, SignalState};
+pub use signals::{SensorOutput, SignalByte, SignalChannelBuffer, SignalState};
 pub use snap::{
     DEFAULT_GRID_SIZE as SNAP_DEFAULT_GRID_SIZE, DEFAULT_THRESHOLD as SNAP_DEFAULT_THRESHOLD,
     EntityEdge, SnapConfig, SnapPoint, SnapResult, SnapTarget, Snapper,
@@ -238,6 +243,10 @@ pub use ecs::{
     Without,
     // World
     World,
+    // Behavior Block (Logic Bricks)
+    behavior_block::{BehaviorBlock, BehaviorBlockBuilder, BehaviorBlockComponent},
+    // Entity Builder (fluent API)
+    entity_builder::{EntityBuilder, WorldSpawnExt},
 };
 
 // SIMD module exports (WASM-only)
