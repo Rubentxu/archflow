@@ -2646,6 +2646,11 @@ impl PostProcessPipeline {
     }
 }
 
+// Component trait implementation for PostProcessPipeline
+impl Component for PostProcessPipeline {
+    type Storage = VecStorage<Self>;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════════════
 // TextureAtlasComponent Tests
 // ═══════════════════════════════════════════════════════════════════════════════════════
