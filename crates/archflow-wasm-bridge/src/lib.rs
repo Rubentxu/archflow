@@ -34,6 +34,7 @@ pub mod bridge_wasm;
 pub mod engine;
 pub mod entity_command_buffer;
 pub mod input;
+pub mod js_entity_builder;
 pub mod logic;
 pub mod logic_bricks_setup;
 
@@ -44,6 +45,12 @@ pub use self::bridge::ArchFlowBridge;
 pub use self::bridge_wasm::WasmBridge;
 
 pub use engine::ArchFlowEngine;
+
+// JS Entity Builder exports (Epic 5 - WASM Integration)
+pub use js_entity_builder::{
+    ActuatorTypes, ControllerTypes, JsBehaviorBlock, JsEntityBuilder, SensorTypes,
+};
+
 pub use input::{
     Buttons, EVENT_CAPACITY, EVENT_SIZE, InputEventType, InputProcessor, InputRingBuffer,
     MAX_POINTERS, Modifiers, RawInputEvent,
