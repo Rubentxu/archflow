@@ -540,7 +540,8 @@ mod tests {
     #[test]
     fn test_sensor_component_default() {
         let sensor = SensorComponent::default();
-        matches!(sensor, SensorComponent::MouseHover { distance: 100.0 });
+        // Default is MouseHover with distance 100.0
+        assert!(matches!(sensor, SensorComponent::MouseHover { .. }));
     }
 
     #[test]
