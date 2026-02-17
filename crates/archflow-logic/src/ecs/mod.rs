@@ -68,6 +68,7 @@
 pub mod archetype;
 pub mod archetype_query;
 pub mod behavior_block;
+pub mod behavior_system;
 pub mod component;
 pub mod components;
 pub mod entity_builder;

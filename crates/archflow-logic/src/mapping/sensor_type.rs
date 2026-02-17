@@ -19,6 +19,7 @@
 /// let sensor = SensorType::MouseOver;
 /// ```
 #[repr(u8)]
+#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum SensorType {
     /// MouseOver sensor - detects when mouse is over an entity

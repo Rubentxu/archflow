@@ -59,6 +59,7 @@ use alloc::vec::Vec;
 /// let controller = Controller::Hysteresis { high: 0.8, low: 0.3 };
 /// ```
 #[repr(u8)]
+#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug)]
 pub enum Controller {
     // ═══════════════════════════════════════════════════════════════════════════════

@@ -22,6 +22,9 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
+
 use crate::ecs::component::Component;
 use crate::ecs::entity_builder::EntityBuilder;
 use crate::mapping::{ActuatorType, Controller, SensorType};
@@ -33,6 +36,7 @@ use crate::mapping::{ActuatorType, Controller, SensorType};
 /// - Sensors: conditions that trigger the behavior
 /// - Controller: logic that combines sensor signals
 /// - Actuators: actions to perform when triggered
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug)]
 pub struct BehaviorBlock {
     /// Name identifier for this behavior block
@@ -83,6 +87,7 @@ impl BehaviorBlock {
 ///
 /// This component allows entities to have multiple behaviors attached,
 /// each with their own sensors, controller, and actuators.
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, Default)]
 pub struct BehaviorBlockComponent {
     /// List of behavior blocks attached to this entity

@@ -31,6 +31,7 @@ use crate::signals::SignalByte;
 
 /// Types of actuators that can be triggered
 #[repr(u8)]
+#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ActuatorType {
     Highlight = 0,

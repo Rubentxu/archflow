@@ -156,6 +156,7 @@ impl OpCode {
 }
 
 /// Compiled expression containing bytecode and metadata.
+#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug)]
 pub struct CompiledExpression {
     pub bytecode: Vec<u8>,
