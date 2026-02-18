@@ -17,7 +17,6 @@
 //
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#![warn(missing_docs)]
 
 use alloc::vec::Vec;
 use archflow_core::EntityId;

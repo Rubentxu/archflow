@@ -149,9 +149,8 @@ pub enum GizmoHitResult {
 }
 
 /// ═══════════════════════════════════════════════════════════════════════════════════════
-// TransformGizmoActuator - Visibility Control
-// ═══════════════════════════════════════════════════════════════════════════════════════
-
+/// TransformGizmoActuator - Visibility Control
+/// ═══════════════════════════════════════════════════════════════════════════════════════
 /// Actuator for controlling transform gizmo visibility and activation.
 ///
 /// Manages which gizmo is visible and handles the state machine for
@@ -407,7 +406,7 @@ impl GizmoMoveActuator {
         entity_id: EntityId,
         raw_delta: Vec2,
         axis: GizmoAxis,
-        store: &mut EntityStore,
+        _store: &mut EntityStore,
     ) -> Option<Command> {
         let delta = self.calculate_delta(raw_delta, axis);
 
@@ -438,7 +437,7 @@ impl GizmoMoveActuator {
         entity_ids: &[EntityId],
         raw_delta: Vec2,
         axis: GizmoAxis,
-        store: &mut EntityStore,
+        _store: &mut EntityStore,
     ) -> Vec<Command> {
         let delta = self.calculate_delta(raw_delta, axis);
 
@@ -555,7 +554,7 @@ impl GizmoScaleActuator {
         handle_pos: Vec2,
         original_size: Vec2,
         uniform: bool,
-        from_center: bool,
+        _from_center: bool,
     ) -> (f32, f32) {
         let current_size = handle_pos - self.center;
         let current_x = current_size.x.abs() * 2.0;
@@ -638,7 +637,7 @@ impl GizmoScaleActuator {
         &self,
         entity_id: EntityId,
         new_size: Vec2,
-        store: &mut EntityStore,
+        _store: &mut EntityStore,
     ) -> Command {
         Command::Resize {
             id: entity_id,
@@ -652,10 +651,10 @@ impl GizmoScaleActuator {
         entity_ids: &[EntityId],
         original_sizes: &[Vec2],
         new_sizes: &[Vec2],
-        store: &mut EntityStore,
+        _store: &mut EntityStore,
     ) -> Vec<Command> {
         let mut commands = Vec::new();
-        for (&entity, (&orig, &new)) in entity_ids
+        for (&entity, (&_orig, &new)) in entity_ids
             .iter()
             .zip(original_sizes.iter().zip(new_sizes.iter()))
         {
@@ -825,7 +824,7 @@ impl GizmoRotateActuator {
         current_angle: f32,
         snap: bool,
         fine_snap: bool,
-        store: &mut EntityStore,
+        _store: &mut EntityStore,
     ) -> Option<Command> {
         let angle = self.calculate_rotation(current_angle, snap, fine_snap);
         let delta = angle - self.start_angle;

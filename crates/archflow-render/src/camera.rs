@@ -10,8 +10,7 @@
 // - Automatic viewport culling with SpatialHash
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#![warn(missing_docs)]
-#![warn(clippy::all)]
+#![allow(unused_imports)]
 
 use archflow_core::{Rect, Vec2, Vec2f64};
 

@@ -458,7 +458,7 @@ mod tests {
 
     #[test]
     fn test_physics_pulse_negative_state() {
-        let pulse = PhysicsPulse::collision(1, 10, 20, 1000);
+        let _pulse = PhysicsPulse::collision(1, 10, 20, 1000);
         // Create negative version manually
         let negative = PhysicsPulse {
             pulse: Pulse::negative(1, 10, 1000),

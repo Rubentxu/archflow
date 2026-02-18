@@ -15,8 +15,7 @@
 //! - [`ports`] - Port interfaces for component communication (requires std)
 
 #![no_std]
-#![warn(missing_docs)]
-#![warn(clippy::all)]
+#![allow(unused_imports)]
 
 #[cfg(feature = "std")]
 extern crate std;

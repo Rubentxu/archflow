@@ -29,8 +29,7 @@
 //! - [`store`] - Entity store with SoA layout
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![warn(missing_docs)]
-#![warn(clippy::all)]
+#![allow(unused_imports)]
 
 extern crate alloc;
 

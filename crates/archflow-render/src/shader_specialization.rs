@@ -126,9 +126,10 @@ impl ShaderConstants {
 
     /// Development configuration with debug features.
     pub fn debug() -> Self {
-        let mut config = Self::default();
-        config.enable_debug = true;
-        config
+        Self {
+            enable_debug: true,
+            ..Default::default()
+        }
     }
 
     /// Generate WGSL override declarations from this configuration.
@@ -139,9 +140,7 @@ impl ShaderConstants {
         let mut overrides = alloc::string::String::new();
 
         // Required: we must provide defaults for all overrides used in shaders
-        overrides.push_str(&alloc::format!(
-            "// Shader specialization constants (WGSL override directives)\n"
-        ));
+        overrides.push_str("// Shader specialization constants (WGSL override directives)\n");
         overrides.push_str(&alloc::format!(
             "override MAX_LIGHTS: u32 = {};\n",
             self.max_lights

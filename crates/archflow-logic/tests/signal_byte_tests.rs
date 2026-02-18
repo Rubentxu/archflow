@@ -183,7 +183,7 @@ mod tests {
     fn test_from_u8() {
         // Test construction from raw u8 value
 
-        let raw: u8 = 0b101010;
+        let _raw: u8 = 0b101010;
 
         // After implementation:
         // let signal = SignalByte::from(raw);
@@ -280,7 +280,7 @@ mod tests {
     #[test]
     fn test_alternating_pattern() {
         // Pattern: 101010 (alternating)
-        let value: u8 = 0b101010;
+        let _value: u8 = 0b101010;
 
         // After implementation:
         // let signal = SignalByte::from(0b101010);

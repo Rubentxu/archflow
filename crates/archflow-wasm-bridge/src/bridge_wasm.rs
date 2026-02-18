@@ -3491,7 +3491,7 @@ impl WasmBridge {
     /// * `screen_y` - Mouse Y position in screen pixels
     /// * `button` - Mouse button that was released
     #[wasm_bindgen]
-    pub fn on_mouse_up(&self, screen_x: f32, screen_y: f32, button: u8, modifiers: u8) {
+    pub fn on_mouse_up(&self, screen_x: f32, screen_y: f32, _button: u8, modifiers: u8) {
         #[cfg(feature = "tracing-logging")]
         info!(target: "archflow::wasm", screen_x, screen_y, button, modifiers, "🖱️ on_mouse_up");
 
@@ -3606,7 +3606,7 @@ impl WasmBridge {
     /// Returns tuple of (x, y) or null if engine not initialized.
     #[wasm_bindgen]
     pub fn get_mouse_position(&self) -> Result<String, JsValue> {
-        if let Some(engine) = self.engine.borrow().as_ref() {
+        if let Some(_engine) = self.engine.borrow().as_ref() {
             if let Some(input_processor) = self.input_processor.borrow().as_ref() {
                 let pos = input_processor.mouse_pos();
                 Ok(alloc::format!("{},{}", pos.x, pos.y))
@@ -3623,7 +3623,7 @@ impl WasmBridge {
     /// Returns bitmask of pressed buttons (1=left, 2=right, 4=middle)
     #[wasm_bindgen]
     pub fn get_mouse_buttons(&self) -> Result<u8, JsValue> {
-        if let Some(engine) = self.engine.borrow().as_ref() {
+        if let Some(_engine) = self.engine.borrow().as_ref() {
             if let Some(input_processor) = self.input_processor.borrow().as_ref() {
                 Ok(input_processor.mouse_buttons().0)
             } else {
@@ -3639,7 +3639,7 @@ impl WasmBridge {
     /// Returns bitmask of pressed modifiers (1=shift, 2=ctrl, 4=alt)
     #[wasm_bindgen]
     pub fn get_modifiers(&self) -> Result<u8, JsValue> {
-        if let Some(engine) = self.engine.borrow().as_ref() {
+        if let Some(_engine) = self.engine.borrow().as_ref() {
             if let Some(input_processor) = self.input_processor.borrow().as_ref() {
                 Ok(input_processor.modifiers().0)
             } else {

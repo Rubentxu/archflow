@@ -25,7 +25,6 @@
 //
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#![no_std]
 
 use alloc::collections::BTreeMap;
 use alloc::vec;
@@ -190,7 +189,7 @@ impl ComponentColumn {
     pub fn push<T>(&mut self, value: T) {
         assert_eq!(mem::size_of::<T>(), self.stride, "Type size mismatch");
 
-        let start = self.data.len();
+        let _start = self.data.len();
         self.data.extend_from_slice(unsafe {
             core::slice::from_raw_parts(&value as *const T as *const u8, self.stride)
         });
@@ -497,7 +496,7 @@ impl Archetype {
                 // Manually extend the column's data
                 unsafe {
                     let column_data = &mut column.data;
-                    let start = column_data.len();
+                    let _start = column_data.len();
                     column_data.extend_from_slice(&data);
                     // SAFETY: We just added exactly one component's worth of data
                     column.len = old_len + 1;
@@ -654,7 +653,7 @@ impl Archetype {
 
     /// Returns an iterator over entity IDs in this archetype
     #[inline]
-    pub fn iter_entities(&self) -> core::slice::Iter<usize> {
+    pub fn iter_entities(&self) -> core::slice::Iter<'_, usize> {
         self.entity_ids.iter()
     }
 
@@ -944,7 +943,7 @@ mod tests {
 
         // Different order should produce same ID
         let types_reversed = vec![ComponentId::of::<Velocity>(), ComponentId::of::<Position>()];
-        let id3 = ArchetypeId::from_types(&types_reversed);
+        let _id3 = ArchetypeId::from_types(&types_reversed);
 
         // This test documents current behavior - IDs depend on order
         // For true order-independence, types should be sorted before hashing

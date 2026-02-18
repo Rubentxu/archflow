@@ -95,7 +95,7 @@ impl World {
     /// Creates a new entity
     #[inline]
     pub fn create_entity(&mut self) -> EntityId {
-        let index = if let Some(&index) = self.free_list.last() {
+        let index = if let Some(&_index) = self.free_list.last() {
             self.free_list.pop().unwrap()
         } else {
             let index = self.next_index;
@@ -222,7 +222,7 @@ impl World {
         }
 
         // Remove from old archetype if it existed
-        if let Some(old_id) = old_archetype_id {
+        if let Some(_old_id) = old_archetype_id {
             self.archetype_storage.remove_entity(entity_id);
         }
 
@@ -874,7 +874,7 @@ mod tests {
 
         let e1 = world.create_entity();
         let e2 = world.create_entity();
-        let e3 = world.create_entity();
+        let _e3 = world.create_entity();
 
         world.add_component(e1, Position { x: 0.0, y: 0.0 });
         world.add_component(e2, Position { x: 1.0, y: 1.0 });

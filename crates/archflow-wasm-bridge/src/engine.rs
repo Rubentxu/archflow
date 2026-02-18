@@ -489,7 +489,7 @@ impl ArchFlowEngine {
     /// Update shape creation (resize during drag-to-create)
     pub fn update_creation(&mut self, current_pos: Vec2, entity_id: EntityId) {
         let start_pos = self.logic_bricks.get_creation_start_pos_vec2();
-        let idx = entity_id.index().0 as usize;
+        let _idx = entity_id.index().0 as usize;
 
         let min_x = start_pos.x.min(current_pos.x);
         let min_y = start_pos.y.min(current_pos.y);

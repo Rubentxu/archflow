@@ -217,13 +217,13 @@ impl<T: Component> ComponentStorage for VecStorage<T> {
 impl<T: Component> VecStorage<T> {
     /// Returns an iterator over all components (including None values)
     #[inline]
-    pub fn iter(&self) -> core::slice::Iter<Option<T>> {
+    pub fn iter(&self) -> core::slice::Iter<'_, Option<T>> {
         self.data.iter()
     }
 
     /// Returns a mutable iterator over all components (including None values)
     #[inline]
-    pub fn iter_mut(&mut self) -> core::slice::IterMut<Option<T>> {
+    pub fn iter_mut(&mut self) -> core::slice::IterMut<'_, Option<T>> {
         self.data.iter_mut()
     }
 }

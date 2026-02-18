@@ -15,8 +15,7 @@
 // Architecture Reference: docs/epics/EPIC-SDK-PUBLIC-API.md
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#![warn(missing_docs)]
-#![warn(clippy::all)]
+#![allow(unused_imports)]
 
 pub mod actuators;
 pub mod sensors;

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>ArchFlow - Hello World</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            body {
+                background: #0d1117;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                font-family: 'Segoe UI', system-ui, sans-serif;
+                color: #c9d1d9;
+                gap: 20px;
+            }
+            h1 {
+                color: #58a6ff;
+                font-size: 1.5rem;
+            }
+            #canvas-container {
+                border: 1px solid #30363d;
+                border-radius: 8px;
+                overflow: hidden;
+            }
+            canvas {
+                display: block;
+                background: #161b22;
+            }
+            .controls {
+                display: flex;
+                gap: 12px;
+            }
+            button {
+                background: #238636;
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 6px;
+                font-size: 0.9rem;
+                cursor: pointer;
+                transition: background 0.2s;
+            }
+            button:hover {
+                background: #2ea043;
+            }
+            button:active {
+                background: #238636;
+            }
+            #status {
+                font-size: 0.875rem;
+                color: #8b949e;
+            }
+            #status.error {
+                color: #f85149;
+            }
+            #status.success {
+                color: #3fb950;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Hello World - ArchFlow WASM Engine</h1>
+        <div class="controls">
+            <button id="spawn-btn">Spawn Entity</button>
+            <button id="clear-btn" style="background: #da3633;">Clear All</button>
+        </div>
+        <div id="canvas-container">
+            <canvas id="canvas" width="800" height="600"></canvas>
+        </div>
+        <div id="status">Initializing...</div>
+
+        <script type="module">
+            // ============================================================
+            // Hello World - ArchFlow WASM Engine
+            // ============================================================
+            //
+            // This example demonstrates:
+            // 1. Initialize the WASM engine
+            // 2. Spawn entities on button click
+            // 3. Clear and respawn at random positions
+            // ============================================================
+
+            import { createEngine, spawnEntity, createHUD } from '../shared/archflow-client.js';
+
+            const statusEl = document.getElementById('status');
+            const spawnBtn = document.getElementById('spawn-btn');
+            const clearBtn = document.getElementById('clear-btn');
+            const canvas = document.getElementById('canvas');
+
+            let bridge = null;
+            let spawnCount = 0;
+            let hud = null;
+
+            // Random color generator
+            function randomColor() {
+                const r = Math.floor(Math.random() * 256);
+                const g = Math.floor(Math.random() * 256);
+                const b = Math.floor(Math.random() * 256);
+                return (r << 24) | (g << 16) | (b << 8) | 255;
+            }
+
+            // Spawn entity at random position
+            function spawnRandomEntity() {
+                if (!bridge) return;
+
+                // Clear previous entities
+                bridge.clear();
+
+                // Random position within canvas bounds (with padding)
+                const padding = 100;
+                const x = padding + Math.random() * (canvas.width - padding * 2);
+                const y = padding + Math.random() * (canvas.height - padding * 2);
+
+                // Random size
+                const width = 50 + Math.random() * 100;
+                const height = 30 + Math.random() * 60;
+
+                // Spawn entity
+                const entityId = spawnEntity(bridge, {
+                    x: x,
+                    y: y,
+                    width: width,
+                    height: height,
+                    color: randomColor(),
+                    shape: 0 // Rectangle
+                });
+
+                spawnCount++;
+                console.log('Entity spawned at:', Math.round(x), Math.round(y));
+                if (hud) hud.addSpawns(1);
+            }
+
+            function updateStatus() {
+                if (bridge) {
+                    const count = bridge.entity_count();
+                    statusEl.textContent = `Entities: ${count} | Spawns: ${spawnCount}`;
+                    statusEl.classList.add('success');
+                }
+            }
+
+            async function main() {
+                try {
+                    statusEl.textContent = 'Loading WASM...';
+
+                    // 1. Create HUD first
+                    hud = createHUD(document.body, {
+                        showFps: true,
+                        showEntities: true,
+                        showSpawns: true,
+                        position: 'top-left'
+                    });
+
+                    // 2. Create and initialize the engine with onFrame callback
+                    const { bridge: wasmBridge } = await createEngine('canvas', {
+                        onFrame: (dt, fps) => {
+                            // Update HUD every frame
+                            if (hud && bridge) {
+                                hud.update(fps, bridge.entity_count());
+                            }
+                        }
+                    });
+                    bridge = wasmBridge;
+
+                    // Expose bridge globally for debugging
+                    window.bridge = bridge;
+
+                    statusEl.textContent = 'Engine ready. Click "Spawn Entity" to create shapes!';
+                    statusEl.classList.add('success');
+
+                    // Set up button handlers
+                    spawnBtn.addEventListener('click', spawnRandomEntity);
+                    clearBtn.addEventListener('click', () => {
+                        if (bridge) {
+                            bridge.clear();
+                            if (hud) hud.resetSpawns();
+                            console.log('Canvas cleared');
+                        }
+                    });
+
+                    console.log('Hello World initialized successfully!');
+
+                } catch (error) {
+                    console.error('Failed to initialize:', error);
+                    statusEl.textContent = `Error: ${error.message}`;
+                    statusEl.classList.add('error');
+                }
+            }
+
+            // Run the application
+            main();
+        </script>
+    </body>
+</html>

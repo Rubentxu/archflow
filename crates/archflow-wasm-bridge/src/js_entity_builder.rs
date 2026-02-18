@@ -154,7 +154,7 @@ impl JsEntityBuilder {
 
     /// Insert a component (x, y, width, height)
     #[wasm_bindgen]
-    pub fn insert(mut self, x: f32, y: f32, width: f32, height: f32) -> Self {
+    pub fn insert(self, _x: f32, _y: f32, _width: f32, _height: f32) -> Self {
         // This would interface with the engine to set components
         // For now, just return self for chaining
         self
@@ -163,7 +163,7 @@ impl JsEntityBuilder {
     /// Set shape type (0=Rectangle, 1=Circle, 2=Ellipse, etc.)
     /// Uses ShapeTypes constants: ShapeTypes.circle(), ShapeTypes.rectangle(), etc.
     #[wasm_bindgen]
-    pub fn shape(mut self, shape_type: u8) -> Self {
+    pub fn shape(self, _shape_type: u8) -> Self {
         // This will use ShapeComponent ECS in the engine
         // shape_type: 0=Rectangle, 1=Circle, 2=Ellipse, 3=Triangle, 4=Diamond, 5=Cylinder, 6=Line, 7=Arc
         self
@@ -171,49 +171,49 @@ impl JsEntityBuilder {
 
     /// Set fill color (r, g, b)
     #[wasm_bindgen]
-    pub fn color(mut self, r: u8, g: u8, b: u8) -> Self {
+    pub fn color(self, _r: u8, _g: u8, _b: u8) -> Self {
         // This will use ColorComponent ECS in the engine
         self
     }
 
     /// Set position (x, y) - uses Transform component
     #[wasm_bindgen]
-    pub fn position(mut self, x: f32, y: f32) -> Self {
+    pub fn position(self, _x: f32, _y: f32) -> Self {
         // This will use Transform ECS component
         self
     }
 
     /// Set size (width, height) - uses RenderProperties component
     #[wasm_bindgen]
-    pub fn size(mut self, width: f32, height: f32) -> Self {
+    pub fn size(self, _width: f32, _height: f32) -> Self {
         // This will use RenderProperties ECS component
         self
     }
 
     /// Set layer for rendering order - uses RenderProperties component
     #[wasm_bindgen]
-    pub fn layer(mut self, layer: i32) -> Self {
+    pub fn layer(self, _layer: i32) -> Self {
         // This will use RenderProperties ECS component
         self
     }
 
     /// Set visibility (true=visible, false=hidden) - uses VisibilityComponent
     #[wasm_bindgen]
-    pub fn visible(mut self, is_visible: bool) -> Self {
+    pub fn visible(self, _is_visible: bool) -> Self {
         // This will use VisibilityComponent ECS
         self
     }
 
     /// Set stroke color (r, g, b)
     #[wasm_bindgen]
-    pub fn stroke(mut self, r: u8, g: u8, b: u8) -> Self {
+    pub fn stroke(self, _r: u8, _g: u8, _b: u8) -> Self {
         // This will use ColorComponent ECS stroke field
         self
     }
 
     /// Set stroke width
     #[wasm_bindgen]
-    pub fn stroke_width(mut self, width: f32) -> Self {
+    pub fn stroke_width(self, _width: f32) -> Self {
         // This will use ColorComponent ECS stroke_width field
         self
     }

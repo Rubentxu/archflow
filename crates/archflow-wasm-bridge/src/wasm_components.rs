@@ -802,7 +802,7 @@ impl PostEffect {
     /// * `intensity` - Bloom strength (0.0-2.0)
     /// * `radius` - Blur radius (0.0-1.0)
     #[wasm_bindgen(constructor)]
-    pub fn bloom(threshold: f32, intensity: f32, radius: f32) -> Self {
+    pub fn new(threshold: f32, intensity: f32, radius: f32) -> Self {
         Self {
             effect_type: "bloom".to_string(),
             param1: threshold.clamp(0.0, 1.0),
@@ -818,12 +818,12 @@ impl PostEffect {
     /// * `contrast` - Contrast adjustment (0.0 to 2.0)
     /// * `saturation` - Saturation adjustment (0.0 to 2.0)
     /// * `temperature` - Color temperature (-1.0 to 1.0)
-    #[wasm_bindgen(constructor)]
+    #[wasm_bindgen]
     pub fn color_grading(
         brightness: f32,
         contrast: f32,
         saturation: f32,
-        temperature: f32,
+        _temperature: f32,
     ) -> Self {
         Self {
             effect_type: "color_grading".to_string(),
@@ -837,7 +837,7 @@ impl PostEffect {
     ///
     /// # Arguments
     /// * `intensity` - Grayscale intensity (0.0 to 1.0)
-    #[wasm_bindgen(constructor)]
+    #[wasm_bindgen]
     pub fn grayscale(intensity: f32) -> Self {
         Self {
             effect_type: "grayscale".to_string(),
@@ -895,7 +895,7 @@ impl Effect {
     /// Create a bloom effect
     #[wasm_bindgen]
     pub fn bloom(threshold: f32, intensity: f32, radius: f32) -> PostEffect {
-        PostEffect::bloom(threshold, intensity, radius)
+        PostEffect::new(threshold, intensity, radius)
     }
 
     /// Create a color grading effect
@@ -1132,7 +1132,7 @@ mod tests {
 
     #[test]
     fn test_post_effect_types() {
-        let bloom = PostEffect::bloom(0.8, 0.5, 0.5);
+        let bloom = PostEffect::new(0.8, 0.5, 0.5);
         assert_eq!(bloom.effect_type(), "bloom");
 
         let color = PostEffect::color_grading(0.1, 1.2, 0.9, 0.0);

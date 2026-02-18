@@ -12,8 +12,7 @@
 // - Version migration support
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#![warn(missing_docs)]
-#![warn(clippy::all)]
+#![allow(unused_imports)]
 #![warn(clippy::pedantic)]
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::must_use_candidate)]

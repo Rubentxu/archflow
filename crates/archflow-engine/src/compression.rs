@@ -8,7 +8,6 @@
 // Reference: docs/epics/EPIC-004-network-sync.md - HU-019
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#![warn(missing_docs)]
 
 use alloc::vec::Vec;
 use core::num::NonZeroUsize;

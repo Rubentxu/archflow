@@ -10,7 +10,6 @@
 // - Serializable commands (future: FlatBuffers)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#![warn(missing_docs)]
 
 use alloc::vec::Vec;
 use core::mem::MaybeUninit;

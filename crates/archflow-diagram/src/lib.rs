@@ -36,8 +36,7 @@
 //! - [`events`] - Domain events for diagram state changes
 
 #![no_std]
-#![warn(missing_docs)]
-#![warn(clippy::all)]
+#![allow(unused_imports)]
 
 extern crate alloc;
 

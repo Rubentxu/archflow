@@ -1068,7 +1068,7 @@ mod tests {
 
     #[test]
     fn test_line_style_actuator_new() {
-        let actuator = LineStyleActuator::new();
+        let _actuator = LineStyleActuator::new();
         // Verify it can be created
         assert!(true);
     }
@@ -1081,7 +1081,7 @@ mod tests {
             min_segment_length: 30.0,
             smoothness: 0.5,
         };
-        let actuator = LineStyleActuator::with_config(config);
+        let _actuator = LineStyleActuator::with_config(config);
         assert!(true);
     }
 
@@ -1145,7 +1145,7 @@ mod tests {
     #[test]
     fn test_set_connection_style() {
         let actuator = LineStyleActuator::new();
-        let mut store = EntityStore::new();
+        let _store = EntityStore::new();
         let source_pos = Vec2::new(0.0, 0.0);
         let target_pos = Vec2::new(100.0, 100.0);
 
@@ -1472,7 +1472,7 @@ impl AnchorVisibilityActuator {
             .visible_anchors
             .iter()
             .enumerate()
-            .map(|(idx, anchor)| {
+            .map(|(_idx, anchor)| {
                 let world_pos = Self::anchor_world_position(entity_id, store, anchor);
                 (world_pos, anchor.direction as usize)
             })
@@ -1839,7 +1839,7 @@ impl PathOptimizationActuator {
 
         // Get current path (simplified - assumes direct line exists)
         let source_pos = store.world_pos(idx);
-        let path = vec![source_pos, source_pos]; // Simplified
+        let _path = vec![source_pos, source_pos]; // Simplified
 
         // Try orthogonal routing
         self.try_orthogonal_rerouting(source_pos, source_pos)
@@ -1960,8 +1960,8 @@ impl PathOptimizationActuator {
     /// Bundle parallel edges together
     fn bundle_parallel_edges(
         &self,
-        store: &EntityStore,
-        connection_ids: &[EntityId],
+        _store: &EntityStore,
+        _connection_ids: &[EntityId],
     ) -> Vec<Command> {
         // Simplified: just return empty (bundling is complex)
         Vec::new()
@@ -2041,7 +2041,7 @@ mod anchor_visibility_tests {
     #[test]
     fn test_hide_anchors_clears_state() {
         let mut actuator = AnchorVisibilityActuator::new();
-        let cmds = actuator.hide_anchors();
+        let _cmds = actuator.hide_anchors();
         // Should return empty or HideAnchors command
         assert!(actuator.state().entity_id.is_none());
     }

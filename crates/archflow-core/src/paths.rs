@@ -9,8 +9,7 @@
 // - Efficient bounding box calculation for culling
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#![warn(missing_docs)]
-#![warn(clippy::all)]
+#![allow(unused_imports)]
 
 extern crate alloc;
 

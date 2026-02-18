@@ -24,7 +24,6 @@
 //
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
-#![no_std]
 
 use alloc::boxed::Box;
 use alloc::vec;
@@ -747,7 +746,7 @@ mod integration_tests {
         let mut total_entities = 0;
         for archetype_batch in query.each_archetype_batch() {
             // Get archetype ID and entity count
-            let arch_id = archetype_batch.id();
+            let _arch_id = archetype_batch.id();
             let entity_count = archetype_batch.len();
 
             // Process position data in SIMD-friendly batches of 4

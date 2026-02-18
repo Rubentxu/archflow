@@ -24,7 +24,6 @@
 //
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════
 
-#![no_std]
 
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
@@ -400,7 +399,7 @@ mod tests {
         let mut pool = TypePool::new();
 
         // Fill pool beyond limit (max is 16)
-        for i in 0..20 {
+        for _i in 0..20 {
             let col = Vec::with_capacity(100);
             pool.push(col);
         }

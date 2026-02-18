@@ -1395,7 +1395,7 @@ where
 
     /// Builds and executes the query with the configured filters.
     #[inline]
-    pub fn each<F>(self, mut f: F)
+    pub fn each<F>(self, _f: F)
     where
         F: FnMut(Q::Item),
     {

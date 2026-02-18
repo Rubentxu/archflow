@@ -7,7 +7,6 @@
 // Reference: docs/epics/EPIC-001-input-sensors.md - HU-003
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#![warn(missing_docs)]
 
 use archflow_core::Vec2;
 

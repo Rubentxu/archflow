@@ -240,7 +240,7 @@ impl ZOrderActuator {
         new_z: usize,
         store: &mut EntityStore,
     ) -> Vec<Command> {
-        let idx = entity.index().0 as usize;
+        let _idx = entity.index().0 as usize;
 
         // Remove from current position
         let removed = store.draw_order.remove(old_z);

@@ -23,7 +23,7 @@ use crate::command::Command;
 
 // Tracing support (conditionally compiled)
 #[cfg(feature = "tracing")]
-use tracing::{debug, error, info, trace, warn};
+use tracing::{debug, info, trace, warn};
 
 /// Maximum number of entities supported in the store
 /// Initial entity capacity (pre-allocated at startup)

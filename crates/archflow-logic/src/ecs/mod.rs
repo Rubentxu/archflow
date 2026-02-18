@@ -64,7 +64,7 @@
 
 #![no_std]
 
-// Re-export all public types
+// Re-export
 pub mod animation_system;
 pub mod archetype;
 pub mod archetype_query;

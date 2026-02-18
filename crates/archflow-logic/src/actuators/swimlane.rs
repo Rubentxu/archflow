@@ -315,7 +315,7 @@ impl SwimlaneActuator {
         );
 
         // Store old size for undo
-        let old_size = store.size(idx);
+        let _old_size = store.size(idx);
 
         // Resize entity
         store.set_size(idx, constrained_size);
@@ -342,7 +342,7 @@ impl SwimlaneActuator {
     pub fn get_lane_at_position(
         &self,
         position: Vec2,
-        orientation: SwimlaneOrientation,
+        _orientation: SwimlaneOrientation,
         lanes: &[EntityId],
         store: &EntityStore,
     ) -> Option<EntityId> {
@@ -478,7 +478,7 @@ mod tests {
         let mut store = EntityStore::new();
 
         // Create a single lane
-        let (cmds, lane_ids) = actuator.create_swimlanes(
+        let (_cmds, lane_ids) = actuator.create_swimlanes(
             1,
             SwimlaneOrientation::Horizontal,
             Vec2::new(500.0, 400.0),

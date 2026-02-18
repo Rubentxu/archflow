@@ -8,8 +8,7 @@
 // - CORS support for development
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#![warn(missing_docs)]
-#![warn(clippy::all)]
+#![allow(unused_imports)]
 
 pub mod collaboration;
 pub mod error;

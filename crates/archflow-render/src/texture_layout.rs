@@ -193,17 +193,17 @@ pub fn calculate_optimal_alignment(format: PixelFormat, width: usize) -> Alignme
     let pixel_size = format.pixel_size();
     let row_size = pixel_size * width;
 
-    // Try alignments from smallest to largest
-    if row_size % 1 == 0 {
-        return Alignment::One;
-    }
-    if row_size % 2 == 0 {
-        return Alignment::Two;
-    }
-    if row_size % 4 == 0 {
+    // Any row_size is always divisible by 1, which requires no padding - this is optimal
+    // Check larger alignments only if row_size is NOT divisible by smaller ones
+    // (but we skip the % 1 check since it's always true and triggers a clippy warning)
+    if row_size.is_multiple_of(4) && !row_size.is_multiple_of(8) {
         return Alignment::Four;
     }
-    Alignment::Eight
+    if row_size.is_multiple_of(2) && !row_size.is_multiple_of(4) {
+        return Alignment::Two;
+    }
+    // Default to One (most optimal - no padding needed for any row_size)
+    Alignment::One
 }
 
 /// Pad texture data to meet alignment requirements
@@ -251,8 +251,8 @@ pub fn pad_texture_data(
         padded_data.extend_from_slice(&data[row_start..row_end]);
 
         // Add padding to the end of the row
-        for _ in 0..padding {
-            padded_data.push(0);
+        if padding > 0 {
+            padded_data.extend(core::iter::repeat(0).take(padding));
         }
     }
 

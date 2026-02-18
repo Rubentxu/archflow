@@ -27,6 +27,184 @@ export enum ActuatorType {
 }
 
 /**
+ * Constants for actuator types (matching ActuatorType enum)
+ */
+export class ActuatorTypes {
+    private constructor();
+    free(): void;
+    [Symbol.dispose](): void;
+    static animation(): number;
+    static camera(): number;
+    static delete(): number;
+    static highlight(): number;
+    static move_actuator(): number;
+    static property(): number;
+    static redo(): number;
+    static select(): number;
+    static undo(): number;
+}
+
+/**
+ * Single animation sequence (clip)
+ *
+ * Represents a named animation sequence like "idle", "walk", "run".
+ */
+export class AnimationClip {
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Get end frame
+     */
+    end_frame(): number;
+    /**
+     * Get FPS
+     */
+    fps(): number;
+    /**
+     * Get frame count
+     */
+    frame_count(): number;
+    /**
+     * Get frame duration in ms
+     */
+    frame_duration_ms(): number;
+    /**
+     * Get if loops
+     */
+    loop_clip(): boolean;
+    /**
+     * Get clip name
+     */
+    name(): string;
+    /**
+     * Create a new animation clip
+     *
+     * # Arguments
+     * * `name` - Name of the clip (e.g., "idle", "walk")
+     * * `start_frame` - Starting frame index
+     * * `end_frame` - Ending frame index (inclusive)
+     * * `fps` - Frames per second
+     * * `loop` - Whether the clip loops
+     */
+    constructor(name: string, start_frame: number, end_frame: number, fps: number, loop_clip: boolean);
+    /**
+     * Get start frame
+     */
+    start_frame(): number;
+}
+
+/**
+ * Animation Component for sprite animation
+ *
+ * Use with JsEntityBuilder:
+ * ```javascript
+ * bridge.world.spawn()
+ *     .insert(AnimationComponent.new(8, 100)) // 8 frames, 100ms each
+ *     .build();
+ * ```
+ */
+export class AnimationComponent {
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Get number of clips
+     */
+    clip_count(): number;
+    /**
+     * Get current frame index
+     */
+    current(): number;
+    /**
+     * Get current clip name
+     */
+    current_clip_name(): string | undefined;
+    /**
+     * Get frame count
+     */
+    frame_count(): number;
+    /**
+     * Get frame duration in ms
+     */
+    frame_duration_ms(): number;
+    /**
+     * Check if playing
+     */
+    is_playing(): boolean;
+    /**
+     * Check if loops
+     */
+    loop_animation(): boolean;
+    /**
+     * Create a new animation component with single sequence
+     *
+     * # Arguments
+     * * `frame_count` - Total number of frames
+     * * `frame_duration_ms` - Duration of each frame in milliseconds
+     */
+    constructor(frame_count: number, frame_duration_ms: number);
+    /**
+     * Create with looping disabled (single-shot)
+     */
+    static new_single_shot(frame_count: number, frame_duration_ms: number): AnimationComponent;
+    /**
+     * Pause playback
+     */
+    pause(): void;
+    /**
+     * Start playing
+     */
+    play(): void;
+    /**
+     * Play a specific clip by name
+     */
+    play_clip(name: string): boolean;
+    /**
+     * Play a specific clip by index
+     */
+    play_clip_by_index(index: number): boolean;
+    /**
+     * Reset to first frame
+     */
+    reset(): void;
+    /**
+     * Set a specific frame
+     */
+    set_frame(frame: number): void;
+    /**
+     * Update animation (call each frame)
+     * Returns Some(new_frame) if frame changed, None otherwise
+     */
+    tick(delta_ms: number): number | undefined;
+    /**
+     * Create with multiple animation clips (JSON string format for WASM)
+     * Format: [{"name":"idle","start":0,"end":3,"fps":8,"loop":true},...]
+     */
+    static with_clips_json(clips_json: string): AnimationComponent;
+}
+
+/**
+ * Blend modes for material rendering
+ */
+export enum BlendMode {
+    /**
+     * No blending - opaque
+     */
+    Opaque = 0,
+    /**
+     * Alpha blending - standard transparency
+     */
+    AlphaBlend = 1,
+    /**
+     * Additive blending - glow effect
+     */
+    Add = 2,
+    /**
+     * Multiply blend - darkening
+     */
+    Multiply = 3,
+}
+
+/**
  * Brick Chain Builder - API Fluida implementada en Rust/WASM
  *
  * # JavaScript Example
@@ -42,7 +220,7 @@ export class BrickChainBuilder {
     free(): void;
     [Symbol.dispose](): void;
     /**
-     * Get the number of actuators
+     * Get the number of actuators added
      */
     actuator_count(): number;
     /**
@@ -50,16 +228,16 @@ export class BrickChainBuilder {
      *
      * # Arguments
      * * `color_argb` - Color in ARGB format
-     * * `opacity` - Opacity value
+     * * `opacity` - Opacity from 0.0 to 1.0
      */
     actuator_highlight(color_argb: number, opacity: number): BrickChainBuilder;
     /**
      * Add a Move actuator
      *
      * # Arguments
-     * * `mode` - 0=To, 1=By, 2=Drag
-     * * `x` - X value or offset
-     * * `y` - Y value or offset
+     * * `mode` - Movement mode
+     * * `x` - X velocity or position
+     * * `y` - Y velocity or position
      */
     actuator_move(mode: number, x: number, y: number): BrickChainBuilder;
     /**
@@ -70,7 +248,11 @@ export class BrickChainBuilder {
      */
     actuator_select(mode: number): BrickChainBuilder;
     /**
-     * Connect and register the brick chain
+     * Add an AND controller (shortcut)
+     */
+    and(): BrickChainBuilder;
+    /**
+     * Connect the chain to the entity
      */
     connect(): BrickHandle;
     /**
@@ -78,7 +260,7 @@ export class BrickChainBuilder {
      */
     controller(controller: Controller): BrickChainBuilder;
     /**
-     * Get the number of controllers
+     * Get the number of controllers added
      */
     controller_count(): number;
     /**
@@ -86,21 +268,41 @@ export class BrickChainBuilder {
      */
     entity_id(): number;
     /**
+     * Add a NOT controller (invert signal)
+     */
+    invert(): BrickChainBuilder;
+    /**
+     * Set the name for this logic block (for debugging)
+     */
+    logic_bricks(name: string): BrickChainBuilder;
+    /**
+     * Get the name of this logic block
+     */
+    name(): string | undefined;
+    /**
      * Creates a new BrickChainBuilder for an entity
      */
     constructor(entity_id: number);
+    /**
+     * Start a new chain (clears current sensors/controllers, keeps entity_id)
+     */
+    new_chain(): BrickChainBuilder;
+    /**
+     * Add an OR controller (shortcut)
+     */
+    or(): BrickChainBuilder;
     /**
      * Add a sensor to the brick chain
      */
     sensor(sensor: SensorType): BrickChainBuilder;
     /**
-     * Get the number of sensors
+     * Get the number of sensors added
      */
     sensor_count(): number;
     /**
      * Add a keyboard key sensor (convenience)
      */
-    sensor_key(key_code: number): BrickChainBuilder;
+    sensor_key(_key_code: number): BrickChainBuilder;
     /**
      * Creates a new BrickChainBuilder with a mapping table
      */
@@ -482,6 +684,44 @@ export enum ControllerType {
 }
 
 /**
+ * Constants for controller types
+ */
+export class ControllerTypes {
+    private constructor();
+    free(): void;
+    [Symbol.dispose](): void;
+    static and(): number;
+    static blinky(): number;
+    static debounce(): number;
+    static direct(): number;
+    static hysteresis(): number;
+    static not(): number;
+    static or(): number;
+    static threshold(): number;
+}
+
+/**
+ * Effect factories for JavaScript (convenience)
+ */
+export class Effect {
+    private constructor();
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Create a bloom effect
+     */
+    static bloom(threshold: number, intensity: number, radius: number): PostEffect;
+    /**
+     * Create a color grading effect
+     */
+    static color_grading(brightness: number, contrast: number, saturation: number, temperature: number): PostEffect;
+    /**
+     * Create a grayscale effect
+     */
+    static grayscale(intensity: number): PostEffect;
+}
+
+/**
  * WASM wrapper for accessing the event ring buffer
  *
  * This provides JavaScript access to events generated by the logic system.
@@ -628,6 +868,132 @@ export class HighlightConfig {
      * Get the restore color (ARGB)
      */
     restore_color(): number;
+}
+
+/**
+ * Single behavior block in JS API
+ */
+export class JsBehaviorBlock {
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Get actuator type
+     */
+    actuator_type(): number;
+    /**
+     * Get controller type
+     */
+    controller_type(): number;
+    /**
+     * Get key code
+     */
+    key_code(): number;
+    constructor(name: string);
+    /**
+     * Get sensor type
+     */
+    sensor_type(): number;
+}
+
+/**
+ * JS Entity Builder - Fluent API para JavaScript
+ *
+ * Permite encadenar llamadas en JavaScript:
+ * ```javascript
+ * const entity = await bridge.world.spawn()
+ *     .insert(0, 0, 50, 50)  // x, y, width, height
+ *     .behavior('move')
+ *         .sensor(1, 25)      // sensor_type, key_code
+ *         .actuator(2, 0, 100) // actuator_type, x, y
+ *     .build();
+ * ```
+ */
+export class JsEntityBuilder {
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Add an actuator to current behavior
+     * actuator_type: 0=Highlight, 1=Select, 2=Move, etc.
+     * x, y: coordinates or values
+     */
+    actuator(actuator_type: number, x: number, y: number): JsEntityBuilder;
+    /**
+     * Start a behavior block
+     */
+    behavior(name: string): JsEntityBuilder;
+    /**
+     * Get number of behavior blocks
+     */
+    behavior_count(): number;
+    /**
+     * Build the entity and return its ID
+     */
+    build(): number;
+    /**
+     * Set fill color (r, g, b)
+     */
+    color(_r: number, _g: number, _b: number): JsEntityBuilder;
+    /**
+     * Add a controller to current behavior
+     * controller_type: 0=Direct, 1=AND, 2=OR, 3=NOT, etc.
+     * param: parameter for the controller
+     */
+    controller(controller_type: number, param: number): JsEntityBuilder;
+    /**
+     * End current behavior block
+     */
+    end_behavior(): JsEntityBuilder;
+    /**
+     * Get the entity ID
+     */
+    entity_id(): number;
+    /**
+     * Get behavior at index
+     */
+    get_behavior(index: number): JsBehaviorBlock | undefined;
+    /**
+     * Insert a component (x, y, width, height)
+     */
+    insert(_x: number, _y: number, _width: number, _height: number): JsEntityBuilder;
+    /**
+     * Set layer for rendering order - uses RenderProperties component
+     */
+    layer(_layer: number): JsEntityBuilder;
+    /**
+     * Create a new JSEntityBuilder
+     */
+    constructor(entity_id: number);
+    /**
+     * Set position (x, y) - uses Transform component
+     */
+    position(_x: number, _y: number): JsEntityBuilder;
+    /**
+     * Add a sensor to current behavior
+     * sensor_type: 0=MouseOver, 1=MouseClick, 2=KeyShortcut, etc.
+     * key_code: key code for keyboard sensors
+     */
+    sensor(sensor_type: number, key_code: number): JsEntityBuilder;
+    /**
+     * Set shape type (0=Rectangle, 1=Circle, 2=Ellipse, etc.)
+     * Uses ShapeTypes constants: ShapeTypes.circle(), ShapeTypes.rectangle(), etc.
+     */
+    shape(_shape_type: number): JsEntityBuilder;
+    /**
+     * Set size (width, height) - uses RenderProperties component
+     */
+    size(_width: number, _height: number): JsEntityBuilder;
+    /**
+     * Set stroke color (r, g, b)
+     */
+    stroke(_r: number, _g: number, _b: number): JsEntityBuilder;
+    /**
+     * Set stroke width
+     */
+    stroke_width(_width: number): JsEntityBuilder;
+    /**
+     * Set visibility (true=visible, false=hidden) - uses VisibilityComponent
+     */
+    visible(_is_visible: boolean): JsEntityBuilder;
 }
 
 /**
@@ -1142,6 +1508,133 @@ export class LogicSystemWasm {
 }
 
 /**
+ * Material Component for rendering properties
+ *
+ * Use with JsEntityBuilder:
+ * ```javascript
+ * bridge.world.spawn()
+ *     .insert(MaterialComponent.new({
+ *         colorMultiply: [1.0, 0.5, 0.5, 1.0],
+ *         emission: [0.2, 0.1, 0.0],
+ *         blendMode: BlendMode.AlphaBlend,
+ *     }))
+ *     .build();
+ * ```
+ */
+export class MaterialComponent {
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Get alpha cutoff
+     */
+    alpha_cutoff(): number;
+    /**
+     * Get blend mode
+     */
+    blend_mode(): BlendMode;
+    /**
+     * Get color multiply
+     */
+    color_multiply(): Float32Array;
+    /**
+     * Create with default values
+     */
+    static default_material(): MaterialComponent;
+    /**
+     * Get emission
+     */
+    emission(): Float32Array;
+    /**
+     * Create a new material component
+     *
+     * # Arguments
+     * * `config` - MaterialConfig object with color, emission, blend mode
+     */
+    constructor(config: MaterialConfig);
+    /**
+     * Set blend mode
+     */
+    set_blend_mode(mode: BlendMode): void;
+    /**
+     * Set color multiply
+     */
+    set_color_multiply(color: Float32Array): void;
+    /**
+     * Set emission
+     */
+    set_emission(emission: Float32Array): void;
+    /**
+     * Set shader ID
+     */
+    set_shader_id(shader_id: number): void;
+    /**
+     * Get shader ID
+     */
+    shader_id(): number;
+    /**
+     * Create with specific blend mode
+     */
+    with_blend_mode(mode: BlendMode): MaterialComponent;
+    /**
+     * Create with color multiply
+     */
+    with_color_multiply(color: Float32Array): MaterialComponent;
+    /**
+     * Create with custom shader
+     */
+    with_shader(shader_id: number): MaterialComponent;
+}
+
+/**
+ * Material configuration for JavaScript (using getters/setters for WASM)
+ */
+export class MaterialConfig {
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Get alpha cutoff
+     */
+    alpha_cutoff(): number;
+    /**
+     * Get blend mode
+     */
+    blend_mode(): BlendMode;
+    /**
+     * Get color multiply [r, g, b, a]
+     */
+    color_multiply(): Float32Array;
+    /**
+     * Get emission color [r, g, b]
+     */
+    emission(): Float32Array;
+    constructor();
+    /**
+     * Set alpha cutoff
+     */
+    set_alpha_cutoff(value: number): void;
+    /**
+     * Set blend mode
+     */
+    set_blend_mode(mode: BlendMode): void;
+    /**
+     * Set color multiply [r, g, b, a]
+     */
+    set_color_multiply(r: number, g: number, b: number, a: number): void;
+    /**
+     * Set emission color [r, g, b]
+     */
+    set_emission(r: number, g: number, b: number): void;
+    /**
+     * Set shader ID
+     */
+    set_shader_id(id: number): void;
+    /**
+     * Get shader ID
+     */
+    shader_id(): number;
+}
+
+/**
  * Configuration for move actuator
  */
 export class MoveConfig {
@@ -1163,6 +1656,102 @@ export class MoveConfig {
      * Get snap value in pixels
      */
     snap(): number;
+}
+
+/**
+ * Post-processing effect types (WASM version using structs)
+ */
+export class PostEffect {
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Create a color grading effect
+     *
+     * # Arguments
+     * * `brightness` - Brightness adjustment (-1.0 to 1.0)
+     * * `contrast` - Contrast adjustment (0.0 to 2.0)
+     * * `saturation` - Saturation adjustment (0.0 to 2.0)
+     * * `temperature` - Color temperature (-1.0 to 1.0)
+     */
+    static color_grading(brightness: number, contrast: number, saturation: number, _temperature: number): PostEffect;
+    /**
+     * Get effect type
+     */
+    effect_type(): string;
+    /**
+     * Create a grayscale effect
+     *
+     * # Arguments
+     * * `intensity` - Grayscale intensity (0.0 to 1.0)
+     */
+    static grayscale(intensity: number): PostEffect;
+    /**
+     * Create a bloom effect
+     *
+     * # Arguments
+     * * `threshold` - Minimum brightness to trigger bloom (0.0-1.0)
+     * * `intensity` - Bloom strength (0.0-2.0)
+     * * `radius` - Blur radius (0.0-1.0)
+     */
+    constructor(threshold: number, intensity: number, radius: number);
+    /**
+     * Get param1 (threshold/brightness/intensity)
+     */
+    param1(): number;
+    /**
+     * Get param2 (intensity/contrast)
+     */
+    param2(): number;
+    /**
+     * Get param3 (radius/saturation/temperature)
+     */
+    param3(): number;
+}
+
+/**
+ * Post-processing pipeline for screen-wide effects
+ *
+ * Use:
+ * ```javascript
+ * const pipeline = bridge.postProcess();
+ * pipeline.addEffect(Effect.bloom(0.8, 0.5, 0.5));
+ * ```
+ */
+export class PostProcessPipeline {
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Add an effect to the pipeline
+     */
+    add_effect(effect: PostEffect): void;
+    /**
+     * Clear all effects
+     */
+    clear(): void;
+    /**
+     * Check if empty
+     */
+    is_empty(): boolean;
+    /**
+     * Check if enabled
+     */
+    is_enabled(): boolean;
+    /**
+     * Get number of effects
+     */
+    len(): number;
+    /**
+     * Create a new post-process pipeline
+     */
+    constructor();
+    /**
+     * Remove an effect by index
+     */
+    remove_effect(index: number): void;
+    /**
+     * Enable/disable pipeline
+     */
+    set_enabled(enabled: boolean): void;
 }
 
 /**
@@ -1327,6 +1916,57 @@ export enum SensorType {
      * Right mouse button click
      */
     RightClick = 8,
+    /**
+     * Always sensor - constantly active every frame
+     */
+    Always = 9,
+    /**
+     * Property sensor - detects changes in entity properties
+     */
+    Property = 10,
+    /**
+     * Ray sensor - line of sight detection
+     */
+    Ray = 11,
+    /**
+     * Timer sensor - activates after a delay
+     */
+    Timer = 12,
+    /**
+     * Channel sensor - listens for messages on a channel
+     */
+    Channel = 13,
+}
+
+/**
+ * Constants for sensor types (matching SensorType enum)
+ */
+export class SensorTypes {
+    private constructor();
+    free(): void;
+    [Symbol.dispose](): void;
+    static key_shortcut(): number;
+    static mouse_click(): number;
+    static mouse_over(): number;
+    static proximity(): number;
+    static radar(): number;
+    static ray(): number;
+    static right_click(): number;
+    static touch(): number;
+}
+
+export class ShapeTypes {
+    private constructor();
+    free(): void;
+    [Symbol.dispose](): void;
+    static arc(): number;
+    static circle(): number;
+    static cylinder(): number;
+    static diamond(): number;
+    static ellipse(): number;
+    static line(): number;
+    static rectangle(): number;
+    static triangle(): number;
 }
 
 /**
@@ -1489,6 +2129,87 @@ export class SignalByteWasm {
      * ```
      */
     size(): number;
+}
+
+/**
+ * Texture Atlas Component for sprite rendering
+ *
+ * Use with JsEntityBuilder:
+ * ```javascript
+ * bridge.world.spawn()
+ *     .insert(TextureAtlasComponent.new(0, 32, 32, 4, 4))
+ *     .build();
+ * ```
+ */
+export class TextureAtlasComponent {
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Get columns
+     */
+    columns(): number;
+    /**
+     * Get current sprite index
+     */
+    current_sprite(): number;
+    /**
+     * Get UV coordinates for current sprite
+     */
+    current_uv(): Float32Array;
+    /**
+     * Get/Set flip horizontally
+     */
+    flip_x(): boolean;
+    /**
+     * Get/Set flip vertically
+     */
+    flip_y(): boolean;
+    /**
+     * Create from atlas ID with sprite index
+     */
+    static from_atlas(atlas_id: number, sprite_index: number, columns: number, rows: number): TextureAtlasComponent;
+    /**
+     * Get UV coordinates for a sprite by index
+     * Returns array [u0, v0, u1, v1]
+     */
+    get_uv(index: number): Float32Array;
+    /**
+     * Create a new texture atlas component
+     *
+     * # Arguments
+     * * `texture_index` - Index into the texture array
+     * * `sprite_width` - Width of each sprite in pixels
+     * * `sprite_height` - Height of each sprite in pixels
+     * * `columns` - Number of columns in the atlas
+     * * `rows` - Number of rows in the atlas
+     */
+    constructor(texture_index: number, sprite_width: number, sprite_height: number, columns: number, rows: number);
+    /**
+     * Get rows
+     */
+    rows(): number;
+    set_flip_x(flip: boolean): void;
+    set_flip_y(flip: boolean): void;
+    /**
+     * Set sprite index
+     */
+    set_sprite(index: number): void;
+    /**
+     * Get total number of sprites in atlas
+     */
+    sprite_count(): number;
+    /**
+     * Get sprite height
+     */
+    sprite_height(): number;
+    /**
+     * Get sprite width
+     */
+    sprite_width(): number;
+    /**
+     * Get texture index
+     */
+    texture_index(): number;
 }
 
 export class WasmBridge {
@@ -1748,6 +2469,14 @@ export class WasmBridge {
      */
     get_colors_ptr(): number;
     /**
+     * Get ECS component count for diagnostics
+     */
+    get_ecs_component_count(): number;
+    /**
+     * Get ECS entity count for diagnostics
+     */
+    get_ecs_entity_count(): number;
+    /**
      * Get entity color as hex string
      */
     get_entity_color_hex(entity_index: number): string;
@@ -1807,7 +2536,7 @@ export class WasmBridge {
      */
     static get_input_buffer_size(): number;
     /**
-     * Get the maximum entity capacity
+     * Get the current entity capacity (grows dynamically)
      */
     get_max_entities(): number;
     /**
@@ -2005,7 +2734,7 @@ export class WasmBridge {
      * * `screen_y` - Mouse Y position in screen pixels
      * * `button` - Mouse button that was released
      */
-    on_mouse_up(screen_x: number, screen_y: number, button: number, modifiers: number): void;
+    on_mouse_up(screen_x: number, screen_y: number, _button: number, modifiers: number): void;
     /**
      * Report mouse wheel event to Logic Bricks sensors
      *
@@ -2093,13 +2822,33 @@ export class WasmBridge {
      */
     query_by_shape(shape: number): Uint32Array;
     /**
+     * Query entities by shape type using ECS
+     *
+     * shape_type: 0=rectangle, 1=circle, 2=triangle, etc.
+     */
+    query_by_shape_type(shape_type: number): Uint32Array;
+    /**
      * Query entities by visibility
      */
     query_by_visibility(visible: boolean): Uint32Array;
     /**
+     * Query all entities with ColorComponent using ECS
+     */
+    query_color_components(): Uint32Array;
+    /**
      * Query entities within bounds (AABB query)
      */
     query_in_bounds(x: number, y: number, width: number, height: number): Uint32Array;
+    /**
+     * Query all entities with ShapeComponent using ECS
+     *
+     * Returns entity indices that have a ShapeComponent attached.
+     */
+    query_shape_components(): Uint32Array;
+    /**
+     * Query all visible entities using ECS
+     */
+    query_visible_entities(): Uint32Array;
     /**
      * Query entities that have velocity (moving entities)
      */
@@ -2224,7 +2973,7 @@ export class WasmBridge {
     /**
      * Set the shape type of an entity
      *
-     * DEPRECATED: Use PropertyActuator via Logic Bricks instead
+     * DEPRECATED: Use JsEntityBuilder.shape() or ShapeComponent ECS instead
      */
     set_shape(entity_index: number, shape: number): void;
     /**
@@ -2845,6 +3594,8 @@ export interface InitOutput {
     readonly wasmbridge_get_camera_center: (a: number) => [number, number, number];
     readonly wasmbridge_get_color: (a: number, b: number) => [number, number, number, number];
     readonly wasmbridge_get_colors_ptr: (a: number) => number;
+    readonly wasmbridge_get_ecs_component_count: (a: number) => number;
+    readonly wasmbridge_get_ecs_entity_count: (a: number) => number;
     readonly wasmbridge_get_entity_color_hex: (a: number, b: number) => [number, number, number, number];
     readonly wasmbridge_get_entity_count: (a: number) => [number, number, number];
     readonly wasmbridge_get_entity_label: (a: number, b: number) => [number, number, number, number];
@@ -2900,8 +3651,12 @@ export interface InitOutput {
     readonly wasmbridge_query_by_min_size: (a: number, b: number, c: number) => [number, number, number, number];
     readonly wasmbridge_query_by_selection: (a: number, b: number) => [number, number, number, number];
     readonly wasmbridge_query_by_shape: (a: number, b: number) => [number, number, number, number];
+    readonly wasmbridge_query_by_shape_type: (a: number, b: number) => [number, number, number, number];
     readonly wasmbridge_query_by_visibility: (a: number, b: number) => [number, number, number, number];
+    readonly wasmbridge_query_color_components: (a: number) => [number, number, number, number];
     readonly wasmbridge_query_in_bounds: (a: number, b: number, c: number, d: number, e: number) => [number, number, number, number];
+    readonly wasmbridge_query_shape_components: (a: number) => [number, number, number, number];
+    readonly wasmbridge_query_visible_entities: (a: number) => [number, number, number, number];
     readonly wasmbridge_query_with_velocity: (a: number) => [number, number, number, number];
     readonly wasmbridge_redo: (a: number) => [number, number];
     readonly wasmbridge_remove_sensor: (a: number, b: number, c: number) => [number, number];
@@ -2939,58 +3694,98 @@ export interface InitOutput {
     readonly wasmbridge_stop_sound: (a: number, b: number) => [number, number];
     readonly wasmbridge_tick: (a: number, b: number) => [number, number];
     readonly wasmbridge_undo: (a: number) => [number, number];
-    readonly __wbg_callbackid_free: (a: number, b: number) => void;
-    readonly __wbg_callbackregistry_free: (a: number, b: number) => void;
-    readonly actuator_delete: () => number;
-    readonly actuator_emit_event: (a: number, b: number, c: number, d: number) => number;
-    readonly actuator_highlight: (a: number, b: number) => number;
-    readonly actuator_move: (a: number, b: number, c: number) => number;
-    readonly actuator_select_clear: () => number;
-    readonly callbackid_value: (a: number) => number;
-    readonly callbackregistry_clear: (a: number) => void;
-    readonly callbackregistry_event_callback_count: (a: number, b: number, c: number) => number;
-    readonly callbackregistry_invoke: (a: number, b: number, c: number, d: any) => number;
-    readonly callbackregistry_new: () => number;
-    readonly callbackregistry_register: (a: number, b: any, c: number, d: number, e: number) => number;
-    readonly callbackregistry_total_count: (a: number) => number;
-    readonly callbackregistry_unregister: (a: number, b: number) => number;
-    readonly callbackregistry_unregister_all: (a: number, b: number, c: number) => number;
-    readonly factory_and: (a: number) => number;
-    readonly factory_blinky: (a: number) => number;
-    readonly factory_custom: (a: number, b: number, c: number, d: number) => number;
-    readonly factory_debounce: (a: number) => number;
-    readonly factory_direct: () => number;
-    readonly factory_hysteresis: (a: number, b: number) => number;
-    readonly factory_nand: () => number;
-    readonly factory_nor: () => number;
-    readonly factory_not: () => number;
-    readonly factory_or: (a: number) => number;
-    readonly factory_pattern: (a: number) => number;
-    readonly factory_threshold: (a: number) => number;
-    readonly factory_xor: () => number;
-    readonly sensor_collision_detect: (a: number) => number;
-    readonly sensor_double_tap: () => number;
-    readonly sensor_keyboard_key: (a: number, b: number) => number;
-    readonly sensor_long_press: (a: number) => number;
-    readonly sensor_mouse_click: (a: number) => number;
-    readonly sensor_mouse_drag: (a: number) => number;
-    readonly sensor_mouse_hover: () => number;
-    readonly sensor_mouse_wheel: (a: number) => number;
-    readonly sensor_timer_delay: (a: number, b: number) => number;
-    readonly sensor_property_changed: (a: number) => number;
-    readonly sensor_timer_interval: (a: number) => number;
-    readonly actuator_select_multi: () => number;
-    readonly actuator_select_single: () => number;
-    readonly actuator_select_toggle: () => number;
-    readonly get_global_callback_registry: () => number;
-    readonly __wbg_brickhandle_free: (a: number, b: number) => void;
-    readonly brickhandle_disable: (a: number) => void;
-    readonly brickhandle_id: (a: number) => [number, number];
-    readonly brickhandle_is_enabled: (a: number) => number;
-    readonly brickhandle_new: (a: number, b: number) => number;
-    readonly brickhandle_remove: (a: number) => void;
-    readonly brickhandle_toggle: (a: number) => number;
-    readonly brickhandle_enable: (a: number) => void;
+    readonly __wbg_animationclip_free: (a: number, b: number) => void;
+    readonly __wbg_animationcomponent_free: (a: number, b: number) => void;
+    readonly __wbg_effect_free: (a: number, b: number) => void;
+    readonly __wbg_materialcomponent_free: (a: number, b: number) => void;
+    readonly __wbg_materialconfig_free: (a: number, b: number) => void;
+    readonly __wbg_posteffect_free: (a: number, b: number) => void;
+    readonly __wbg_postprocesspipeline_free: (a: number, b: number) => void;
+    readonly __wbg_textureatlascomponent_free: (a: number, b: number) => void;
+    readonly animationclip_end_frame: (a: number) => number;
+    readonly animationclip_fps: (a: number) => number;
+    readonly animationclip_frame_count: (a: number) => number;
+    readonly animationclip_frame_duration_ms: (a: number) => number;
+    readonly animationclip_loop_clip: (a: number) => number;
+    readonly animationclip_name: (a: number) => [number, number];
+    readonly animationclip_new: (a: number, b: number, c: number, d: number, e: number, f: number) => number;
+    readonly animationclip_start_frame: (a: number) => number;
+    readonly animationcomponent_clip_count: (a: number) => number;
+    readonly animationcomponent_current: (a: number) => number;
+    readonly animationcomponent_current_clip_name: (a: number) => [number, number];
+    readonly animationcomponent_frame_count: (a: number) => number;
+    readonly animationcomponent_frame_duration_ms: (a: number) => number;
+    readonly animationcomponent_is_playing: (a: number) => number;
+    readonly animationcomponent_loop_animation: (a: number) => number;
+    readonly animationcomponent_new: (a: number, b: number) => number;
+    readonly animationcomponent_new_single_shot: (a: number, b: number) => number;
+    readonly animationcomponent_pause: (a: number) => void;
+    readonly animationcomponent_play: (a: number) => void;
+    readonly animationcomponent_play_clip: (a: number, b: number, c: number) => number;
+    readonly animationcomponent_play_clip_by_index: (a: number, b: number) => number;
+    readonly animationcomponent_reset: (a: number) => void;
+    readonly animationcomponent_set_frame: (a: number, b: number) => void;
+    readonly animationcomponent_tick: (a: number, b: number) => number;
+    readonly animationcomponent_with_clips_json: (a: number, b: number) => number;
+    readonly effect_bloom: (a: number, b: number, c: number) => number;
+    readonly effect_color_grading: (a: number, b: number, c: number, d: number) => number;
+    readonly effect_grayscale: (a: number) => number;
+    readonly materialcomponent_alpha_cutoff: (a: number) => number;
+    readonly materialcomponent_blend_mode: (a: number) => number;
+    readonly materialcomponent_color_multiply: (a: number) => [number, number];
+    readonly materialcomponent_default_material: () => number;
+    readonly materialcomponent_emission: (a: number) => [number, number];
+    readonly materialcomponent_new: (a: number) => number;
+    readonly materialcomponent_set_blend_mode: (a: number, b: number) => void;
+    readonly materialcomponent_set_color_multiply: (a: number, b: number, c: number) => void;
+    readonly materialcomponent_set_emission: (a: number, b: number, c: number) => void;
+    readonly materialcomponent_set_shader_id: (a: number, b: number) => void;
+    readonly materialcomponent_with_blend_mode: (a: number, b: number) => number;
+    readonly materialcomponent_with_color_multiply: (a: number, b: number, c: number) => number;
+    readonly materialcomponent_with_shader: (a: number, b: number) => number;
+    readonly materialconfig_color_multiply: (a: number) => [number, number];
+    readonly materialconfig_emission: (a: number) => [number, number];
+    readonly materialconfig_set_alpha_cutoff: (a: number, b: number) => void;
+    readonly materialconfig_set_color_multiply: (a: number, b: number, c: number, d: number, e: number) => void;
+    readonly materialconfig_set_emission: (a: number, b: number, c: number, d: number) => void;
+    readonly posteffect_effect_type: (a: number) => [number, number];
+    readonly posteffect_param1: (a: number) => number;
+    readonly posteffect_param2: (a: number) => number;
+    readonly posteffect_param3: (a: number) => number;
+    readonly postprocesspipeline_add_effect: (a: number, b: number) => void;
+    readonly postprocesspipeline_clear: (a: number) => void;
+    readonly postprocesspipeline_is_empty: (a: number) => number;
+    readonly postprocesspipeline_is_enabled: (a: number) => number;
+    readonly postprocesspipeline_len: (a: number) => number;
+    readonly postprocesspipeline_new: () => number;
+    readonly postprocesspipeline_remove_effect: (a: number, b: number) => void;
+    readonly postprocesspipeline_set_enabled: (a: number, b: number) => void;
+    readonly textureatlascomponent_columns: (a: number) => number;
+    readonly textureatlascomponent_current_uv: (a: number) => [number, number];
+    readonly textureatlascomponent_flip_x: (a: number) => number;
+    readonly textureatlascomponent_flip_y: (a: number) => number;
+    readonly textureatlascomponent_from_atlas: (a: number, b: number, c: number, d: number) => number;
+    readonly textureatlascomponent_get_uv: (a: number, b: number) => [number, number];
+    readonly textureatlascomponent_new: (a: number, b: number, c: number, d: number, e: number) => number;
+    readonly textureatlascomponent_set_flip_x: (a: number, b: number) => void;
+    readonly textureatlascomponent_set_flip_y: (a: number, b: number) => void;
+    readonly textureatlascomponent_set_sprite: (a: number, b: number) => void;
+    readonly textureatlascomponent_sprite_count: (a: number) => number;
+    readonly textureatlascomponent_sprite_height: (a: number) => number;
+    readonly textureatlascomponent_sprite_width: (a: number) => number;
+    readonly textureatlascomponent_texture_index: (a: number) => number;
+    readonly posteffect_new: (a: number, b: number, c: number) => number;
+    readonly materialconfig_new: () => number;
+    readonly materialconfig_set_blend_mode: (a: number, b: number) => void;
+    readonly materialconfig_set_shader_id: (a: number, b: number) => void;
+    readonly materialconfig_blend_mode: (a: number) => number;
+    readonly posteffect_color_grading: (a: number, b: number, c: number, d: number) => number;
+    readonly materialcomponent_shader_id: (a: number) => number;
+    readonly materialconfig_alpha_cutoff: (a: number) => number;
+    readonly materialconfig_shader_id: (a: number) => number;
+    readonly textureatlascomponent_current_sprite: (a: number) => number;
+    readonly textureatlascomponent_rows: (a: number) => number;
+    readonly posteffect_grayscale: (a: number) => number;
     readonly __wbg_logicbrickssystem_free: (a: number, b: number) => void;
     readonly logicbrickssystem_clear_creation: (a: number) => void;
     readonly logicbrickssystem_clear_drag_state: (a: number) => void;
@@ -3009,72 +3804,42 @@ export interface InitOutput {
     readonly logicbrickssystem_set_active_tool: (a: number, b: number, c: number) => void;
     readonly logicbrickssystem_set_creation_start: (a: number, b: number, c: number) => void;
     readonly logicbrickssystem_has_events: (a: number) => number;
-    readonly __wbg_eventringbufferwasm_free: (a: number, b: number) => void;
-    readonly __wbg_eventtype_free: (a: number, b: number) => void;
-    readonly __wbg_get_jslogiceventdata_data_1: (a: number) => number;
-    readonly __wbg_get_jslogiceventdata_data_2: (a: number) => number;
-    readonly __wbg_get_jslogiceventdata_data_3: (a: number) => number;
-    readonly __wbg_get_jslogiceventdata_entity_id: (a: number) => number;
-    readonly __wbg_get_jslogiceventdata_event_type: (a: number) => number;
-    readonly __wbg_get_jslogiceventdata_timestamp_us: (a: number) => bigint;
-    readonly __wbg_jslogicevent_free: (a: number, b: number) => void;
-    readonly __wbg_jslogiceventdata_free: (a: number, b: number) => void;
-    readonly __wbg_logicsystemwasm_free: (a: number, b: number) => void;
-    readonly __wbg_pulsewasm_free: (a: number, b: number) => void;
-    readonly __wbg_set_jslogiceventdata_data_1: (a: number, b: number) => void;
-    readonly __wbg_set_jslogiceventdata_data_2: (a: number, b: number) => void;
-    readonly __wbg_set_jslogiceventdata_data_3: (a: number, b: number) => void;
-    readonly __wbg_set_jslogiceventdata_entity_id: (a: number, b: number) => void;
-    readonly __wbg_set_jslogiceventdata_event_type: (a: number, b: number) => void;
-    readonly __wbg_set_jslogiceventdata_timestamp_us: (a: number, b: bigint) => void;
-    readonly eventringbufferwasm_drain: (a: number, b: number) => [number, number];
-    readonly eventringbufferwasm_event_count: (a: number, b: number) => number;
-    readonly eventringbufferwasm_has_events: (a: number, b: number) => number;
-    readonly eventtype_box_selection_completed: () => number;
-    readonly eventtype_drag_ended: () => number;
-    readonly eventtype_drag_started: () => number;
-    readonly eventtype_entity_selected: () => number;
-    readonly eventtype_hover_changed: () => number;
-    readonly eventtype_proximity_alert: () => number;
-    readonly jslogicevent_data_1: (a: number) => number;
-    readonly jslogicevent_data_2: (a: number) => number;
-    readonly jslogicevent_data_3: (a: number) => number;
-    readonly jslogicevent_entity_id: (a: number) => number;
-    readonly jslogicevent_event_type: (a: number) => number;
-    readonly jslogicevent_timestamp_us: (a: number) => bigint;
-    readonly logicsystemwasm_attach_behavior: (a: number, b: number, c: number) => void;
-    readonly logicsystemwasm_behavior_count: (a: number) => number;
-    readonly logicsystemwasm_behavior_has_events: (a: number, b: number) => number;
-    readonly logicsystemwasm_create_behavior: (a: number, b: number, c: number, d: number) => number;
-    readonly logicsystemwasm_detach_behavior: (a: number, b: number) => void;
-    readonly logicsystemwasm_drain_events: (a: number) => [number, number];
-    readonly logicsystemwasm_event_count: (a: number) => number;
-    readonly logicsystemwasm_get_behavior_state: (a: number, b: number) => any;
-    readonly logicsystemwasm_has_events: (a: number) => number;
-    readonly logicsystemwasm_new: () => number;
-    readonly logicsystemwasm_update: (a: number, b: bigint) => void;
-    readonly pulsewasm_entity_id: (a: number) => number;
-    readonly pulsewasm_new: (a: number, b: number, c: number, d: number) => number;
-    readonly pulsewasm_sensor_id: (a: number) => number;
-    readonly pulsewasm_state: (a: number) => number;
-    readonly pulsewasm_timestamp: (a: number) => number;
-    readonly logicsystemwasm_set_behavior_enabled: (a: number, b: number, c: number) => void;
-    readonly eventringbufferwasm_new: () => number;
-    readonly __wbg_brickchainbuilder_free: (a: number, b: number) => void;
+    readonly __wbg_actuatortypes_free: (a: number, b: number) => void;
+    readonly __wbg_controllertypes_free: (a: number, b: number) => void;
+    readonly __wbg_jsbehaviorblock_free: (a: number, b: number) => void;
+    readonly __wbg_jsentitybuilder_free: (a: number, b: number) => void;
+    readonly __wbg_sensortypes_free: (a: number, b: number) => void;
+    readonly __wbg_shapetypes_free: (a: number, b: number) => void;
     readonly __wbg_signalbytewasm_free: (a: number, b: number) => void;
-    readonly brickchainbuilder_actuator_count: (a: number) => number;
-    readonly brickchainbuilder_actuator_highlight: (a: number, b: number, c: number) => number;
-    readonly brickchainbuilder_actuator_move: (a: number, b: number, c: number, d: number) => number;
-    readonly brickchainbuilder_actuator_select: (a: number, b: number) => number;
-    readonly brickchainbuilder_connect: (a: number) => number;
-    readonly brickchainbuilder_controller: (a: number, b: number) => number;
-    readonly brickchainbuilder_controller_count: (a: number) => number;
-    readonly brickchainbuilder_entity_id: (a: number) => number;
-    readonly brickchainbuilder_new: (a: number) => number;
-    readonly brickchainbuilder_sensor: (a: number, b: number) => number;
-    readonly brickchainbuilder_sensor_count: (a: number) => number;
-    readonly brickchainbuilder_sensor_key: (a: number, b: number) => number;
-    readonly brickchainbuilder_with_mapping_table: (a: number, b: number) => number;
+    readonly actuatortypes_animation: () => number;
+    readonly actuatortypes_camera: () => number;
+    readonly actuatortypes_delete: () => number;
+    readonly actuatortypes_highlight: () => number;
+    readonly actuatortypes_move_actuator: () => number;
+    readonly actuatortypes_property: () => number;
+    readonly actuatortypes_redo: () => number;
+    readonly actuatortypes_select: () => number;
+    readonly actuatortypes_undo: () => number;
+    readonly jsbehaviorblock_actuator_type: (a: number) => number;
+    readonly jsbehaviorblock_controller_type: (a: number) => number;
+    readonly jsbehaviorblock_key_code: (a: number) => number;
+    readonly jsbehaviorblock_new: (a: number, b: number) => number;
+    readonly jsbehaviorblock_sensor_type: (a: number) => number;
+    readonly jsentitybuilder_actuator: (a: number, b: number, c: number, d: number) => number;
+    readonly jsentitybuilder_behavior: (a: number, b: number, c: number) => number;
+    readonly jsentitybuilder_behavior_count: (a: number) => number;
+    readonly jsentitybuilder_build: (a: number) => number;
+    readonly jsentitybuilder_color: (a: number, b: number, c: number, d: number) => number;
+    readonly jsentitybuilder_controller: (a: number, b: number, c: number) => number;
+    readonly jsentitybuilder_end_behavior: (a: number) => number;
+    readonly jsentitybuilder_entity_id: (a: number) => number;
+    readonly jsentitybuilder_get_behavior: (a: number, b: number) => number;
+    readonly jsentitybuilder_insert: (a: number, b: number, c: number, d: number, e: number) => number;
+    readonly jsentitybuilder_layer: (a: number, b: number) => number;
+    readonly jsentitybuilder_new: (a: number) => number;
+    readonly jsentitybuilder_position: (a: number, b: number, c: number) => number;
+    readonly jsentitybuilder_sensor: (a: number, b: number, c: number) => number;
+    readonly jsentitybuilder_stroke_width: (a: number, b: number) => number;
     readonly signalbytewasm_any_edge: (a: number) => number;
     readonly signalbytewasm_as_u8: (a: number) => number;
     readonly signalbytewasm_count_ones: (a: number) => number;
@@ -3089,57 +3854,48 @@ export interface InitOutput {
     readonly signalbytewasm_new: () => number;
     readonly signalbytewasm_push: (a: number, b: number) => void;
     readonly signalbytewasm_size: (a: number) => number;
+    readonly jsentitybuilder_size: (a: number, b: number, c: number) => number;
     readonly signalbytewasm_is_steady_high: (a: number, b: number) => number;
-    readonly __wbg_jsentitycommandbuffer_free: (a: number, b: number) => void;
-    readonly __wbg_logicmappingtablewasm_free: (a: number, b: number) => void;
-    readonly __wbg_zerocopycommandbuffer_free: (a: number, b: number) => void;
-    readonly jsentitycommandbuffer_capacity: (a: number) => number;
-    readonly jsentitycommandbuffer_clear: (a: number) => void;
-    readonly jsentitycommandbuffer_commands_count: (a: number) => number;
-    readonly jsentitycommandbuffer_commands_ptr: (a: number) => number;
-    readonly jsentitycommandbuffer_despawn: (a: number, b: number) => void;
-    readonly jsentitycommandbuffer_is_empty: (a: number) => number;
-    readonly jsentitycommandbuffer_new: (a: number) => number;
-    readonly jsentitycommandbuffer_resize: (a: number, b: number, c: number, d: number) => void;
-    readonly jsentitycommandbuffer_set_color: (a: number, b: number, c: number) => void;
-    readonly jsentitycommandbuffer_set_layer: (a: number, b: number, c: number) => void;
-    readonly jsentitycommandbuffer_set_selection: (a: number, b: number, c: number) => void;
-    readonly jsentitycommandbuffer_set_shape: (a: number, b: number, c: number) => void;
-    readonly jsentitycommandbuffer_set_velocity: (a: number, b: number, c: number, d: number) => void;
-    readonly jsentitycommandbuffer_set_visible: (a: number, b: number, c: number) => void;
-    readonly jsentitycommandbuffer_spawn: (a: number, b: number, c: number, d: number, e: number) => number;
-    readonly jsentitycommandbuffer_spawned_count: (a: number) => number;
-    readonly jsentitycommandbuffer_spawned_ids_ptr: (a: number) => number;
-    readonly jsentitycommandbuffer_teleport: (a: number, b: number, c: number, d: number) => void;
-    readonly logicmappingtablewasm_add_highlight: (a: number, b: number, c: number, d: number) => void;
-    readonly logicmappingtablewasm_add_move: (a: number, b: number, c: number, d: number) => void;
-    readonly logicmappingtablewasm_add_select: (a: number, b: number, c: number, d: number) => void;
-    readonly logicmappingtablewasm_clear: (a: number) => void;
-    readonly logicmappingtablewasm_clear_entity: (a: number, b: number) => void;
-    readonly logicmappingtablewasm_connection_count: (a: number, b: number) => number;
-    readonly logicmappingtablewasm_get_connected_entities: (a: number) => [number, number];
-    readonly logicmappingtablewasm_has_connection: (a: number, b: number, c: number) => number;
-    readonly logicmappingtablewasm_is_empty: (a: number) => number;
-    readonly logicmappingtablewasm_new: () => number;
-    readonly logicmappingtablewasm_remove_connection: (a: number, b: number, c: number) => void;
-    readonly zerocopycommandbuffer_clear: (a: number) => void;
-    readonly zerocopycommandbuffer_count: (a: number) => number;
-    readonly zerocopycommandbuffer_data_ptr: (a: number) => number;
-    readonly zerocopycommandbuffer_new: (a: number) => number;
-    readonly zerocopycommandbuffer_set_count: (a: number, b: number) => void;
-    readonly jsentitycommandbuffer_len: (a: number) => number;
-    readonly __wbg_cameraconfig_free: (a: number, b: number) => void;
+    readonly jsentitybuilder_stroke: (a: number, b: number, c: number, d: number) => number;
+    readonly controllertypes_and: () => number;
+    readonly controllertypes_blinky: () => number;
+    readonly controllertypes_debounce: () => number;
+    readonly controllertypes_direct: () => number;
+    readonly controllertypes_hysteresis: () => number;
+    readonly controllertypes_not: () => number;
+    readonly controllertypes_or: () => number;
+    readonly controllertypes_threshold: () => number;
+    readonly sensortypes_key_shortcut: () => number;
+    readonly sensortypes_mouse_click: () => number;
+    readonly sensortypes_mouse_over: () => number;
+    readonly sensortypes_proximity: () => number;
+    readonly sensortypes_radar: () => number;
+    readonly sensortypes_ray: () => number;
+    readonly sensortypes_right_click: () => number;
+    readonly sensortypes_touch: () => number;
+    readonly shapetypes_arc: () => number;
+    readonly shapetypes_circle: () => number;
+    readonly shapetypes_cylinder: () => number;
+    readonly shapetypes_diamond: () => number;
+    readonly shapetypes_ellipse: () => number;
+    readonly shapetypes_line: () => number;
+    readonly shapetypes_rectangle: () => number;
+    readonly shapetypes_triangle: () => number;
+    readonly jsentitybuilder_shape: (a: number, b: number) => number;
+    readonly jsentitybuilder_visible: (a: number, b: number) => number;
+    readonly __wbg_callbackid_free: (a: number, b: number) => void;
+    readonly __wbg_callbackregistry_free: (a: number, b: number) => void;
     readonly __wbg_controller_free: (a: number, b: number) => void;
-    readonly __wbg_highlightconfig_free: (a: number, b: number) => void;
-    readonly __wbg_moveconfig_free: (a: number, b: number) => void;
-    readonly __wbg_propertyconfig_free: (a: number, b: number) => void;
-    readonly __wbg_propertyvalue_free: (a: number, b: number) => void;
-    readonly cameraconfig_duration_ms: (a: number) => number;
-    readonly cameraconfig_new: (a: number, b: number, c: number, d: number, e: number) => number;
-    readonly cameraconfig_smooth: (a: number) => number;
-    readonly cameraconfig_target_x: (a: number) => number;
-    readonly cameraconfig_target_y: (a: number) => number;
-    readonly cameraconfig_zoom: (a: number) => number;
+    readonly __wbg_logicmappingtablewasm_free: (a: number, b: number) => void;
+    readonly callbackid_value: (a: number) => number;
+    readonly callbackregistry_clear: (a: number) => void;
+    readonly callbackregistry_event_callback_count: (a: number, b: number, c: number) => number;
+    readonly callbackregistry_invoke: (a: number, b: number, c: number, d: any) => number;
+    readonly callbackregistry_new: () => number;
+    readonly callbackregistry_register: (a: number, b: any, c: number, d: number, e: number) => number;
+    readonly callbackregistry_total_count: (a: number) => number;
+    readonly callbackregistry_unregister: (a: number, b: number) => number;
+    readonly callbackregistry_unregister_all: (a: number, b: number, c: number) => number;
     readonly controller_and: (a: number) => number;
     readonly controller_and_any: () => number;
     readonly controller_blinky: (a: number) => number;
@@ -3161,6 +3917,152 @@ export interface InitOutput {
     readonly controller_pattern: (a: number) => number;
     readonly controller_secondary_sensor: (a: number) => number;
     readonly controller_threshold: (a: number) => number;
+    readonly logicmappingtablewasm_add_highlight: (a: number, b: number, c: number, d: number) => void;
+    readonly logicmappingtablewasm_add_move: (a: number, b: number, c: number, d: number) => void;
+    readonly logicmappingtablewasm_add_select: (a: number, b: number, c: number, d: number) => void;
+    readonly logicmappingtablewasm_clear: (a: number) => void;
+    readonly logicmappingtablewasm_clear_entity: (a: number, b: number) => void;
+    readonly logicmappingtablewasm_connection_count: (a: number, b: number) => number;
+    readonly logicmappingtablewasm_get_connected_entities: (a: number) => [number, number];
+    readonly logicmappingtablewasm_has_connection: (a: number, b: number, c: number) => number;
+    readonly logicmappingtablewasm_is_empty: (a: number) => number;
+    readonly logicmappingtablewasm_new: () => number;
+    readonly logicmappingtablewasm_remove_connection: (a: number, b: number, c: number) => void;
+    readonly get_global_callback_registry: () => number;
+    readonly __wbg_eventringbufferwasm_free: (a: number, b: number) => void;
+    readonly __wbg_eventtype_free: (a: number, b: number) => void;
+    readonly __wbg_jslogicevent_free: (a: number, b: number) => void;
+    readonly eventringbufferwasm_drain: (a: number, b: number) => [number, number];
+    readonly eventringbufferwasm_event_count: (a: number, b: number) => number;
+    readonly eventringbufferwasm_has_events: (a: number, b: number) => number;
+    readonly eventtype_box_selection_completed: () => number;
+    readonly eventtype_drag_ended: () => number;
+    readonly eventtype_drag_started: () => number;
+    readonly eventtype_entity_selected: () => number;
+    readonly eventtype_hover_changed: () => number;
+    readonly eventtype_proximity_alert: () => number;
+    readonly jslogicevent_data_1: (a: number) => number;
+    readonly jslogicevent_data_2: (a: number) => number;
+    readonly jslogicevent_data_3: (a: number) => number;
+    readonly jslogicevent_entity_id: (a: number) => number;
+    readonly jslogicevent_event_type: (a: number) => number;
+    readonly jslogicevent_timestamp_us: (a: number) => bigint;
+    readonly eventringbufferwasm_new: () => number;
+    readonly __wbg_jsentitycommandbuffer_free: (a: number, b: number) => void;
+    readonly __wbg_zerocopycommandbuffer_free: (a: number, b: number) => void;
+    readonly jsentitycommandbuffer_capacity: (a: number) => number;
+    readonly jsentitycommandbuffer_clear: (a: number) => void;
+    readonly jsentitycommandbuffer_commands_count: (a: number) => number;
+    readonly jsentitycommandbuffer_commands_ptr: (a: number) => number;
+    readonly jsentitycommandbuffer_despawn: (a: number, b: number) => void;
+    readonly jsentitycommandbuffer_is_empty: (a: number) => number;
+    readonly jsentitycommandbuffer_new: (a: number) => number;
+    readonly jsentitycommandbuffer_resize: (a: number, b: number, c: number, d: number) => void;
+    readonly jsentitycommandbuffer_set_color: (a: number, b: number, c: number) => void;
+    readonly jsentitycommandbuffer_set_layer: (a: number, b: number, c: number) => void;
+    readonly jsentitycommandbuffer_set_selection: (a: number, b: number, c: number) => void;
+    readonly jsentitycommandbuffer_set_shape: (a: number, b: number, c: number) => void;
+    readonly jsentitycommandbuffer_set_velocity: (a: number, b: number, c: number, d: number) => void;
+    readonly jsentitycommandbuffer_set_visible: (a: number, b: number, c: number) => void;
+    readonly jsentitycommandbuffer_spawn: (a: number, b: number, c: number, d: number, e: number) => number;
+    readonly jsentitycommandbuffer_spawned_count: (a: number) => number;
+    readonly jsentitycommandbuffer_spawned_ids_ptr: (a: number) => number;
+    readonly jsentitycommandbuffer_teleport: (a: number, b: number, c: number, d: number) => void;
+    readonly zerocopycommandbuffer_clear: (a: number) => void;
+    readonly zerocopycommandbuffer_count: (a: number) => number;
+    readonly zerocopycommandbuffer_data_ptr: (a: number) => number;
+    readonly zerocopycommandbuffer_new: (a: number) => number;
+    readonly zerocopycommandbuffer_set_count: (a: number, b: number) => void;
+    readonly jsentitycommandbuffer_len: (a: number) => number;
+    readonly __wbg_brickhandle_free: (a: number, b: number) => void;
+    readonly __wbg_get_jslogiceventdata_data_1: (a: number) => number;
+    readonly __wbg_get_jslogiceventdata_data_2: (a: number) => number;
+    readonly __wbg_get_jslogiceventdata_data_3: (a: number) => number;
+    readonly __wbg_get_jslogiceventdata_entity_id: (a: number) => number;
+    readonly __wbg_get_jslogiceventdata_event_type: (a: number) => number;
+    readonly __wbg_get_jslogiceventdata_timestamp_us: (a: number) => bigint;
+    readonly __wbg_jslogiceventdata_free: (a: number, b: number) => void;
+    readonly __wbg_logicsystemwasm_free: (a: number, b: number) => void;
+    readonly __wbg_pulsewasm_free: (a: number, b: number) => void;
+    readonly __wbg_set_jslogiceventdata_data_1: (a: number, b: number) => void;
+    readonly __wbg_set_jslogiceventdata_data_2: (a: number, b: number) => void;
+    readonly __wbg_set_jslogiceventdata_data_3: (a: number, b: number) => void;
+    readonly __wbg_set_jslogiceventdata_entity_id: (a: number, b: number) => void;
+    readonly __wbg_set_jslogiceventdata_event_type: (a: number, b: number) => void;
+    readonly __wbg_set_jslogiceventdata_timestamp_us: (a: number, b: bigint) => void;
+    readonly brickhandle_disable: (a: number) => void;
+    readonly brickhandle_id: (a: number) => [number, number];
+    readonly brickhandle_is_enabled: (a: number) => number;
+    readonly brickhandle_new: (a: number, b: number) => number;
+    readonly brickhandle_remove: (a: number) => void;
+    readonly brickhandle_toggle: (a: number) => number;
+    readonly logicsystemwasm_attach_behavior: (a: number, b: number, c: number) => void;
+    readonly logicsystemwasm_behavior_count: (a: number) => number;
+    readonly logicsystemwasm_behavior_has_events: (a: number, b: number) => number;
+    readonly logicsystemwasm_create_behavior: (a: number, b: number, c: number, d: number) => number;
+    readonly logicsystemwasm_detach_behavior: (a: number, b: number) => void;
+    readonly logicsystemwasm_drain_events: (a: number) => [number, number];
+    readonly logicsystemwasm_event_count: (a: number) => number;
+    readonly logicsystemwasm_get_behavior_state: (a: number, b: number) => any;
+    readonly logicsystemwasm_has_events: (a: number) => number;
+    readonly logicsystemwasm_new: () => number;
+    readonly logicsystemwasm_update: (a: number, b: bigint) => void;
+    readonly pulsewasm_entity_id: (a: number) => number;
+    readonly pulsewasm_new: (a: number, b: number, c: number, d: number) => number;
+    readonly pulsewasm_sensor_id: (a: number) => number;
+    readonly pulsewasm_state: (a: number) => number;
+    readonly pulsewasm_timestamp: (a: number) => number;
+    readonly brickhandle_enable: (a: number) => void;
+    readonly logicsystemwasm_set_behavior_enabled: (a: number, b: number, c: number) => void;
+    readonly __wbg_brickchainbuilder_free: (a: number, b: number) => void;
+    readonly __wbg_cameraconfig_free: (a: number, b: number) => void;
+    readonly __wbg_highlightconfig_free: (a: number, b: number) => void;
+    readonly __wbg_moveconfig_free: (a: number, b: number) => void;
+    readonly __wbg_propertyconfig_free: (a: number, b: number) => void;
+    readonly __wbg_propertyvalue_free: (a: number, b: number) => void;
+    readonly actuator_delete: () => number;
+    readonly actuator_emit_event: (a: number, b: number, c: number, d: number) => number;
+    readonly actuator_highlight: (a: number, b: number) => number;
+    readonly actuator_move: (a: number, b: number, c: number) => number;
+    readonly actuator_select_clear: () => number;
+    readonly brickchainbuilder_actuator_count: (a: number) => number;
+    readonly brickchainbuilder_actuator_highlight: (a: number, b: number, c: number) => number;
+    readonly brickchainbuilder_actuator_move: (a: number, b: number, c: number, d: number) => number;
+    readonly brickchainbuilder_actuator_select: (a: number, b: number) => number;
+    readonly brickchainbuilder_and: (a: number) => number;
+    readonly brickchainbuilder_connect: (a: number) => number;
+    readonly brickchainbuilder_controller: (a: number, b: number) => number;
+    readonly brickchainbuilder_controller_count: (a: number) => number;
+    readonly brickchainbuilder_entity_id: (a: number) => number;
+    readonly brickchainbuilder_invert: (a: number) => number;
+    readonly brickchainbuilder_logic_bricks: (a: number, b: number, c: number) => number;
+    readonly brickchainbuilder_name: (a: number) => [number, number];
+    readonly brickchainbuilder_new: (a: number) => number;
+    readonly brickchainbuilder_new_chain: (a: number) => number;
+    readonly brickchainbuilder_or: (a: number) => number;
+    readonly brickchainbuilder_sensor: (a: number, b: number) => number;
+    readonly brickchainbuilder_sensor_count: (a: number) => number;
+    readonly brickchainbuilder_sensor_key: (a: number, b: number) => number;
+    readonly brickchainbuilder_with_mapping_table: (a: number, b: number) => number;
+    readonly cameraconfig_duration_ms: (a: number) => number;
+    readonly cameraconfig_new: (a: number, b: number, c: number, d: number, e: number) => number;
+    readonly cameraconfig_smooth: (a: number) => number;
+    readonly cameraconfig_target_x: (a: number) => number;
+    readonly cameraconfig_target_y: (a: number) => number;
+    readonly cameraconfig_zoom: (a: number) => number;
+    readonly factory_and: (a: number) => number;
+    readonly factory_blinky: (a: number) => number;
+    readonly factory_custom: (a: number, b: number, c: number, d: number) => number;
+    readonly factory_debounce: (a: number) => number;
+    readonly factory_direct: () => number;
+    readonly factory_hysteresis: (a: number, b: number) => number;
+    readonly factory_nand: () => number;
+    readonly factory_nor: () => number;
+    readonly factory_not: () => number;
+    readonly factory_or: (a: number) => number;
+    readonly factory_pattern: (a: number) => number;
+    readonly factory_threshold: (a: number) => number;
+    readonly factory_xor: () => number;
     readonly highlightconfig_color: (a: number) => number;
     readonly highlightconfig_new: (a: number, b: number, c: number) => number;
     readonly highlightconfig_restore_color: (a: number) => number;
@@ -3174,11 +4076,25 @@ export interface InitOutput {
     readonly propertyvalue_from_number: (a: number) => number;
     readonly propertyvalue_from_string: (a: number, b: number) => number;
     readonly propertyvalue_value: (a: number) => [number, number];
+    readonly sensor_collision_detect: (a: number) => number;
+    readonly sensor_double_tap: () => number;
+    readonly sensor_keyboard_key: (a: number, b: number) => number;
+    readonly sensor_long_press: (a: number) => number;
+    readonly sensor_mouse_click: (a: number) => number;
+    readonly sensor_mouse_drag: (a: number) => number;
+    readonly sensor_mouse_hover: () => number;
+    readonly sensor_mouse_wheel: (a: number) => number;
+    readonly sensor_timer_delay: (a: number, b: number) => number;
+    readonly sensor_property_changed: (a: number) => number;
+    readonly sensor_timer_interval: (a: number) => number;
+    readonly actuator_select_multi: () => number;
+    readonly actuator_select_single: () => number;
+    readonly actuator_select_toggle: () => number;
     readonly highlightconfig_opacity: (a: number) => number;
     readonly moveconfig_snap: (a: number) => number;
-    readonly wasm_bindgen__closure__destroy__h6975b13b2832bb36: (a: number, b: number) => void;
-    readonly wasm_bindgen__convert__closures_____invoke__h207716ce1ea1c173: (a: number, b: number, c: any) => void;
-    readonly wasm_bindgen__convert__closures_____invoke__h2d5077db8bfe2045: (a: number, b: number) => void;
+    readonly wasm_bindgen__closure__destroy__h3f766b855f724bd7: (a: number, b: number) => void;
+    readonly wasm_bindgen__convert__closures_____invoke__h3e58ee20b5cc64ab: (a: number, b: number, c: any) => void;
+    readonly wasm_bindgen__convert__closures_____invoke__hf1efe96af13873e8: (a: number, b: number) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_exn_store: (a: number) => void;

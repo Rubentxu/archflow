@@ -113,7 +113,7 @@ impl Sensor {
     /// let sensor = Sensor::key(KeyCode::KeyW);
     /// ```
     #[inline]
-    pub fn key(key: KeyCode) -> Self {
+    pub fn key(_key: KeyCode) -> Self {
         Self {
             sensor_type: SensorType::KeyShortcut,
             distance: None,

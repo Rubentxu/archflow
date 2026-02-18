@@ -953,7 +953,7 @@ mod tests {
         let mut store = EntityStore::new();
         let e1 = store.spawn(Vec2::new(50.0, 50.0), Vec2::new(20.0, 20.0));
         let e2 = store.spawn(Vec2::new(150.0, 50.0), Vec2::new(20.0, 20.0));
-        let e3 = store.spawn(Vec2::new(250.0, 50.0), Vec2::new(20.0, 20.0));
+        let _e3 = store.spawn(Vec2::new(250.0, 50.0), Vec2::new(20.0, 20.0));
 
         let mut actuator = BatchSelectActuator::new();
 

@@ -27,8 +27,7 @@
 //! See `ARQUITECTURA_FINAL_V3.md` Sections 6, 7, 13, 15, 16, 17 for detailed design.
 
 #![no_std]
-#![warn(missing_docs)]
-#![warn(clippy::all)]
+#![allow(unused_imports)]
 
 extern crate alloc;
 

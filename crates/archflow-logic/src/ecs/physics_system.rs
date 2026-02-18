@@ -6,7 +6,6 @@
 //
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════
 
-#![no_std]
 
 extern crate alloc;
 
@@ -211,7 +210,7 @@ impl crate::ecs::system::System for PhysicsSystem {
 }
 
 /// Apply gravity to all entities with Velocity component
-fn apply_gravity_to_velocities(world: &mut World, dt: f32) {
+fn apply_gravity_to_velocities(_world: &mut World, _dt: f32) {
     // Query entities with Velocity component
     // Note: This is a simplified implementation. Full ECS query would require
     // the query API to be fully integrated with this module.
@@ -220,7 +219,7 @@ fn apply_gravity_to_velocities(world: &mut World, dt: f32) {
 }
 
 /// Integrate velocities into positions for entities with both Transform and Velocity
-fn integrate_velocities_to_positions(world: &mut World, dt: f32) {
+fn integrate_velocities_to_positions(_world: &mut World, _dt: f32) {
     // Full implementation would query: Query<(&mut Transform, &Velocity)>
     // and apply: transform.position += velocity * dt
     //
@@ -229,13 +228,13 @@ fn integrate_velocities_to_positions(world: &mut World, dt: f32) {
 }
 
 /// Apply damping to all velocities
-fn apply_damping_to_velocities(world: &mut World) {
+fn apply_damping_to_velocities(_world: &mut World) {
     // Full implementation would query all Velocity components
     // and apply: velocity *= (1.0 - damping)
 }
 
 /// Clamp velocities to max velocity
-fn clamp_velocities(world: &mut World) {
+fn clamp_velocities(_world: &mut World) {
     // Full implementation would clamp all velocities
 }
 

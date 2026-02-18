@@ -103,7 +103,7 @@ impl System for AnimationSystem {
         // Update each animation
         for entity_id in entity_ids {
             if let Some(anim) = world.get_component_mut::<AnimationComponent>(entity_id) {
-                if let Some(new_frame) = anim.tick(delta_ms) {
+                if let Some(_new_frame) = anim.tick(delta_ms) {
                     // Frame changed
                     self.stats.frame_changes += 1;
                     // In a full implementation, this would trigger a frame update event

@@ -11,7 +11,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #![allow(missing_docs)]
-#![warn(clippy::all)]
+#![allow(unused_imports)]
 
 /// SDF Shapes shader for rendering rectangles, circles, ellipses, and lines
 #[cfg(not(feature = "webgl2"))]

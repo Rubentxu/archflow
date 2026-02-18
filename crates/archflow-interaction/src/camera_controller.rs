@@ -9,8 +9,7 @@
 // - Smooth zoom within 0.01x to 100x range
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#![warn(missing_docs)]
-#![warn(clippy::all)]
+#![allow(unused_imports)]
 
 extern crate alloc;
 

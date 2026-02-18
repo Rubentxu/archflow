@@ -79,7 +79,7 @@ pub async fn websocket_handler(
 /// 2. Receives commands from client
 /// 3. Broadcasts to other room members
 /// 4. Handles cleanup on disconnect
-async fn handle_socket(socket: WebSocket, state: AppState) {
+async fn handle_socket(socket: WebSocket, _state: AppState) {
     // Split WebSocket into sender and receiver
     let (mut sender, mut receiver) = socket.split();
 
@@ -97,7 +97,7 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<CollaborationMessage>();
 
     // Create connected client
-    let client = ConnectedClient {
+    let _client = ConnectedClient {
         user_id: user_id.clone(),
         room_id: room_id.clone(),
         sender: tx,

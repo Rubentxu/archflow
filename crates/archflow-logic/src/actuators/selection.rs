@@ -332,7 +332,7 @@ impl SelectActuator {
     /// # Returns
     ///
     /// Selection result with commands
-    pub fn deselect(&mut self, store: &EntityStore) -> SelectionResult {
+    pub fn deselect(&mut self, _store: &EntityStore) -> SelectionResult {
         let previous = self.state.selected_entity;
 
         if let Some(entity_id) = previous {

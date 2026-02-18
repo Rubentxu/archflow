@@ -17,7 +17,7 @@
 //
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import init, { WasmBridge } from "../wasm/archflow_web.js";
+import init, { WasmBridge } from "../pkg/archflow_wasm_bridge.js";
 
 // ─── Input Event Types (matches WASM InputEventType enum) ───────────────────
 
@@ -433,4 +433,172 @@ export function queryEntities(bridge, queryType, options = {}) {
       console.warn(`Unknown query type: ${queryType}`);
       return new Uint32Array(0);
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ENTITY HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Spawn an entity with the given properties
+ *
+ * @param {WasmBridge} bridge - The WASM bridge instance
+ * @param {Object} props - Entity properties
+ * @param {number} [props.x=400] - X position
+ * @param {number} [props.y=300] - Y position
+ * @param {number} [props.width=50] - Width
+ * @param {number} [props.height=50] - Height
+ * @param {number} [props.color=0x3B82F6FF] - Color (RGBA as hex)
+ * @param {number} [props.shape=0] - Shape type (0=rectangle, 1=circle)
+ *
+ * @returns {number} Entity ID
+ *
+ * @example
+ * const entityId = spawnEntity(bridge, {
+ *   x: 400,
+ *   y: 300,
+ *   width: 100,
+ *   height: 60,
+ *   color: 0x3B82F6FF,
+ *   shape: 0
+ * });
+ */
+export function spawnEntity(bridge, props = {}) {
+  const x = props.x || 400;
+  const y = props.y || 300;
+  const width = props.width || 50;
+  const height = props.height || 50;
+  const shape = props.shape || 0;
+  const color = props.color || 0x3B82F6FF;
+
+  const entityId = bridge.spawn_entity(x, y, width, height);
+
+  if (color !== undefined) {
+    const r = (color >> 24) & 0xFF;
+    const g = (color >> 16) & 0xFF;
+    const b = (color >> 8) & 0xFF;
+    const a = color & 0xFF;
+    bridge.set_color(entityId, r, g, b, a);
+  }
+
+  if (shape !== undefined) {
+    bridge.set_shape(entityId, shape);
+  }
+
+  return entityId;
+}
+
+/**
+ * Create a performance/effects HUD overlay
+ *
+ * @param {HTMLElement} container - Container element to append HUD to
+ * @param {Object} options - Configuration
+ * @param {boolean} [options.showFps=true] - Show FPS counter
+ * @param {boolean} [options.showEntities=true] - Show entity count
+ * @param {boolean} [options.showSpawns=false] - Show spawn counter
+ * @param {string} [options.position='top-left'] - Position: 'top-left', 'top-right', 'bottom-left', 'bottom-right'
+ *
+ * @returns {Object} HUD controller with update method
+ *
+ * @example
+ * const hud = createHUD(document.body, { showFps: true, showEntities: true });
+ * // Call hud.update(fps, entityCount) each frame
+ */
+export function createHUD(container, options = {}) {
+  const {
+    showFps = true,
+    showEntities = true,
+    showSpawns = false,
+    position = 'top-left'
+  } = options;
+
+  // Create HUD element
+  const hud = document.createElement('div');
+  hud.style.cssText = `
+    position: absolute;
+    ${position.includes('top') ? 'top: 12px' : 'bottom: 12px'};
+    ${position.includes('left') ? 'left: 12px' : 'right: 12px'};
+    background: rgba(13, 17, 23, 0.85);
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    color: #c9d1d9;
+    z-index: 10000;
+    pointer-events: none;
+    user-select: none;
+    min-width: 140px;
+  `;
+
+  // FPS line
+  let fpsHtml = '';
+  if (showFps) {
+    fpsHtml = `<div style="color: #7ee787; margin-bottom: 4px;">FPS: <span id="hud-fps">0</span></div>`;
+  }
+
+  // Entities line
+  let entitiesHtml = '';
+  if (showEntities) {
+    entitiesHtml = `<div style="color: #79c0ff;">Entities: <span id="hud-entities">0</span></div>`;
+  }
+
+  // Spawns line
+  let spawnsHtml = '';
+  if (showSpawns) {
+    spawnsHtml = `<div style="color: #ffa657;">Spawns: <span id="hud-spawns">0</span></div>`;
+  }
+
+  hud.innerHTML = fpsHtml + entitiesHtml + spawnsHtml;
+
+  // Append to container (or body if container not specified)
+  (container || document.body).appendChild(hud);
+
+  // Get references to span elements
+  const fpsEl = showFps ? hud.querySelector('#hud-fps') : null;
+  const entitiesEl = showEntities ? hud.querySelector('#hud-entities') : null;
+  const spawnsEl = showSpawns ? hud.querySelector('#hud-spawns') : null;
+
+  // State
+  let spawnCount = 0;
+
+  return {
+    /**
+     * Update HUD display
+     * @param {number} fps - Current FPS
+     * @param {number} entityCount - Current entity count
+     * @param {number} [newSpawns=0] - Number of new spawns to add
+     */
+    update: function(fps, entityCount, newSpawns = 0) {
+      if (fpsEl) fpsEl.textContent = fps;
+      if (entitiesEl) entitiesEl.textContent = entityCount;
+      if (spawnsEl) {
+        spawnCount += newSpawns;
+        spawnsEl.textContent = spawnCount;
+      }
+    },
+    /**
+     * Increment spawn counter
+     * @param {number} count - Number to add
+     */
+    addSpawns: function(count = 1) {
+      spawnCount += count;
+      if (spawnsEl) spawnsEl.textContent = spawnCount;
+    },
+    /**
+     * Reset spawn counter
+     */
+    resetSpawns: function() {
+      spawnCount = 0;
+      if (spawnsEl) spawnsEl.textContent = 0;
+    },
+    /**
+     * Remove HUD from DOM
+     */
+    destroy: function() {
+      if (hud.parentNode) {
+        hud.parentNode.removeChild(hud);
+      }
+    }
+  };
 }

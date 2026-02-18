@@ -525,7 +525,7 @@ impl Renderer for WebGL2Renderer {
             RenderPhase::Text,
         ];
 
-        let draw_order_len = store.draw_order.len();
+        let _draw_order_len = store.draw_order.len();
 
         // OPTIMIZATION: Pre-compute viewport bounds for faster intersection tests
         let vp_min_x = viewport.min.x;

@@ -241,7 +241,7 @@ fn test_query_mut_modifies_components() {
     );
 
     // Modify all positions using query_mut
-    let mut query = world.query_mut::<(&mut Position, &Velocity)>();
+    let query = world.query_mut::<(&mut Position, &Velocity)>();
     query.each(|(pos, vel)| {
         pos.x += vel.dx;
         pos.y += vel.dy;
@@ -459,9 +459,9 @@ fn test_query_is_empty() {
 fn test_world_create_destroy_entities() {
     let mut world = World::new();
 
-    let e1 = world.create_entity();
+    let _e1 = world.create_entity();
     let e2 = world.create_entity();
-    let e3 = world.create_entity();
+    let _e3 = world.create_entity();
 
     assert_eq!(world.entity_count(), 3);
 

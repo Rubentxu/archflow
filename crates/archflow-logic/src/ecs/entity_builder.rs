@@ -39,13 +39,13 @@ use crate::ecs::world::World;
 /// ```
 pub trait WorldSpawnExt {
     /// Spawns a new entity with a fluent builder.
-    fn spawn(&mut self) -> EntityBuilder;
+    fn spawn(&mut self) -> EntityBuilder<'_>;
 }
 
 impl WorldSpawnExt for World {
     /// Creates a new EntityBuilder for spawning an entity.
     #[inline]
-    fn spawn(&mut self) -> EntityBuilder {
+    fn spawn(&mut self) -> EntityBuilder<'_> {
         EntityBuilder::new(self)
     }
 }
@@ -129,7 +129,7 @@ impl<'w> EntityBuilder<'w> {
     ///     .build();
     /// ```
     #[inline]
-    pub fn insert<C: Component>(mut self, component: C) -> Self {
+    pub fn insert<C: Component>(self, component: C) -> Self {
         let result = self.world.add_component(self.entity, component);
         if !result {
             // Component insertion failed, but we continue

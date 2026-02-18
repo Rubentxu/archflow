@@ -27,6 +27,399 @@ export const ActuatorType = Object.freeze({
 });
 
 /**
+ * Constants for actuator types (matching ActuatorType enum)
+ */
+export class ActuatorTypes {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        ActuatorTypesFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_actuatortypes_free(ptr, 0);
+    }
+    /**
+     * @returns {number}
+     */
+    static animation() {
+        const ret = wasm.actuatortypes_animation();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static camera() {
+        const ret = wasm.actuatortypes_camera();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static delete() {
+        const ret = wasm.actuatortypes_delete();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static highlight() {
+        const ret = wasm.actuatortypes_highlight();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static move_actuator() {
+        const ret = wasm.actuatortypes_move_actuator();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static property() {
+        const ret = wasm.actuatortypes_property();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static redo() {
+        const ret = wasm.actuatortypes_redo();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static select() {
+        const ret = wasm.actuatortypes_select();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static undo() {
+        const ret = wasm.actuatortypes_undo();
+        return ret;
+    }
+}
+if (Symbol.dispose) ActuatorTypes.prototype[Symbol.dispose] = ActuatorTypes.prototype.free;
+
+/**
+ * Single animation sequence (clip)
+ *
+ * Represents a named animation sequence like "idle", "walk", "run".
+ */
+export class AnimationClip {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        AnimationClipFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_animationclip_free(ptr, 0);
+    }
+    /**
+     * Get end frame
+     * @returns {number}
+     */
+    end_frame() {
+        const ret = wasm.animationclip_end_frame(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Get FPS
+     * @returns {number}
+     */
+    fps() {
+        const ret = wasm.animationclip_fps(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Get frame count
+     * @returns {number}
+     */
+    frame_count() {
+        const ret = wasm.animationclip_frame_count(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Get frame duration in ms
+     * @returns {number}
+     */
+    frame_duration_ms() {
+        const ret = wasm.animationclip_frame_duration_ms(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Get if loops
+     * @returns {boolean}
+     */
+    loop_clip() {
+        const ret = wasm.animationclip_loop_clip(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
+     * Get clip name
+     * @returns {string}
+     */
+    name() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.animationclip_name(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * Create a new animation clip
+     *
+     * # Arguments
+     * * `name` - Name of the clip (e.g., "idle", "walk")
+     * * `start_frame` - Starting frame index
+     * * `end_frame` - Ending frame index (inclusive)
+     * * `fps` - Frames per second
+     * * `loop` - Whether the clip loops
+     * @param {string} name
+     * @param {number} start_frame
+     * @param {number} end_frame
+     * @param {number} fps
+     * @param {boolean} loop_clip
+     */
+    constructor(name, start_frame, end_frame, fps, loop_clip) {
+        const ptr0 = passStringToWasm0(name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.animationclip_new(ptr0, len0, start_frame, end_frame, fps, loop_clip);
+        this.__wbg_ptr = ret >>> 0;
+        AnimationClipFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * Get start frame
+     * @returns {number}
+     */
+    start_frame() {
+        const ret = wasm.animationclip_start_frame(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+}
+if (Symbol.dispose) AnimationClip.prototype[Symbol.dispose] = AnimationClip.prototype.free;
+
+/**
+ * Animation Component for sprite animation
+ *
+ * Use with JsEntityBuilder:
+ * ```javascript
+ * bridge.world.spawn()
+ *     .insert(AnimationComponent.new(8, 100)) // 8 frames, 100ms each
+ *     .build();
+ * ```
+ */
+export class AnimationComponent {
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(AnimationComponent.prototype);
+        obj.__wbg_ptr = ptr;
+        AnimationComponentFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        AnimationComponentFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_animationcomponent_free(ptr, 0);
+    }
+    /**
+     * Get number of clips
+     * @returns {number}
+     */
+    clip_count() {
+        const ret = wasm.animationcomponent_clip_count(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Get current frame index
+     * @returns {number}
+     */
+    current() {
+        const ret = wasm.animationcomponent_current(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Get current clip name
+     * @returns {string | undefined}
+     */
+    current_clip_name() {
+        const ret = wasm.animationcomponent_current_clip_name(this.__wbg_ptr);
+        let v1;
+        if (ret[0] !== 0) {
+            v1 = getStringFromWasm0(ret[0], ret[1]).slice();
+            wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        }
+        return v1;
+    }
+    /**
+     * Get frame count
+     * @returns {number}
+     */
+    frame_count() {
+        const ret = wasm.animationcomponent_frame_count(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Get frame duration in ms
+     * @returns {number}
+     */
+    frame_duration_ms() {
+        const ret = wasm.animationcomponent_frame_duration_ms(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Check if playing
+     * @returns {boolean}
+     */
+    is_playing() {
+        const ret = wasm.animationcomponent_is_playing(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
+     * Check if loops
+     * @returns {boolean}
+     */
+    loop_animation() {
+        const ret = wasm.animationcomponent_loop_animation(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
+     * Create a new animation component with single sequence
+     *
+     * # Arguments
+     * * `frame_count` - Total number of frames
+     * * `frame_duration_ms` - Duration of each frame in milliseconds
+     * @param {number} frame_count
+     * @param {number} frame_duration_ms
+     */
+    constructor(frame_count, frame_duration_ms) {
+        const ret = wasm.animationcomponent_new(frame_count, frame_duration_ms);
+        this.__wbg_ptr = ret >>> 0;
+        AnimationComponentFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * Create with looping disabled (single-shot)
+     * @param {number} frame_count
+     * @param {number} frame_duration_ms
+     * @returns {AnimationComponent}
+     */
+    static new_single_shot(frame_count, frame_duration_ms) {
+        const ret = wasm.animationcomponent_new_single_shot(frame_count, frame_duration_ms);
+        return AnimationComponent.__wrap(ret);
+    }
+    /**
+     * Pause playback
+     */
+    pause() {
+        wasm.animationcomponent_pause(this.__wbg_ptr);
+    }
+    /**
+     * Start playing
+     */
+    play() {
+        wasm.animationcomponent_play(this.__wbg_ptr);
+    }
+    /**
+     * Play a specific clip by name
+     * @param {string} name
+     * @returns {boolean}
+     */
+    play_clip(name) {
+        const ptr0 = passStringToWasm0(name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.animationcomponent_play_clip(this.__wbg_ptr, ptr0, len0);
+        return ret !== 0;
+    }
+    /**
+     * Play a specific clip by index
+     * @param {number} index
+     * @returns {boolean}
+     */
+    play_clip_by_index(index) {
+        const ret = wasm.animationcomponent_play_clip_by_index(this.__wbg_ptr, index);
+        return ret !== 0;
+    }
+    /**
+     * Reset to first frame
+     */
+    reset() {
+        wasm.animationcomponent_reset(this.__wbg_ptr);
+    }
+    /**
+     * Set a specific frame
+     * @param {number} frame
+     */
+    set_frame(frame) {
+        wasm.animationcomponent_set_frame(this.__wbg_ptr, frame);
+    }
+    /**
+     * Update animation (call each frame)
+     * Returns Some(new_frame) if frame changed, None otherwise
+     * @param {number} delta_ms
+     * @returns {number | undefined}
+     */
+    tick(delta_ms) {
+        const ret = wasm.animationcomponent_tick(this.__wbg_ptr, delta_ms);
+        return ret === 0x100000001 ? undefined : ret;
+    }
+    /**
+     * Create with multiple animation clips (JSON string format for WASM)
+     * Format: [{"name":"idle","start":0,"end":3,"fps":8,"loop":true},...]
+     * @param {string} clips_json
+     * @returns {AnimationComponent}
+     */
+    static with_clips_json(clips_json) {
+        const ptr0 = passStringToWasm0(clips_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.animationcomponent_with_clips_json(ptr0, len0);
+        return AnimationComponent.__wrap(ret);
+    }
+}
+if (Symbol.dispose) AnimationComponent.prototype[Symbol.dispose] = AnimationComponent.prototype.free;
+
+/**
+ * Blend modes for material rendering
+ * @enum {0 | 1 | 2 | 3}
+ */
+export const BlendMode = Object.freeze({
+    /**
+     * No blending - opaque
+     */
+    Opaque: 0, "0": "Opaque",
+    /**
+     * Alpha blending - standard transparency
+     */
+    AlphaBlend: 1, "1": "AlphaBlend",
+    /**
+     * Additive blending - glow effect
+     */
+    Add: 2, "2": "Add",
+    /**
+     * Multiply blend - darkening
+     */
+    Multiply: 3, "3": "Multiply",
+});
+
+/**
  * Brick Chain Builder - API Fluida implementada en Rust/WASM
  *
  * # JavaScript Example
@@ -57,7 +450,7 @@ export class BrickChainBuilder {
         wasm.__wbg_brickchainbuilder_free(ptr, 0);
     }
     /**
-     * Get the number of actuators
+     * Get the number of actuators added
      * @returns {number}
      */
     actuator_count() {
@@ -69,7 +462,7 @@ export class BrickChainBuilder {
      *
      * # Arguments
      * * `color_argb` - Color in ARGB format
-     * * `opacity` - Opacity value
+     * * `opacity` - Opacity from 0.0 to 1.0
      * @param {number} color_argb
      * @param {number} opacity
      * @returns {BrickChainBuilder}
@@ -83,9 +476,9 @@ export class BrickChainBuilder {
      * Add a Move actuator
      *
      * # Arguments
-     * * `mode` - 0=To, 1=By, 2=Drag
-     * * `x` - X value or offset
-     * * `y` - Y value or offset
+     * * `mode` - Movement mode
+     * * `x` - X velocity or position
+     * * `y` - Y velocity or position
      * @param {number} mode
      * @param {number} x
      * @param {number} y
@@ -110,7 +503,16 @@ export class BrickChainBuilder {
         return BrickChainBuilder.__wrap(ret);
     }
     /**
-     * Connect and register the brick chain
+     * Add an AND controller (shortcut)
+     * @returns {BrickChainBuilder}
+     */
+    and() {
+        const ptr = this.__destroy_into_raw();
+        const ret = wasm.brickchainbuilder_and(ptr);
+        return BrickChainBuilder.__wrap(ret);
+    }
+    /**
+     * Connect the chain to the entity
      * @returns {BrickHandle}
      */
     connect() {
@@ -131,7 +533,7 @@ export class BrickChainBuilder {
         return BrickChainBuilder.__wrap(ret);
     }
     /**
-     * Get the number of controllers
+     * Get the number of controllers added
      * @returns {number}
      */
     controller_count() {
@@ -147,6 +549,40 @@ export class BrickChainBuilder {
         return ret >>> 0;
     }
     /**
+     * Add a NOT controller (invert signal)
+     * @returns {BrickChainBuilder}
+     */
+    invert() {
+        const ptr = this.__destroy_into_raw();
+        const ret = wasm.brickchainbuilder_invert(ptr);
+        return BrickChainBuilder.__wrap(ret);
+    }
+    /**
+     * Set the name for this logic block (for debugging)
+     * @param {string} name
+     * @returns {BrickChainBuilder}
+     */
+    logic_bricks(name) {
+        const ptr = this.__destroy_into_raw();
+        const ptr0 = passStringToWasm0(name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.brickchainbuilder_logic_bricks(ptr, ptr0, len0);
+        return BrickChainBuilder.__wrap(ret);
+    }
+    /**
+     * Get the name of this logic block
+     * @returns {string | undefined}
+     */
+    name() {
+        const ret = wasm.brickchainbuilder_name(this.__wbg_ptr);
+        let v1;
+        if (ret[0] !== 0) {
+            v1 = getStringFromWasm0(ret[0], ret[1]).slice();
+            wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        }
+        return v1;
+    }
+    /**
      * Creates a new BrickChainBuilder for an entity
      * @param {number} entity_id
      */
@@ -155,6 +591,24 @@ export class BrickChainBuilder {
         this.__wbg_ptr = ret >>> 0;
         BrickChainBuilderFinalization.register(this, this.__wbg_ptr, this);
         return this;
+    }
+    /**
+     * Start a new chain (clears current sensors/controllers, keeps entity_id)
+     * @returns {BrickChainBuilder}
+     */
+    new_chain() {
+        const ptr = this.__destroy_into_raw();
+        const ret = wasm.brickchainbuilder_new_chain(ptr);
+        return BrickChainBuilder.__wrap(ret);
+    }
+    /**
+     * Add an OR controller (shortcut)
+     * @returns {BrickChainBuilder}
+     */
+    or() {
+        const ptr = this.__destroy_into_raw();
+        const ret = wasm.brickchainbuilder_or(ptr);
+        return BrickChainBuilder.__wrap(ret);
     }
     /**
      * Add a sensor to the brick chain
@@ -167,7 +621,7 @@ export class BrickChainBuilder {
         return BrickChainBuilder.__wrap(ret);
     }
     /**
-     * Get the number of sensors
+     * Get the number of sensors added
      * @returns {number}
      */
     sensor_count() {
@@ -176,12 +630,12 @@ export class BrickChainBuilder {
     }
     /**
      * Add a keyboard key sensor (convenience)
-     * @param {number} key_code
+     * @param {number} _key_code
      * @returns {BrickChainBuilder}
      */
-    sensor_key(key_code) {
+    sensor_key(_key_code) {
         const ptr = this.__destroy_into_raw();
-        const ret = wasm.brickchainbuilder_sensor_key(ptr, key_code);
+        const ret = wasm.brickchainbuilder_sensor_key(ptr, _key_code);
         return BrickChainBuilder.__wrap(ret);
     }
     /**
@@ -787,7 +1241,7 @@ export class Controller {
      */
     secondary_sensor() {
         const ret = wasm.controller_secondary_sensor(this.__wbg_ptr);
-        return ret === 9 ? undefined : ret;
+        return ret === 14 ? undefined : ret;
     }
     /**
      * Creates a Threshold controller with minimum stability
@@ -884,6 +1338,128 @@ export const ControllerType = Object.freeze({
      */
     Custom: 9, "9": "Custom",
 });
+
+/**
+ * Constants for controller types
+ */
+export class ControllerTypes {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        ControllerTypesFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_controllertypes_free(ptr, 0);
+    }
+    /**
+     * @returns {number}
+     */
+    static and() {
+        const ret = wasm.actuatortypes_select();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static blinky() {
+        const ret = wasm.actuatortypes_undo();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static debounce() {
+        const ret = wasm.actuatortypes_redo();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static direct() {
+        const ret = wasm.actuatortypes_highlight();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static hysteresis() {
+        const ret = wasm.actuatortypes_camera();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static not() {
+        const ret = wasm.actuatortypes_delete();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static or() {
+        const ret = wasm.actuatortypes_move_actuator();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static threshold() {
+        const ret = wasm.actuatortypes_property();
+        return ret;
+    }
+}
+if (Symbol.dispose) ControllerTypes.prototype[Symbol.dispose] = ControllerTypes.prototype.free;
+
+/**
+ * Effect factories for JavaScript (convenience)
+ */
+export class Effect {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        EffectFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_effect_free(ptr, 0);
+    }
+    /**
+     * Create a bloom effect
+     * @param {number} threshold
+     * @param {number} intensity
+     * @param {number} radius
+     * @returns {PostEffect}
+     */
+    static bloom(threshold, intensity, radius) {
+        const ret = wasm.effect_bloom(threshold, intensity, radius);
+        return PostEffect.__wrap(ret);
+    }
+    /**
+     * Create a color grading effect
+     * @param {number} brightness
+     * @param {number} contrast
+     * @param {number} saturation
+     * @param {number} temperature
+     * @returns {PostEffect}
+     */
+    static color_grading(brightness, contrast, saturation, temperature) {
+        const ret = wasm.effect_color_grading(brightness, contrast, saturation, temperature);
+        return PostEffect.__wrap(ret);
+    }
+    /**
+     * Create a grayscale effect
+     * @param {number} intensity
+     * @returns {PostEffect}
+     */
+    static grayscale(intensity) {
+        const ret = wasm.effect_grayscale(intensity);
+        return PostEffect.__wrap(ret);
+    }
+}
+if (Symbol.dispose) Effect.prototype[Symbol.dispose] = Effect.prototype.free;
 
 /**
  * WASM wrapper for accessing the event ring buffer
@@ -1129,6 +1705,312 @@ export class HighlightConfig {
     }
 }
 if (Symbol.dispose) HighlightConfig.prototype[Symbol.dispose] = HighlightConfig.prototype.free;
+
+/**
+ * Single behavior block in JS API
+ */
+export class JsBehaviorBlock {
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(JsBehaviorBlock.prototype);
+        obj.__wbg_ptr = ptr;
+        JsBehaviorBlockFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        JsBehaviorBlockFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_jsbehaviorblock_free(ptr, 0);
+    }
+    /**
+     * Get actuator type
+     * @returns {number}
+     */
+    actuator_type() {
+        const ret = wasm.jsbehaviorblock_actuator_type(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * Get controller type
+     * @returns {number}
+     */
+    controller_type() {
+        const ret = wasm.jsbehaviorblock_controller_type(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * Get key code
+     * @returns {number}
+     */
+    key_code() {
+        const ret = wasm.jsbehaviorblock_key_code(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @param {string} name
+     */
+    constructor(name) {
+        const ptr0 = passStringToWasm0(name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.jsbehaviorblock_new(ptr0, len0);
+        this.__wbg_ptr = ret >>> 0;
+        JsBehaviorBlockFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * Get sensor type
+     * @returns {number}
+     */
+    sensor_type() {
+        const ret = wasm.jsbehaviorblock_sensor_type(this.__wbg_ptr);
+        return ret;
+    }
+}
+if (Symbol.dispose) JsBehaviorBlock.prototype[Symbol.dispose] = JsBehaviorBlock.prototype.free;
+
+/**
+ * JS Entity Builder - Fluent API para JavaScript
+ *
+ * Permite encadenar llamadas en JavaScript:
+ * ```javascript
+ * const entity = await bridge.world.spawn()
+ *     .insert(0, 0, 50, 50)  // x, y, width, height
+ *     .behavior('move')
+ *         .sensor(1, 25)      // sensor_type, key_code
+ *         .actuator(2, 0, 100) // actuator_type, x, y
+ *     .build();
+ * ```
+ */
+export class JsEntityBuilder {
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(JsEntityBuilder.prototype);
+        obj.__wbg_ptr = ptr;
+        JsEntityBuilderFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        JsEntityBuilderFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_jsentitybuilder_free(ptr, 0);
+    }
+    /**
+     * Add an actuator to current behavior
+     * actuator_type: 0=Highlight, 1=Select, 2=Move, etc.
+     * x, y: coordinates or values
+     * @param {number} actuator_type
+     * @param {number} x
+     * @param {number} y
+     * @returns {JsEntityBuilder}
+     */
+    actuator(actuator_type, x, y) {
+        const ptr = this.__destroy_into_raw();
+        const ret = wasm.jsentitybuilder_actuator(ptr, actuator_type, x, y);
+        return JsEntityBuilder.__wrap(ret);
+    }
+    /**
+     * Start a behavior block
+     * @param {string} name
+     * @returns {JsEntityBuilder}
+     */
+    behavior(name) {
+        const ptr = this.__destroy_into_raw();
+        const ptr0 = passStringToWasm0(name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.jsentitybuilder_behavior(ptr, ptr0, len0);
+        return JsEntityBuilder.__wrap(ret);
+    }
+    /**
+     * Get number of behavior blocks
+     * @returns {number}
+     */
+    behavior_count() {
+        const ret = wasm.jsentitybuilder_behavior_count(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Build the entity and return its ID
+     * @returns {number}
+     */
+    build() {
+        const ptr = this.__destroy_into_raw();
+        const ret = wasm.jsentitybuilder_build(ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Set fill color (r, g, b)
+     * @param {number} _r
+     * @param {number} _g
+     * @param {number} _b
+     * @returns {JsEntityBuilder}
+     */
+    color(_r, _g, _b) {
+        const ptr = this.__destroy_into_raw();
+        const ret = wasm.jsentitybuilder_color(ptr, _r, _g, _b);
+        return JsEntityBuilder.__wrap(ret);
+    }
+    /**
+     * Add a controller to current behavior
+     * controller_type: 0=Direct, 1=AND, 2=OR, 3=NOT, etc.
+     * param: parameter for the controller
+     * @param {number} controller_type
+     * @param {number} param
+     * @returns {JsEntityBuilder}
+     */
+    controller(controller_type, param) {
+        const ptr = this.__destroy_into_raw();
+        const ret = wasm.jsentitybuilder_controller(ptr, controller_type, param);
+        return JsEntityBuilder.__wrap(ret);
+    }
+    /**
+     * End current behavior block
+     * @returns {JsEntityBuilder}
+     */
+    end_behavior() {
+        const ptr = this.__destroy_into_raw();
+        const ret = wasm.jsentitybuilder_end_behavior(ptr);
+        return JsEntityBuilder.__wrap(ret);
+    }
+    /**
+     * Get the entity ID
+     * @returns {number}
+     */
+    entity_id() {
+        const ret = wasm.jsentitybuilder_entity_id(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Get behavior at index
+     * @param {number} index
+     * @returns {JsBehaviorBlock | undefined}
+     */
+    get_behavior(index) {
+        const ret = wasm.jsentitybuilder_get_behavior(this.__wbg_ptr, index);
+        return ret === 0 ? undefined : JsBehaviorBlock.__wrap(ret);
+    }
+    /**
+     * Insert a component (x, y, width, height)
+     * @param {number} _x
+     * @param {number} _y
+     * @param {number} _width
+     * @param {number} _height
+     * @returns {JsEntityBuilder}
+     */
+    insert(_x, _y, _width, _height) {
+        const ptr = this.__destroy_into_raw();
+        const ret = wasm.jsentitybuilder_insert(ptr, _x, _y, _width, _height);
+        return JsEntityBuilder.__wrap(ret);
+    }
+    /**
+     * Set layer for rendering order - uses RenderProperties component
+     * @param {number} _layer
+     * @returns {JsEntityBuilder}
+     */
+    layer(_layer) {
+        const ptr = this.__destroy_into_raw();
+        const ret = wasm.jsentitybuilder_layer(ptr, _layer);
+        return JsEntityBuilder.__wrap(ret);
+    }
+    /**
+     * Create a new JSEntityBuilder
+     * @param {number} entity_id
+     */
+    constructor(entity_id) {
+        const ret = wasm.jsentitybuilder_new(entity_id);
+        this.__wbg_ptr = ret >>> 0;
+        JsEntityBuilderFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * Set position (x, y) - uses Transform component
+     * @param {number} _x
+     * @param {number} _y
+     * @returns {JsEntityBuilder}
+     */
+    position(_x, _y) {
+        const ptr = this.__destroy_into_raw();
+        const ret = wasm.jsentitybuilder_position(ptr, _x, _y);
+        return JsEntityBuilder.__wrap(ret);
+    }
+    /**
+     * Add a sensor to current behavior
+     * sensor_type: 0=MouseOver, 1=MouseClick, 2=KeyShortcut, etc.
+     * key_code: key code for keyboard sensors
+     * @param {number} sensor_type
+     * @param {number} key_code
+     * @returns {JsEntityBuilder}
+     */
+    sensor(sensor_type, key_code) {
+        const ptr = this.__destroy_into_raw();
+        const ret = wasm.jsentitybuilder_sensor(ptr, sensor_type, key_code);
+        return JsEntityBuilder.__wrap(ret);
+    }
+    /**
+     * Set shape type (0=Rectangle, 1=Circle, 2=Ellipse, etc.)
+     * Uses ShapeTypes constants: ShapeTypes.circle(), ShapeTypes.rectangle(), etc.
+     * @param {number} _shape_type
+     * @returns {JsEntityBuilder}
+     */
+    shape(_shape_type) {
+        const ptr = this.__destroy_into_raw();
+        const ret = wasm.jsentitybuilder_layer(ptr, _shape_type);
+        return JsEntityBuilder.__wrap(ret);
+    }
+    /**
+     * Set size (width, height) - uses RenderProperties component
+     * @param {number} _width
+     * @param {number} _height
+     * @returns {JsEntityBuilder}
+     */
+    size(_width, _height) {
+        const ptr = this.__destroy_into_raw();
+        const ret = wasm.jsentitybuilder_position(ptr, _width, _height);
+        return JsEntityBuilder.__wrap(ret);
+    }
+    /**
+     * Set stroke color (r, g, b)
+     * @param {number} _r
+     * @param {number} _g
+     * @param {number} _b
+     * @returns {JsEntityBuilder}
+     */
+    stroke(_r, _g, _b) {
+        const ptr = this.__destroy_into_raw();
+        const ret = wasm.jsentitybuilder_color(ptr, _r, _g, _b);
+        return JsEntityBuilder.__wrap(ret);
+    }
+    /**
+     * Set stroke width
+     * @param {number} _width
+     * @returns {JsEntityBuilder}
+     */
+    stroke_width(_width) {
+        const ptr = this.__destroy_into_raw();
+        const ret = wasm.jsentitybuilder_stroke_width(ptr, _width);
+        return JsEntityBuilder.__wrap(ret);
+    }
+    /**
+     * Set visibility (true=visible, false=hidden) - uses VisibilityComponent
+     * @param {boolean} _is_visible
+     * @returns {JsEntityBuilder}
+     */
+    visible(_is_visible) {
+        const ptr = this.__destroy_into_raw();
+        const ret = wasm.jsentitybuilder_layer(ptr, _is_visible);
+        return JsEntityBuilder.__wrap(ret);
+    }
+}
+if (Symbol.dispose) JsEntityBuilder.prototype[Symbol.dispose] = JsEntityBuilder.prototype.free;
 
 /**
  * EntityCommandBuffer - Deferred command execution for JS-WASM
@@ -2122,6 +3004,278 @@ export class LogicSystemWasm {
 if (Symbol.dispose) LogicSystemWasm.prototype[Symbol.dispose] = LogicSystemWasm.prototype.free;
 
 /**
+ * Material Component for rendering properties
+ *
+ * Use with JsEntityBuilder:
+ * ```javascript
+ * bridge.world.spawn()
+ *     .insert(MaterialComponent.new({
+ *         colorMultiply: [1.0, 0.5, 0.5, 1.0],
+ *         emission: [0.2, 0.1, 0.0],
+ *         blendMode: BlendMode.AlphaBlend,
+ *     }))
+ *     .build();
+ * ```
+ */
+export class MaterialComponent {
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(MaterialComponent.prototype);
+        obj.__wbg_ptr = ptr;
+        MaterialComponentFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        MaterialComponentFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_materialcomponent_free(ptr, 0);
+    }
+    /**
+     * Get alpha cutoff
+     * @returns {number}
+     */
+    alpha_cutoff() {
+        const ret = wasm.materialcomponent_alpha_cutoff(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * Get blend mode
+     * @returns {BlendMode}
+     */
+    blend_mode() {
+        const ret = wasm.materialcomponent_blend_mode(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * Get color multiply
+     * @returns {Float32Array}
+     */
+    color_multiply() {
+        const ret = wasm.materialcomponent_color_multiply(this.__wbg_ptr);
+        var v1 = getArrayF32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Create with default values
+     * @returns {MaterialComponent}
+     */
+    static default_material() {
+        const ret = wasm.materialcomponent_default_material();
+        return MaterialComponent.__wrap(ret);
+    }
+    /**
+     * Get emission
+     * @returns {Float32Array}
+     */
+    emission() {
+        const ret = wasm.materialcomponent_emission(this.__wbg_ptr);
+        var v1 = getArrayF32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Create a new material component
+     *
+     * # Arguments
+     * * `config` - MaterialConfig object with color, emission, blend mode
+     * @param {MaterialConfig} config
+     */
+    constructor(config) {
+        _assertClass(config, MaterialConfig);
+        const ret = wasm.materialcomponent_new(config.__wbg_ptr);
+        this.__wbg_ptr = ret >>> 0;
+        MaterialComponentFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * Set blend mode
+     * @param {BlendMode} mode
+     */
+    set_blend_mode(mode) {
+        wasm.materialcomponent_set_blend_mode(this.__wbg_ptr, mode);
+    }
+    /**
+     * Set color multiply
+     * @param {Float32Array} color
+     */
+    set_color_multiply(color) {
+        const ptr0 = passArrayF32ToWasm0(color, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.materialcomponent_set_color_multiply(this.__wbg_ptr, ptr0, len0);
+    }
+    /**
+     * Set emission
+     * @param {Float32Array} emission
+     */
+    set_emission(emission) {
+        const ptr0 = passArrayF32ToWasm0(emission, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.materialcomponent_set_emission(this.__wbg_ptr, ptr0, len0);
+    }
+    /**
+     * Set shader ID
+     * @param {number} shader_id
+     */
+    set_shader_id(shader_id) {
+        wasm.materialcomponent_set_shader_id(this.__wbg_ptr, shader_id);
+    }
+    /**
+     * Get shader ID
+     * @returns {number}
+     */
+    shader_id() {
+        const ret = wasm.animationcomponent_frame_count(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Create with specific blend mode
+     * @param {BlendMode} mode
+     * @returns {MaterialComponent}
+     */
+    with_blend_mode(mode) {
+        const ptr = this.__destroy_into_raw();
+        const ret = wasm.materialcomponent_with_blend_mode(ptr, mode);
+        return MaterialComponent.__wrap(ret);
+    }
+    /**
+     * Create with color multiply
+     * @param {Float32Array} color
+     * @returns {MaterialComponent}
+     */
+    with_color_multiply(color) {
+        const ptr = this.__destroy_into_raw();
+        const ptr0 = passArrayF32ToWasm0(color, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.materialcomponent_with_color_multiply(ptr, ptr0, len0);
+        return MaterialComponent.__wrap(ret);
+    }
+    /**
+     * Create with custom shader
+     * @param {number} shader_id
+     * @returns {MaterialComponent}
+     */
+    with_shader(shader_id) {
+        const ptr = this.__destroy_into_raw();
+        const ret = wasm.materialcomponent_with_shader(ptr, shader_id);
+        return MaterialComponent.__wrap(ret);
+    }
+}
+if (Symbol.dispose) MaterialComponent.prototype[Symbol.dispose] = MaterialComponent.prototype.free;
+
+/**
+ * Material configuration for JavaScript (using getters/setters for WASM)
+ */
+export class MaterialConfig {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        MaterialConfigFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_materialconfig_free(ptr, 0);
+    }
+    /**
+     * Get alpha cutoff
+     * @returns {number}
+     */
+    alpha_cutoff() {
+        const ret = wasm.materialcomponent_alpha_cutoff(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * Get blend mode
+     * @returns {BlendMode}
+     */
+    blend_mode() {
+        const ret = wasm.materialcomponent_blend_mode(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * Get color multiply [r, g, b, a]
+     * @returns {Float32Array}
+     */
+    color_multiply() {
+        const ret = wasm.materialconfig_color_multiply(this.__wbg_ptr);
+        var v1 = getArrayF32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Get emission color [r, g, b]
+     * @returns {Float32Array}
+     */
+    emission() {
+        const ret = wasm.materialconfig_emission(this.__wbg_ptr);
+        var v1 = getArrayF32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    constructor() {
+        const ret = wasm.materialcomponent_default_material();
+        this.__wbg_ptr = ret >>> 0;
+        MaterialConfigFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * Set alpha cutoff
+     * @param {number} value
+     */
+    set_alpha_cutoff(value) {
+        wasm.materialconfig_set_alpha_cutoff(this.__wbg_ptr, value);
+    }
+    /**
+     * Set blend mode
+     * @param {BlendMode} mode
+     */
+    set_blend_mode(mode) {
+        wasm.materialcomponent_set_blend_mode(this.__wbg_ptr, mode);
+    }
+    /**
+     * Set color multiply [r, g, b, a]
+     * @param {number} r
+     * @param {number} g
+     * @param {number} b
+     * @param {number} a
+     */
+    set_color_multiply(r, g, b, a) {
+        wasm.materialconfig_set_color_multiply(this.__wbg_ptr, r, g, b, a);
+    }
+    /**
+     * Set emission color [r, g, b]
+     * @param {number} r
+     * @param {number} g
+     * @param {number} b
+     */
+    set_emission(r, g, b) {
+        wasm.materialconfig_set_emission(this.__wbg_ptr, r, g, b);
+    }
+    /**
+     * Set shader ID
+     * @param {number} id
+     */
+    set_shader_id(id) {
+        wasm.materialcomponent_set_shader_id(this.__wbg_ptr, id);
+    }
+    /**
+     * Get shader ID
+     * @returns {number}
+     */
+    shader_id() {
+        const ret = wasm.animationcomponent_frame_count(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+}
+if (Symbol.dispose) MaterialConfig.prototype[Symbol.dispose] = MaterialConfig.prototype.free;
+
+/**
  * Configuration for move actuator
  */
 export class MoveConfig {
@@ -2173,6 +3327,202 @@ export class MoveConfig {
     }
 }
 if (Symbol.dispose) MoveConfig.prototype[Symbol.dispose] = MoveConfig.prototype.free;
+
+/**
+ * Post-processing effect types (WASM version using structs)
+ */
+export class PostEffect {
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(PostEffect.prototype);
+        obj.__wbg_ptr = ptr;
+        PostEffectFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        PostEffectFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_posteffect_free(ptr, 0);
+    }
+    /**
+     * Create a color grading effect
+     *
+     * # Arguments
+     * * `brightness` - Brightness adjustment (-1.0 to 1.0)
+     * * `contrast` - Contrast adjustment (0.0 to 2.0)
+     * * `saturation` - Saturation adjustment (0.0 to 2.0)
+     * * `temperature` - Color temperature (-1.0 to 1.0)
+     * @param {number} brightness
+     * @param {number} contrast
+     * @param {number} saturation
+     * @param {number} _temperature
+     * @returns {PostEffect}
+     */
+    static color_grading(brightness, contrast, saturation, _temperature) {
+        const ret = wasm.effect_color_grading(brightness, contrast, saturation, _temperature);
+        return PostEffect.__wrap(ret);
+    }
+    /**
+     * Get effect type
+     * @returns {string}
+     */
+    effect_type() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.posteffect_effect_type(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * Create a grayscale effect
+     *
+     * # Arguments
+     * * `intensity` - Grayscale intensity (0.0 to 1.0)
+     * @param {number} intensity
+     * @returns {PostEffect}
+     */
+    static grayscale(intensity) {
+        const ret = wasm.effect_grayscale(intensity);
+        return PostEffect.__wrap(ret);
+    }
+    /**
+     * Create a bloom effect
+     *
+     * # Arguments
+     * * `threshold` - Minimum brightness to trigger bloom (0.0-1.0)
+     * * `intensity` - Bloom strength (0.0-2.0)
+     * * `radius` - Blur radius (0.0-1.0)
+     * @param {number} threshold
+     * @param {number} intensity
+     * @param {number} radius
+     */
+    constructor(threshold, intensity, radius) {
+        const ret = wasm.effect_bloom(threshold, intensity, radius);
+        this.__wbg_ptr = ret >>> 0;
+        PostEffectFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * Get param1 (threshold/brightness/intensity)
+     * @returns {number}
+     */
+    param1() {
+        const ret = wasm.posteffect_param1(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * Get param2 (intensity/contrast)
+     * @returns {number}
+     */
+    param2() {
+        const ret = wasm.posteffect_param2(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * Get param3 (radius/saturation/temperature)
+     * @returns {number}
+     */
+    param3() {
+        const ret = wasm.posteffect_param3(this.__wbg_ptr);
+        return ret;
+    }
+}
+if (Symbol.dispose) PostEffect.prototype[Symbol.dispose] = PostEffect.prototype.free;
+
+/**
+ * Post-processing pipeline for screen-wide effects
+ *
+ * Use:
+ * ```javascript
+ * const pipeline = bridge.postProcess();
+ * pipeline.addEffect(Effect.bloom(0.8, 0.5, 0.5));
+ * ```
+ */
+export class PostProcessPipeline {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        PostProcessPipelineFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_postprocesspipeline_free(ptr, 0);
+    }
+    /**
+     * Add an effect to the pipeline
+     * @param {PostEffect} effect
+     */
+    add_effect(effect) {
+        _assertClass(effect, PostEffect);
+        var ptr0 = effect.__destroy_into_raw();
+        wasm.postprocesspipeline_add_effect(this.__wbg_ptr, ptr0);
+    }
+    /**
+     * Clear all effects
+     */
+    clear() {
+        wasm.postprocesspipeline_clear(this.__wbg_ptr);
+    }
+    /**
+     * Check if empty
+     * @returns {boolean}
+     */
+    is_empty() {
+        const ret = wasm.postprocesspipeline_is_empty(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
+     * Check if enabled
+     * @returns {boolean}
+     */
+    is_enabled() {
+        const ret = wasm.postprocesspipeline_is_enabled(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
+     * Get number of effects
+     * @returns {number}
+     */
+    len() {
+        const ret = wasm.postprocesspipeline_len(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Create a new post-process pipeline
+     */
+    constructor() {
+        const ret = wasm.postprocesspipeline_new();
+        this.__wbg_ptr = ret >>> 0;
+        PostProcessPipelineFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * Remove an effect by index
+     * @param {number} index
+     */
+    remove_effect(index) {
+        wasm.postprocesspipeline_remove_effect(this.__wbg_ptr, index);
+    }
+    /**
+     * Enable/disable pipeline
+     * @param {boolean} enabled
+     */
+    set_enabled(enabled) {
+        wasm.postprocesspipeline_set_enabled(this.__wbg_ptr, enabled);
+    }
+}
+if (Symbol.dispose) PostProcessPipeline.prototype[Symbol.dispose] = PostProcessPipeline.prototype.free;
 
 /**
  * Configuration for property actuator
@@ -2413,7 +3763,7 @@ export const SelectModeWasm = Object.freeze({
  *
  * const sensor = SensorType.MouseOver;
  * ```
- * @enum {0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}
+ * @enum {0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13}
  */
 export const SensorType = Object.freeze({
     /**
@@ -2452,7 +3802,170 @@ export const SensorType = Object.freeze({
      * Right mouse button click
      */
     RightClick: 8, "8": "RightClick",
+    /**
+     * Always sensor - constantly active every frame
+     */
+    Always: 9, "9": "Always",
+    /**
+     * Property sensor - detects changes in entity properties
+     */
+    Property: 10, "10": "Property",
+    /**
+     * Ray sensor - line of sight detection
+     */
+    Ray: 11, "11": "Ray",
+    /**
+     * Timer sensor - activates after a delay
+     */
+    Timer: 12, "12": "Timer",
+    /**
+     * Channel sensor - listens for messages on a channel
+     */
+    Channel: 13, "13": "Channel",
 });
+
+/**
+ * Constants for sensor types (matching SensorType enum)
+ */
+export class SensorTypes {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        SensorTypesFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_sensortypes_free(ptr, 0);
+    }
+    /**
+     * @returns {number}
+     */
+    static key_shortcut() {
+        const ret = wasm.actuatortypes_delete();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static mouse_click() {
+        const ret = wasm.actuatortypes_select();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static mouse_over() {
+        const ret = wasm.actuatortypes_highlight();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static proximity() {
+        const ret = wasm.actuatortypes_undo();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static radar() {
+        const ret = wasm.actuatortypes_redo();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static ray() {
+        const ret = wasm.actuatortypes_property();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static right_click() {
+        const ret = wasm.actuatortypes_move_actuator();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static touch() {
+        const ret = wasm.actuatortypes_camera();
+        return ret;
+    }
+}
+if (Symbol.dispose) SensorTypes.prototype[Symbol.dispose] = SensorTypes.prototype.free;
+
+export class ShapeTypes {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        ShapeTypesFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_shapetypes_free(ptr, 0);
+    }
+    /**
+     * @returns {number}
+     */
+    static arc() {
+        const ret = wasm.actuatortypes_property();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static circle() {
+        const ret = wasm.actuatortypes_select();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static cylinder() {
+        const ret = wasm.actuatortypes_redo();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static diamond() {
+        const ret = wasm.actuatortypes_undo();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static ellipse() {
+        const ret = wasm.actuatortypes_move_actuator();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static line() {
+        const ret = wasm.actuatortypes_camera();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static rectangle() {
+        const ret = wasm.actuatortypes_highlight();
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    static triangle() {
+        const ret = wasm.actuatortypes_delete();
+        return ret;
+    }
+}
+if (Symbol.dispose) ShapeTypes.prototype[Symbol.dispose] = ShapeTypes.prototype.free;
 
 /**
  * SignalByte WASM wrapper
@@ -2695,6 +4208,183 @@ export class SignalByteWasm {
     }
 }
 if (Symbol.dispose) SignalByteWasm.prototype[Symbol.dispose] = SignalByteWasm.prototype.free;
+
+/**
+ * Texture Atlas Component for sprite rendering
+ *
+ * Use with JsEntityBuilder:
+ * ```javascript
+ * bridge.world.spawn()
+ *     .insert(TextureAtlasComponent.new(0, 32, 32, 4, 4))
+ *     .build();
+ * ```
+ */
+export class TextureAtlasComponent {
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(TextureAtlasComponent.prototype);
+        obj.__wbg_ptr = ptr;
+        TextureAtlasComponentFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        TextureAtlasComponentFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_textureatlascomponent_free(ptr, 0);
+    }
+    /**
+     * Get columns
+     * @returns {number}
+     */
+    columns() {
+        const ret = wasm.textureatlascomponent_columns(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Get current sprite index
+     * @returns {number}
+     */
+    current_sprite() {
+        const ret = wasm.animationclip_end_frame(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Get UV coordinates for current sprite
+     * @returns {Float32Array}
+     */
+    current_uv() {
+        const ret = wasm.textureatlascomponent_current_uv(this.__wbg_ptr);
+        var v1 = getArrayF32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Get/Set flip horizontally
+     * @returns {boolean}
+     */
+    flip_x() {
+        const ret = wasm.textureatlascomponent_flip_x(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
+     * Get/Set flip vertically
+     * @returns {boolean}
+     */
+    flip_y() {
+        const ret = wasm.textureatlascomponent_flip_y(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
+     * Create from atlas ID with sprite index
+     * @param {number} atlas_id
+     * @param {number} sprite_index
+     * @param {number} columns
+     * @param {number} rows
+     * @returns {TextureAtlasComponent}
+     */
+    static from_atlas(atlas_id, sprite_index, columns, rows) {
+        const ret = wasm.textureatlascomponent_from_atlas(atlas_id, sprite_index, columns, rows);
+        return TextureAtlasComponent.__wrap(ret);
+    }
+    /**
+     * Get UV coordinates for a sprite by index
+     * Returns array [u0, v0, u1, v1]
+     * @param {number} index
+     * @returns {Float32Array}
+     */
+    get_uv(index) {
+        const ret = wasm.textureatlascomponent_get_uv(this.__wbg_ptr, index);
+        var v1 = getArrayF32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Create a new texture atlas component
+     *
+     * # Arguments
+     * * `texture_index` - Index into the texture array
+     * * `sprite_width` - Width of each sprite in pixels
+     * * `sprite_height` - Height of each sprite in pixels
+     * * `columns` - Number of columns in the atlas
+     * * `rows` - Number of rows in the atlas
+     * @param {number} texture_index
+     * @param {number} sprite_width
+     * @param {number} sprite_height
+     * @param {number} columns
+     * @param {number} rows
+     */
+    constructor(texture_index, sprite_width, sprite_height, columns, rows) {
+        const ret = wasm.textureatlascomponent_new(texture_index, sprite_width, sprite_height, columns, rows);
+        this.__wbg_ptr = ret >>> 0;
+        TextureAtlasComponentFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * Get rows
+     * @returns {number}
+     */
+    rows() {
+        const ret = wasm.animationclip_start_frame(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @param {boolean} flip
+     */
+    set_flip_x(flip) {
+        wasm.textureatlascomponent_set_flip_x(this.__wbg_ptr, flip);
+    }
+    /**
+     * @param {boolean} flip
+     */
+    set_flip_y(flip) {
+        wasm.textureatlascomponent_set_flip_y(this.__wbg_ptr, flip);
+    }
+    /**
+     * Set sprite index
+     * @param {number} index
+     */
+    set_sprite(index) {
+        wasm.textureatlascomponent_set_sprite(this.__wbg_ptr, index);
+    }
+    /**
+     * Get total number of sprites in atlas
+     * @returns {number}
+     */
+    sprite_count() {
+        const ret = wasm.textureatlascomponent_sprite_count(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Get sprite height
+     * @returns {number}
+     */
+    sprite_height() {
+        const ret = wasm.textureatlascomponent_sprite_height(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Get sprite width
+     * @returns {number}
+     */
+    sprite_width() {
+        const ret = wasm.textureatlascomponent_sprite_width(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Get texture index
+     * @returns {number}
+     */
+    texture_index() {
+        const ret = wasm.textureatlascomponent_texture_index(this.__wbg_ptr);
+        return ret;
+    }
+}
+if (Symbol.dispose) TextureAtlasComponent.prototype[Symbol.dispose] = TextureAtlasComponent.prototype.free;
 
 export class WasmBridge {
     __destroy_into_raw() {
@@ -3321,6 +5011,22 @@ export class WasmBridge {
         return ret >>> 0;
     }
     /**
+     * Get ECS component count for diagnostics
+     * @returns {number}
+     */
+    get_ecs_component_count() {
+        const ret = wasm.wasmbridge_get_ecs_component_count(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Get ECS entity count for diagnostics
+     * @returns {number}
+     */
+    get_ecs_entity_count() {
+        const ret = wasm.wasmbridge_get_ecs_entity_count(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
      * Get entity color as hex string
      * @param {number} entity_index
      * @returns {string}
@@ -3940,11 +5646,11 @@ export class WasmBridge {
      * * `button` - Mouse button that was released
      * @param {number} screen_x
      * @param {number} screen_y
-     * @param {number} button
+     * @param {number} _button
      * @param {number} modifiers
      */
-    on_mouse_up(screen_x, screen_y, button, modifiers) {
-        wasm.wasmbridge_on_mouse_up(this.__wbg_ptr, screen_x, screen_y, button, modifiers);
+    on_mouse_up(screen_x, screen_y, _button, modifiers) {
+        wasm.wasmbridge_on_mouse_up(this.__wbg_ptr, screen_x, screen_y, _button, modifiers);
     }
     /**
      * Report mouse wheel event to Logic Bricks sensors
@@ -4120,12 +5826,41 @@ export class WasmBridge {
         return v1;
     }
     /**
+     * Query entities by shape type using ECS
+     *
+     * shape_type: 0=rectangle, 1=circle, 2=triangle, etc.
+     * @param {number} shape_type
+     * @returns {Uint32Array}
+     */
+    query_by_shape_type(shape_type) {
+        const ret = wasm.wasmbridge_query_by_shape_type(this.__wbg_ptr, shape_type);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
      * Query entities by visibility
      * @param {boolean} visible
      * @returns {Uint32Array}
      */
     query_by_visibility(visible) {
         const ret = wasm.wasmbridge_query_by_visibility(this.__wbg_ptr, visible);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Query all entities with ColorComponent using ECS
+     * @returns {Uint32Array}
+     */
+    query_color_components() {
+        const ret = wasm.wasmbridge_query_color_components(this.__wbg_ptr);
         if (ret[3]) {
             throw takeFromExternrefTable0(ret[2]);
         }
@@ -4143,6 +5878,34 @@ export class WasmBridge {
      */
     query_in_bounds(x, y, width, height) {
         const ret = wasm.wasmbridge_query_in_bounds(this.__wbg_ptr, x, y, width, height);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Query all entities with ShapeComponent using ECS
+     *
+     * Returns entity indices that have a ShapeComponent attached.
+     * @returns {Uint32Array}
+     */
+    query_shape_components() {
+        const ret = wasm.wasmbridge_query_shape_components(this.__wbg_ptr);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Query all visible entities using ECS
+     * @returns {Uint32Array}
+     */
+    query_visible_entities() {
+        const ret = wasm.wasmbridge_query_visible_entities(this.__wbg_ptr);
         if (ret[3]) {
             throw takeFromExternrefTable0(ret[2]);
         }
@@ -4457,7 +6220,7 @@ export class WasmBridge {
     /**
      * Set the shape type of an entity
      *
-     * DEPRECATED: Use PropertyActuator via Logic Bricks instead
+     * DEPRECATED: Use JsEntityBuilder.shape() or ShapeComponent ECS instead
      * @param {number} entity_index
      * @param {number} shape
      */
@@ -5603,13 +7366,13 @@ function __wbg_get_imports() {
             return ret;
         },
         __wbindgen_cast_0000000000000001: function(arg0, arg1) {
-            // Cast intrinsic for `Closure(Closure { dtor_idx: 40, function: Function { arguments: [NamedExternref("Event")], shim_idx: 41, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
-            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h6975b13b2832bb36, wasm_bindgen__convert__closures_____invoke__h207716ce1ea1c173);
+            // Cast intrinsic for `Closure(Closure { dtor_idx: 52, function: Function { arguments: [NamedExternref("Event")], shim_idx: 55, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
+            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h3f766b855f724bd7, wasm_bindgen__convert__closures_____invoke__h3e58ee20b5cc64ab);
             return ret;
         },
         __wbindgen_cast_0000000000000002: function(arg0, arg1) {
-            // Cast intrinsic for `Closure(Closure { dtor_idx: 40, function: Function { arguments: [], shim_idx: 43, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
-            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h6975b13b2832bb36, wasm_bindgen__convert__closures_____invoke__h2d5077db8bfe2045);
+            // Cast intrinsic for `Closure(Closure { dtor_idx: 52, function: Function { arguments: [], shim_idx: 53, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
+            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h3f766b855f724bd7, wasm_bindgen__convert__closures_____invoke__hf1efe96af13873e8);
             return ret;
         },
         __wbindgen_cast_0000000000000003: function(arg0) {
@@ -5648,14 +7411,23 @@ function __wbg_get_imports() {
     };
 }
 
-function wasm_bindgen__convert__closures_____invoke__h2d5077db8bfe2045(arg0, arg1) {
-    wasm.wasm_bindgen__convert__closures_____invoke__h2d5077db8bfe2045(arg0, arg1);
+function wasm_bindgen__convert__closures_____invoke__hf1efe96af13873e8(arg0, arg1) {
+    wasm.wasm_bindgen__convert__closures_____invoke__hf1efe96af13873e8(arg0, arg1);
 }
 
-function wasm_bindgen__convert__closures_____invoke__h207716ce1ea1c173(arg0, arg1, arg2) {
-    wasm.wasm_bindgen__convert__closures_____invoke__h207716ce1ea1c173(arg0, arg1, arg2);
+function wasm_bindgen__convert__closures_____invoke__h3e58ee20b5cc64ab(arg0, arg1, arg2) {
+    wasm.wasm_bindgen__convert__closures_____invoke__h3e58ee20b5cc64ab(arg0, arg1, arg2);
 }
 
+const ActuatorTypesFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_actuatortypes_free(ptr >>> 0, 1));
+const AnimationClipFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_animationclip_free(ptr >>> 0, 1));
+const AnimationComponentFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_animationcomponent_free(ptr >>> 0, 1));
 const BrickChainBuilderFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_brickchainbuilder_free(ptr >>> 0, 1));
@@ -5674,6 +7446,12 @@ const CameraConfigFinalization = (typeof FinalizationRegistry === 'undefined')
 const ControllerFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_controller_free(ptr >>> 0, 1));
+const ControllerTypesFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_controllertypes_free(ptr >>> 0, 1));
+const EffectFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_effect_free(ptr >>> 0, 1));
 const EventRingBufferWasmFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_eventringbufferwasm_free(ptr >>> 0, 1));
@@ -5683,6 +7461,12 @@ const EventTypeFinalization = (typeof FinalizationRegistry === 'undefined')
 const HighlightConfigFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_highlightconfig_free(ptr >>> 0, 1));
+const JsBehaviorBlockFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_jsbehaviorblock_free(ptr >>> 0, 1));
+const JsEntityBuilderFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_jsentitybuilder_free(ptr >>> 0, 1));
 const JsEntityCommandBufferFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_jsentitycommandbuffer_free(ptr >>> 0, 1));
@@ -5704,9 +7488,21 @@ const LogicMappingTableWasmFinalization = (typeof FinalizationRegistry === 'unde
 const LogicSystemWasmFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_logicsystemwasm_free(ptr >>> 0, 1));
+const MaterialComponentFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_materialcomponent_free(ptr >>> 0, 1));
+const MaterialConfigFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_materialconfig_free(ptr >>> 0, 1));
 const MoveConfigFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_moveconfig_free(ptr >>> 0, 1));
+const PostEffectFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_posteffect_free(ptr >>> 0, 1));
+const PostProcessPipelineFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_postprocesspipeline_free(ptr >>> 0, 1));
 const PropertyConfigFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_propertyconfig_free(ptr >>> 0, 1));
@@ -5716,9 +7512,18 @@ const PropertyValueFinalization = (typeof FinalizationRegistry === 'undefined')
 const PulseWasmFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_pulsewasm_free(ptr >>> 0, 1));
+const SensorTypesFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_sensortypes_free(ptr >>> 0, 1));
+const ShapeTypesFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_shapetypes_free(ptr >>> 0, 1));
 const SignalByteWasmFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_signalbytewasm_free(ptr >>> 0, 1));
+const TextureAtlasComponentFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_textureatlascomponent_free(ptr >>> 0, 1));
 const WasmBridgeFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_wasmbridge_free(ptr >>> 0, 1));

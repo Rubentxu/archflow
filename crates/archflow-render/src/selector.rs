@@ -144,6 +144,7 @@ impl RendererSelector {
 
     /// Check if WebGPU is available
     #[cfg(feature = "wasm-bindgen")]
+    #[allow(dead_code)]
     fn has_webgpu() -> bool {
         // Simple check: WebGPU is available if we can access the window
         // The actual context creation will be attempted in detect_and_create
@@ -155,10 +156,7 @@ impl RendererSelector {
     fn has_webgl2(canvas: &web_sys::HtmlCanvasElement) -> bool {
         // Try to get a WebGL2 context
         let context = canvas.get_context("webgl2");
-        match context {
-            Ok(Some(_)) => true,
-            _ => false,
-        }
+        matches!(context, Ok(Some(_)))
     }
 }
 

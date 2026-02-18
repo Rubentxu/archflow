@@ -188,7 +188,7 @@ impl core::fmt::Display for ToolType {
     }
 }
 
-#[cfg(feature = "serde")]
+// Serde support for ToolType serialization
 mod serde_support {
     use super::*;
     use serde::{Deserialize, Deserializer, Serialize, Serializer};

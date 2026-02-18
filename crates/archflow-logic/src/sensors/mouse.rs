@@ -264,7 +264,7 @@ impl MouseSensor {
 
     /// Resize sensor to handle new entity capacity
     pub fn resize(&mut self, new_capacity: usize) {
-        let old_len = self.signals.len();
+        let _old_len = self.signals.len();
         self.signals.resize_with(new_capacity, SignalByte::default);
         self.pos_ticks.resize(new_capacity, 0);
         self.neg_ticks.resize(new_capacity, 0);

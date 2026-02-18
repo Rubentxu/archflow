@@ -8,7 +8,6 @@
 //
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 
-#![no_std]
 
 extern crate alloc;
 
@@ -656,7 +655,7 @@ impl BgeLogicSystem {
 
             ControllerComponent::Pulse {
                 tick_count,
-                controller,
+                controller: _,
             } => {
                 let state = self.pulse_states.entry(entity_id).or_default();
 
@@ -715,7 +714,7 @@ impl BgeLogicSystem {
                 }
             }
 
-            ControllerComponent::OneShot { controller } => {
+            ControllerComponent::OneShot { controller: _ } => {
                 let state = self.one_shot_states.entry(entity_id).or_default();
 
                 if sensor_state == SensorEvaluation::Active && !state.has_fired {

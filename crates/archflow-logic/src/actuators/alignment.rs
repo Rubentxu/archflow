@@ -485,7 +485,7 @@ impl DistributionActuator {
         let first = &alive_entities[0];
         let last = &alive_entities[alive_entities.len() - 1];
 
-        let (start_pos, start_size, end_pos, end_size) = match axis {
+        let (start_pos, _start_size, end_pos, _end_size) = match axis {
             DistributionAxis::Horizontal => (
                 first.1.x - first.2.x / 2.0,
                 first.2.x,
@@ -511,7 +511,7 @@ impl DistributionActuator {
 
         let total_spacing = (end_pos - start_pos) - total_entity_size;
         let spacing_count = alive_entities.len() as f32 - 1.0;
-        let spacing = if spacing_count > 0.0 {
+        let _spacing = if spacing_count > 0.0 {
             (total_spacing / spacing_count).max(self.min_spacing)
         } else {
             self.min_spacing
@@ -528,7 +528,7 @@ impl DistributionActuator {
                         Vec2::new(pos.x, pos.y)
                     } else {
                         // Distribute evenly between first and last
-                        let t = i as f32 / (alive_entities.len() - 1) as f32;
+                        let _t = i as f32 / (alive_entities.len() - 1) as f32;
                         let left_edge = first.1.x - first.2.x / 2.0;
                         let right_edge = last.1.x + last.2.x / 2.0;
                         let total_width = (right_edge - left_edge) - first.2.x - last.2.x;

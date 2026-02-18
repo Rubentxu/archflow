@@ -899,7 +899,7 @@ where
         behavior_map: &alloc::collections::BTreeMap<&str, &BehaviorDefinition>,
         factory: &F,
         entity_map: &mut alloc::collections::BTreeMap<alloc::string::String, crate::ecs::EntityId>,
-        parent_entity: Option<crate::ecs::EntityId>,
+        _parent_entity: Option<crate::ecs::EntityId>,
     ) -> Result<usize, SceneLoaderError> {
         // Create entity
         let entity = world.create_entity();

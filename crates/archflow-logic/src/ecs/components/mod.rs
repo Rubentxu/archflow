@@ -18,7 +18,6 @@
 // - TDD approach with comprehensive tests
 // ═══════════════════════════════════════════════════════════════════════════════
 
-#![no_std]
 
 use alloc::vec::Vec;
 use archflow_core::EntityId;
@@ -977,7 +976,7 @@ mod tests {
         let mut registry = ComponentRegistry::new();
         registry.register::<SignalStateComponent>();
 
-        let mut storage = registry.get_storage_mut::<SignalStateComponent>().unwrap();
+        let storage = registry.get_storage_mut::<SignalStateComponent>().unwrap();
         storage.insert(0, SignalStateComponent::new());
 
         let storage = registry.get_storage::<SignalStateComponent>().unwrap();
@@ -1037,7 +1036,7 @@ mod tests {
         let mut registry = ComponentRegistry::new();
         registry.register::<MouseSensorComponent>();
 
-        let mut storage = registry.get_storage_mut::<MouseSensorComponent>().unwrap();
+        let storage = registry.get_storage_mut::<MouseSensorComponent>().unwrap();
         storage.insert(0, MouseSensorComponent::new(100));
 
         let storage = registry.get_storage::<MouseSensorComponent>().unwrap();
@@ -1088,7 +1087,7 @@ mod tests {
         let mut registry = ComponentRegistry::new();
         registry.register::<HighlightActuatorComponent>();
 
-        let mut storage = registry
+        let storage = registry
             .get_storage_mut::<HighlightActuatorComponent>()
             .unwrap();
         storage.insert(0, HighlightActuatorComponent::new(0xFF0000FF));
@@ -1142,7 +1141,7 @@ mod tests {
         let mut registry = ComponentRegistry::new();
         registry.register::<SelectActuatorComponent>();
 
-        let mut storage = registry
+        let storage = registry
             .get_storage_mut::<SelectActuatorComponent>()
             .unwrap();
         storage.insert(0, SelectActuatorComponent::new());
@@ -1205,7 +1204,7 @@ mod tests {
         registry.register::<MoveActuatorComponent>();
 
         let start_pos = Vec2::new(100.0, 100.0);
-        let mut storage = registry.get_storage_mut::<MoveActuatorComponent>().unwrap();
+        let storage = registry.get_storage_mut::<MoveActuatorComponent>().unwrap();
         storage.insert(0, MoveActuatorComponent::new(start_pos));
 
         let storage = registry.get_storage::<MoveActuatorComponent>().unwrap();
@@ -1249,24 +1248,24 @@ mod tests {
 
         // Add all components to entity
         {
-            let mut signals = registry.get_storage_mut::<SignalStateComponent>().unwrap();
+            let signals = registry.get_storage_mut::<SignalStateComponent>().unwrap();
             signals.insert(entity_id, SignalStateComponent::new());
 
-            let mut mouse_sensors = registry.get_storage_mut::<MouseSensorComponent>().unwrap();
+            let mouse_sensors = registry.get_storage_mut::<MouseSensorComponent>().unwrap();
             mouse_sensors.insert(entity_id, MouseSensorComponent::new(100));
 
-            let mut highlights = registry
+            let highlights = registry
                 .get_storage_mut::<HighlightActuatorComponent>()
                 .unwrap();
             highlights.insert(entity_id, HighlightActuatorComponent::new(0xFF0000FF));
 
-            let mut selections = registry
+            let selections = registry
                 .get_storage_mut::<SelectActuatorComponent>()
                 .unwrap();
             selections.insert(entity_id, SelectActuatorComponent::new());
 
             let start_pos = Vec2::new(100.0, 100.0);
-            let mut moves = registry.get_storage_mut::<MoveActuatorComponent>().unwrap();
+            let moves = registry.get_storage_mut::<MoveActuatorComponent>().unwrap();
             moves.insert(entity_id, MoveActuatorComponent::new(start_pos));
         }
 
@@ -1291,7 +1290,7 @@ mod tests {
         let mut registry = ComponentRegistry::new();
         registry.register::<HighlightActuatorComponent>();
 
-        let mut storage = registry
+        let storage = registry
             .get_storage_mut::<HighlightActuatorComponent>()
             .unwrap();
         storage.insert(0, HighlightActuatorComponent::new(0xFF0000FF));
@@ -1316,7 +1315,7 @@ mod tests {
 
         // Add component
         {
-            let mut selections = registry
+            let selections = registry
                 .get_storage_mut::<SelectActuatorComponent>()
                 .unwrap();
             selections.insert(entity_id, SelectActuatorComponent::new());
@@ -1324,7 +1323,7 @@ mod tests {
 
         // Mutate component
         {
-            let mut selections = registry
+            let selections = registry
                 .get_storage_mut::<SelectActuatorComponent>()
                 .unwrap();
             selections
@@ -1343,7 +1342,7 @@ mod tests {
         registry.register::<SignalStateComponent>();
 
         // Add multiple components
-        let mut storage = registry.get_storage_mut::<SignalStateComponent>().unwrap();
+        let storage = registry.get_storage_mut::<SignalStateComponent>().unwrap();
         for i in 0..5 {
             storage.insert(i, SignalStateComponent::new());
         }
@@ -1398,7 +1397,7 @@ mod tests {
         registry.register::<MouseSensorComponent>();
 
         {
-            let mut storage = registry.get_storage_mut::<SignalStateComponent>().unwrap();
+            let storage = registry.get_storage_mut::<SignalStateComponent>().unwrap();
             storage.insert(0, SignalStateComponent::new());
         }
 
@@ -2750,7 +2749,7 @@ fn test_texture_atlas_in_registry() {
     let mut registry = ComponentRegistry::new();
     registry.register::<TextureAtlasComponent>();
 
-    let mut storage = registry.get_storage_mut::<TextureAtlasComponent>().unwrap();
+    let storage = registry.get_storage_mut::<TextureAtlasComponent>().unwrap();
     storage.insert(0, TextureAtlasComponent::new(0, 32, 32, 4, 4));
 
     let storage = registry.get_storage::<TextureAtlasComponent>().unwrap();
@@ -2849,7 +2848,7 @@ fn test_animation_component_in_registry() {
     let mut registry = ComponentRegistry::new();
     registry.register::<AnimationComponent>();
 
-    let mut storage = registry.get_storage_mut::<AnimationComponent>().unwrap();
+    let storage = registry.get_storage_mut::<AnimationComponent>().unwrap();
     storage.insert(0, AnimationComponent::new(8, 100));
 
     let storage = registry.get_storage::<AnimationComponent>().unwrap();
@@ -2950,7 +2949,7 @@ fn test_material_component_in_registry() {
     let mut registry = ComponentRegistry::new();
     registry.register::<MaterialComponent>();
 
-    let mut storage = registry.get_storage_mut::<MaterialComponent>().unwrap();
+    let storage = registry.get_storage_mut::<MaterialComponent>().unwrap();
     storage.insert(0, MaterialComponent::default());
 
     let storage = registry.get_storage::<MaterialComponent>().unwrap();

@@ -703,7 +703,7 @@ mod tests {
             ([0.0f32, 0.0, 0.0, 0.0], [0.0f32, 0.0, 0.0, 0.0]),
         ];
 
-        for (mut positions, velocities) in test_cases {
+        for (positions, velocities) in test_cases {
             let mut expected = positions;
             let delta = 0.016;
 

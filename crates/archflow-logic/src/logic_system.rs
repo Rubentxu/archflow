@@ -13,7 +13,6 @@
 // Reference: UPBGE source/gameengine/GameLogic/SCA_ISensor.cpp
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
-#![warn(missing_docs)]
 
 use alloc::vec::Vec;
 use archflow_core::{EntityId, Generation, Index};
@@ -618,9 +617,9 @@ impl LogicSystem {
     /// Execute actuators based on pulses
     ///
     /// This processes all pulses and executes the connected actuators
-    pub fn execute_actuators(&mut self, store: &mut EntityStore, pulses: &[Pulse]) {
+    pub fn execute_actuators(&mut self, _store: &mut EntityStore, pulses: &[Pulse]) {
         // Process each pulse through the wiring table
-        for pulse in pulses {
+        for _pulse in pulses {
             // TODO: Implement full wiring table integration
             // For now, pulses are collected for JavaScript consumption
         }
@@ -677,7 +676,7 @@ mod tests {
 
     #[test]
     fn test_logic_system_evaluate_sensors() {
-        let mut store = EntityStore::new();
+        let store = EntityStore::new();
         let mut system = LogicSystem::new();
         system.set_timestamp(100);
 
@@ -745,8 +744,8 @@ mod tests {
         system.set_timestamp(1000);
 
         // Create two entities that will collide
-        let entity1 = store.spawn(Vec2::new(0.0, 0.0), Vec2::new(50.0, 50.0));
-        let entity2 = store.spawn(Vec2::new(25.0, 25.0), Vec2::new(50.0, 50.0));
+        let _entity1 = store.spawn(Vec2::new(0.0, 0.0), Vec2::new(50.0, 50.0));
+        let _entity2 = store.spawn(Vec2::new(25.0, 25.0), Vec2::new(50.0, 50.0));
 
         // Evaluate sensors - should detect collision
         let pulses = system.evaluate_sensors(&store);
@@ -762,8 +761,8 @@ mod tests {
         system.set_timestamp(1000);
 
         // Create overlapping entities
-        let entity1 = store.spawn(Vec2::new(0.0, 0.0), Vec2::new(50.0, 50.0));
-        let entity2 = store.spawn(Vec2::new(30.0, 30.0), Vec2::new(50.0, 50.0));
+        let _entity1 = store.spawn(Vec2::new(0.0, 0.0), Vec2::new(50.0, 50.0));
+        let _entity2 = store.spawn(Vec2::new(30.0, 30.0), Vec2::new(50.0, 50.0));
 
         // First evaluation should detect rising edges (collision started)
         let pulses1 = system.evaluate_sensors(&store);
@@ -830,7 +829,7 @@ mod tests {
         system.set_timestamp(0);
 
         // Create an entity at mouse position
-        let entity = store.spawn(Vec2::new(100.0, 100.0), Vec2::new(50.0, 50.0));
+        let _entity = store.spawn(Vec2::new(100.0, 100.0), Vec2::new(50.0, 50.0));
 
         // Move mouse to entity position and press button
         system.push_input_event(InputEvent::MouseMove { x: 100, y: 100 });

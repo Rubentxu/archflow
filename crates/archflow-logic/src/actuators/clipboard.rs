@@ -391,7 +391,7 @@ impl PasteActuator {
             let new_id = store.spawn(adjusted_pos, entity.size);
 
             // Store original data for undo
-            let entity_id_for_undo = new_id;
+            let _entity_id_for_undo = new_id;
 
             commands.push(cmd);
             new_ids.push(new_id);

@@ -88,7 +88,7 @@ impl BrickChainBuilder {
 
     /// Add a keyboard key sensor (convenience)
     #[wasm_bindgen]
-    pub fn sensor_key(mut self, key_code: u32) -> Self {
+    pub fn sensor_key(mut self, _key_code: u32) -> Self {
         // Would create KeyShortcut sensor
         self.sensors.push(SensorType::KeyShortcut);
         self.last_node_type = Some(NodeType::Sensor);
