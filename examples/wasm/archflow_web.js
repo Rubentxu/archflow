@@ -5963,6 +5963,35 @@ export class WasmBridge {
         }
     }
     /**
+     * Convert screen coordinates to world coordinates
+     *
+     * This is the key function for positioning entities and handling user input.
+     *
+     * # Arguments
+     * * `screen_x` - X position in screen pixels (0 = left edge)
+     * * `screen_y` - Y position in screen pixels (0 = top edge)
+     *
+     * # Returns
+     * Array `[world_x, world_y]` in world coordinates
+     *
+     * # Example
+     * ```javascript
+     * // Convert click position to world coordinates
+     * const [wx, wy] = bridge.screen_to_world(clickX, clickY);
+     * bridge.spawn_entity(wx, wy, 100, 50);
+     * ```
+     * @param {number} screen_x
+     * @param {number} screen_y
+     * @returns {Array<any>}
+     */
+    screen_to_world(screen_x, screen_y) {
+        const ret = wasm.wasmbridge_screen_to_world(this.__wbg_ptr, screen_x, screen_y);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return takeFromExternrefTable0(ret[0]);
+    }
+    /**
      * Add an entity to the selection (toggle mode)
      * @param {number} entity_index
      */
@@ -6388,6 +6417,26 @@ export class WasmBridge {
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
         }
+    }
+    /**
+     * Convert world coordinates to screen coordinates
+     *
+     * # Arguments
+     * * `world_x` - X position in world coordinates
+     * * `world_y` - Y position in world coordinates
+     *
+     * # Returns
+     * Array `[screen_x, screen_y]` in screen pixels
+     * @param {number} world_x
+     * @param {number} world_y
+     * @returns {Array<any>}
+     */
+    world_to_screen(world_x, world_y) {
+        const ret = wasm.wasmbridge_world_to_screen(this.__wbg_ptr, world_x, world_y);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return takeFromExternrefTable0(ret[0]);
     }
 }
 if (Symbol.dispose) WasmBridge.prototype[Symbol.dispose] = WasmBridge.prototype.free;
@@ -7366,13 +7415,13 @@ function __wbg_get_imports() {
             return ret;
         },
         __wbindgen_cast_0000000000000001: function(arg0, arg1) {
-            // Cast intrinsic for `Closure(Closure { dtor_idx: 52, function: Function { arguments: [NamedExternref("Event")], shim_idx: 55, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
-            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h3f766b855f724bd7, wasm_bindgen__convert__closures_____invoke__h3e58ee20b5cc64ab);
+            // Cast intrinsic for `Closure(Closure { dtor_idx: 52, function: Function { arguments: [NamedExternref("Event")], shim_idx: 53, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
+            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h46ed242aab113b76, wasm_bindgen__convert__closures_____invoke__h3056ebddcd838737);
             return ret;
         },
         __wbindgen_cast_0000000000000002: function(arg0, arg1) {
-            // Cast intrinsic for `Closure(Closure { dtor_idx: 52, function: Function { arguments: [], shim_idx: 53, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
-            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h3f766b855f724bd7, wasm_bindgen__convert__closures_____invoke__hf1efe96af13873e8);
+            // Cast intrinsic for `Closure(Closure { dtor_idx: 52, function: Function { arguments: [], shim_idx: 55, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
+            const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h46ed242aab113b76, wasm_bindgen__convert__closures_____invoke__h32308df4baf53cf6);
             return ret;
         },
         __wbindgen_cast_0000000000000003: function(arg0) {
@@ -7411,12 +7460,12 @@ function __wbg_get_imports() {
     };
 }
 
-function wasm_bindgen__convert__closures_____invoke__hf1efe96af13873e8(arg0, arg1) {
-    wasm.wasm_bindgen__convert__closures_____invoke__hf1efe96af13873e8(arg0, arg1);
+function wasm_bindgen__convert__closures_____invoke__h32308df4baf53cf6(arg0, arg1) {
+    wasm.wasm_bindgen__convert__closures_____invoke__h32308df4baf53cf6(arg0, arg1);
 }
 
-function wasm_bindgen__convert__closures_____invoke__h3e58ee20b5cc64ab(arg0, arg1, arg2) {
-    wasm.wasm_bindgen__convert__closures_____invoke__h3e58ee20b5cc64ab(arg0, arg1, arg2);
+function wasm_bindgen__convert__closures_____invoke__h3056ebddcd838737(arg0, arg1, arg2) {
+    wasm.wasm_bindgen__convert__closures_____invoke__h3056ebddcd838737(arg0, arg1, arg2);
 }
 
 const ActuatorTypesFinalization = (typeof FinalizationRegistry === 'undefined')

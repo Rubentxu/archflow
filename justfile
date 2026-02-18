@@ -147,10 +147,13 @@ build-wasm:
     @echo "Building WASM..."
     @cd crates/archflow-wasm-bridge && wasm-pack build --target web --release
     @just sync-wasm-types
-    @mkdir -p examples/wasm
-    @cp crates/archflow-web-ui/src/wasm/archflow_web.js examples/wasm/
-    @cp crates/archflow-web-ui/src/wasm/archflow_web_bg.wasm examples/wasm/
-    @echo "WASM built and synced to examples/wasm/!"
+    @echo "Copying WASM to examples/pkg/..."
+    @mkdir -p examples/pkg
+    @cp crates/archflow-wasm-bridge/pkg/archflow_wasm_bridge.js examples/pkg/
+    @cp crates/archflow-wasm-bridge/pkg/archflow_wasm_bridge_bg.wasm examples/pkg/
+    @cp crates/archflow-wasm-bridge/pkg/archflow_wasm_bridge.d.ts examples/pkg/
+    @cp crates/archflow-wasm-bridge/pkg/archflow_wasm_bridge_bg.wasm.d.ts examples/pkg/
+    @echo "WASM built and synced to examples/pkg/!"
 
 # Sync WASM types to frontend
 [doc("Sync WASM types from Rust to TypeScript frontend")]
@@ -219,15 +222,17 @@ watch-all:
 # Serve examples with Vite dev server (builds WASM first, copies to examples)
 [doc("Serve examples with Vite dev server")]
 serve-examples: build-wasm
-    @echo "Copying WASM to examples..."
-    @mkdir -p examples/wasm
-    @cp crates/archflow-web-ui/src/wasm/archflow_web.js examples/wasm/
-    @cp crates/archflow-web-ui/src/wasm/archflow_web_bg.wasm examples/wasm/
-    @cp crates/archflow-web-ui/src/wasm/archflow_web.d.ts examples/wasm/
+    @echo "Copying WASM to examples/pkg/..."
+    @mkdir -p examples/pkg
+    @cp crates/archflow-wasm-bridge/pkg/archflow_wasm_bridge.js examples/pkg/
+    @cp crates/archflow-wasm-bridge/pkg/archflow_wasm_bridge_bg.wasm examples/pkg/
+    @cp crates/archflow-wasm-bridge/pkg/archflow_wasm_bridge.d.ts examples/pkg/
+    @cp crates/archflow-wasm-bridge/pkg/archflow_wasm_bridge_bg.wasm.d.ts examples/pkg/
     @echo ""
     @echo "Serving examples at http://localhost:5174"
     @echo ""
     @echo "Available examples:"
+    @echo "  - http://localhost:5174/examples/01-hello-world/"
     @echo "  - http://localhost:5174/examples/07-performance/"
     @echo ""
     @echo "Press Ctrl+C to stop"
@@ -237,11 +242,12 @@ serve-examples: build-wasm
 # Build examples for production
 [doc("Build examples for production")]
 build-examples: build-wasm
-    @echo "Copying WASM to examples..."
-    @mkdir -p examples/wasm
-    @cp crates/archflow-web-ui/src/wasm/archflow_web.js examples/wasm/
-    @cp crates/archflow-web-ui/src/wasm/archflow_web_bg.wasm examples/wasm/
-    @cp crates/archflow-web-ui/src/wasm/archflow_web.d.ts examples/wasm/
+    @echo "Copying WASM to examples/pkg/..."
+    @mkdir -p examples/pkg
+    @cp crates/archflow-wasm-bridge/pkg/archflow_wasm_bridge.js examples/pkg/
+    @cp crates/archflow-wasm-bridge/pkg/archflow_wasm_bridge_bg.wasm examples/pkg/
+    @cp crates/archflow-wasm-bridge/pkg/archflow_wasm_bridge.d.ts examples/pkg/
+    @cp crates/archflow-wasm-bridge/pkg/archflow_wasm_bridge_bg.wasm.d.ts examples/pkg/
     @echo "Building examples..."
     @cd {{PROJECT_ROOT}}/examples && npm run build
 

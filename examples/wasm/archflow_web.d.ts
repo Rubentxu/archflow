@@ -2871,6 +2871,26 @@ export class WasmBridge {
      */
     resize(width: number, height: number): void;
     /**
+     * Convert screen coordinates to world coordinates
+     *
+     * This is the key function for positioning entities and handling user input.
+     *
+     * # Arguments
+     * * `screen_x` - X position in screen pixels (0 = left edge)
+     * * `screen_y` - Y position in screen pixels (0 = top edge)
+     *
+     * # Returns
+     * Array `[world_x, world_y]` in world coordinates
+     *
+     * # Example
+     * ```javascript
+     * // Convert click position to world coordinates
+     * const [wx, wy] = bridge.screen_to_world(clickX, clickY);
+     * bridge.spawn_entity(wx, wy, 100, 50);
+     * ```
+     */
+    screen_to_world(screen_x: number, screen_y: number): Array<any>;
+    /**
      * Add an entity to the selection (toggle mode)
      */
     select_entity(entity_index: number): void;
@@ -3054,6 +3074,17 @@ export class WasmBridge {
      * Undo the last action
      */
     undo(): void;
+    /**
+     * Convert world coordinates to screen coordinates
+     *
+     * # Arguments
+     * * `world_x` - X position in world coordinates
+     * * `world_y` - Y position in world coordinates
+     *
+     * # Returns
+     * Array `[screen_x, screen_y]` in screen pixels
+     */
+    world_to_screen(world_x: number, world_y: number): Array<any>;
 }
 
 /**
@@ -3661,6 +3692,7 @@ export interface InitOutput {
     readonly wasmbridge_redo: (a: number) => [number, number];
     readonly wasmbridge_remove_sensor: (a: number, b: number, c: number) => [number, number];
     readonly wasmbridge_resize: (a: number, b: number, c: number) => [number, number];
+    readonly wasmbridge_screen_to_world: (a: number, b: number, c: number) => [number, number, number];
     readonly wasmbridge_select_entity: (a: number, b: number) => [number, number];
     readonly wasmbridge_serialize_project: (a: number) => [number, number, number];
     readonly wasmbridge_serialize_scene: (a: number) => [number, number, number, number];
@@ -3694,6 +3726,7 @@ export interface InitOutput {
     readonly wasmbridge_stop_sound: (a: number, b: number) => [number, number];
     readonly wasmbridge_tick: (a: number, b: number) => [number, number];
     readonly wasmbridge_undo: (a: number) => [number, number];
+    readonly wasmbridge_world_to_screen: (a: number, b: number, c: number) => [number, number, number];
     readonly __wbg_animationclip_free: (a: number, b: number) => void;
     readonly __wbg_animationcomponent_free: (a: number, b: number) => void;
     readonly __wbg_effect_free: (a: number, b: number) => void;
@@ -4092,9 +4125,9 @@ export interface InitOutput {
     readonly actuator_select_toggle: () => number;
     readonly highlightconfig_opacity: (a: number) => number;
     readonly moveconfig_snap: (a: number) => number;
-    readonly wasm_bindgen__closure__destroy__h3f766b855f724bd7: (a: number, b: number) => void;
-    readonly wasm_bindgen__convert__closures_____invoke__h3e58ee20b5cc64ab: (a: number, b: number, c: any) => void;
-    readonly wasm_bindgen__convert__closures_____invoke__hf1efe96af13873e8: (a: number, b: number) => void;
+    readonly wasm_bindgen__closure__destroy__h46ed242aab113b76: (a: number, b: number) => void;
+    readonly wasm_bindgen__convert__closures_____invoke__h3056ebddcd838737: (a: number, b: number, c: any) => void;
+    readonly wasm_bindgen__convert__closures_____invoke__h32308df4baf53cf6: (a: number, b: number) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_exn_store: (a: number) => void;

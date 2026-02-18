@@ -2560,6 +2560,57 @@ impl WasmBridge {
         }
     }
 
+    /// Convert screen coordinates to world coordinates
+    ///
+    /// This is the key function for positioning entities and handling user input.
+    ///
+    /// # Arguments
+    /// * `screen_x` - X position in screen pixels (0 = left edge)
+    /// * `screen_y` - Y position in screen pixels (0 = top edge)
+    ///
+    /// # Returns
+    /// Array `[world_x, world_y]` in world coordinates
+    ///
+    /// # Example
+    /// ```javascript
+    /// // Convert click position to world coordinates
+    /// const [wx, wy] = bridge.screen_to_world(clickX, clickY);
+    /// bridge.spawn_entity(wx, wy, 100, 50);
+    /// ```
+    #[wasm_bindgen]
+    pub fn screen_to_world(&self, screen_x: f32, screen_y: f32) -> Result<js_sys::Array, JsValue> {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            let world_pos = engine.screen_to_world(screen_x, screen_y);
+            let array = js_sys::Array::new();
+            array.push(&JsValue::from(world_pos.x));
+            array.push(&JsValue::from(world_pos.y));
+            Ok(array)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
+    /// Convert world coordinates to screen coordinates
+    ///
+    /// # Arguments
+    /// * `world_x` - X position in world coordinates
+    /// * `world_y` - Y position in world coordinates
+    ///
+    /// # Returns
+    /// Array `[screen_x, screen_y]` in screen pixels
+    #[wasm_bindgen]
+    pub fn world_to_screen(&self, world_x: f32, world_y: f32) -> Result<js_sys::Array, JsValue> {
+        if let Some(engine) = self.engine.borrow().as_ref() {
+            let (screen_x, screen_y) = engine.world_to_screen(archflow_core::Vec2::new(world_x, world_y));
+            let array = js_sys::Array::new();
+            array.push(&JsValue::from(screen_x));
+            array.push(&JsValue::from(screen_y));
+            Ok(array)
+        } else {
+            Err(JsError::new("Engine not initialized").into())
+        }
+    }
+
     /// Serialize the current project
     #[wasm_bindgen]
     pub fn serialize_project(&self) -> Result<js_sys::Uint8Array, JsValue> {
